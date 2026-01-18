@@ -48,14 +48,6 @@ internal sealed class Program
 
             var host = CreateHostBuilder(args).Build();
 
-            // Check if this is a JasperFx command (e.g., codegen write)
-            // If so, execute it and exit
-            var result = await host.RunJasperFxCommands(args);
-            if (result > 0)
-            {
-                return result;
-            }
-
             using var scope = host.Services.CreateScope();
             var services = scope.ServiceProvider;
 
