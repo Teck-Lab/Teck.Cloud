@@ -1,4 +1,4 @@
-﻿using Catalog.Application.Brands.Features.DeleteBrand.V1;
+using Catalog.Application.Brands.Features.DeleteBrand.V1;
 using FastEndpoints;
 using FluentValidation;
 

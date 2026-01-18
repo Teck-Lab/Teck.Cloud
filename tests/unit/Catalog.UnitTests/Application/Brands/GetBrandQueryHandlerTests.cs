@@ -1,6 +1,6 @@
 using Catalog.Application.Brands.Features.GetBrandById.V1;
-using Catalog.Application.Brands.Repositories;
 using Catalog.Application.Brands.ReadModels;
+using Catalog.Application.Brands.Repositories;
 using NSubstitute;
 using Shouldly;
 
@@ -14,11 +14,11 @@ namespace Catalog.UnitTests.Application.Brands
             // Arrange
             var cache = Substitute.For<IBrandCache>();
             var brandId = Guid.NewGuid();
-            var brandReadModel = new BrandReadModel 
-            { 
-                Id = brandId, 
-                Name = "Test Brand", 
-                Description = "Test Description" 
+            var brandReadModel = new BrandReadModel
+            {
+                Id = brandId,
+                Name = "Test Brand",
+                Description = "Test Description"
             };
 
             cache.GetOrSetByIdAsync(brandId, Arg.Any<bool>(), Arg.Any<CancellationToken>())

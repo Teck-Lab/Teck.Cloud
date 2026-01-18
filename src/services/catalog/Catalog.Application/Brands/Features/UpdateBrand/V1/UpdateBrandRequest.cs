@@ -1,4 +1,4 @@
-﻿namespace Catalog.Application.Brands.Features.UpdateBrand.V1
+namespace Catalog.Application.Brands.Features.UpdateBrand.V1
 {
     /// <summary>
     /// The update brand request.

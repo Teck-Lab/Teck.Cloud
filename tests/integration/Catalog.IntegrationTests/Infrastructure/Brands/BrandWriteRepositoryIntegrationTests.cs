@@ -1,6 +1,4 @@
-﻿#nullable enable
-using SharedKernel.Core.Database;
-using SharedKernel.Persistence.Database.EFCore;
+#nullable enable
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.BrandAggregate.Specifications;
 using Catalog.Infrastructure.Persistence;
@@ -8,6 +6,8 @@ using Catalog.Infrastructure.Persistence.Repositories.Write;
 using Catalog.IntegrationTests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.Database;
+using SharedKernel.Persistence.Database.EFCore;
 using Shouldly;
 
 namespace Catalog.IntegrationTests.Infrastructure.Brands

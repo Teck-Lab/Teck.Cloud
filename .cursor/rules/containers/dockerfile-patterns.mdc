@@ -1,0 +1,144 @@
+# Dockerfile Patterns for Teck.Cloud
+
+## Project-Specific Dockerfile Standards
+
+### Multi-Stage Build Pattern
+
+All Dockerfiles in this project follow a consistent multi-stage pattern:
+
+1. **Build Stage**: Compile and build the application
+2. **Publish Stage**: Create optimized output
+3. **Final Stage**: Minimal runtime image
+
+### Wolverine Code Generation Integration
+
+Services using Wolverine require code generation during the Docker build process.
+
+#### Required Pattern
+
+```dockerfile
+# Build with output directory specified
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet build "YourProject.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID /p:PublishReadyToRun=true
+
+# Generate Wolverine codegen with connection strings
+ENV ASPNETCORE_ENVIRONMENT=Development \
+    ConnectionStrings__postgres-write="${POSTGRES_CONNECTION}" \
+    ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
+RUN dotnet /app/build/YourProject.dll -- codegen write
+```
+
+#### ⚠️ Critical Rules
+
+1. **DO** use `-o /app/build` to specify explicit output directory in the build step
+   - This ensures the binary location is known and consistent
+   - The codegen step can then reference the exact path
+
+2. **DO** run the binary directly using `dotnet /app/build/YourProject.dll`
+   - Do NOT use `dotnet run` as it has issues with build output paths and configurations
+   - Direct execution is more reliable and explicit
+
+3. **DO** provide connection strings for codegen via build args and environment variables
+   - Pass `POSTGRES_CONNECTION` and `RABBITMQ_CONNECTION` as build args
+   - Set via environment variables before codegen step
+
+### Build Arguments
+
+Standard build arguments used across all Dockerfiles:
+
+```dockerfile
+ARG DOTNET_VERSION=10.0
+ARG BUILD_CONFIGURATION=Release
+ARG TARGETPLATFORM
+ARG POSTGRES_CONNECTION="Host=localhost;Database=catalog;Username=postgres;Password=postgres"
+ARG RABBITMQ_CONNECTION="amqp://guest:guest@localhost:5672/"
+```
+
+### Runtime Identifier (RID) Mapping
+
+Map Docker platform to .NET Runtime Identifier:
+
+```dockerfile
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        export RID=linux-musl-arm64; \
+    else \
+        export RID=linux-musl-x64; \
+    fi
+```
+
+### Base Images
+
+- **Build**: `mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine`
+- **Runtime (API)**: `mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine-composite`
+- **Runtime (Console)**: `mcr.microsoft.com/dotnet/runtime:${DOTNET_VERSION}-alpine-composite`
+
+### Optimization Flags
+
+#### Build Stage
+```dockerfile
+/p:PublishReadyToRun=false \
+/p:DebugType=none \
+/p:DebugSymbols=false \
+/p:RunAnalyzersDuringBuild=false \
+/p:EnforceCodeStyleInBuild=false \
+/p:TreatWarningsAsErrors=false
+```
+
+#### Publish Stage
+```dockerfile
+/p:UseAppHost=true \
+/p:PublishReadyToRun=true \
+/p:PublishTrimmed=true \
+/p:PublishSingleFile=false \
+/p:TrimMode=partial \
+/p:ServerGarbageCollection=true \
+/p:ConcurrentGarbageCollection=true
+```
+
+### Security Best Practices
+
+1. **Non-root user**:
+   ```dockerfile
+   RUN addgroup -g 1000 appgroup && \
+       adduser -u 1000 -G appgroup -s /bin/sh -D appuser
+   USER appuser
+   ```
+
+2. **Minimal permissions**:
+   ```dockerfile
+   RUN chmod -R 550 /app && chmod 770 /app
+   ```
+
+3. **Security updates**:
+   ```dockerfile
+   RUN apk upgrade --no-cache
+   ```
+
+### Layer Caching Strategy
+
+1. **Copy project files first** for restore layer caching
+2. **Copy source code after restore**
+3. **Use BuildKit cache mounts** for NuGet packages:
+   ```dockerfile
+   RUN --mount=type=cache,target=/root/.nuget/packages
+   ```
+
+### Working Directory Structure
+
+```
+/src
+├── Directory.Packages.props
+├── Directory.Build.props
+├── src/
+│   ├── services/
+│   ├── buildingblocks/
+│   └── aspire/
+```
+
+### Projects Using Wolverine Codegen
+
+Current projects requiring codegen:
+- `Catalog.Api`
+- `Catalog.Migrator`
+
+When adding new services with Wolverine, follow the established pattern in these Dockerfiles.

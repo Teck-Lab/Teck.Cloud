@@ -1,13 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock.Extensions.DependencyInjection;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using SharedKernel.Core.Exceptions;
 using StackExchange.Redis;
@@ -52,7 +50,6 @@ namespace SharedKernel.Infrastructure.Caching
             builder.Services.AddSingleton<IDistributedLockProvider>(_ =>
                 new RedisDistributedSynchronizationProvider(redisConnection.GetDatabase()));
 
-            builder.Services.AddMadelsonDistributedAccessLock();
             builder.Services.AddFusionCacheSystemTextJsonSerializer();
 
             builder.Services.AddHealthChecks().AddRedis(connectionString);

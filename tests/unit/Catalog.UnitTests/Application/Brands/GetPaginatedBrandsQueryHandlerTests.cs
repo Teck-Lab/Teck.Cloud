@@ -1,8 +1,8 @@
-using SharedKernel.Core.Pagination;
-using Catalog.Application.Brands.Features.Responses;
 using Catalog.Application.Brands.Features.GetPaginatedBrands.V1;
+using Catalog.Application.Brands.Features.Responses;
 using Catalog.Application.Brands.Repositories;
 using NSubstitute;
+using SharedKernel.Core.Pagination;
 using Shouldly;
 
 namespace Catalog.UnitTests.Application.Brands

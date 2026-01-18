@@ -176,9 +176,12 @@ public sealed class DatabaseProvider : SmartEnum<DatabaseProvider>
     /// <returns>True if compatible, otherwise false.</returns>
     public bool IsCompatibleWith(DatabaseOptions options)
     {
-        if (options.HasReadReplicas && !SupportsReadReplicas) return false;
-        if (options.RequiresAutoScaling && !SupportsAutoScaling) return false;
-        if (options.RequiresGeographicDistribution && !SupportsGeographicDistribution) return false;
+        if (options.HasReadReplicas && !SupportsReadReplicas)
+            return false;
+        if (options.RequiresAutoScaling && !SupportsAutoScaling)
+            return false;
+        if (options.RequiresGeographicDistribution && !SupportsGeographicDistribution)
+            return false;
 
         return true;
     }

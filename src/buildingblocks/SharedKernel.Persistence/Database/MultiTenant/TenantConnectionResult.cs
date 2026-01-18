@@ -74,7 +74,7 @@ public class TenantConnectionResult
         DatabaseProvider provider,
         DatabaseStrategy strategy,
         bool customerApiAvailable = true,
-        bool fromCache = false )
+        bool fromCache = false)
     {
         return new TenantConnectionResult
         {

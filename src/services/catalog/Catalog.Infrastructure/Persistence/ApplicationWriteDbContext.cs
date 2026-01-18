@@ -37,37 +37,37 @@ public class ApplicationWriteDbContext : BaseDbContext
     /// <summary>
     /// Gets or sets the brands.
     /// </summary>
-    public DbSet<Brand> Brands { get; set; }
+    public DbSet<Brand> Brands { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the products.
     /// </summary>
-    public DbSet<Product> Products { get; set; }
+    public DbSet<Product> Products { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the categories.
     /// </summary>
-    public DbSet<Category> Categories { get; set; }
+    public DbSet<Category> Categories { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the product prices.
     /// </summary>
-    public DbSet<ProductPrice> ProductPrices { get; set; }
+    public DbSet<ProductPrice> ProductPrices { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the product price types.
     /// </summary>
-    public DbSet<ProductPriceType> ProductPriceTypes { get; set; }
+    public DbSet<ProductPriceType> ProductPriceTypes { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the promotions.
     /// </summary>
-    public DbSet<Promotion> Promotions { get; set; }
+    public DbSet<Promotion> Promotions { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the suppliers.
     /// </summary>
-    public DbSet<Supplier> Suppliers { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; } = null!;
 
     private static bool WriteConfigFilter(Type type) =>
         type.FullName?.Contains("Config.Write", StringComparison.Ordinal) ?? false;

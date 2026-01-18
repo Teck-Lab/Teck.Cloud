@@ -1,9 +1,9 @@
-using SharedKernel.Core.Database;
-using SharedKernel.Persistence.Database.EFCore;
-using SharedKernel.Persistence.Database.EFCore.Interceptors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SharedKernel.Core.Database;
+using SharedKernel.Persistence.Database.EFCore;
+using SharedKernel.Persistence.Database.EFCore.Interceptors;
 using Wolverine;
 using Wolverine.RabbitMQ;
 using ZiggyCreatures.Caching.Fusion;

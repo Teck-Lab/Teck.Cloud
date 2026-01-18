@@ -1,7 +1,7 @@
 
-using SharedKernel.Core.Pagination;
 using Catalog.Application.Brands.Mappings;
 using Catalog.Domain.Entities.BrandAggregate;
+using SharedKernel.Core.Pagination;
 
 namespace Catalog.UnitTests.Application.Brands
 {

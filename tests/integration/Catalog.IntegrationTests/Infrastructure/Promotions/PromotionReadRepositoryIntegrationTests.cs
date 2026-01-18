@@ -1,6 +1,6 @@
 #nullable enable
-using Catalog.Application.Promotions.Repositories;
 using Catalog.Application.Promotions.ReadModels;
+using Catalog.Application.Promotions.Repositories;
 using Catalog.Infrastructure.Persistence;
 using Catalog.Infrastructure.Persistence.Repositories.Read;
 using Catalog.IntegrationTests.Shared;

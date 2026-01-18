@@ -1,4 +1,5 @@
 #nullable enable
+using System.Globalization;
 using AutoFixture;
 using AutoFixture.AutoNSubstitute;
 using Catalog.Domain.Entities.BrandAggregate;
@@ -6,7 +7,6 @@ using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.ProductAggregate.Events;
 using Shouldly;
-using System.Globalization;
 
 namespace Catalog.UnitTests.Domain.Products;
 

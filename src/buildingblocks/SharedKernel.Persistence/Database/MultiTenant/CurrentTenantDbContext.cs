@@ -1,5 +1,5 @@
-using SharedKernel.Persistence.Database.EFCore;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Persistence.Database.EFCore;
 
 namespace SharedKernel.Persistence.Database.MultiTenant
 {

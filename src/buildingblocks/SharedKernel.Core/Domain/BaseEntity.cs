@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
-using SharedKernel.Core.Events;
 using MassTransit;
+using SharedKernel.Core.Events;
 
 namespace SharedKernel.Core.Domain
 {

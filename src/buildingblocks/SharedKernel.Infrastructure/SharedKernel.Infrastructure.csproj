@@ -25,11 +25,6 @@
     <PackageReference Include="FluentStorage.AWS" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
-    <PackageReference Include="IdempotentAPI" />
-    <PackageReference Include="IdempotentAPI.Cache.DistributedCache" />
-    <PackageReference Include="IdempotentAPI.Cache.FusionCache" />
-    <PackageReference Include="IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock" />
-    <PackageReference Include="IdempotentAPI.MinimalAPI" />
     <PackageReference Include="Keycloak.AuthServices.Authentication" />
     <PackageReference Include="Keycloak.AuthServices.Authorization" />
     <PackageReference Include="Keycloak.AuthServices.Sdk" />

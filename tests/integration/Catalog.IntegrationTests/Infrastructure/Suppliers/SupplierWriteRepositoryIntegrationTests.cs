@@ -1,6 +1,4 @@
 #nullable enable
-using SharedKernel.Core.Database;
-using SharedKernel.Persistence.Database.EFCore;
 using Catalog.Domain.Entities.SupplierAggregate;
 using Catalog.Domain.Entities.SupplierAggregate.Repositories;
 using Catalog.Domain.Entities.SupplierAggregate.Specifications;
@@ -9,6 +7,8 @@ using Catalog.Infrastructure.Persistence.Repositories.Write;
 using Catalog.IntegrationTests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.Database;
+using SharedKernel.Persistence.Database.EFCore;
 using Shouldly;
 
 namespace Catalog.IntegrationTests.Infrastructure.Suppliers

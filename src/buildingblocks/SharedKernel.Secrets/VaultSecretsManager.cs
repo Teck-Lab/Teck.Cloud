@@ -21,6 +21,7 @@ public sealed class VaultSecretsManager : IVaultSecretsManager, IDisposable
     private readonly ILogger<VaultSecretsManager> _logger;
     private readonly TimeSpan _cacheDuration;
 
+    /// <inheritdoc/>
     public VaultSecretsManager(
         IOptions<VaultOptions> options,
         IMemoryCache cache,
@@ -271,6 +272,7 @@ public sealed class VaultSecretsManager : IVaultSecretsManager, IDisposable
         };
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         // VaultClient doesn't implement IDisposable, nothing to dispose

@@ -77,6 +77,22 @@ namespace Catalog.Domain.Entities.ProductPriceTypeAggregate
         /// <returns></returns>
         public static ErrorOr<ProductPriceType> Create(string name, int priority)
         {
+            var validationResult = ValidateCreation(name, priority);
+            if (validationResult.IsError)
+            {
+                return validationResult.Errors;
+            }
+
+            ProductPriceType productPriceType = new()
+            {
+                Name = name,
+                Priority = priority
+            };
+            return productPriceType;
+        }
+
+        private static ErrorOr<Success> ValidateCreation(string name, int priority)
+        {
             var errors = new List<Error>();
 
             if (string.IsNullOrWhiteSpace(name))
@@ -89,17 +105,7 @@ namespace Catalog.Domain.Entities.ProductPriceTypeAggregate
                 errors.Add(ProductPriceTypeErrors.NegativePriority);
             }
 
-            if (errors.Count != 0)
-            {
-                return errors;
-            }
-
-            ProductPriceType productPriceType = new()
-            {
-                Name = name,
-                Priority = priority
-            };
-            return productPriceType;
+            return errors.Count != 0 ? errors : Result.Success;
         }
     }
 }

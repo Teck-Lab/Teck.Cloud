@@ -1,7 +1,7 @@
-using Catalog.Application.Features.ProductPrices.Response;
-using Catalog.Application.Products.Responses;
 using Catalog.Application.Brands.Features.Responses;
 using Catalog.Application.Categories.Response;
+using Catalog.Application.Features.ProductPrices.Response;
+using Catalog.Application.Products.Responses;
 using Catalog.Application.Promotions.Response;
 
 namespace Catalog.UnitTests.Application.Products
@@ -44,12 +44,12 @@ namespace Catalog.UnitTests.Application.Products
                 BrandId = brandId,
                 Brand = brand
             };
-            
+
             // Add items to readonly collections
             resp.Categories.Add(new CategoryResponse { Name = "Cat" });
             resp.ProductPrices.Add(new ProductPriceResponse { SalePrice = 9.99m, CurrencyCode = "USD" });
             resp.Promotions.Add(new PromotionResponse { Name = "Promo", Description = "desc", ValidTo = DateTimeOffset.UtcNow });
-            
+
             Assert.Equal(id, resp.Id);
             Assert.Equal("Name", resp.Name);
             Assert.Equal("desc", resp.Description);

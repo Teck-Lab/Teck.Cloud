@@ -1,6 +1,6 @@
 using Catalog.Application.Products.Features.GetProductById.V1;
-using Catalog.Application.Products.Repositories;
 using Catalog.Application.Products.ReadModels;
+using Catalog.Application.Products.Repositories;
 using Catalog.Domain.Entities.ProductAggregate.Errors;
 using NSubstitute;
 

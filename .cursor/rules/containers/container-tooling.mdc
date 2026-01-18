@@ -1,0 +1,89 @@
+# Container Tooling Preferences
+
+## Container Runtime
+
+**Always use Podman instead of Docker for all container operations.**
+
+### Core Principles
+
+1. **Use Podman CLI**: All container commands should use `podman` instead of `docker`
+2. **Podman Compose**: Use `podman-compose` for multi-container orchestration (if applicable)
+3. **Drop-in Replacement**: Podman is a drop-in replacement for Docker with compatible CLI syntax
+
+### Command Examples
+
+#### Building Images
+```bash
+# ✅ Correct
+podman build -f src/services/catalog/Catalog.Api/Dockerfile -t catalog-api:latest .
+
+# ❌ Incorrect
+docker build -f src/services/catalog/Catalog.Api/Dockerfile -t catalog-api:latest .
+```
+
+#### Running Containers
+```bash
+# ✅ Correct
+podman run -d -p 8080:8080 catalog-api:latest
+
+# ❌ Incorrect
+docker run -d -p 8080:8080 catalog-api:latest
+```
+
+#### Managing Images
+```bash
+# ✅ Correct
+podman images
+podman rmi catalog-api:latest
+podman pull mcr.microsoft.com/dotnet/sdk:10.0
+
+# ❌ Incorrect
+docker images
+docker rmi catalog-api:latest
+docker pull mcr.microsoft.com/dotnet/sdk:10.0
+```
+
+#### Container Management
+```bash
+# ✅ Correct
+podman ps
+podman ps -a
+podman stop <container-id>
+podman rm <container-id>
+
+# ❌ Incorrect
+docker ps
+docker ps -a
+docker stop <container-id>
+docker rm <container-id>
+```
+
+### Platform-Specific Notes
+
+- **Windows**: Podman Desktop provides GUI management
+- **WSL2**: Podman can run rootless containers
+- **Multi-platform builds**: Use `podman buildx` for cross-platform images
+
+### GitHub Actions / CI/CD
+
+In CI/CD pipelines (GitHub Actions), Docker is used because:
+- GitHub-hosted runners have Docker pre-installed
+- Many GitHub Actions are designed for Docker
+- Enterprise runners may not have Podman
+
+**Rule**: Use Docker in CI/CD YAML files, but use Podman for local development commands and documentation.
+
+### When Providing Examples
+
+When suggesting container commands to the user:
+1. Always use `podman` for local development examples
+2. Use `docker` only in GitHub Actions workflow files
+3. If showing both, clearly label which is for local vs CI/CD
+4. Default to Podman unless context clearly indicates CI/CD
+
+### Documentation
+
+When updating or creating documentation:
+- Use Podman in README instructions
+- Include note about Docker compatibility if relevant
+- Reference Podman Desktop for Windows users

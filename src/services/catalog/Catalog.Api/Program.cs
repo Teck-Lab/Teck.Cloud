@@ -3,10 +3,10 @@ using Catalog.Api.Extensions;
 using Catalog.Application;
 using Catalog.Infrastructure.DependencyInjection;
 using Finbuckle.MultiTenant;
+using JasperFx;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Caching;
 using SharedKernel.Infrastructure.Endpoints;
-using SharedKernel.Infrastructure.Idempotency;
 using SharedKernel.Infrastructure.OpenApi;
 using SharedKernel.Infrastructure.Options;
 
@@ -30,7 +30,6 @@ builder.AddInfrastructureServices(applicationAssembly);
 
 builder.Services.AddFastEndpointsInfrastructure(applicationAssembly);
 builder.AddMediatorInfrastructure(applicationAssembly);
-builder.Services.AddIdempotencySupport();
 builder.AddOpenApiInfrastructure(appOptions);
 
 builder.Services.AddRequestTimeouts();
@@ -47,4 +46,4 @@ app.UseOpenApiInfrastructure(appOptions);
 
 app.MapDefaultEndpoints();
 
-await app.RunAsync();
+await app.RunJasperFxCommands(args);

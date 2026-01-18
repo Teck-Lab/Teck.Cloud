@@ -23,7 +23,7 @@ public static class MigrationServiceExtensions
         DatabaseProvider defaultProvider)
         where TDbContext : DbContext
     {
-        services.AddSingleton<IMigrationService>(sp =>
+        services.AddScoped<IMigrationService>(sp =>
             new MultiTenantMigrationService<TDbContext>(
                 sp,
                 sp.GetRequiredService<MultiTenant.ITenantDbConnectionResolver>(),

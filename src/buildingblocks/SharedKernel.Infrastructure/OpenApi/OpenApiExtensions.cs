@@ -1,12 +1,10 @@
 using System.Runtime.InteropServices;
-using SharedKernel.Infrastructure.Options;
 using FastEndpoints.Swagger;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
-using NSwag;
-using NSwag.Generation.Processors.Security;
 using Scalar.AspNetCore;
+using SharedKernel.Infrastructure.Options;
 
 namespace SharedKernel.Infrastructure.OpenApi
 {
@@ -87,28 +85,6 @@ namespace SharedKernel.Infrastructure.OpenApi
                     flow.Pkce = Pkce.Sha256; // Enable PKCE
                 });
             });
-        }
-
-        private static OpenApiSecurityScheme AddOAuthScheme(string tokenUrl, string authorizationUrl, string refreshUrl)
-        {
-            return new OpenApiSecurityScheme()
-            {
-                In = OpenApiSecurityApiKeyLocation.Header,
-                Type = OpenApiSecuritySchemeType.OAuth2,
-                Flows = new OpenApiOAuthFlows
-                {
-                    AuthorizationCode = new OpenApiOAuthFlow
-                    {
-                        AuthorizationUrl = authorizationUrl,
-                        TokenUrl = tokenUrl,
-                        RefreshUrl = refreshUrl,
-                        Scopes = new Dictionary<string, string>
-                        {
-                            { "organization", "Org" },
-                        }
-                    },
-                }
-            };
         }
     }
 }

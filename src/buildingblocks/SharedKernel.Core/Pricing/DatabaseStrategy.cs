@@ -142,10 +142,14 @@ public sealed class DatabaseStrategy : SmartEnum<DatabaseStrategy>
     /// <returns>True if compatible, otherwise false.</returns>
     public bool IsCompatibleWith(DatabaseOptions options)
     {
-        if (options.HasReadReplicas && !SupportsReadReplicas) return false;
-        if (options.RequiresAutoScaling && !SupportsAutoScaling) return false;
-        if (options.RequiresGeographicDistribution && !SupportsGeographicDistribution) return false;
-        if (options.RequiresDedicatedResources && !SupportsDedicatedResources) return false;
+        if (options.HasReadReplicas && !SupportsReadReplicas)
+            return false;
+        if (options.RequiresAutoScaling && !SupportsAutoScaling)
+            return false;
+        if (options.RequiresGeographicDistribution && !SupportsGeographicDistribution)
+            return false;
+        if (options.RequiresDedicatedResources && !SupportsDedicatedResources)
+            return false;
 
         return true;
     }

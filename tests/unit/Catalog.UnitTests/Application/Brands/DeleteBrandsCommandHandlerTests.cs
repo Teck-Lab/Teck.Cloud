@@ -1,9 +1,9 @@
 using Catalog.Application.Brands.Features.DeleteBrands.V1;
 using Catalog.Application.Brands.Repositories;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
+using ErrorOr;
 using NSubstitute;
 using Shouldly;
-using ErrorOr;
 
 namespace Catalog.UnitTests.Application.Brands
 {

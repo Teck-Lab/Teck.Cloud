@@ -1,6 +1,6 @@
-using SharedKernel.Infrastructure.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using SharedKernel.Infrastructure.MultiTenant;
 
 namespace SharedKernel.Persistence.Database.MultiTenant
 {

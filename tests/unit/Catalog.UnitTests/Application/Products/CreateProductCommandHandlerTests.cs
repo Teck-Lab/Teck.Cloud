@@ -1,10 +1,10 @@
-using SharedKernel.Core.Database;
 using Catalog.Application.Products.Features.CreateProduct.V1;
 using Catalog.Domain.Entities.CategoryAggregate.Repositories;
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.ProductAggregate.Errors;
 using Catalog.Domain.Entities.ProductAggregate.Repositories;
 using NSubstitute;
+using SharedKernel.Core.Database;
 
 namespace Catalog.UnitTests.Application.Products
 {

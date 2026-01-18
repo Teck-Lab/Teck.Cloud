@@ -2,10 +2,10 @@ using System.Linq.Expressions;
 using System.Security.Claims;
 using Ardalis.Specification;
 using Ardalis.Specification.EntityFrameworkCore;
-using SharedKernel.Core.Database;
-using SharedKernel.Core.Domain;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.Database;
+using SharedKernel.Core.Domain;
 
 namespace SharedKernel.Persistence.Database.EFCore
 {
@@ -222,7 +222,8 @@ namespace SharedKernel.Persistence.Database.EFCore
         public async Task<TEntity?> FindOneAsync(Expression<Func<TEntity, bool>> predicate, bool enableTracking = false, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
-            if (!enableTracking) query = query.AsNoTracking();
+            if (!enableTracking)
+                query = query.AsNoTracking();
             return await query.FirstOrDefaultAsync(predicate, cancellationToken);
         }
 
@@ -236,7 +237,8 @@ namespace SharedKernel.Persistence.Database.EFCore
         public async Task<IReadOnlyList<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate, bool enableTracking = false, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
-            if (!enableTracking) query = query.AsNoTracking();
+            if (!enableTracking)
+                query = query.AsNoTracking();
             return await query.Where(predicate).ToListAsync(cancellationToken);
         }
 
@@ -249,7 +251,8 @@ namespace SharedKernel.Persistence.Database.EFCore
         public async Task<IReadOnlyList<TEntity>> GetAllAsync(bool enableTracking = false, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
-            if (!enableTracking) query = query.AsNoTracking();
+            if (!enableTracking)
+                query = query.AsNoTracking();
             return await query.ToListAsync(cancellationToken);
         }
 
@@ -263,7 +266,8 @@ namespace SharedKernel.Persistence.Database.EFCore
         public async Task<bool> ExistsAsync(Expression<Func<TEntity, bool>> predicate, bool enableTracking = false, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
-            if (!enableTracking) query = query.AsNoTracking();
+            if (!enableTracking)
+                query = query.AsNoTracking();
             return await query.AnyAsync(predicate, cancellationToken);
         }
 
