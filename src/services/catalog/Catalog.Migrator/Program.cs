@@ -1,5 +1,4 @@
 using Catalog.Infrastructure.Persistence;
-using JasperFx;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
