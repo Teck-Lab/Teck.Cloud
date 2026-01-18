@@ -3,6 +3,7 @@ using Catalog.Api.Extensions;
 using Catalog.Application;
 using Catalog.Infrastructure.DependencyInjection;
 using Finbuckle.MultiTenant;
+using JasperFx;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Caching;
 using SharedKernel.Infrastructure.Endpoints;
@@ -47,4 +48,4 @@ app.UseOpenApiInfrastructure(appOptions);
 
 app.MapDefaultEndpoints();
 
-await app.RunAsync();
+await app.RunJasperFxCommands(args);

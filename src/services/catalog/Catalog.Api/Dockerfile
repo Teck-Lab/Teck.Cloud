@@ -31,9 +31,10 @@ WORKDIR /src
 
 # Copy only project files and props for restore layer (maximizes Docker layer cache)
 COPY ["Directory.Packages.props", "."]
-COPY ["src/services/catalog/Directory.Build.props", "src/services/catalog/"]
-COPY ["src/Directory.Build.props", "src/"]
 COPY ["Directory.Build.props", "."]
+COPY ["src/services/Directory.Build.props", "src/services/"]
+COPY ["src/services/catalog/Directory.Build.props", "src/services/catalog/"]
+COPY ["src/buildingblocks/Directory.Build.props", "src/buildingblocks/"]
 COPY ["src/services/catalog/Catalog.Api/Catalog.Api.csproj", "src/services/catalog/Catalog.Api/"]
 COPY ["src/aspire/Teck.Cloud.ServiceDefaults/Teck.Cloud.ServiceDefaults.csproj", "src/aspire/Teck.Cloud.ServiceDefaults/"]
 COPY ["src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj", "src/buildingblocks/SharedKernel.Core/"]
