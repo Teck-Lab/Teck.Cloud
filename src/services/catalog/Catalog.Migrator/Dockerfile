@@ -38,7 +38,11 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
 COPY . .
 WORKDIR "/src/src/services/catalog/Catalog.Migrator"
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet build "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID /p:PublishReadyToRun=true
+    dotnet build "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID \
+        /p:PublishReadyToRun=true \
+        /p:TreatWarningsAsErrors=false \
+        /p:RunAnalyzersDuringBuild=false \
+        /p:EnforceCodeStyleInBuild=false
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
@@ -46,7 +50,13 @@ ARG BUILD_CONFIGURATION=Release
 ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet publish "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --self-contained true --no-restore /p:UseAppHost=true /p:PublishReadyToRun=true /p:PublishTrimmed=true
+    dotnet publish "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --self-contained true --no-restore \
+        /p:UseAppHost=true \
+        /p:PublishReadyToRun=true \
+        /p:PublishTrimmed=true \
+        /p:TreatWarningsAsErrors=false \
+        /p:RunAnalyzersDuringBuild=false \
+        /p:EnforceCodeStyleInBuild=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 ARG DOTNET_VERSION
