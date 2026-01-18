@@ -103,7 +103,7 @@
     <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.4.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.4.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.4.0" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />
     <PackageVersion Include="StackExchange.Redis" Version="2.10.1" />
     <PackageVersion Include="IdempotentAPI" Version="2.6.0" />
     <PackageVersion Include="IdempotentAPI.Cache.DistributedCache" Version="2.2.0" />
@@ -289,8 +289,8 @@
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.0.2" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.0.2" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.0.2" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.0.2" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.0.2" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.1.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.0" />
     <PackageVersion Include="Keycloak.AuthServices.Aspire.Hosting" Version="0.2.0" />
   </ItemGroup>
 
