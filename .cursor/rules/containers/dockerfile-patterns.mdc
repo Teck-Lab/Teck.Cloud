@@ -17,41 +17,28 @@ Services using Wolverine require code generation during the Docker build process
 #### Required Pattern
 
 ```dockerfile
-# Build first (required before codegen)
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet build "YourProject.csproj" \
-        -c $BUILD_CONFIGURATION \
-        -r $RID \
-        --no-restore \
-        /p:PublishReadyToRun=false \
-        /p:DebugType=none \
-        /p:DebugSymbols=false
+# Build with output directory specified
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet build "YourProject.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID /p:PublishReadyToRun=true
 
 # Generate Wolverine codegen with connection strings
 ENV ASPNETCORE_ENVIRONMENT=Development \
     ConnectionStrings__postgres-write="${POSTGRES_CONNECTION}" \
     ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet run --no-build -c $BUILD_CONFIGURATION -- codegen write
+RUN dotnet /app/build/YourProject.dll -- codegen write
 ```
 
 #### ⚠️ Critical Rules
 
-1. **DO NOT** use `-o /app/build` or custom output paths in the build step before codegen
-   - `dotnet run --no-build` expects binaries in the default `bin/` location
-   - Custom output paths will cause "No such file or directory" errors
+1. **DO** use `-o /app/build` to specify explicit output directory in the build step
+   - This ensures the binary location is known and consistent
+   - The codegen step can then reference the exact path
 
-2. **DO** specify configuration with `-c $BUILD_CONFIGURATION` in the codegen step
-   - The build step uses `$BUILD_CONFIGURATION` (defaults to `Release`)
-   - `dotnet run` defaults to `Debug` if not specified
-   - Mismatched configurations will cause "No such file or directory" errors
+2. **DO** run the binary directly using `dotnet /app/build/YourProject.dll`
+   - Do NOT use `dotnet run` as it has issues with build output paths and configurations
+   - Direct execution is more reliable and explicit
 
-3. **DO** ensure build completes before running codegen
-   - Build step must complete successfully
-   - Codegen requires compiled assemblies
-
-4. **DO** provide connection strings for codegen
+3. **DO** provide connection strings for codegen via build args and environment variables
    - Pass `POSTGRES_CONNECTION` and `RABBITMQ_CONNECTION` as build args
    - Set via environment variables before codegen step
 

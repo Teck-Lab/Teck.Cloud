@@ -1,35 +1,15 @@
 # Multi-stage Dockerfile for Catalog.Migrator
-# Optimized for multi-platform, multi-version, Docker cache, and best practices
-#
-# Build Args:
-#   DOTNET_VERSION: .NET version to use (default: 10.0)
-#   BUILD_CONFIGURATION: Build configuration (default: Release)
-#   TARGETPLATFORM: Target platform (linux/amd64, linux/arm64)
-#   ENABLE_TIERED_COMPILATION: Enable tiered compilation (default: false for native)
-#   ENABLE_INVARIANT_GLOBALIZATION: Use invariant globalization (default: true)
+# Optimized for multi-platform, Docker cache, and best practices
 
 # Build arguments for .NET version support
 ARG DOTNET_VERSION=10.0
-ARG BUILD_CONFIGURATION=Release
 
-# Build stage - Uses SDK image for compilation
+# This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine AS build
-
-# Performance: Use BuildKit cache mounts for NuGet packages
-ARG BUILD_CONFIGURATION
-ARG TARGETPLATFORM
-ARG RUNTIME_IDENTIFIER=linux-musl-x64
-
-# Performance: Set environment variables for build optimization
-ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-    DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
-    DOTNET_NOLOGO=1 \
-    DOTNET_GENERATE_ASPNET_CERTIFICATE=0 \
-    NUGET_XMLDOC_MODE=skip
-
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Copy only project files and props for restore layer (maximizes Docker layer cache)
+# Copy only project files and props for restore layer (maximizes cache)
 COPY ["Directory.Packages.props", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["src/services/Directory.Build.props", "src/services/"]
@@ -45,121 +25,34 @@ COPY ["src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj", "src/
 COPY ["src/services/catalog/Catalog.Domain/Catalog.Domain.csproj", "src/services/catalog/Catalog.Domain/"]
 COPY ["src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj", "src/services/catalog/Catalog.Infrastructure/"]
 
-# Performance: Map TARGETPLATFORM to .NET RID and restore with locked mode
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet restore "src/services/catalog/Catalog.Migrator/Catalog.Migrator.csproj" \
-        -r $RID \
-        --locked-mode \
-        --disable-parallel
+# Use Docker Buildx and TARGETPLATFORM to select the correct RID for multi-platform builds
+ARG TARGETPLATFORM
+# Default to x64 if not set
+ARG RUNTIME_IDENTIFIER=linux-musl-x64
 
-# Copy source code
+# Map TARGETPLATFORM to .NET RID
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet restore "src/services/catalog/Catalog.Migrator/Catalog.Migrator.csproj" -r $RID
+
+# Copy everything else and build
 COPY . .
-
-# Build stage
 WORKDIR "/src/src/services/catalog/Catalog.Migrator"
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet build "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID /p:PublishReadyToRun=true
 
-# Build arguments for codegen (optional, with defaults)
-ARG POSTGRES_CONNECTION="Host=localhost;Database=catalog;Username=postgres;Password=postgres"
-ARG RABBITMQ_CONNECTION="amqp://guest:guest@localhost:5672/"
-
-# Build first (required before codegen)
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet build "Catalog.Migrator.csproj" \
-        -c $BUILD_CONFIGURATION \
-        -r $RID \
-        --no-restore \
-        /p:PublishReadyToRun=false \
-        /p:DebugType=none \
-        /p:DebugSymbols=false \
-        /p:RunAnalyzersDuringBuild=false \
-        /p:EnforceCodeStyleInBuild=false \
-        /p:TreatWarningsAsErrors=false
-
-# Generate Wolverine codegen with connection strings
-ENV ASPNETCORE_ENVIRONMENT=Development \
-    ConnectionStrings__postgres-write="${POSTGRES_CONNECTION}" \
-    ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet run --no-build -c $BUILD_CONFIGURATION -- codegen write
-
-# Publish stage - Creates optimized output
+# This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
-ARG BUILD_CONFIGURATION
+ARG BUILD_CONFIGURATION=Release
 ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
-ARG ENABLE_TIERED_COMPILATION=false
-ARG ENABLE_INVARIANT_GLOBALIZATION=true
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet publish "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --self-contained true --no-restore /p:UseAppHost=true /p:PublishReadyToRun=true /p:PublishTrimmed=true
 
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet publish "Catalog.Migrator.csproj" \
-        -c $BUILD_CONFIGURATION \
-        -o /app/publish \
-        -r $RID \
-        --self-contained true \
-        --no-restore \
-        --no-build \
-        /p:UseAppHost=true \
-        /p:PublishReadyToRun=true \
-        /p:PublishTrimmed=true \
-        /p:PublishSingleFile=false \
-        /p:TrimMode=partial \
-        /p:EnableCompressionInSingleFile=true \
-        /p:IncludeNativeLibrariesForSelfExtract=true \
-        /p:DebugType=none \
-        /p:DebugSymbols=false \
-        /p:InvariantGlobalization=$ENABLE_INVARIANT_GLOBALIZATION \
-        /p:TieredCompilation=$ENABLE_TIERED_COMPILATION \
-        /p:TieredCompilationQuickJit=false \
-        /p:ServerGarbageCollection=true \
-        /p:ConcurrentGarbageCollection=true \
-        /p:RetainVMGarbageCollection=false
-
-# Runtime stage - Minimal production image
+# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 ARG DOTNET_VERSION
 FROM mcr.microsoft.com/dotnet/runtime:${DOTNET_VERSION}-alpine-composite AS final
-
-# Performance: Install runtime dependencies and security updates
-RUN apk upgrade --no-cache && \
-    apk add --no-cache \
-        ca-certificates \
-        tzdata \
-        libgcc \
-        libssl3 \
-        libcrypto3 \
-        zlib && \
-    rm -rf /var/cache/apk/*
-
-# Security: Create non-root user
-RUN addgroup -g 1000 appgroup && \
-    adduser -u 1000 -G appgroup -s /bin/sh -D appuser
-
-# Performance: Set runtime environment variables
-ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
-    DOTNET_EnableDiagnostics=0 \
-    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-    DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
-    DOTNET_NOLOGO=1 \
-    DOTNET_RUNNING_IN_CONTAINER=true \
-    DOTNET_VERSION=${DOTNET_VERSION} \
-    DOTNET_GCDynamicAdaptationMode=1 \
-    DOTNET_gcServer=1 \
-    DOTNET_GCConserveMemory=5 \
-    COMPlus_EnableDiagnostics=0
-
 WORKDIR /app
-
-# Copy published files
-COPY --from=publish --chown=appuser:appgroup /app/publish .
-
-# Security: Set proper permissions
-RUN chmod -R 550 /app && \
-    chmod 770 /app
-
-# Security: Switch to non-root user
-USER appuser
-
-# Performance: Use native executable
-ENTRYPOINT ["./Catalog.Migrator"]
+COPY --from=publish /app/publish .
+# Set user only in final stage (if needed)
+# USER $APP_UID
+ENTRYPOINT ["dotnet", "Catalog.Migrator.dll"]

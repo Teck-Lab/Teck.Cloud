@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using IdempotentAPI.DistributedAccessLock.MadelsonDistributedLock.Extensions.DependencyInjection;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Builder;
@@ -51,7 +50,6 @@ namespace SharedKernel.Infrastructure.Caching
             builder.Services.AddSingleton<IDistributedLockProvider>(_ =>
                 new RedisDistributedSynchronizationProvider(redisConnection.GetDatabase()));
 
-            builder.Services.AddMadelsonDistributedAccessLock();
             builder.Services.AddFusionCacheSystemTextJsonSerializer();
 
             builder.Services.AddHealthChecks().AddRedis(connectionString);
