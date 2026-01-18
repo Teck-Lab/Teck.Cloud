@@ -69,7 +69,6 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet build "Catalog.Api.csproj" \
         -c $BUILD_CONFIGURATION \
-        -o /app/build \
         -r $RID \
         --no-restore \
         /p:PublishReadyToRun=false \
