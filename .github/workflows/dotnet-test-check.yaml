@@ -78,13 +78,13 @@ jobs:
       #       nuget-${{ runner.os }}-
 
       - name: Restore dependencies
-        run: dotnet restore Teck.cloud.slnx
+        run: dotnet restore Teck.Cloud.slnx
 
       - name: Build
-        run: dotnet build Teck.cloud.slnx -c Release --no-restore
+        run: dotnet build Teck.Cloud.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test Teck.cloud.slnx -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
+        run: dotnet test Teck.Cloud.slnx -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
 
       - name: Combine Coverage Reports # This is because one report is produced per project, and we want one result for all of them.
         uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4
@@ -141,7 +141,7 @@ jobs:
           reporter: dotnet-trx
 
       - name: Check formatting
-        run: dotnet format Teck.cloud.slnx --verify-no-changes
+        run: dotnet format Teck.Cloud.slnx --verify-no-changes
         continue-on-error: true
         
       - name: Security scan with Trivy (SARIF)
