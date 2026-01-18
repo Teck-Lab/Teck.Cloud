@@ -33,7 +33,7 @@ ENV ASPNETCORE_ENVIRONMENT=Development \
     ConnectionStrings__postgres-write="${POSTGRES_CONNECTION}" \
     ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet run --no-build -- codegen write
+    dotnet run --no-build -c $BUILD_CONFIGURATION -- codegen write
 ```
 
 #### ⚠️ Critical Rules
@@ -42,11 +42,16 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
    - `dotnet run --no-build` expects binaries in the default `bin/` location
    - Custom output paths will cause "No such file or directory" errors
 
-2. **DO** ensure build completes before running codegen
+2. **DO** specify configuration with `-c $BUILD_CONFIGURATION` in the codegen step
+   - The build step uses `$BUILD_CONFIGURATION` (defaults to `Release`)
+   - `dotnet run` defaults to `Debug` if not specified
+   - Mismatched configurations will cause "No such file or directory" errors
+
+3. **DO** ensure build completes before running codegen
    - Build step must complete successfully
    - Codegen requires compiled assemblies
 
-3. **DO** provide connection strings for codegen
+4. **DO** provide connection strings for codegen
    - Pass `POSTGRES_CONNECTION` and `RABBITMQ_CONNECTION` as build args
    - Set via environment variables before codegen step
 

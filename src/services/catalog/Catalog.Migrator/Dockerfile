@@ -82,7 +82,7 @@ ENV ASPNETCORE_ENVIRONMENT=Development \
     ConnectionStrings__postgres-write="${POSTGRES_CONNECTION}" \
     ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet run --no-build -- codegen write
+    dotnet run --no-build -c $BUILD_CONFIGURATION -- codegen write
 
 # Publish stage - Creates optimized output
 FROM build AS publish
