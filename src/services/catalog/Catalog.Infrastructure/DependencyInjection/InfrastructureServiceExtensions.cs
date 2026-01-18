@@ -1,11 +1,14 @@
 using System.Reflection;
 using Catalog.Infrastructure.Persistence;
 using JasperFx;
+using JasperFx.CodeGeneration;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using Scrutor;
 using SharedKernel.Core.Domain;
@@ -35,19 +38,33 @@ public static class InfrastructureServiceExtensions
     {
         Assembly dbContextAssembly = typeof(ApplicationWriteDbContext).Assembly;
 
-        KeycloakAuthenticationOptions keycloakOptions = builder.Configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>() ?? throw new ConfigurationMissingException("Keycloak");
+        // Check if running in codegen mode
+        bool isCodegen = Environment.GetCommandLineArgs().Contains("codegen");
 
-        string rabbitmqConnectionString = builder.Configuration.GetConnectionString("rabbitmq") ?? throw new ConfigurationMissingException("RabbitMq");
+        KeycloakAuthenticationOptions keycloakOptions = builder.Configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>()
+            ?? (isCodegen ? new KeycloakAuthenticationOptions() : throw new ConfigurationMissingException("Keycloak"));
+
+        string rabbitmqConnectionString = builder.Configuration.GetConnectionString("rabbitmq")
+            ?? throw new ConfigurationMissingException("RabbitMq");
         string defaultWriteConnectionString = builder.Configuration.GetConnectionString("postgres-write")
             ?? throw new ConfigurationMissingException("Database (write)");
         string defaultReadConnectionString = builder.Configuration.GetConnectionString("postgres-read")
             ?? defaultWriteConnectionString;
-        builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
+
+        if (!isCodegen)
+        {
+            builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
+        }
 
         builder.AddCqrsDatabase(dbContextAssembly, defaultWriteConnectionString, defaultReadConnectionString);
 
         builder.UseWolverine(opts =>
         {
+            // Use dynamic type loading in development, static in production
+            opts.CodeGeneration.TypeLoadMode = builder.Environment.IsDevelopment()
+                ? TypeLoadMode.Dynamic
+                : TypeLoadMode.Static;
+
             opts.PersistMessagesWithPostgresql(defaultWriteConnectionString, schemaName: "wolverine")
                 .UseMasterTableTenancy(data =>
                 {

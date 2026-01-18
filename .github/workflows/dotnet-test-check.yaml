@@ -168,6 +168,37 @@ jobs:
       - pre-checks
       - check-label
     if: ${{ needs.pre-checks.outputs.hasChanged == 'true' && needs.check-label.outputs.status == 'success'}}
+    
+    # Service containers for Docker build (needed for Wolverine codegen)
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: catalog
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
+    
     strategy:
       matrix:
         paths: ${{ fromJson( needs.pre-checks.outputs.paths)}}
@@ -214,6 +245,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: build
+          network: host
+          build-args: |
+            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=catalog;Username=postgres;Password=postgres
+            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
   
   # This job ensures that the required status check always passes, even when other jobs are skipped
   status-check:

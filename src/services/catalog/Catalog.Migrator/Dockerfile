@@ -59,6 +59,11 @@ COPY . .
 # Build stage
 WORKDIR "/src/src/services/catalog/Catalog.Migrator"
 
+# Build arguments for codegen (optional, with defaults)
+ARG POSTGRES_CONNECTION="Host=localhost;Database=catalog;Username=postgres;Password=postgres"
+ARG RABBITMQ_CONNECTION="amqp://guest:guest@localhost:5672/"
+
+# Build first (required before codegen)
 RUN --mount=type=cache,target=/root/.nuget/packages \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet build "Catalog.Migrator.csproj" \
@@ -66,9 +71,16 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
         -o /app/build \
         -r $RID \
         --no-restore \
-        /p:PublishReadyToRun=true \
+        /p:PublishReadyToRun=false \
         /p:DebugType=none \
         /p:DebugSymbols=false
+
+# Generate Wolverine codegen with connection strings
+ENV ASPNETCORE_ENVIRONMENT=Development \
+    ConnectionStrings__postgres-write="${POSTGRES_CONNECTION}" \
+    ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet run --no-build -- codegen write
 
 # Publish stage - Creates optimized output
 FROM build AS publish
