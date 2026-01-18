@@ -1,0 +1,65 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/migrations/">
+    <File Path="tools/migrations/Add-Migration.ps1" />
+    <File Path="tools/migrations/Install-EfTools.ps1" />
+    <File Path="tools/migrations/README.md" />
+    <File Path="tools/migrations/Update-MigrationRunner.ps1" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="LICENSE.md" />
+    <File Path="nuget.config" />
+    <File Path="README.md" />
+    <File Path="stylecop.json" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/Directory.Build.props" />
+  </Folder>
+  <Folder Name="/src/aspire/">
+    <File Path="src/services/device/Directory.Build.props" />
+    <Project Path="src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj" />
+    <Project Path="src/aspire/Teck.Cloud.ServiceDefaults/Teck.Cloud.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/buildingblocks/">
+    <File Path="src/buildingblocks/Directory.Build.props" />
+    <Project Path="src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj" />
+    <Project Path="src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj" />
+    <Project Path="src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+    <Project Path="src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
+    <Project Path="src/buildingblocks/SharedKernel.Secrets/SharedKernel.Secrets.csproj" />
+  </Folder>
+  <Folder Name="/src/services/" />
+  <Folder Name="/src/services/catalog/">
+    <File Path="src/services/catalog/Directory.Build.props" />
+    <Project Path="src/services/catalog/Catalog.Api/Catalog.Api.csproj" />
+    <Project Path="src/services/catalog/Catalog.Application/Catalog.Application.csproj" />
+    <Project Path="src/services/catalog/Catalog.Domain/Catalog.Domain.csproj" />
+    <Project Path="src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <File Path="tests/Directory.Build.props" />
+  </Folder>
+  <Folder Name="/tests/architecture/" />
+  <Folder Name="/tests/architecture/catalog/">
+    <Project Path="tests/architecture/catalog/Catalog.Architecture.UnitTests/Catalog.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/shared/">
+    <Project Path="tests/architecture/shared/Teck.Cloud.Arch.Tests/Teck.Cloud.Arch.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/functional/" />
+  <Folder Name="/tests/functional/catalog/" />
+  <Folder Name="/tests/integration/">
+    <Project Path="tests/integration/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/">
+    <Project Path="tests/unit/Catalog.UnitTests/Catalog.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tools/" />
+</Solution>

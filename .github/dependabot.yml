@@ -1,0 +1,21 @@
+version: 2
+registries:
+  public-nuget:
+    type: nuget-feed
+    url: https://api.nuget.org/v3/index.json
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    ignore:
+      - dependency-name: "coverlet.collector"
+      - dependency-name: "xunit.runner.visualstudio"
+      - dependency-name: "Microsoft.NET.Test.Sdk"
+      - dependency-name: "xunit"
+    registries:
+      - public-nuget # this needs to be added
+    target-branch: "main"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 25
+    commit-message:
+      prefix: "chore"

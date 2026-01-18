@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-migrator-argocd
+  namespace: teck-cloud
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+data:
+  # This ConfigMap triggers the PreSync hook
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-migrator-presync
+  namespace: teck-cloud
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app: catalog-migrator
+    component: migration
+    argocd-hook: presync
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: catalog-migrator
+        component: migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: catalog-service
+      
+      containers:
+      - name: migrator
+        image: ghcr.io/your-org/catalog-migrator:latest
+        imagePullPolicy: Always
+        
+        # Run all migrations (shared + all tenants)
+        args: []
+        
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        - name: ConnectionStrings__catalogdb
+          valueFrom:
+            secretKeyRef:
+              name: catalog-db-connection
+              key: connectionString
+        - name: Vault__Address
+          value: "https://vault.teck-cloud.svc.cluster.local:8200"
+        - name: Vault__AuthMethod
+          value: "Kubernetes"
+        - name: Vault__KubernetesRole
+          value: "catalog-service"
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}

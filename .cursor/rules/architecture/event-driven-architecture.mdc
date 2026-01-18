@@ -1,0 +1,235 @@
+---
+description: This file provides guidelines for implementing event-driven architecture patterns using Domain Events for internal communication and Integration Events for cross-service communication.
+globs: **/*Event*.cs, **/EventHandlers/**/*.cs
+---
+# Cursor Rules File: Event-Driven Architecture
+
+Role Definition:
+ - Event-Driven Architecture Expert
+ - Domain-Driven Design Specialist
+ - Message Broker Specialist
+
+General:
+  Description: >
+    The Teck.Cloud solution uses a two-tier event system: Domain Events for internal
+    service communication and Integration Events for asynchronous cross-service communication.
+    Domain Events are raised by aggregates and handled within the same transaction boundary,
+    while Integration Events are published to message brokers for eventual consistency
+    across service boundaries.
+  Requirements:
+    - Domain Events for internal service communication only
+    - Integration Events for cross-service async communication
+    - Proper event handler organization
+    - Event sourcing patterns where appropriate
+
+Domain Events:
+  Purpose:
+    - Internal communication within a single service
+    - Synchronous handling within the same transaction
+    - Triggering side effects within the service boundary
+    - Maintaining consistency within an aggregate
+
+  Definition:
+    - Must inherit from DomainEvent base class
+    - Located in Domain layer: Entities/{Aggregate}Aggregate/Events/
+    - Naming: {Entity}{Action}DomainEvent (e.g., BrandCreatedDomainEvent)
+    - Example:
+      ```csharp
+      namespace Catalog.Domain.Entities.BrandAggregate.Events;
+      
+      public sealed class BrandCreatedDomainEvent(Guid brandId, string brandName) : DomainEvent
+      {
+          public Guid BrandId { get; } = brandId;
+          public string BrandName { get; } = brandName;
+      }
+      ```
+
+  Raising Domain Events:
+    - Raise from aggregate root entities only
+    - Use AddDomainEvent() method on BaseEntity
+    - Raise after state change, before persistence
+    - Example:
+      ```csharp
+      public static ErrorOr<Brand> Create(string name, string? description, string? website)
+      {
+          // ... validation ...
+          
+          var brand = new Brand { Name = name, Description = description };
+          
+          // Raise domain event
+          brand.AddDomainEvent(new BrandCreatedDomainEvent(brand.Id, brand.Name));
+          
+          return brand;
+      }
+      ```
+
+  Handling Domain Events:
+    - Handlers in Application layer: EventHandlers/DomainEvents/
+    - Use Wolverine for domain event processing
+    - Handlers can trigger integration events
+    - Handlers execute within the same transaction
+    - Example:
+      ```csharp
+      namespace Catalog.Application.EventHandlers.DomainEvents;
+      
+      public static class BrandCreatedDomainEventProcessor
+      {
+          public static IStorageAction<Brand> Handle(
+              CreateBrandCommand command,
+              [Entity] Brand item,
+              [Entity] BrandCreatedDomainEvent domainEvent,
+              ILogger logger)
+          {
+              logger.LogInformation("Brand {BrandId} created", domainEvent.BrandId);
+              // Can publish integration event here if needed
+              return Storage.Update(item);
+          }
+      }
+      ```
+
+  Configuration:
+    - Wolverine automatically publishes domain events from EF Core entities
+    - Configure in Infrastructure layer:
+      ```csharp
+      opts.PublishDomainEventsFromEntityFrameworkCore<BaseEntity>(
+          entity => entity.DomainEvents);
+      ```
+
+Integration Events:
+  Purpose:
+    - Asynchronous communication between services
+    - Eventual consistency across service boundaries
+    - Decoupling services
+    - Event sourcing and audit trails
+
+  Definition:
+    - Must inherit from IntegrationEvent base class
+    - Located in SharedKernel.Events project (shared contracts)
+    - Naming: {Entity}{Action}IntegrationEvent (e.g., BrandCreatedIntegrationEvent)
+    - Must be serializable (for message broker)
+    - Example:
+      ```csharp
+      namespace SharedKernel.Events;
+      
+      public class BrandCreatedIntegrationEvent : IntegrationEvent
+      {
+          public Guid BrandId { get; set; }
+          
+          public BrandCreatedIntegrationEvent() { }
+          
+          public BrandCreatedIntegrationEvent(Guid brandId)
+          {
+              BrandId = brandId;
+          }
+      }
+      ```
+
+  Publishing Integration Events:
+    - Publish from Application layer event handlers
+    - Use Wolverine message publishing
+    - Publish after domain event is successfully persisted
+    - Example:
+      ```csharp
+      public static async Task Handle(
+          BrandCreatedDomainEvent domainEvent,
+          IMessageBus bus,
+          ILogger logger)
+      {
+          var integrationEvent = new BrandCreatedIntegrationEvent(domainEvent.BrandId);
+          await bus.PublishAsync(integrationEvent);
+          logger.LogInformation("Published integration event for brand {BrandId}", domainEvent.BrandId);
+      }
+      ```
+
+  Handling Integration Events:
+    - Handlers in Application layer: EventHandlers/IntegrationEvents/
+    - Use Wolverine message handlers
+    - Handlers should be idempotent
+    - Handle failures gracefully (retry, dead letter queue)
+    - Example:
+      ```csharp
+      namespace Catalog.Application.EventHandlers.IntegrationEvents;
+      
+      public static class BrandCreatedIntegrationEventHandler
+      {
+          public static async Task Handle(
+              BrandCreatedIntegrationEvent @event,
+              ILogger logger,
+              CancellationToken cancellationToken)
+          {
+              logger.LogInformation("Received brand created event {BrandId}", @event.BrandId);
+              // Update read models, send notifications, etc.
+          }
+      }
+      ```
+
+  Message Broker Configuration:
+    - Use RabbitMQ for integration events
+    - Configure in Infrastructure layer:
+      ```csharp
+      builder.UseWolverine(opts =>
+      {
+          var rabbit = opts.UseRabbitMq(new Uri(rabbitmqConnectionString));
+          rabbit.AutoProvision();
+          rabbit.EnableWolverineControlQueues();
+          rabbit.UseConventionalRouting();
+      });
+      ```
+
+Event Handler Organization:
+  - Domain Event Handlers:
+      - Location: Application/EventHandlers/DomainEvents/
+      - Naming: {Entity}{Action}DomainEventProcessor
+      - Purpose: Handle internal side effects, trigger integration events
+      
+  - Integration Event Handlers:
+      - Location: Application/EventHandlers/IntegrationEvents/
+      - Naming: {Entity}{Action}IntegrationEventHandler
+      - Purpose: Handle cross-service events, update read models
+
+Event Naming Conventions:
+  - Domain Events: {Entity}{Action}DomainEvent
+    - Examples: BrandCreatedDomainEvent, ProductUpdatedDomainEvent
+  - Integration Events: {Entity}{Action}IntegrationEvent
+    - Examples: BrandCreatedIntegrationEvent, OrderPlacedIntegrationEvent
+
+Best Practices:
+  - Domain Events:
+      - Keep domain events focused on single aggregate changes
+      - Include only essential data in domain events
+      - Handle domain events synchronously within transaction
+      - Use domain events to maintain aggregate consistency
+      
+  - Integration Events:
+      - Include all data needed by consuming services
+      - Make integration events backward compatible
+      - Use versioning for breaking changes
+      - Always include correlation IDs for tracing
+      - Design for idempotency in handlers
+      
+  - General:
+      - Never raise domain events from outside the aggregate
+      - Always validate event data
+      - Log all event publications and handlers
+      - Use event metadata for correlation and tracing
+      - Consider event ordering requirements
+
+Error Handling:
+  - Domain Events:
+      - Failures should roll back the transaction
+      - Log errors but don't swallow exceptions
+      
+  - Integration Events:
+      - Implement retry policies
+      - Use dead letter queues for failed messages
+      - Implement circuit breakers for external dependencies
+      - Log all failures with context
+
+Testing:
+  - Unit test domain event raising
+  - Integration test event handlers
+  - Test event serialization/deserialization
+  - Test idempotency of integration event handlers
+  - Use TestContainers for message broker testing
+
+# End of Cursor Rules File

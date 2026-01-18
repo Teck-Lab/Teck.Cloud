@@ -1,0 +1,218 @@
+---
+description: This file provides guidelines for organizing projects and code within the Teck.Cloud solution following Clean Architecture principles.
+globs: *.csproj, **/Domain/**/*.cs, **/Application/**/*.cs, **/Infrastructure/**/*.cs, **/Api/**/*.cs
+---
+# Cursor Rules File: Project Structure and Organization
+
+Role Definition:
+ - Solution Architect
+ - Clean Architecture Expert
+ - Domain-Driven Design Specialist
+
+General:
+  Description: >
+    The Teck.Cloud solution follows Clean Architecture principles with clear separation
+    of concerns across layers. Services are organized into Domain, Application, Infrastructure,
+    and Api layers, with shared building blocks providing cross-cutting concerns.
+  Requirements:
+    - Follow Clean Architecture layer boundaries
+    - Maintain clear dependency direction (outer layers depend on inner layers)
+    - Use consistent naming conventions
+    - Organize code by feature/aggregate
+
+Solution Structure:
+  - Root organization:
+      ```
+      Teck.Cloud/
+      ├── src/
+      │   ├── buildingblocks/          # Shared kernel components
+      │   │   ├── SharedKernel.Core/   # Domain abstractions, events, CQRS interfaces
+      │   │   ├── SharedKernel.Infrastructure/  # Cross-cutting infrastructure
+      │   │   ├── SharedKernel.Persistence/      # Data access abstractions
+      │   │   └── SharedKernel.Events/           # Integration event contracts
+      │   ├── services/                # Business services
+      │   │   └── {ServiceName}/
+      │   │       ├── {ServiceName}.Domain/
+      │   │       ├── {ServiceName}.Application/
+      │   │       ├── {ServiceName}.Infrastructure/
+      │   │       └── {ServiceName}.Api/
+      │   ├── gateways/                # BFF (Backend for Frontend) gateways
+      │   └── aspire/                  # .NET Aspire orchestration
+      │       ├── Teck.Cloud.AppHost/
+      │       └── Teck.Cloud.ServiceDefaults/
+      └── tests/
+          ├── unit/
+          ├── integration/
+          └── architecture/
+      ```
+
+Service Layer Structure:
+  - Domain Layer ({ServiceName}.Domain):
+      - Purpose: Core business logic, domain entities, value objects, domain events
+      - Dependencies: Only SharedKernel.Core
+      - Organization:
+        ```
+        Domain/
+        ├── Entities/
+        │   └── {AggregateName}Aggregate/
+        │       ├── {AggregateName}.cs
+        │       ├── ValueObjects/
+        │       ├── Events/
+        │       └── Errors/
+        └── Exceptions/
+        ```
+      - Rules:
+        - Entities must inherit from BaseEntity
+        - Aggregates must implement IAggregateRoot
+        - Domain events must inherit from DomainEvent
+        - Value objects must inherit from ValueObject
+        - No infrastructure dependencies
+        - No application logic
+
+  - Application Layer ({ServiceName}.Application):
+      - Purpose: Use cases, commands, queries, DTOs, application services
+      - Dependencies: Domain, SharedKernel.Core
+      - Organization:
+        ```
+        Application/
+        ├── {AggregateName}/
+        │   ├── Features/
+        │   │   └── {FeatureName}/
+        │   │       ├── {Command/Query}.cs
+        │   │       ├── {Command/Query}Handler.cs
+        │   │       └── {Validator}.cs
+        │   ├── Repositories/
+        │   ├── ReadModels/
+        │   ├── Mappings/
+        │   └── Responses/
+        ├── EventHandlers/
+        │   ├── DomainEvents/
+        │   └── IntegrationEvents/
+        └── Contracts/
+        ```
+      - Rules:
+        - Commands/Queries must implement ICommand/IQuery
+        - Handlers must implement ICommandHandler/IQueryHandler
+        - Use MediatR for CQRS
+        - Read models separate from domain entities
+        - No direct database access
+
+  - Infrastructure Layer ({ServiceName}.Infrastructure):
+      - Purpose: Data access, external services, infrastructure implementations
+      - Dependencies: Application, Domain, SharedKernel.*
+      - Organization:
+        ```
+        Infrastructure/
+        ├── Persistence/
+        │   ├── {AggregateName}/
+        │   │   ├── Configurations/
+        │   │   └── Repositories/
+        │   └── {ServiceName}DbContext.cs
+        ├── Caching/
+        ├── DependencyInjection/
+        └── Options/
+        ```
+      - Rules:
+        - Implement repository interfaces from Application layer
+        - EF Core configurations in Configurations folder
+        - DbContext must inherit from BaseDbContext
+        - All infrastructure concerns isolated here
+
+  - Api Layer ({ServiceName}.Api):
+      - Purpose: HTTP endpoints, gRPC services, request/response models, API configuration
+      - Dependencies: Application, Infrastructure
+      - Organization:
+        ```
+        Api/
+        ├── Endpoints/              # HTTP endpoints (for gateways)
+        │   └── {AggregateName}/
+        │       ├── {EndpointName}Endpoint.cs
+        │       └── {EndpointName}Request.cs
+        ├── Grpc/                   # gRPC services (for direct service-to-service)
+        │   ├── Services/
+        │   │   └── {ServiceName}Service.cs
+        │   └── {ServiceName}.proto
+        ├── Extensions/
+        └── Program.cs
+        ```
+      - Rules:
+        - Use FastEndpoints for HTTP endpoints (called by gateways)
+        - Use gRPC services for direct service-to-service communication
+        - Endpoints must be in Endpoints folder
+        - gRPC services must be in Grpc/Services folder
+        - Request/Response models in same folder as endpoint
+        - No business logic in API layer
+        - HTTP endpoints are for gateway consumption
+        - gRPC services are for direct service-to-service calls
+
+Building Blocks:
+  - SharedKernel.Core:
+      - Domain abstractions (BaseEntity, IAggregateRoot, ValueObject)
+      - CQRS interfaces (ICommand, IQuery, ICommandHandler, IQueryHandler)
+      - Event interfaces (IDomainEvent, IIntegrationEvent)
+      - Common exceptions
+      - No infrastructure dependencies
+
+  - SharedKernel.Infrastructure:
+      - Cross-cutting infrastructure (auth, caching, logging, multi-tenancy)
+      - Middleware
+      - Extension methods for service configuration
+      - Framework-specific implementations
+
+  - SharedKernel.Persistence:
+      - Repository abstractions
+      - Database context base classes
+      - Multi-tenancy database support
+      - EF Core configurations
+
+  - SharedKernel.Events:
+      - Integration event contracts (shared between services)
+      - Must be in separate project for service independence
+      - Only event definitions, no handlers
+
+Gateways (BFF Pattern):
+  - Purpose: Backend for Frontend - aggregates data from multiple services for specific clients
+  - Organization:
+    ```
+    gateways/
+    └── {GatewayName}/
+        ├── Endpoints/
+        │   └── {Aggregate}/
+        │       └── {Action}Endpoint.cs
+        ├── Clients/
+        │   └── {ServiceName}Client.cs
+        ├── Extensions/
+        └── Program.cs
+    ```
+  - Rules:
+    - Use HTTP to call downstream APIs (NOT gRPC)
+    - Aggregate data from multiple services
+    - Handle client-specific concerns (formatting, filtering)
+    - No direct database access
+    - Use service discovery for downstream services
+    - Use typed HTTP clients with resilience policies
+    - Forward authentication headers to downstream services
+    - Implement proper error handling and aggregation
+
+Naming Conventions:
+  - Projects: {ServiceName}.{Layer} (e.g., Catalog.Domain, Catalog.Application)
+  - Aggregates: {AggregateName}Aggregate folder (e.g., BrandAggregate)
+  - Entities: {EntityName}.cs (e.g., Brand.cs)
+  - Commands: {Action}{Entity}Command (e.g., CreateBrandCommand)
+  - Queries: {Action}{Entity}Query (e.g., GetBrandByIdQuery)
+  - Handlers: {Command/Query}Handler (e.g., CreateBrandCommandHandler)
+  - Domain Events: {Entity}{Action}DomainEvent (e.g., BrandCreatedDomainEvent)
+  - Integration Events: {Entity}{Action}IntegrationEvent (e.g., BrandCreatedIntegrationEvent)
+  - Endpoints: {Action}{Entity}Endpoint (e.g., CreateBrandEndpoint)
+  - Repositories: I{Entity}ReadRepository, I{Entity}WriteRepository
+
+Dependency Rules:
+  - Domain: No dependencies (except SharedKernel.Core)
+  - Application: Can depend on Domain and SharedKernel.Core
+  - Infrastructure: Can depend on Application, Domain, and all SharedKernel.*
+  - Api: Can depend on Application, Infrastructure, Domain, and SharedKernel.*
+  - Gateways: Can depend on SharedKernel.* and HTTP clients
+  - SharedKernel.Core: No dependencies on other projects
+  - SharedKernel.Events: Only depends on SharedKernel.Core
+
+# End of Cursor Rules File

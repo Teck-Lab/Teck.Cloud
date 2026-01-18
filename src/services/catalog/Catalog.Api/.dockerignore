@@ -1,0 +1,46 @@
+# Ignore build output and intermediate files
+bin/
+obj/
+
+# Ignore version control
+.git/
+
+# Ignore logs and test results
+*.log
+TestResults/
+
+# Ignore user/IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Ignore Docker-related files not needed in build context
+Dockerfile*
+.dockerignore
+
+docker-compose*
+
+# Ignore package manager output
+node_modules/
+
+# Ignore secrets/configs
+*.env
+secrets.*.yaml
+values.*.yaml
+
+# Ignore other common artifacts
+*.dbmdl
+*.jfm
+*.pdb
+*.cache
+*.tmp
+*.swp
+*.bak
+*.nupkg
+*.snupkg
+
+# Allow .gitignore for context if needed
+!**/.gitignore

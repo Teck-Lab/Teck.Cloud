@@ -1,0 +1,275 @@
+---
+description: This file provides guidelines for inter-service communication patterns: gRPC for direct synchronous calls and HTTP for gateway-to-service communication.
+globs: **/*Grpc*.cs, **/*gRPC*.cs, **/gateways/**/*.cs
+---
+# Cursor Rules File: Inter-Service Communication
+
+Role Definition:
+ - Microservices Communication Expert
+ - API Gateway Specialist
+ - gRPC Protocol Expert
+
+General:
+  Description: >
+    The Teck.Cloud solution uses different communication patterns based on the use case:
+    - gRPC for direct synchronous service-to-service communication
+    - HTTP for gateway (BFF) to downstream service communication
+    - Integration Events (message broker) for async cross-service communication
+    - Service discovery for dynamic service location
+  Requirements:
+    - Use appropriate communication pattern for each scenario
+    - Implement proper error handling and resilience
+    - Use service discovery for service location
+    - Implement proper authentication/authorization
+
+gRPC for Direct Service-to-Service Communication:
+  When to Use:
+    - Direct synchronous calls between services
+    - High-performance requirements
+    - Strong typing needed
+    - Internal service communication only
+    - NOT for gateway-to-service communication
+
+  Project Structure:
+    ```
+    {ServiceName}.Api/
+    ├── Grpc/
+    │   ├── Services/
+    │   │   └── {ServiceName}Service.cs
+    │   └── {ServiceName}.proto
+    └── Program.cs
+    ```
+
+  Implementation:
+    - Define .proto files for service contracts
+    - Generate C# code from .proto files
+    - Implement gRPC services in Api layer
+    - Register gRPC services in Program.cs
+    - Example:
+      ```csharp
+      // Catalog.Api/Grpc/Services/CatalogService.cs
+      namespace Catalog.Api.Grpc.Services;
+      
+      public class CatalogService : Catalog.CatalogBase
+      {
+          private readonly IMediator _mediator;
+          
+          public CatalogService(IMediator mediator)
+          {
+              _mediator = mediator;
+          }
+          
+          public override async Task<GetBrandResponse> GetBrand(
+              GetBrandRequest request,
+              ServerCallContext context)
+          {
+              var query = new GetBrandByIdQuery(request.BrandId);
+              var result = await _mediator.Send(query);
+              
+              return new GetBrandResponse
+              {
+                  Id = result.Value.Id.ToString(),
+                  Name = result.Value.Name
+              };
+          }
+      }
+      ```
+
+  Configuration:
+    - Register gRPC services:
+      ```csharp
+      builder.Services.AddGrpc();
+      ```
+    - Map gRPC endpoints:
+      ```csharp
+      app.MapGrpcService<CatalogService>();
+      ```
+    - Enable gRPC reflection (development only):
+      ```csharp
+      builder.Services.AddGrpcReflection();
+      ```
+
+  Client Usage:
+    - Create gRPC client in consuming service:
+      ```csharp
+      builder.Services.AddGrpcClient<Catalog.CatalogClient>(options =>
+      {
+          options.Address = new Uri("https://catalog-api");
+      });
+      ```
+    - Use client in application layer:
+      ```csharp
+      public class GetBrandFromCatalogHandler
+      {
+          private readonly Catalog.CatalogClient _catalogClient;
+          
+          public async Task<BrandDto> Handle(Guid brandId)
+          {
+              var request = new GetBrandRequest { BrandId = brandId.ToString() };
+              var response = await _catalogClient.GetBrandAsync(request);
+              return MapToDto(response);
+          }
+      }
+      ```
+
+  Best Practices:
+    - Use gRPC for internal service-to-service calls only
+    - Implement proper error handling (Status codes)
+    - Use deadlines for request timeouts
+    - Implement retry policies with exponential backoff
+    - Use service discovery for service addresses
+    - Implement health checks for gRPC services
+    - Use authentication (mTLS or token-based)
+
+HTTP for Gateway-to-Service Communication:
+  When to Use:
+    - Gateway (BFF) calling downstream services
+    - Public API endpoints
+    - RESTful interfaces
+    - When HTTP is required by client
+
+  Gateway Structure:
+    ```
+    gateways/
+    └── {GatewayName}/
+        ├── Endpoints/
+        │   └── {Aggregate}/
+        │       └── {Action}Endpoint.cs
+        ├── Clients/
+        │   └── {ServiceName}Client.cs
+        └── Program.cs
+    ```
+
+  Implementation:
+    - Use HttpClient with service discovery
+    - Implement typed HTTP clients
+    - Use resilience policies (Polly)
+    - Example:
+      ```csharp
+      // Gateway/Clients/CatalogApiClient.cs
+      namespace Gateway.Clients;
+      
+      public class CatalogApiClient
+      {
+          private readonly HttpClient _httpClient;
+          
+          public CatalogApiClient(HttpClient httpClient)
+          {
+              _httpClient = httpClient;
+          }
+          
+          public async Task<BrandDto> GetBrandAsync(Guid brandId, CancellationToken ct)
+          {
+              var response = await _httpClient.GetAsync(
+                  $"/api/v1/brands/{brandId}", ct);
+              response.EnsureSuccessStatusCode();
+              return await response.Content.ReadFromJsonAsync<BrandDto>(ct);
+          }
+      }
+      ```
+
+  Configuration:
+    - Register typed HTTP clients:
+      ```csharp
+      builder.Services.AddHttpClient<CatalogApiClient>(client =>
+      {
+          client.BaseAddress = new Uri("https://catalog-api");
+      })
+      .AddStandardResilienceHandler()
+      .AddServiceDiscovery();
+      ```
+
+  Gateway Endpoints:
+    - Use FastEndpoints for gateway endpoints
+    - Aggregate data from multiple services
+    - Handle client-specific concerns
+    - Example:
+      ```csharp
+      namespace Gateway.Endpoints.Brands;
+      
+      public class GetBrandEndpoint : Endpoint<GetBrandRequest, BrandResponse>
+      {
+          private readonly CatalogApiClient _catalogClient;
+          
+          public override async Task HandleAsync(
+              GetBrandRequest req,
+              CancellationToken ct)
+          {
+              var brand = await _catalogClient.GetBrandAsync(req.BrandId, ct);
+              await SendOkAsync(brand, ct);
+          }
+      }
+      ```
+
+Service Discovery:
+  - Use .NET Aspire service discovery
+  - Configure in ServiceDefaults:
+    ```csharp
+    builder.Services.AddServiceDiscovery();
+    builder.Services.ConfigureHttpClientDefaults(http =>
+    {
+        http.AddServiceDiscovery();
+    });
+    ```
+  - Services register with discovery service
+  - Clients resolve service addresses dynamically
+
+Authentication/Authorization:
+  - gRPC Services:
+      - Use mTLS for service-to-service authentication
+      - Or use JWT tokens in metadata
+      - Implement authorization policies
+      
+  - HTTP Services:
+      - Use Keycloak for authentication
+      - Forward authorization headers from gateway
+      - Implement proper token validation
+
+Error Handling:
+  - gRPC:
+      - Use proper gRPC status codes
+      - Implement proper error details
+      - Handle deadline exceeded
+      - Implement circuit breakers
+      
+  - HTTP:
+      - Use proper HTTP status codes
+      - Return ProblemDetails for errors
+      - Implement retry policies
+      - Handle timeouts gracefully
+
+Resilience Patterns:
+  - Implement retry policies:
+      ```csharp
+      .AddStandardResilienceHandler()
+      ```
+  - Use circuit breakers for failing services
+  - Implement timeout policies
+  - Use bulkhead isolation
+  - Implement fallback strategies
+
+Monitoring:
+  - Log all inter-service calls
+  - Track latency and success rates
+  - Use distributed tracing (OpenTelemetry)
+  - Monitor circuit breaker states
+  - Alert on service failures
+
+Testing:
+  - Unit test HTTP clients with TestServer
+  - Integration test gRPC services
+  - Use TestContainers for service discovery testing
+  - Test resilience policies
+  - Test error scenarios
+
+Communication Pattern Decision Tree:
+  1. Is this a gateway calling a service?
+     - Yes → Use HTTP
+  2. Is this a direct service-to-service call?
+     - Yes → Use gRPC
+  3. Is this async communication?
+     - Yes → Use Integration Events (message broker)
+  4. Is this within the same service?
+     - Yes → Use Domain Events
+
+# End of Cursor Rules File
