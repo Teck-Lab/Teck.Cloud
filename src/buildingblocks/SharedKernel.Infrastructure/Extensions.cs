@@ -53,14 +53,17 @@ namespace SharedKernel.Infrastructure
 
             builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
-            // 2. CORS
+            // 2. Authorization
+            builder.Services.AddAuthorization();
+
+            // 3. CORS
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAllOrigins", policy =>
                     policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             });
 
-            // 3. Forwarded headers
+            // 4. Forwarded headers
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

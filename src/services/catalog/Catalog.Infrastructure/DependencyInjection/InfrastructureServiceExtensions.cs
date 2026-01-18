@@ -38,11 +38,7 @@ public static class InfrastructureServiceExtensions
     {
         Assembly dbContextAssembly = typeof(ApplicationWriteDbContext).Assembly;
 
-        // Check if running in codegen mode
-        bool isCodegen = Environment.GetCommandLineArgs().Contains("codegen");
-
-        KeycloakAuthenticationOptions keycloakOptions = builder.Configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>()
-            ?? (isCodegen ? new KeycloakAuthenticationOptions() : throw new ConfigurationMissingException("Keycloak"));
+        KeycloakAuthenticationOptions keycloakOptions = builder.Configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>() ?? throw new ConfigurationMissingException("Keycloak");
 
         string rabbitmqConnectionString = builder.Configuration.GetConnectionString("rabbitmq")
             ?? throw new ConfigurationMissingException("RabbitMq");
@@ -51,10 +47,7 @@ public static class InfrastructureServiceExtensions
         string defaultReadConnectionString = builder.Configuration.GetConnectionString("postgres-read")
             ?? defaultWriteConnectionString;
 
-        if (!isCodegen)
-        {
-            builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
-        }
+        builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
 
         builder.AddCqrsDatabase(dbContextAssembly, defaultWriteConnectionString, defaultReadConnectionString);
 
