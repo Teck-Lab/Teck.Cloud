@@ -74,7 +74,10 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
         --no-restore \
         /p:PublishReadyToRun=false \
         /p:DebugType=none \
-        /p:DebugSymbols=false
+        /p:DebugSymbols=false \
+        /p:RunAnalyzersDuringBuild=false \
+        /p:EnforceCodeStyleInBuild=false \
+        /p:TreatWarningsAsErrors=false
 
 # Generate Wolverine codegen with connection strings
 ENV ASPNETCORE_ENVIRONMENT=Development \

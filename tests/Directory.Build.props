@@ -7,7 +7,7 @@
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<NoWarn>CS1587,CS1591,CS1998,NU5105,CA1707,CA1014,CA1515,CA1051</NoWarn>
+		<NoWarn>CS1587,CS1591,CS1998,NU5105,CA1707,CA1014,CA1515,CA1051,CA1310,CA1852,CA1716,CA1711,CA1816,CA2213</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 

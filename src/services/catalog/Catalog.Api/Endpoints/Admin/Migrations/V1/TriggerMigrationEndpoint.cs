@@ -20,11 +20,34 @@ public sealed record TriggerMigrationRequest
 /// </summary>
 public sealed record TriggerMigrationResponse
 {
+    /// <summary>
+    /// Gets a value indicating whether the migration was successful.
+    /// </summary>
     public required bool Success { get; init; }
+
+    /// <summary>
+    /// Gets the tenant identifier. Null for shared database migrations.
+    /// </summary>
     public string? TenantId { get; init; }
+
+    /// <summary>
+    /// Gets the number of migrations that were applied.
+    /// </summary>
     public int MigrationsApplied { get; init; }
+
+    /// <summary>
+    /// Gets the duration of the migration operation in seconds.
+    /// </summary>
     public double DurationSeconds { get; init; }
+
+    /// <summary>
+    /// Gets the error message if the migration failed.
+    /// </summary>
     public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// Gets the list of migrations that were applied.
+    /// </summary>
     public IReadOnlyList<string>? AppliedMigrations { get; init; }
 }
 
