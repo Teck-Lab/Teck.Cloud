@@ -304,7 +304,34 @@ public sealed class MultiTenantMigrationService<TDbContext> : IMigrationService
                 return tenantIds;
             }
 
-            // Fallback: Try using the base interface
+            // Fallback: Try using the typed tenant store (Finbuckle's generic interface)
+            var typedTenantStore = _serviceProvider.GetService<Finbuckle.MultiTenant.Abstractions.IMultiTenantStore<TenantDetails>>();
+
+            if (typedTenantStore != null)
+            {
+                var allTenants = await typedTenantStore.GetAllAsync();
+
+                if (allTenants == null || !allTenants.Any())
+                {
+                    _logger.LogWarning("No tenants returned from typed store - returning empty list");
+                    return Array.Empty<string>();
+                }
+
+                var filteredTenants = allTenants
+                    .Where(t => t.DatabaseStrategy == DatabaseStrategy.Dedicated.Name ||
+                               t.DatabaseStrategy == DatabaseStrategy.External.Name)
+                    .Where(t => !string.IsNullOrEmpty(t.Id))
+                    .Select(t => t.Id!)
+                    .ToList();
+
+                _logger.LogInformation(
+                    "Found {Count} tenants with dedicated/external databases (via typed store)",
+                    filteredTenants.Count);
+
+                return filteredTenants;
+            }
+
+            // Final fallback: Use base interface (returns TenantInfo)
             var baseTenantStore = _serviceProvider.GetService<SharedKernel.Infrastructure.MultiTenant.IMultiTenantStore>();
 
             if (baseTenantStore == null)
@@ -313,29 +340,26 @@ public sealed class MultiTenantMigrationService<TDbContext> : IMigrationService
                 return Array.Empty<string>();
             }
 
-            // Get all tenants and filter in-memory
-            var allTenants = await baseTenantStore.GetAllAsync();
+            // Get all tenants - these are TenantInfo, not TenantDetails
+            var allBaseTenants = await baseTenantStore.GetAllAsync();
 
-            if (allTenants == null || allTenants.Length == 0)
+            if (allBaseTenants == null || allBaseTenants.Length == 0)
             {
                 _logger.LogWarning("No tenants returned from store - returning empty list");
                 return Array.Empty<string>();
             }
 
-            // Cast to TenantDetails and filter
-            var filteredTenants = allTenants
-                .OfType<TenantDetails>()
-                .Where(t => t.DatabaseStrategy == DatabaseStrategy.Dedicated.Name ||
-                           t.DatabaseStrategy == DatabaseStrategy.External.Name)
+            // Since TenantInfo doesn't have DatabaseStrategy, return all tenant IDs
+            var tenantIdsFromBase = allBaseTenants
                 .Where(t => !string.IsNullOrEmpty(t.Id))
                 .Select(t => t.Id!)
                 .ToList();
 
             _logger.LogInformation(
                 "Found {Count} tenants with dedicated/external databases (via fallback query)",
-                filteredTenants.Count);
+                tenantIdsFromBase.Count);
 
-            return filteredTenants;
+            return tenantIdsFromBase;
         }
         catch (Exception ex)
         {

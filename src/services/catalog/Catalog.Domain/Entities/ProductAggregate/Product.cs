@@ -14,7 +14,7 @@ namespace Catalog.Domain.Entities.ProductAggregate
     /// The product.
     /// </summary>
     [MultiTenant]
-    public class Product : BaseEntity, IAggregateRoot
+    public partial class Product : BaseEntity, IAggregateRoot
     {
         /// <summary>
         /// Gets the name.
@@ -120,6 +120,21 @@ namespace Catalog.Domain.Entities.ProductAggregate
             bool isActive,
             Guid? brandId = null)
         {
+            var validationResult = ValidateProductCreation(name, description, sku);
+            if (validationResult.IsError)
+            {
+                return validationResult.Errors;
+            }
+
+            var product = CreateProductInstance(name, description, sku, gtin, categories, isActive, brandId);
+            var domainEvent = new ProductCreatedDomainEvent(product.Id, product.Name);
+            product.AddDomainEvent(domainEvent);
+
+            return product;
+        }
+
+        private static ErrorOr<Success> ValidateProductCreation(string name, string? description, string? sku)
+        {
             var errors = new List<Error>();
 
             if (string.IsNullOrWhiteSpace(name))
@@ -137,12 +152,19 @@ namespace Catalog.Domain.Entities.ProductAggregate
                 errors.Add(ProductErrors.EmptySKU);
             }
 
-            if (errors.Count != 0)
-            {
-                return errors;
-            }
+            return errors.Count != 0 ? errors : Result.Success;
+        }
 
-            var product = new Product
+        private static Product CreateProductInstance(
+            string name,
+            string? description,
+            string? sku,
+            string? gtin,
+            ICollection<Category> categories,
+            bool isActive,
+            Guid? brandId)
+        {
+            return new Product
             {
                 Name = name,
                 Description = description,
@@ -153,23 +175,33 @@ namespace Catalog.Domain.Entities.ProductAggregate
                 BrandId = brandId,
                 Slug = name.ToLower(System.Globalization.CultureInfo.InvariantCulture).Replace(" ", "-", StringComparison.Ordinal)
             };
-
-            product.AddDomainEvent(new ProductCreatedDomainEvent(product.Id, product.Name));
-
-            return product;
         }
 
         /// <summary>
-        /// Get product slug.
+        /// Regex for replacing non-alphanumeric characters.
         /// </summary>
-        /// <param name="name">The name.</param>
-        /// <returns>A string.</returns>
+        /// <returns>A compiled regex.</returns>
+        [GeneratedRegex("[^a-z0-9]+", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+        private static partial Regex NonAlphanumericRegex();
+
+        /// <summary>
+        /// Regex for replacing multiple consecutive hyphens.
+        /// </summary>
+        /// <returns>A compiled regex.</returns>
+        [GeneratedRegex("--+", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+        private static partial Regex MultipleHyphensRegex();
+
+        /// <summary>
+        /// Get product slug from product name.
+        /// </summary>
+        /// <param name="name">The product name.</param>
+        /// <returns>A URL-friendly slug.</returns>
         private static string GetProductSlug(string name)
         {
             name = name.Trim();
             name = name.ToLower(System.Globalization.CultureInfo.InvariantCulture);
-            name = Regex.Replace(name, "[^a-z0-9]+", "-");
-            name = Regex.Replace(name, "--+", "-");
+            name = NonAlphanumericRegex().Replace(name, "-");
+            name = MultipleHyphensRegex().Replace(name, "-");
             name = name.Trim('-');
             return name;
         }
