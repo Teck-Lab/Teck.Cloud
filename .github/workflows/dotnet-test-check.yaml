@@ -133,10 +133,12 @@ jobs:
           retention-days: 5
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2.17.0
-        if: always()
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
         with:
-          trx_files: "${{ github.workspace }}/**/*.trx"
+          name: Tests
+          path: "${{ github.workspace }}/**/*.trx"
+          reporter: dotnet-trx
 
       - name: Check formatting
         run: dotnet format Teck.cloud.sln --verify-no-changes
@@ -158,7 +160,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
-
   build-test-docker:
     runs-on: ${{ matrix.builder.runner-image }}
     name: Build and test docker image
