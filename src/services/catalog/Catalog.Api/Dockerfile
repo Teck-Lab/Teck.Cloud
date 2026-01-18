@@ -58,6 +58,11 @@ COPY . .
 
 # Build stage
 WORKDIR "/src/src/services/catalog/Catalog.Api"
+
+# Generate Wolverine codegen
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet run -- codegen write
+
 RUN --mount=type=cache,target=/root/.nuget/packages \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet build "Catalog.Api.csproj" \
