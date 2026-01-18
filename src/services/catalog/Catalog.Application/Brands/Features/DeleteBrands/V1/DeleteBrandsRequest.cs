@@ -1,4 +1,4 @@
-﻿namespace Catalog.Application.Brands.Features.DeleteBrands.V1
+namespace Catalog.Application.Brands.Features.DeleteBrands.V1
 {
     /// <summary>
     /// The delete brands request.

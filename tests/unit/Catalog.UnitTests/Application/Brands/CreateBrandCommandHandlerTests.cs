@@ -1,9 +1,9 @@
-using SharedKernel.Core.Database;
 using Catalog.Application.Brands.Features.CreateBrand.V1;
 using Catalog.Application.Brands.Features.Responses;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
 using ErrorOr;
 using NSubstitute;
+using SharedKernel.Core.Database;
 using Shouldly;
 
 namespace Catalog.UnitTests.Application.Brands
@@ -16,7 +16,7 @@ namespace Catalog.UnitTests.Application.Brands
             // Arrange
             var uow = Substitute.For<IUnitOfWork>();
             var repo = Substitute.For<IBrandWriteRepository>();
-            
+
             uow.SaveChangesAsync(Arg.Any<CancellationToken>())
                 .Returns(1);
 

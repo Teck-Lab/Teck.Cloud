@@ -1,6 +1,5 @@
 using AutoFixture;
 using AutoFixture.AutoNSubstitute;
-using SharedKernel.Core.Database;
 using Catalog.Application.Brands.Features.DeleteBrand.V1;
 using Catalog.Application.Brands.Repositories;
 using Catalog.Domain.Entities.BrandAggregate;
@@ -8,6 +7,7 @@ using Catalog.Domain.Entities.BrandAggregate.Repositories;
 using ErrorOr;
 using NSubstitute;
 using NSubstitute.ReturnsExtensions;
+using SharedKernel.Core.Database;
 using Shouldly;
 using Soenneker.Utils.AutoBogus;
 using Soenneker.Utils.AutoBogus.Config;

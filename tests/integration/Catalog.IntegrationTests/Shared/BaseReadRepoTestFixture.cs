@@ -1,8 +1,8 @@
 #nullable enable
-using SharedKernel.Persistence.Database.EFCore.Interceptors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SharedKernel.Persistence.Database.EFCore.Interceptors;
 
 namespace Catalog.IntegrationTests.Shared
 {

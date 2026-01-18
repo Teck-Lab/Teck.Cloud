@@ -33,9 +33,9 @@ namespace SharedKernel.Persistence.Database.EFCore
                 else
                 {
                     // fallback to older EF API GetQueryFilter() if present (suppress obsolete warning)
-                    #pragma warning disable CS0618
+#pragma warning disable CS0618
                     var existing = modelBuilder.Entity(entity).Metadata.GetQueryFilter();
-                    #pragma warning restore CS0618
+#pragma warning restore CS0618
 
                     if (existing is LambdaExpression existingLambda)
                     {

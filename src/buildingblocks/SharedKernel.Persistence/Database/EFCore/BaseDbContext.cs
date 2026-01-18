@@ -1,12 +1,12 @@
-using SharedKernel.Core.Domain;
-using SharedKernel.Core.Exceptions;
-using SharedKernel.Core.Pricing;
-using SharedKernel.Infrastructure.MultiTenant;
 using EntityFramework.Exceptions.PostgreSQL;
 using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.Domain;
+using SharedKernel.Core.Exceptions;
+using SharedKernel.Core.Pricing;
+using SharedKernel.Infrastructure.MultiTenant;
 
 namespace SharedKernel.Persistence.Database.EFCore
 {

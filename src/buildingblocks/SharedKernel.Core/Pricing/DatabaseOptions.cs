@@ -304,14 +304,22 @@ public class DatabaseOptions
     {
         var multiplier = baseStrategy.CostMultiplier;
 
-        if (HasReadReplicas) multiplier += 1.5m;
-        if (RequiresGeographicDistribution) multiplier += 0.8m;
-        if (RequiresEnhancedBackup) multiplier += 0.3m;
-        if (RequiresEncryptionAtRest) multiplier += 0.2m;
-        if (RequiresDedicatedResources) multiplier += 1.0m;
-        if (RequiresAutoScaling) multiplier += 0.4m;
-        if (RequiresAdvancedMonitoring) multiplier += 0.2m;
-        if (RequiresComplianceFeatures) multiplier += 0.5m;
+        if (HasReadReplicas)
+            multiplier += 1.5m;
+        if (RequiresGeographicDistribution)
+            multiplier += 0.8m;
+        if (RequiresEnhancedBackup)
+            multiplier += 0.3m;
+        if (RequiresEncryptionAtRest)
+            multiplier += 0.2m;
+        if (RequiresDedicatedResources)
+            multiplier += 1.0m;
+        if (RequiresAutoScaling)
+            multiplier += 0.4m;
+        if (RequiresAdvancedMonitoring)
+            multiplier += 0.2m;
+        if (RequiresComplianceFeatures)
+            multiplier += 0.5m;
 
         return multiplier;
     }

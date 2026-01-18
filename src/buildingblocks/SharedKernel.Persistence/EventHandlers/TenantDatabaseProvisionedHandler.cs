@@ -20,6 +20,7 @@ public sealed class TenantDatabaseProvisionedHandler
     private readonly IMigrationService _migrationService;
     private readonly ILogger<TenantDatabaseProvisionedHandler> _logger;
 
+    /// <inheritdoc/>
     public TenantDatabaseProvisionedHandler(
         IMigrationService migrationService,
         ILogger<TenantDatabaseProvisionedHandler> logger)

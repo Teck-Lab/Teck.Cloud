@@ -18,7 +18,7 @@ namespace Catalog.UnitTests.Application.Products
                 BrandId = Guid.NewGuid(),
                 CategoryIds = new List<Guid> { Guid.NewGuid() }
             };
-            
+
             Assert.Equal("Test Product", req.Name);
             Assert.Equal("desc", req.Description);
             Assert.Equal("sku", req.ProductSku);

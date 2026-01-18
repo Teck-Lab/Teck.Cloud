@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
-using SharedKernel.Infrastructure.Options;
 using FastEndpoints.Swagger;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
 using Scalar.AspNetCore;
+using SharedKernel.Infrastructure.Options;
 
 namespace SharedKernel.Infrastructure.OpenApi
 {

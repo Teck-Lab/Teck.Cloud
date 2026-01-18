@@ -1,11 +1,11 @@
 #nullable enable
+using Catalog.Application.ProductPriceTypes.ReadModels;
 using Catalog.Application.ProductPriceTypes.Repositories;
 using Catalog.Infrastructure.Persistence;
 using Catalog.Infrastructure.Persistence.Repositories.Read;
 using Catalog.IntegrationTests.Shared;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
-using Catalog.Application.ProductPriceTypes.ReadModels;
 
 namespace Catalog.IntegrationTests.Infrastructure.ProductPriceTypes
 {

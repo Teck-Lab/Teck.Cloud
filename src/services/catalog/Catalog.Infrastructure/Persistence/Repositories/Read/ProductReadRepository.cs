@@ -32,7 +32,7 @@ public sealed class ProductReadRepository : GenericReadRepository<ProductReadMod
     /// <inheritdoc/>
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await FindByIdAsync(id,  cancellationToken: cancellationToken);
+        return await FindByIdAsync(id, cancellationToken: cancellationToken);
     }
 
     /// <inheritdoc/>

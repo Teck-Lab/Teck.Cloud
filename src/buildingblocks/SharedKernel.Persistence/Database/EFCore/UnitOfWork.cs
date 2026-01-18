@@ -1,8 +1,8 @@
 using System.Data;
-using SharedKernel.Core.Database;
-using SharedKernel.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using SharedKernel.Core.Database;
+using SharedKernel.Core.Exceptions;
 
 namespace SharedKernel.Persistence.Database.EFCore
 {

@@ -1,5 +1,5 @@
-using Teck.Cloud.Arch.Tests.Rules;
 using Catalog.Application;
+using Teck.Cloud.Arch.Tests.Rules;
 
 namespace Catalog.Arch.UnitTests.Application
 {

@@ -1,9 +1,9 @@
 using System.Linq.Expressions;
 using Ardalis.Specification;
 using Ardalis.Specification.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace SharedKernel.Persistence.Database.EFCore
 {

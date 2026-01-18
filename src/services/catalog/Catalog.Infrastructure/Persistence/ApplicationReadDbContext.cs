@@ -36,37 +36,37 @@ public sealed class ApplicationReadDbContext : BaseDbContext
     /// <summary>
     /// Gets or sets the brands.
     /// </summary>
-    public DbSet<BrandReadModel> Brands { get; set; }
+    public required DbSet<BrandReadModel> Brands { get; set; }
 
     /// <summary>
     /// Gets or sets the products.
     /// </summary>
-    public DbSet<ProductReadModel> Products { get; set; }
+    public required DbSet<ProductReadModel> Products { get; set; }
 
     /// <summary>
     /// Gets or sets the categories.
     /// </summary>
-    public DbSet<CategoryReadModel> Categories { get; set; }
+    public required DbSet<CategoryReadModel> Categories { get; set; }
 
     /// <summary>
     /// Gets or sets the product price types.
     /// </summary>
-    public DbSet<ProductPriceTypeReadModel> ProductPriceTypes { get; set; }
+    public required DbSet<ProductPriceTypeReadModel> ProductPriceTypes { get; set; }
 
     /// <summary>
     /// Gets or sets the promotions.
     /// </summary>
-    public DbSet<PromotionReadModel> Promotions { get; set; }
+    public required DbSet<PromotionReadModel> Promotions { get; set; }
 
     /// <summary>
     /// Gets or sets the suppliers.
     /// </summary>
-    public DbSet<SupplierReadModel> Suppliers { get; set; }
+    public required DbSet<SupplierReadModel> Suppliers { get; set; }
 
     /// <summary>
     /// Gets or sets the product prices.
     /// </summary>
-    public DbSet<ProductPriceReadModel> ProductPrices { get; set; }
+    public required DbSet<ProductPriceReadModel> ProductPrices { get; set; }
 
     private static bool ReadConfigFilter(Type type) =>
         type.FullName?.Contains("Config.Read") ?? false;

@@ -37,20 +37,20 @@ public static class DomainRules
         rule.Check(architecture);
     }
 
-        public static void EntitiesShouldHavePrivateSetters(Architecture architecture)
-        {
-            var rule = ArchRuleDefinition.Members()
-                .That()
-                .HaveNameStartingWith("set_")
-                .And()
-                .AreDeclaredIn(ArchRuleDefinition.Classes().That().ImplementInterface(typeof(IBaseEntity)))
-                .Should()
-                .NotBePublic()
-                .Because("entity properties should have private setters for encapsulation")
-                .WithoutRequiringPositiveResults();
+    public static void EntitiesShouldHavePrivateSetters(Architecture architecture)
+    {
+        var rule = ArchRuleDefinition.Members()
+            .That()
+            .HaveNameStartingWith("set_")
+            .And()
+            .AreDeclaredIn(ArchRuleDefinition.Classes().That().ImplementInterface(typeof(IBaseEntity)))
+            .Should()
+            .NotBePublic()
+            .Because("entity properties should have private setters for encapsulation")
+            .WithoutRequiringPositiveResults();
 
-            rule.Check(architecture);
-        }
+        rule.Check(architecture);
+    }
 
     public static void AggregateRootsShouldBeInDomainLayer(Architecture architecture)
     {
@@ -64,7 +64,7 @@ public static class DomainRules
         rule.Check(architecture);
     }
 
-        public static void EntityCreateMethodsShouldBeStatic(Architecture architecture)
+    public static void EntityCreateMethodsShouldBeStatic(Architecture architecture)
     {
         var rule = ArchRuleDefinition.Members()
             .That()

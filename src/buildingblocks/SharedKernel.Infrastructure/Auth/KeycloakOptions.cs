@@ -1,5 +1,5 @@
-using SharedKernel.Core.Options;
 using Keycloak.AuthServices.Authentication;
+using SharedKernel.Core.Options;
 
 namespace SharedKernel.Infrastructure.Auth
 {

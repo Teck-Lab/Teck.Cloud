@@ -1,12 +1,12 @@
 using System.Reflection;
+using Finbuckle.MultiTenant.Abstractions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.EFCore;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
-using Finbuckle.MultiTenant.Abstractions;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
 
 namespace SharedKernel.Persistence.Database.MultiTenant;
 

@@ -1,5 +1,5 @@
-using SharedKernel.Core.Pagination;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.Pagination;
 
 namespace SharedKernel.Persistence.Database.EFCore
 {

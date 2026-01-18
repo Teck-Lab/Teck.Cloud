@@ -1,4 +1,4 @@
-﻿namespace Catalog.Application.Brands.Features.GetBrandById.V1
+namespace Catalog.Application.Brands.Features.GetBrandById.V1
 {
     /// <summary>
     /// The get brand request.

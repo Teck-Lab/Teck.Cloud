@@ -37,37 +37,37 @@ public class ApplicationWriteDbContext : BaseDbContext
     /// <summary>
     /// Gets or sets the brands.
     /// </summary>
-    public DbSet<Brand> Brands { get; set; }
+    public required DbSet<Brand> Brands { get; set; }
 
     /// <summary>
     /// Gets or sets the products.
     /// </summary>
-    public DbSet<Product> Products { get; set; }
+    public required DbSet<Product> Products { get; set; }
 
     /// <summary>
     /// Gets or sets the categories.
     /// </summary>
-    public DbSet<Category> Categories { get; set; }
+    public required DbSet<Category> Categories { get; set; }
 
     /// <summary>
     /// Gets or sets the product prices.
     /// </summary>
-    public DbSet<ProductPrice> ProductPrices { get; set; }
+    public required DbSet<ProductPrice> ProductPrices { get; set; }
 
     /// <summary>
     /// Gets or sets the product price types.
     /// </summary>
-    public DbSet<ProductPriceType> ProductPriceTypes { get; set; }
+    public required DbSet<ProductPriceType> ProductPriceTypes { get; set; }
 
     /// <summary>
     /// Gets or sets the promotions.
     /// </summary>
-    public DbSet<Promotion> Promotions { get; set; }
+    public required DbSet<Promotion> Promotions { get; set; }
 
     /// <summary>
     /// Gets or sets the suppliers.
     /// </summary>
-    public DbSet<Supplier> Suppliers { get; set; }
+    public required DbSet<Supplier> Suppliers { get; set; }
 
     private static bool WriteConfigFilter(Type type) =>
         type.FullName?.Contains("Config.Write", StringComparison.Ordinal) ?? false;

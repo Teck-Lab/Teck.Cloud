@@ -1,4 +1,4 @@
-﻿using FastEndpoints;
+using FastEndpoints;
 using FluentValidation;
 
 namespace Catalog.Application.Brands.Features.UpdateBrand.V1

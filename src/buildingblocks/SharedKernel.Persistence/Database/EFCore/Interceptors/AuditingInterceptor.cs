@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
 using System.Security.Claims;
-using SharedKernel.Core.Domain;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using SharedKernel.Core.Domain;
 
 namespace SharedKernel.Persistence.Database.EFCore.Interceptors
 {

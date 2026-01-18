@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using SharedKernel.Infrastructure.Options;
 using Microsoft.AspNetCore.Builder;
 using Serilog;
 using Serilog.Core;
@@ -8,6 +7,7 @@ using Serilog.Exceptions;
 using Serilog.Exceptions.Core;
 using Serilog.Exceptions.EntityFrameworkCore.Destructurers;
 using Serilog.Formatting.Compact;
+using SharedKernel.Infrastructure.Options;
 
 namespace SharedKernel.Infrastructure.Logging
 {
