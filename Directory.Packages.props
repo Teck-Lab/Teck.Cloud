@@ -89,7 +89,7 @@
     <PackageVersion Include="Microsoft.Identity.Web" Version="4.1.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
     <PackageVersion Include="Keycloak.AuthServices.Authentication" Version="2.8.0" />
-    <PackageVersion Include="Keycloak.AuthServices.Authorization" Version="2.7.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Authorization" Version="2.8.0" />
     <PackageVersion Include="Keycloak.AuthServices.Sdk" Version="2.7.0" />
     <PackageVersion Include="Keycloak.AuthServices.OpenTelemetry" Version="1.0.0" />
   </ItemGroup>
