@@ -20,7 +20,7 @@
     <PackageVersion Include="WolverineFx.MemoryPack" Version="5.9.2" />
     <PackageVersion Include="WolverineFx.RabbitMQ" Version="5.9.2" />
     <PackageVersion Include="WolverineFx.SignalR" Version="5.9.2" />
-    <PackageVersion Include="WolverineFx.Postgresql" Version="5.9.2" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="5.10.0" />
     <PackageVersion Include="WolverineFx" Version="5.10.0" />
     <PackageVersion Include="WolverineFx.Http" Version="5.10.0" />
     <PackageVersion Include="WolverineFx.FluentValidation" Version="5.9.2" />
