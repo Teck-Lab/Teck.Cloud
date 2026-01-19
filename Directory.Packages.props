@@ -20,12 +20,12 @@
     <PackageVersion Include="WolverineFx.MemoryPack" Version="5.9.2" />
     <PackageVersion Include="WolverineFx.RabbitMQ" Version="5.9.2" />
     <PackageVersion Include="WolverineFx.SignalR" Version="5.9.2" />
-    <PackageVersion Include="WolverineFx.Postgresql" Version="5.9.2" />
-    <PackageVersion Include="WolverineFx" Version="5.9.2" />
-    <PackageVersion Include="WolverineFx.Http" Version="5.9.2" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="5.10.0" />
+    <PackageVersion Include="WolverineFx" Version="5.10.0" />
+    <PackageVersion Include="WolverineFx.Http" Version="5.10.0" />
     <PackageVersion Include="WolverineFx.FluentValidation" Version="5.9.2" />
-    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="5.9.2" />
-    <PackageVersion Include="WolverineFx.SqlServer" Version="5.9.2" />
+    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="5.10.0" />
+    <PackageVersion Include="WolverineFx.SqlServer" Version="5.10.0" />
   </ItemGroup>
 
   <!-- ================================================== -->
@@ -68,15 +68,15 @@
   <!-- WEB API & ENDPOINTS                                 -->
   <!-- ================================================== -->
   <ItemGroup Label="Web API Framework">
-    <PackageVersion Include="FastEndpoints" Version="7.1.1" />
-    <PackageVersion Include="FastEndpoints.Messaging.Core" Version="7.1.1" />
-    <PackageVersion Include="FastEndpoints.Messaging.Remote" Version="7.1.1" />
+    <PackageVersion Include="FastEndpoints" Version="7.2.0" />
+    <PackageVersion Include="FastEndpoints.Messaging.Core" Version="7.2.0" />
+    <PackageVersion Include="FastEndpoints.Messaging.Remote" Version="7.2.0" />
     <PackageVersion Include="FastEndpoints.Security" Version="7.1.1" />
-    <PackageVersion Include="FastEndpoints.Swagger" Version="7.1.1" />
+    <PackageVersion Include="FastEndpoints.Swagger" Version="7.2.0" />
     <PackageVersion Include="FastEndpoints.Testing" Version="7.1.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.0.0" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.11.6" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.12.11" />
     <PackageVersion Include="NSwag.Annotations" Version="14.6.3" />
   </ItemGroup>
 
@@ -88,9 +88,9 @@
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Identity.Web" Version="4.1.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
-    <PackageVersion Include="Keycloak.AuthServices.Authentication" Version="2.7.0" />
-    <PackageVersion Include="Keycloak.AuthServices.Authorization" Version="2.7.0" />
-    <PackageVersion Include="Keycloak.AuthServices.Sdk" Version="2.7.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Authentication" Version="2.8.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Authorization" Version="2.8.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Sdk" Version="2.8.0" />
     <PackageVersion Include="Keycloak.AuthServices.OpenTelemetry" Version="1.0.0" />
   </ItemGroup>
 
@@ -103,7 +103,7 @@
     <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.4.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.4.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.4.0" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.2" />
     <PackageVersion Include="StackExchange.Redis" Version="2.10.1" />
     <PackageVersion Include="DistributedLock.Redis" Version="1.1.1" />
   </ItemGroup>
@@ -118,8 +118,8 @@
     <PackageVersion Include="Ardalis.Specification.EntityFrameworkCore" Version="9.2.0" />
     <PackageVersion Include="Ardalis.GuardClauses" Version="5.0.0" />
     <PackageVersion Include="ErrorOr" Version="2.0.1" />
-    <PackageVersion Include="FluentValidation" Version="12.1.0" />
-    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
   </ItemGroup>
 
@@ -195,7 +195,7 @@
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageVersion Include="Serilog.Sinks.Debug" Version="3.0.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
-    <PackageVersion Include="Serilog.Sinks.Grafana.Loki" Version="8.3.1" />
+    <PackageVersion Include="Serilog.Sinks.Grafana.Loki" Version="8.3.2" />
     <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
     <PackageVersion Include="Serilog.Sinks.Seq" Version="8.0.0" />
     <PackageVersion Include="Serilog.Sinks.Spectre" Version="0.5.0" />
@@ -259,10 +259,10 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.3.1" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="9.3.1" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="10.2.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="9.3.1" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="9.3.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.HeaderPropagation" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.HeaderPropagation" Version="10.0.2" />
     <PackageVersion Include="Microsoft.AspNet.WebApi.Client" Version="6.0.0" />
   </ItemGroup>
 
@@ -284,8 +284,8 @@
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.0.2" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.0.2" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.0.2" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.0.2" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.0.2" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.1.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.0" />
     <PackageVersion Include="Keycloak.AuthServices.Aspire.Hosting" Version="0.2.0" />
   </ItemGroup>
 
@@ -302,14 +302,14 @@
   <!-- ================================================== -->
   <ItemGroup Label="Code Quality Analyzers">
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="2.0.257 " />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.14.1 " />
-    <PackageVersion Include="Roslynator.CodeAnalysis.Analyzers" Version="4.14.1" />
-    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.14.1" />
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.16.0.128591 " />
+    <PackageVersion Include="Meziantou.Analyzer" Version="2.0.283" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.18.0.131500" />
     <PackageVersion Include="CSharpGuidelinesAnalyzer" Version="3.8.5" />
     <PackageVersion Include="SecurityCodeScan.VS2019" Version="5.6.7" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.Analyzers" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Analyzers" Version="10.0.2" />
   </ItemGroup>
 
   <ItemGroup Label="Specialized Analyzers">
