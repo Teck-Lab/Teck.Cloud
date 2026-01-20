@@ -2,7 +2,7 @@ using System.Reflection;
 using Catalog.Api.Extensions;
 using Catalog.Application;
 using Catalog.Infrastructure.DependencyInjection;
-using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.AspNetCore.Extensions;
 using JasperFx;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Caching;

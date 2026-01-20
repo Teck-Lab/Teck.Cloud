@@ -121,6 +121,56 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// </summary>
         /// <param name="identifier">The tenant identifier.</param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
+        public async Task<TenantDetails?> GetByIdentifierAsync(string identifier)
+        {
+            return await TryGetByIdentifierAsync(identifier);
+        }
+
+        /// <summary>
+        /// Gets a tenant from the Customer API by its ID.
+        /// </summary>
+        /// <param name="id">The tenant ID.</param>
+        /// <returns>The tenant info if found; otherwise, null.</returns>
+        public async Task<TenantDetails?> GetAsync(string id)
+        {
+            return await TryGetByIdAsync(id);
+        }
+
+        /// <summary>
+        /// Adds a tenant to the Customer API (not implemented).
+        /// </summary>
+        /// <param name="tenantInfo">The tenant info to add.</param>
+        /// <returns>True if the tenant was added successfully; otherwise, false.</returns>
+        public async Task<bool> AddAsync(TenantDetails tenantInfo)
+        {
+            return await TryAddAsync(tenantInfo);
+        }
+
+        /// <summary>
+        /// Removes a tenant from the Customer API (not implemented).
+        /// </summary>
+        /// <param name="identifier">The tenant identifier.</param>
+        /// <returns>True if the tenant was removed successfully; otherwise, false.</returns>
+        public async Task<bool> RemoveAsync(string identifier)
+        {
+            return await TryRemoveAsync(identifier);
+        }
+
+        /// <summary>
+        /// Updates a tenant in the Customer API (not implemented).
+        /// </summary>
+        /// <param name="tenantInfo">The tenant info to update.</param>
+        /// <returns>True if the tenant was updated successfully; otherwise, false.</returns>
+        public async Task<bool> UpdateAsync(TenantDetails tenantInfo)
+        {
+            return await TryUpdateAsync(tenantInfo);
+        }
+
+        /// <summary>
+        /// Gets a tenant from the Customer API by its identifier.
+        /// </summary>
+        /// <param name="identifier">The tenant identifier.</param>
+        /// <returns>The tenant info if found; otherwise, null.</returns>
         public async Task<TenantDetails?> TryGetByIdentifierAsync(string identifier)
         {
             if (string.IsNullOrEmpty(identifier))

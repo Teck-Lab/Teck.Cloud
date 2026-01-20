@@ -1,7 +1,7 @@
 using EntityFramework.Exceptions.PostgreSQL;
-using Finbuckle.MultiTenant;
 using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.EntityFrameworkCore;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;

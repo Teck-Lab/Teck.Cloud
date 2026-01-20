@@ -1,0 +1,232 @@
+name: Build and Publish Docker Images
+
+on:
+  push:
+    tags:
+      - '*@v*.*.*'      # Matches any service with stable version (e.g., catalog@v1.2.3)
+      - '*@v*.*.*-*'    # Matches any service with pre-release (e.g., catalog@v1.2.3-next.1)
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  parse-tag:
+    name: Parse Tag and Extract Service Info
+    runs-on: ubuntu-latest
+    outputs:
+      service-name: ${{ steps.parse.outputs.service-name }}
+      version: ${{ steps.parse.outputs.version }}
+      dockerfile-path: ${{ steps.find-dockerfile.outputs.dockerfile-path }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse tag
+        id: parse
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Full tag: $TAG"
+          
+          # Extract service name and version (e.g., catalog@v1.2.0 -> catalog, 1.2.0)
+          # Also handles pre-release tags like catalog@v1.2.0-next.1
+          SERVICE_NAME=$(echo "$TAG" | cut -d'@' -f1)
+          VERSION=$(echo "$TAG" | cut -d'@' -f2 | sed 's/^v//')
+          
+          echo "service-name=$SERVICE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Service: $SERVICE_NAME, Version: $VERSION"
+
+      - name: Find Dockerfile
+        id: find-dockerfile
+        run: |
+          SERVICE_NAME="${{ steps.parse.outputs.service-name }}"
+          
+          # Convert service name to PascalCase for .NET project naming convention
+          # e.g., catalog -> Catalog, inventory -> Inventory
+          PASCAL_CASE=$(echo "$SERVICE_NAME" | sed 's/\b\(.\)/\u\1/g')
+          
+          # Common Dockerfile locations (in priority order)
+          POSSIBLE_PATHS=(
+            "src/services/${SERVICE_NAME}/${PASCAL_CASE}.Api/Dockerfile"
+            "src/services/${SERVICE_NAME}/${SERVICE_NAME}.api/Dockerfile"
+            "src/services/${SERVICE_NAME}/Dockerfile"
+            "src/${SERVICE_NAME}/Dockerfile"
+          )
+          
+          DOCKERFILE_PATH=""
+          for path in "${POSSIBLE_PATHS[@]}"; do
+            if [ -f "$path" ]; then
+              DOCKERFILE_PATH="$path"
+              echo "Found Dockerfile at: $DOCKERFILE_PATH"
+              break
+            fi
+          done
+          
+          if [ -z "$DOCKERFILE_PATH" ]; then
+            echo "ERROR: No Dockerfile found for service '$SERVICE_NAME'"
+            echo "Searched in:"
+            printf '%s\n' "${POSSIBLE_PATHS[@]}"
+            exit 1
+          fi
+          
+          echo "dockerfile-path=$DOCKERFILE_PATH" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ${{ matrix.builder.runner-image }}
+    needs: parse-tag
+    
+    # Service containers (needed for Wolverine codegen during build)
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ needs.parse-tag.outputs.service-name }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
+    
+    strategy:
+      matrix:
+        builder:
+          - runner-image: ubuntu-24.04
+            platform: linux/amd64
+          - runner-image: ubuntu-24.04-arm
+            platform: linux/arm64
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare environment variables
+        run: |
+          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ env.REGISTRY }}/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ needs.parse-tag.outputs.service-name }}" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.parse-tag.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.parse-tag.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.parse-tag.outputs.version }}
+            type=raw,value=latest
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ needs.parse-tag.outputs.dockerfile-path }}
+          platforms: ${{ matrix.builder.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          network: host
+          build-args: |
+            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=${{ needs.parse-tag.outputs.service-name }};Username=postgres;Password=postgres
+            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-and-tag:
+    name: Merge manifests and push tags
+    runs-on: ubuntu-latest
+    needs: 
+      - parse-tag
+      - build-and-push
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Prepare environment variables
+        run: |
+          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.parse-tag.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.parse-tag.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.parse-tag.outputs.version }}
+            type=raw,value=latest
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}:${{ needs.parse-tag.outputs.version }}

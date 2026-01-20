@@ -7,6 +7,7 @@ ARG DOTNET_VERSION=10.0
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine AS build
 ARG BUILD_CONFIGURATION=Release
+ARG VERSION=1.0.0
 WORKDIR /src
 
 # Copy only project files and props for restore layer (maximizes cache)
@@ -39,6 +40,7 @@ COPY . .
 WORKDIR "/src/src/services/catalog/Catalog.Migrator"
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet build "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID \
+        /p:Version=$VERSION \
         /p:PublishReadyToRun=true \
         /p:TreatWarningsAsErrors=false \
         /p:RunAnalyzersDuringBuild=false \
@@ -47,10 +49,12 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+ARG VERSION=1.0.0
 ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet publish "Catalog.Migrator.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --self-contained true --no-restore \
+        /p:Version=$VERSION \
         /p:UseAppHost=true \
         /p:PublishReadyToRun=true \
         /p:PublishTrimmed=true \

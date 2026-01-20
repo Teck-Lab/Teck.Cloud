@@ -10,12 +10,12 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <summary>
         /// Gets or sets the unique identifier of the tenant.
         /// </summary>
-        public string? Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the identifier.
         /// </summary>
-        public string? Identifier { get; set; }
+        public string Identifier { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the name of the tenant.

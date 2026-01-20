@@ -11,7 +11,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// Gets all tenants.
         /// </summary>
         /// <returns>An array of tenant info.</returns>
-        Task<TenantInfo[]> GetAllAsync();
+        Task<TenantDetails[]> GetAllAsync();
 
         /// <summary>
         /// Tries to get a tenant by its identifier.
@@ -19,7 +19,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <param name="identifier">The tenant identifier.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
-        Task<TenantInfo?> TryGetAsync(string identifier, CancellationToken cancellationToken);
+        Task<TenantDetails?> TryGetAsync(string identifier, CancellationToken cancellationToken);
 
         /// <summary>
         /// Tries to get a tenant by its ID.
@@ -27,14 +27,14 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <param name="id">The tenant ID.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
-        Task<TenantInfo?> TryGetByIdAsync(string id, CancellationToken cancellationToken);
+        Task<TenantDetails?> TryGetByIdAsync(string id, CancellationToken cancellationToken);
 
         /// <summary>
         /// Tries to add a tenant.
         /// </summary>
         /// <param name="tenantInfo">The tenant info to add.</param>
         /// <returns>True if the tenant was added successfully; otherwise, false.</returns>
-        Task<bool> TryAddAsync(TenantInfo tenantInfo);
+        Task<bool> TryAddAsync(TenantDetails tenantInfo);
 
         /// <summary>
         /// Tries to remove a tenant.
@@ -48,7 +48,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// </summary>
         /// <param name="tenantInfo">The tenant info to update.</param>
         /// <returns>True if the tenant was updated successfully; otherwise, false.</returns>
-        Task<bool> TryUpdateAsync(TenantInfo tenantInfo);
+        Task<bool> TryUpdateAsync(TenantDetails tenantInfo);
 
         /// <summary>
         /// Tries to get a tenant by its name.
@@ -56,6 +56,6 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <param name="name">The tenant name.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
-        Task<TenantInfo?> TryGetByNameAsync(string name, CancellationToken cancellationToken);
+        Task<TenantDetails?> TryGetByNameAsync(string name, CancellationToken cancellationToken);
     }
 }
