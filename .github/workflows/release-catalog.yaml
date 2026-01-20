@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+      - next
+      - alpha
+      - beta
+      - next-major
     paths:
       - 'src/services/catalog/**'
       - 'src/buildingblocks/**'

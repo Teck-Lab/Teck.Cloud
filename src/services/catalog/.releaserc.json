@@ -1,5 +1,24 @@
 {
-  "branches": ["main"],
+  "branches": [
+    "+([0-9])?(.{+([0-9]),x}).x",
+    "main",
+    {
+        "name": "next",
+        "prerelease": true,
+        "channel": "next"
+    },
+    "next-major",
+    {
+        "name": "beta",
+        "prerelease": true,
+        "channel": "beta"
+    },
+    {
+        "name": "alpha",
+        "prerelease": true,
+        "channel": "alpha"
+    }
+],
   "tagFormat": "catalog@v${version}",
   "plugins": [
     [
