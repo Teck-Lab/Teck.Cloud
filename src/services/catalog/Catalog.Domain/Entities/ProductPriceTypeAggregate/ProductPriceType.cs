@@ -1,7 +1,7 @@
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.ProductPriceTypeAggregate.Errors;
 using ErrorOr;
-using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.ProductPriceTypeAggregate

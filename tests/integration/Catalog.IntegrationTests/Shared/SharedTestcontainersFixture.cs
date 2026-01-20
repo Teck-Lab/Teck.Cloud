@@ -11,7 +11,7 @@ namespace Catalog.IntegrationTests.Shared
 
         public SharedTestcontainersFixture()
         {
-            DbContainer = new PostgreSqlBuilder()
+            DbContainer = new PostgreSqlBuilder("postgres:latest")
                 .WithDatabase("testdb")
                 .WithUsername("postgres")
                 .WithPassword("postgres")

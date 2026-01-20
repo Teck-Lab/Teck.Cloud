@@ -6,7 +6,7 @@ namespace Catalog.IntegrationTests.Shared
     {
         public static RabbitMqContainer Create()
         {
-            return new RabbitMqBuilder()
+            return new RabbitMqBuilder("rabbitmq:latest")
                 .WithUsername("guest")
                 .WithPassword("guest")
                 .Build();

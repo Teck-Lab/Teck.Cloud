@@ -2,7 +2,7 @@ using Catalog.Domain.Entities.CategoryAggregate.Errors;
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.PromotionAggregate;
 using ErrorOr;
-using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.CategoryAggregate

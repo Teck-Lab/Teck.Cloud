@@ -14,5 +14,6 @@
   <ItemGroup>
     <PackageReference Include="Ardalis.GuardClauses" />
     <PackageReference Include="ErrorOr" />
+    <PackageReference Include="Finbuckle.MultiTenant.EntityFrameworkCore" />
   </ItemGroup>
 </Project>

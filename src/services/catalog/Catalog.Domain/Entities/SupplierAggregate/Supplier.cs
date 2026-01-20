@@ -1,6 +1,6 @@
 using Catalog.Domain.Entities.SupplierAggregate.Errors;
 using ErrorOr;
-using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.SupplierAggregate

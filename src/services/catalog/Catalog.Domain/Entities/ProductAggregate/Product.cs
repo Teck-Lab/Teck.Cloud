@@ -5,7 +5,7 @@ using Catalog.Domain.Entities.ProductAggregate.Errors;
 using Catalog.Domain.Entities.ProductAggregate.Events;
 using Catalog.Domain.Entities.PromotionAggregate;
 using ErrorOr;
-using Finbuckle.MultiTenant;
+using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.ProductAggregate
