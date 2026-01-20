@@ -3,13 +3,13 @@
   <!-- CORE FRAMEWORKS & LIBRARIES                        -->
   <!-- ================================================== -->
   <ItemGroup Label="Core Framework Dependencies">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.2">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
@@ -38,7 +38,7 @@
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.1" />
     
     <!-- SQL Server -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
     
     <!-- MySQL -->
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
@@ -51,7 +51,7 @@
     <PackageVersion Include="MongoDB.EntityFrameworkCore" Version="9.0.3" />
     
     <!-- SQLite (Testing) -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
   </ItemGroup>
 
   <!-- ================================================== -->
@@ -71,11 +71,11 @@
     <PackageVersion Include="FastEndpoints" Version="7.2.0" />
     <PackageVersion Include="FastEndpoints.Messaging.Core" Version="7.2.0" />
     <PackageVersion Include="FastEndpoints.Messaging.Remote" Version="7.2.0" />
-    <PackageVersion Include="FastEndpoints.Security" Version="7.2.0" />
+    <PackageVersion Include="FastEndpoints.Security" Version="7.1.1" />
     <PackageVersion Include="FastEndpoints.Swagger" Version="7.2.0" />
-    <PackageVersion Include="FastEndpoints.Testing" Version="7.2.0" />
+    <PackageVersion Include="FastEndpoints.Testing" Version="7.1.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.12.11" />
     <PackageVersion Include="NSwag.Annotations" Version="14.6.3" />
   </ItemGroup>
@@ -84,9 +84,9 @@
   <!-- AUTHENTICATION & AUTHORIZATION                     -->
   <!-- ================================================== -->
   <ItemGroup Label="Authentication and Authorization">
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Identity.Web" Version="4.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Identity.Web" Version="4.1.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
     <PackageVersion Include="Keycloak.AuthServices.Authentication" Version="2.8.0" />
     <PackageVersion Include="Keycloak.AuthServices.Authorization" Version="2.8.0" />
@@ -98,11 +98,11 @@
   <!-- CACHING & PERFORMANCE                              -->
   <!-- ================================================== -->
   <ItemGroup Label="Caching and Performance">
-    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.5.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.5.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.5.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.5.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.5.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.4.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.4.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.4.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.4.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.4.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.2" />
     <PackageVersion Include="StackExchange.Redis" Version="2.10.1" />
     <PackageVersion Include="DistributedLock.Redis" Version="1.1.1" />
@@ -114,8 +114,8 @@
   <ItemGroup Label="Domain Modeling Validation">
     <PackageVersion Include="Ardalis.SmartEnum" Version="8.2.0" />
     <PackageVersion Include="Ardalis.SmartEnum.EFCore" Version="8.2.0" />
-    <PackageVersion Include="Ardalis.Specification" Version="9.3.1" />
-    <PackageVersion Include="Ardalis.Specification.EntityFrameworkCore" Version="9.3.1" />
+    <PackageVersion Include="Ardalis.Specification" Version="9.2.0" />
+    <PackageVersion Include="Ardalis.Specification.EntityFrameworkCore" Version="9.2.0" />
     <PackageVersion Include="Ardalis.GuardClauses" Version="5.0.0" />
     <PackageVersion Include="ErrorOr" Version="2.0.1" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
@@ -127,9 +127,9 @@
   <!-- MULTI-TENANCY                                      -->
   <!-- ================================================== -->
   <ItemGroup Label="Multi-Tenancy">
-    <PackageVersion Include="Finbuckle.MultiTenant" Version="10.0.2" />
-    <PackageVersion Include="Finbuckle.MultiTenant.EntityFrameworkCore" Version="10.0.2" />
-    <PackageVersion Include="Finbuckle.MultiTenant.AspNetCore" Version="10.0.2" />
+    <PackageVersion Include="Finbuckle.MultiTenant" Version="9.4.3" />
+    <PackageVersion Include="Finbuckle.MultiTenant.EntityFrameworkCore" Version="9.4.3" />
+    <PackageVersion Include="Finbuckle.MultiTenant.AspNetCore" Version="9.4.3" />
   </ItemGroup>
 
   <!-- ================================================== -->
@@ -138,8 +138,8 @@
   <ItemGroup Label="Utilities and Helpers">
     <PackageVersion Include="Nanoid" Version="3.1.0" />
     <PackageVersion Include="CorrelationId" Version="3.0.1" />
-    <PackageVersion Include="System.Text.Json" Version="10.0.2" />
-    <PackageVersion Include="System.Text.Encodings.Web" Version="10.0.2" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.0" />
+    <PackageVersion Include="System.Text.Encodings.Web" Version="10.0.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageVersion Include="System.Private.Uri" Version="4.3.2" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
@@ -226,7 +226,7 @@
   <!-- HEALTH CHECKS                                      -->
   <!-- ================================================== -->
   <ItemGroup Label="Health Checks">
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.ApplicationStatus" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
@@ -244,24 +244,24 @@
   <!-- MICROSOFT EXTENSIONS                               -->
   <!-- ================================================== -->
   <ItemGroup Label="Microsoft Extensions">
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.6.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.3.1" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="9.3.1" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="9.3.1" />
     <PackageVersion Include="Microsoft.AspNetCore.HeaderPropagation" Version="10.0.2" />
     <PackageVersion Include="Microsoft.AspNet.WebApi.Client" Version="6.0.0" />
   </ItemGroup>
@@ -284,8 +284,8 @@
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.0.2" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.0.2" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.0.2" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.0.2" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.0.2" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.1.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.0" />
     <PackageVersion Include="Keycloak.AuthServices.Aspire.Hosting" Version="0.2.0" />
   </ItemGroup>
 
@@ -310,18 +310,6 @@
     <PackageVersion Include="CSharpGuidelinesAnalyzer" Version="3.8.5" />
     <PackageVersion Include="SecurityCodeScan.VS2019" Version="5.6.7" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.Analyzers" Version="10.0.2" />
-    
-    <!-- Microsoft.CodeAnalysis packages - pinned to avoid version conflicts -->
-    <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Scripting.Common" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup Label="Specialized Analyzers">
@@ -329,7 +317,7 @@
     <PackageVersion Include="NetFabric.Hyperlinq.Analyzer" Version="2.3.0" />
     <PackageVersion Include="SmartanAlyzers.ExceptionAnalyzer" Version="1.0.10" />
     <PackageVersion Include="StackExchange.Redis.Analyzer" Version="1.3.3" />
-    <PackageVersion Include="ErrorProne.NET.CoreAnalyzers" Version="0.8.2-beta.1" />
+    <PackageVersion Include="ErrorProne.NET.CoreAnalyzers" Version="0.6.1-beta.1" />
   </ItemGroup>
 
   <!-- ================================================== -->
@@ -338,7 +326,7 @@
   <ItemGroup Label="Testing Framework">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageVersion Include="Microsoft.TestPlatform" Version="18.0.1" />
-    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3" Version="3.2.1" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
   </ItemGroup>
@@ -349,16 +337,16 @@
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
-    <PackageVersion Include="Soenneker.Utils.AutoBogus" Version="4.0.844" />
-    <PackageVersion Include="Soenneker.Utils.AutoBogus.NSubstitute" Version="4.0.738" />
+    <PackageVersion Include="Soenneker.Utils.AutoBogus" Version="4.0.824" />
+    <PackageVersion Include="Soenneker.Utils.AutoBogus.NSubstitute" Version="4.0.721" />
     <PackageVersion Include="TngTech.ArchUnitNET" Version="0.12.3" />
     <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.12.3" />
   </ItemGroup>
 
   <ItemGroup Label="Integration Testing">
-    <PackageVersion Include="Testcontainers" Version="4.10.0" />
-    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.10.0" />
-    <PackageVersion Include="Testcontainers.RabbitMq" Version="4.10.0" />
-    <PackageVersion Include="Testcontainers.Redis" Version="4.10.0" />
+    <PackageVersion Include="Testcontainers" Version="4.9.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.9.0" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="4.9.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.9.0" />
   </ItemGroup>
 </Project>
