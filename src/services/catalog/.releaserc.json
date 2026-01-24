@@ -3,22 +3,22 @@
     "+([0-9])?(.{+([0-9]),x}).x",
     "main",
     {
-        "name": "next",
-        "prerelease": true,
-        "channel": "next"
+      "name": "next",
+      "prerelease": true,
+      "channel": "next"
     },
     "next-major",
     {
-        "name": "beta",
-        "prerelease": true,
-        "channel": "beta"
+      "name": "beta",
+      "prerelease": true,
+      "channel": "beta"
     },
     {
-        "name": "alpha",
-        "prerelease": true,
-        "channel": "alpha"
+      "name": "alpha",
+      "prerelease": true,
+      "channel": "alpha"
     }
-],
+  ],
   "tagFormat": "catalog@v${version}",
   "plugins": [
     [
@@ -30,6 +30,7 @@
           { "type": "fix", "scope": "catalog", "release": "patch" },
           { "type": "perf", "scope": "catalog", "release": "patch" },
           { "type": "refactor", "scope": "catalog", "release": "patch" },
+          { "type": "build", "scope": "catalog", "release": "patch" },
           { "breaking": true, "scope": "catalog", "release": "major" },
           { "scope": "catalog", "release": false }
         ],
@@ -44,20 +45,33 @@
         "preset": "conventionalcommits",
         "presetConfig": {
           "types": [
-            { "type": "feat", "section": "Features" },
-            { "type": "fix", "section": "Bug Fixes" },
-            { "type": "perf", "section": "Performance Improvements" },
-            { "type": "refactor", "section": "Code Refactoring" },
-            { "type": "docs", "section": "Documentation", "hidden": false },
-            { "type": "style", "section": "Styles", "hidden": true },
-            { "type": "chore", "section": "Miscellaneous Chores", "hidden": true },
-            { "type": "test", "section": "Tests", "hidden": true },
-            { "type": "build", "section": "Build System", "hidden": true },
-            { "type": "ci", "section": "Continuous Integration", "hidden": true }
+            { "type": "feat", "section": "✨ Features" },
+            { "type": "fix", "section": "🐛 Bug Fixes" },
+            { "type": "perf", "section": "⚡ Performance Improvements" },
+            { "type": "refactor", "section": "♻️ Code Refactoring" },
+            { "type": "docs", "section": "📚 Documentation", "hidden": false },
+            { "type": "test", "section": "✅ Tests", "hidden": false },
+            { "type": "build", "section": "🏗️ Build System", "hidden": false },
+            { "type": "ci", "section": "👷 CI/CD", "hidden": false },
+            { "type": "chore", "section": "🔧 Chores", "hidden": false },
+            { "type": "style", "section": "💄 Styles", "hidden": true }
           ]
         }
       }
     ],
-    "@semantic-release/github"
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo \"Preparing release ${nextRelease.version} for catalog service\""
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "successComment": false,
+        "failTitle": false,
+        "releasedLabels": ["released<%= nextRelease.channel ? `-${nextRelease.channel}` : \"\" %>"]
+      }
+    ]
   ]
 }

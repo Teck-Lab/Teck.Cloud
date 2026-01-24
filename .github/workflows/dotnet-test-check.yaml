@@ -35,58 +35,192 @@ jobs:
           none_of: release
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           allow_failure: true
-  pre-checks:
+
+  # ===================================================================
+  # DOTNET-AFFECTED: Detect which projects are affected by changes
+  # This replaces the generic path-based checks with precise 
+  # project-level dependency analysis
+  # ===================================================================
+  detect-affected:
+    name: Detect Affected Projects
     runs-on: ubuntu-latest
     outputs:
-      hasChanged: ${{steps.changed-paths.outputs.changed}}
-      paths: ${{steps.list-files.outputs.paths}}
+      affected: ${{ steps.affected.outputs.affected }}
+      affected-json: ${{ steps.affected.outputs.affected-json }}
+      has-changes: ${{ steps.affected.outputs.has-changes }}
+      dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - uses: marceloprado/has-changed-path@v1.0.1
-        id: changed-paths
-        with:
-          paths: src/ tests/
-      - name: List Files
-        id: list-files
-        uses: ab185508/file-type-finder@main
-        with:
-            path: "src/"
-            type: "Dockerfile"
+          fetch-depth: 0  # Required for dotnet-affected to compare commits
 
-  build-test-dotnet:
-    runs-on: ubuntu-latest
-    name: Build, test and generate result
-    needs: [pre-checks, check-label]
-    if: ${{ needs.pre-checks.outputs.hasChanged == 'true' && needs.check-label.outputs.status == 'success'}}
-    steps:
-      - uses: actions/checkout@v4
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dotnet tools
+        run: dotnet tool restore
+
+      - name: Run dotnet-affected
+        id: affected
+        run: |
+          # Get the base branch commit (what we're merging into)
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          echo "Comparing $BASE_SHA (base) -> $HEAD_SHA (head)"
+          
+          # Run dotnet-affected to generate affected projects
+          # - traversal: Creates affected.proj for building/testing
+          # - text: Creates affected.txt with list of project paths
+          # - json: Creates affected.json with structured data
+          dotnet affected \
+            --from "$BASE_SHA" \
+            --to "$HEAD_SHA" \
+            --format text json traversal \
+            --output-dir "${{ runner.temp }}/affected" \
+            --verbose || EXIT_CODE=$?
+          
+          # Exit code 166 means no projects changed (this is OK, just skip builds)
+          if [ "${EXIT_CODE:-0}" -eq 166 ]; then
+            echo "No projects affected by changes"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "affected=" >> $GITHUB_OUTPUT
+            echo "affected-json={}" >> $GITHUB_OUTPUT
+            exit 0
+          elif [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "dotnet-affected failed with exit code ${EXIT_CODE}"
+            exit ${EXIT_CODE}
+          fi
+          
+          # Read the affected projects
+          if [ -f "${{ runner.temp }}/affected/affected.txt" ]; then
+            AFFECTED=$(cat "${{ runner.temp }}/affected/affected.txt" | tr '\n' ' ')
+            echo "Affected projects: $AFFECTED"
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "affected=$AFFECTED" >> $GITHUB_OUTPUT
+            
+            # Read JSON output for structured data
+            if [ -f "${{ runner.temp }}/affected/affected.json" ]; then
+              AFFECTED_JSON=$(cat "${{ runner.temp }}/affected/affected.json")
+              echo "affected-json=$AFFECTED_JSON" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "affected=" >> $GITHUB_OUTPUT
+            echo "affected-json={}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload affected.proj artifact
+        if: steps.affected.outputs.has-changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: affected-projects
+          path: ${{ runner.temp }}/affected/affected.proj
+          retention-days: 1
+
+      - name: Upload affected projects list
+        if: steps.affected.outputs.has-changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: affected-list
+          path: |
+            ${{ runner.temp }}/affected/affected.txt
+            ${{ runner.temp }}/affected/affected.json
+          retention-days: 1
+
+      - name: Find Dockerfiles for affected projects
+        id: find-dockerfiles
+        if: steps.affected.outputs.has-changes == 'true'
+        run: |
+          # Find Dockerfiles that belong to affected projects
+          DOCKERFILES="[]"
+          
+          if [ -f "${{ runner.temp }}/affected/affected.txt" ]; then
+            # For each affected project, check if it has a Dockerfile
+            DOCKERFILE_PATHS=()
+            while IFS= read -r project_path; do
+              if [ -z "$project_path" ]; then continue; fi
+              
+              # Get the directory containing the .csproj
+              PROJECT_DIR=$(dirname "$project_path")
+              
+              # Check if Dockerfile exists in project directory
+              if [ -f "$PROJECT_DIR/Dockerfile" ]; then
+                DOCKERFILE_PATHS+=("$PROJECT_DIR/Dockerfile")
+              fi
+            done < "${{ runner.temp }}/affected/affected.txt"
+            
+            # Convert to JSON array
+            if [ ${#DOCKERFILE_PATHS[@]} -gt 0 ]; then
+              DOCKERFILES=$(printf '%s\n' "${DOCKERFILE_PATHS[@]}" | jq -R . | jq -s .)
+            fi
+          fi
+          
+          echo "dockerfiles=$DOCKERFILES" >> $GITHUB_OUTPUT
+          echo "Found Dockerfiles: $DOCKERFILES"
+
+      - name: Comment PR with affected projects
+        if: steps.affected.outputs.has-changes == 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: affected-projects
+          message: |
+            ## 🎯 Affected Projects
+            
+            The following projects will be built and tested based on your changes:
+            
+            ```
+            ${{ steps.affected.outputs.affected }}
+            ```
+            
+            <details>
+            <summary>ℹ️ About dotnet-affected</summary>
+            
+            This PR only builds and tests projects that are affected by your changes, including:
+            - Projects with direct file changes
+            - Projects that depend on changed projects
+            - Projects affected by NuGet package updates in `Directory.Packages.props`
+            - Projects affected by changes to `Directory.Build.props`
+            
+            This speeds up CI/CD by avoiding unnecessary work.
+            </details>
+
+  build-test-dotnet:
+    runs-on: ubuntu-latest
+    name: Build and test affected projects
+    needs: [detect-affected, check-label]
+    if: ${{ needs.detect-affected.outputs.has-changes == 'true' && needs.check-label.outputs.status == 'success' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Install .NET Aspire workload
         run: dotnet workload install aspire
 
-      # - name: Cache NuGet packages
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/.nuget/packages
-      #     key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
-      #     restore-keys: |
-      #       nuget-${{ runner.os }}-
+      - name: Download affected.proj
+        uses: actions/download-artifact@v4
+        with:
+          name: affected-projects
+          path: ${{ runner.temp }}/affected
 
-      - name: Restore dependencies
-        run: dotnet restore Teck.Cloud.slnx
+      - name: Restore dependencies (affected projects only)
+        run: dotnet restore "${{ runner.temp }}/affected/affected.proj"
 
-      - name: Build
-        run: dotnet build Teck.Cloud.slnx -c Release --no-restore
+      - name: Build (affected projects only)
+        run: dotnet build "${{ runner.temp }}/affected/affected.proj" -c Release --no-restore
 
-      - name: Test
-        run: dotnet test Teck.Cloud.slnx -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
+      - name: Test (affected projects only)
+        run: dotnet test "${{ runner.temp }}/affected/affected.proj" -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
 
-      - name: Combine Coverage Reports # This is because one report is produced per project, and we want one result for all of them.
+      - name: Combine Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4
         with:
           reports: "**/*.cobertura.xml"
@@ -110,7 +244,7 @@ jobs:
         with:
           filename: "Cobertura.xml"
           badge: true
-          fail_below_min: false # just informative for now
+          fail_below_min: false
           format: markdown
           hide_branch_rate: false
           hide_complexity: false
@@ -122,7 +256,7 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         if: github.event_name == 'pull_request'
         with:
-          recreate: true
+          header: coverage
           path: code-coverage-results.md
 
       - name: Upload Test Result Files
@@ -140,10 +274,10 @@ jobs:
           path: "${{ github.workspace }}/**/*.trx"
           reporter: dotnet-trx
 
-      - name: Check formatting
-        run: dotnet format Teck.Cloud.slnx --verify-no-changes
+      - name: Check formatting (affected projects only)
+        run: dotnet format "${{ runner.temp }}/affected/affected.proj" --verify-no-changes
         continue-on-error: true
-        
+
       - name: Security scan with Trivy (SARIF)
         uses: aquasecurity/trivy-action@0.31.0
         continue-on-error: true
@@ -160,14 +294,15 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
+
   build-test-docker:
     runs-on: ${{ matrix.builder.runner-image }}
     name: Build and test docker image
     needs: 
       - build-test-dotnet
-      - pre-checks
+      - detect-affected
       - check-label
-    if: ${{ needs.pre-checks.outputs.hasChanged == 'true' && needs.check-label.outputs.status == 'success'}}
+    if: ${{ needs.detect-affected.outputs.has-changes == 'true' && needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.dockerfiles != '[]' }}
     
     # Service containers for Docker build (needed for Wolverine codegen)
     services:
@@ -201,39 +336,44 @@ jobs:
     
     strategy:
       matrix:
-        paths: ${{ fromJson( needs.pre-checks.outputs.paths)}}
+        paths: ${{ fromJson(needs.detect-affected.outputs.dockerfiles) }}
         builder:
           - runner-image: ubuntu-24.04
             platform: linux/amd64
           - runner-image: ubuntu-24.04-arm
             platform: linux/arm64
+    
     steps:
       - name: Prepare
         run: |
           echo "REPO_LOWER=$(echo '${{ env.REPOSITORY }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
-      - uses: actions/checkout@v4
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Extract service name from Dockerfile path
         run: |
-          # Extract service name from Dockerfile path (e.g., src/services/catalog/Catalog.Api/Dockerfile)
           DOCKERFILE_PATH="${{ matrix.paths }}"
-          # Remove leading directories and trailing '/Dockerfile', replace / and . with -
           SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
-          # Remove any trailing platform info if present (shouldn't be, but extra safety)
           SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
           echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ env.REPO_LOWER }}
           tags: ${{ github.sha }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           version: latest
+
       - name: Build image (no push)
         id: build
         uses: docker/build-push-action@v6
@@ -254,9 +394,15 @@ jobs:
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
-    needs: [build-test-dotnet, build-test-docker, pre-checks, check-label]
+    needs: [build-test-dotnet, build-test-docker, detect-affected, check-label]
     if: always()
     steps:
+      - name: Check if no changes detected
+        if: needs.detect-affected.outputs.has-changes == 'false'
+        run: |
+          echo "✅ No affected projects - skipping build and test"
+          exit 0
+
       - name: Check if build-test-dotnet was successful or skipped
         run: |
           if [[ "${{ needs.build-test-dotnet.result }}" == "success" ]] || [[ "${{ needs.build-test-dotnet.result }}" == "skipped" ]]; then
@@ -278,4 +424,4 @@ jobs:
           fi
       
       - name: All checks passed
-        run: echo "All required checks completed successfully or were skipped"
+        run: echo "✅ All required checks completed successfully or were skipped"

@@ -1,0 +1,213 @@
+name: Release Services
+
+on:
+  push:
+    branches:
+      - main
+      - next
+      - alpha
+      - beta
+      - next-major
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  packages: write
+
+env:
+  DOTNET_VERSION: "10.0.*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ===================================================================
+  # DOTNET-AFFECTED: Detect which services need releasing
+  # Compares current commit with the last successful release
+  # ===================================================================
+  detect-affected-services:
+    name: Detect Affected Services
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.detect.outputs.services }}
+      has-changes: ${{ steps.detect.outputs.has-changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dotnet tools
+        run: dotnet tool restore
+
+      - name: Get last successful release commit
+        id: last-release
+        run: |
+          # Find the last commit that triggered a successful release
+          # This uses the GitHub API to find the last successful workflow run
+          LAST_RELEASE_SHA=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${{ github.repository }}/actions/workflows/release-catalog.yaml/runs?status=success&branch=${{ github.ref_name }}&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // ""')
+          
+          if [ -z "$LAST_RELEASE_SHA" ]; then
+            echo "No previous successful release found, comparing against first commit"
+            LAST_RELEASE_SHA=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "last-release-sha=$LAST_RELEASE_SHA" >> $GITHUB_OUTPUT
+          echo "Comparing from: $LAST_RELEASE_SHA to: ${{ github.sha }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect affected projects
+        id: detect
+        run: |
+          FROM_SHA="${{ steps.last-release.outputs.last-release-sha }}"
+          TO_SHA="${{ github.sha }}"
+          
+          echo "Running dotnet-affected from $FROM_SHA to $TO_SHA"
+          
+          # Run dotnet-affected
+          dotnet affected \
+            --from "$FROM_SHA" \
+            --to "$TO_SHA" \
+            --format json text \
+            --output-dir "${{ runner.temp }}/affected" \
+            --verbose || EXIT_CODE=$?
+          
+          # Exit code 166 means no projects changed
+          if [ "${EXIT_CODE:-0}" -eq 166 ]; then
+            echo "No projects affected since last release"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "services=[]" >> $GITHUB_OUTPUT
+            exit 0
+          elif [ "${EXIT_CODE:-0}" -ne 0 ]; then
+            echo "dotnet-affected failed with exit code ${EXIT_CODE}"
+            exit ${EXIT_CODE}
+          fi
+          
+          # Parse affected projects and extract service names
+          # We only care about projects in src/services/*/*.Api
+          SERVICES="[]"
+          if [ -f "${{ runner.temp }}/affected/affected.txt" ]; then
+            SERVICE_NAMES=()
+            while IFS= read -r project_path; do
+              if [ -z "$project_path" ]; then continue; fi
+              
+              # Extract service name from path like: src/services/catalog/Catalog.Api/Catalog.Api.csproj
+              if echo "$project_path" | grep -q "src/services/.*/.*\.Api/"; then
+                SERVICE_NAME=$(echo "$project_path" | sed -n 's|src/services/\([^/]*\)/.*|\1|p')
+                if [ -n "$SERVICE_NAME" ]; then
+                  SERVICE_NAMES+=("$SERVICE_NAME")
+                fi
+              fi
+            done < "${{ runner.temp }}/affected/affected.txt"
+            
+            # Remove duplicates and convert to JSON array
+            if [ ${#SERVICE_NAMES[@]} -gt 0 ]; then
+              SERVICES=$(printf '%s\n' "${SERVICE_NAMES[@]}" | sort -u | jq -R . | jq -s .)
+              echo "has-changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has-changes=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "Affected services: $SERVICES"
+
+      - name: Upload affected projects artifact
+        if: steps.detect.outputs.has-changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: affected-services
+          path: ${{ runner.temp }}/affected/*
+          retention-days: 1
+
+  # ===================================================================
+  # SEMANTIC RELEASE: Release each affected service independently
+  # Each service gets its own semantic version based on conventional commits
+  # ===================================================================
+  release-service:
+    name: Release ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: detect-affected-services
+    if: needs.detect-affected-services.outputs.has-changes == 'true'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-affected-services.outputs.services) }}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.2.0
+        with:
+          node-version: 'lts/*'
+
+      - name: Check if service has .releaserc.json
+        id: check-config
+        run: |
+          if [ -f "src/services/${{ matrix.service }}/.releaserc.json" ]; then
+            echo "has-config=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-config=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Warning: No .releaserc.json found for ${{ matrix.service }}"
+            echo "Create src/services/${{ matrix.service }}/.releaserc.json to enable semantic-release"
+          fi
+
+      - name: Semantic Release
+        if: steps.check-config.outputs.has-config == 'true'
+        uses: cycjimmy/semantic-release-action@v6.0.0
+        with:
+          working_directory: ./src/services/${{ matrix.service }}
+          extends: ./.releaserc.json
+          extra_plugins: |
+            conventional-changelog-conventionalcommits@9.1.0
+            @semantic-release/commit-analyzer
+            @semantic-release/github
+            @semantic-release/release-notes-generator
+            @semantic-release/exec
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+  # ===================================================================
+  # SUMMARY: Report what was released
+  # ===================================================================
+  release-summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: [detect-affected-services, release-service]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          if [ "${{ needs.detect-affected-services.outputs.has-changes }}" == "false" ]; then
+            echo "## 📦 Release Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ No services affected since last release - nothing to do!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 📦 Release Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The following services were processed for release:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '${{ needs.detect-affected-services.outputs.services }}' | jq -r '.[] | "- " + .' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the individual job outputs for release details." >> $GITHUB_STEP_SUMMARY
+          fi
