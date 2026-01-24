@@ -170,29 +170,29 @@ jobs:
           message: |
             ## 🎯 Affected Projects
             
-            The following projects will be built and tested based on your changes:
+            The following projects have changes:
             
             ```
             ${{ steps.affected.outputs.affected }}
             ```
             
             <details>
-            <summary>ℹ️ About dotnet-affected</summary>
+            <summary>ℹ️ About CI/CD Strategy</summary>
             
-            This PR only builds and tests projects that are affected by your changes, including:
-            - Projects with direct file changes
-            - Projects that depend on changed projects
-            - Projects affected by NuGet package updates in `Directory.Packages.props`
-            - Projects affected by changes to `Directory.Build.props`
-            
-            This speeds up CI/CD by avoiding unnecessary work.
+            - **All .NET tests run** on every PR to ensure no regressions
+            - **Docker images** are only built for affected services to save time
+            - Affected projects are detected using dotnet-affected, which tracks:
+              - Projects with direct file changes
+              - Projects that depend on changed projects
+              - Projects affected by NuGet package updates in `Directory.Packages.props`
+              - Projects affected by changes to `Directory.Build.props`
             </details>
 
   build-test-dotnet:
     runs-on: ubuntu-latest
-    name: Build and test affected projects
-    needs: [detect-affected, check-label]
-    if: ${{ needs.detect-affected.outputs.has-changes == 'true' && needs.check-label.outputs.status == 'success' }}
+    name: Build and test all projects
+    needs: [check-label]
+    if: ${{ needs.check-label.outputs.status == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -205,20 +205,14 @@ jobs:
       - name: Install .NET Aspire workload
         run: dotnet workload install aspire
 
-      - name: Download affected.proj
-        uses: actions/download-artifact@v4
-        with:
-          name: affected-projects
-          path: ${{ runner.temp }}/affected
+      - name: Restore dependencies
+        run: dotnet restore
 
-      - name: Restore dependencies (affected projects only)
-        run: dotnet restore "${{ runner.temp }}/affected/affected.proj"
+      - name: Build
+        run: dotnet build -c Release --no-restore
 
-      - name: Build (affected projects only)
-        run: dotnet build "${{ runner.temp }}/affected/affected.proj" -c Release --no-restore
-
-      - name: Test (affected projects only)
-        run: dotnet test "${{ runner.temp }}/affected/affected.proj" -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
+      - name: Test
+        run: dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
 
       - name: Combine Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4
@@ -274,8 +268,8 @@ jobs:
           path: "${{ github.workspace }}/**/*.trx"
           reporter: dotnet-trx
 
-      - name: Check formatting (affected projects only)
-        run: dotnet format "${{ runner.temp }}/affected/affected.proj" --verify-no-changes
+      - name: Check formatting
+        run: dotnet format --verify-no-changes
         continue-on-error: true
 
       - name: Security scan with Trivy (SARIF)
@@ -397,29 +391,23 @@ jobs:
     needs: [build-test-dotnet, build-test-docker, detect-affected, check-label]
     if: always()
     steps:
-      - name: Check if no changes detected
-        if: needs.detect-affected.outputs.has-changes == 'false'
+      - name: Check if build-test-dotnet was successful
         run: |
-          echo "✅ No affected projects - skipping build and test"
-          exit 0
-
-      - name: Check if build-test-dotnet was successful or skipped
-        run: |
-          if [[ "${{ needs.build-test-dotnet.result }}" == "success" ]] || [[ "${{ needs.build-test-dotnet.result }}" == "skipped" ]]; then
-            echo "Build and test job passed or was skipped - OK"
+          if [[ "${{ needs.build-test-dotnet.result }}" == "success" ]]; then
+            echo "✅ Build and test job passed"
             exit 0
           else
-            echo "Build and test job failed"
+            echo "❌ Build and test job failed or was skipped"
             exit 1
           fi
       
       - name: Check if build-test-docker was successful or skipped
         run: |
           if [[ "${{ needs.build-test-docker.result }}" == "success" ]] || [[ "${{ needs.build-test-docker.result }}" == "skipped" ]]; then
-            echo "Docker build job passed or was skipped - OK"
+            echo "✅ Docker build job passed or was skipped - OK"
             exit 0
           else
-            echo "Docker build job failed"
+            echo "❌ Docker build job failed"
             exit 1
           fi
       

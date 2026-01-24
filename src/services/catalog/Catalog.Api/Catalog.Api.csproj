@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 <PropertyGroup>
   <Product>Catalog.Api</Product>
   <Description>API for managing catalog products.</Description>
@@ -34,6 +34,13 @@
   <ItemGroup>
     <Folder Include="Endpoints\V1\Products\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Dockerfile">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 <ItemGroup>
     <InternalsVisibleTo Include="Catalog.UnitTests" />
     <InternalsVisibleTo Include="Catalog.Arch.UnitTests" />
