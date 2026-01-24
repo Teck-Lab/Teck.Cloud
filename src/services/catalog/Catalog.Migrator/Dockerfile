@@ -65,8 +65,9 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 ARG DOTNET_VERSION
 FROM mcr.microsoft.com/dotnet/runtime:${DOTNET_VERSION}-alpine-composite AS final
+ENV APP_UID=1000
 WORKDIR /app
 COPY --from=publish /app/publish .
 # Set user only in final stage (if needed)
-# USER $APP_UID
+USER $APP_UID
 ENTRYPOINT ["dotnet", "Catalog.Migrator.dll"]
