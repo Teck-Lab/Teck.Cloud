@@ -113,9 +113,9 @@ jobs:
               fi
             done < "${{ runner.temp }}/affected/affected.txt"
             
-            # Remove duplicates and convert to JSON array
+            # Remove duplicates and convert to JSON array (compact, single line)
             if [ ${#SERVICE_NAMES[@]} -gt 0 ]; then
-              SERVICES=$(printf '%s\n' "${SERVICE_NAMES[@]}" | sort -u | jq -R . | jq -s .)
+              SERVICES=$(printf '%s\n' "${SERVICE_NAMES[@]}" | sort -u | jq -R . | jq -s -c .)
               echo "has-changes=true" >> $GITHUB_OUTPUT
             else
               echo "has-changes=false" >> $GITHUB_OUTPUT
@@ -124,6 +124,7 @@ jobs:
             echo "has-changes=false" >> $GITHUB_OUTPUT
           fi
           
+          # Output as compact JSON (single line, no newlines)
           echo "services=$SERVICES" >> $GITHUB_OUTPUT
           echo "Affected services: $SERVICES"
 

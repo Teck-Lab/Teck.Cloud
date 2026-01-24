@@ -102,9 +102,9 @@ jobs:
             echo "has-changes=true" >> $GITHUB_OUTPUT
             echo "affected=$AFFECTED" >> $GITHUB_OUTPUT
             
-            # Read JSON output for structured data
+            # Read JSON output for structured data (compact single line)
             if [ -f "${{ runner.temp }}/affected/affected.json" ]; then
-              AFFECTED_JSON=$(cat "${{ runner.temp }}/affected/affected.json")
+              AFFECTED_JSON=$(cat "${{ runner.temp }}/affected/affected.json" | jq -c .)
               echo "affected-json=$AFFECTED_JSON" >> $GITHUB_OUTPUT
             fi
           else
@@ -153,9 +153,9 @@ jobs:
               fi
             done < "${{ runner.temp }}/affected/affected.txt"
             
-            # Convert to JSON array
+            # Convert to JSON array (compact, single line)
             if [ ${#DOCKERFILE_PATHS[@]} -gt 0 ]; then
-              DOCKERFILES=$(printf '%s\n' "${DOCKERFILE_PATHS[@]}" | jq -R . | jq -s .)
+              DOCKERFILES=$(printf '%s\n' "${DOCKERFILE_PATHS[@]}" | jq -R . | jq -s -c .)
             fi
           fi
           
