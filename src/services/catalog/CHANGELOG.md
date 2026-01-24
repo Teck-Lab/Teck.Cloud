@@ -1,3 +1,19 @@
+# v0.1.1 (Sat Jan 24 2026)
+
+#### 🐛 Bug Fix
+
+- fix: dockerfile [#99](https://github.com/Teck-Lab/Teck.Cloud/pull/99) ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- ci: fix workflow ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.1.0 (Sat Jan 24 2026)
 
 :tada: This release contains work from a new contributor! :tada:
