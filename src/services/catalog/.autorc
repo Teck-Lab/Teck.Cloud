@@ -7,10 +7,26 @@
   "prereleaseBranches": ["next", "alpha", "beta"],
   "noVersionPrefix": false,
   "plugins": [
-    ["git-tag", { "tagPrefix": "catalog@" }],
+    [
+      "exec",
+      {
+        "publish": "git tag catalog@v$ARG_0 && for i in 1 2 3 4 5; do git push --tags && break || (echo \"Push attempt $i failed, retrying in ${i} seconds...\" && sleep $i); done"
+      }
+    ],
+    [
+      "all-contributors",
+      {
+        "exclude": [
+          "dependabot",
+          "dependabot[bot]",
+          "dependabot-preview",
+          "dependabot-preview[bot]"
+        ]
+      }
+    ],
     "conventional-commits",
     "first-time-contributor",
-    "released"
+    ["released", { "lockIssues": true, "includeBotPrs": true }]
   ],
   "labels": [
     {

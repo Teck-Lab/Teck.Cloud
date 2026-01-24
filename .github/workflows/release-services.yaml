@@ -17,7 +17,6 @@ permissions:
 
 env:
   DOTNET_VERSION: "10.0.*"
-  AUTO_RELEASE_APP_ID: "12345"  # Replace with your actual App ID
 
 concurrency:
   group: release-${{ github.ref }}
@@ -159,7 +158,15 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.detect-affected-services.outputs.services) }}
       fail-fast: false
+      max-parallel: 3  # Limit parallel releases to reduce API rate limiting
     steps:
+      - name: Add staggered delay
+        run: |
+          # Add a random delay (0-10 seconds) to reduce collision probability
+          # when multiple services are released simultaneously
+          DELAY=$((RANDOM % 10))
+          echo "Waiting ${DELAY} seconds before starting release..."
+          sleep $DELAY
       - name: Generate GitHub App Token
         id: generate-token
         uses: actions/create-github-app-token@v1
@@ -208,13 +215,13 @@ jobs:
         if: steps.check-config.outputs.has-config == 'true'
         working-directory: ./src/services/${{ matrix.service }}
         run: |
-          echo "Running Auto release for ${{ matrix.service }}"
+          echo "Running Auto shipit for ${{ matrix.service }}"
           
-          # Auto will:
+          # Auto shipit will:
           # 1. Calculate version based on PR labels
           # 2. Generate changelog
           # 3. Create GitHub release
-          # 4. Create git tag with service prefix (e.g., catalog@v1.2.3)
+          # 4. Call exec plugin to create git tag with service prefix (e.g., catalog@v1.2.3)
           auto shipit
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
