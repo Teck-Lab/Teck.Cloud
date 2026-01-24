@@ -185,7 +185,7 @@ jobs:
 
       - name: Setup Auto
         if: steps.check-config.outputs.has-config == 'true'
-        uses: auto-it/setup-auto@v2
+        uses: auto-it/setup-auto@v2.0.0
 
       - name: Create labels
         if: steps.check-config.outputs.has-config == 'true'
