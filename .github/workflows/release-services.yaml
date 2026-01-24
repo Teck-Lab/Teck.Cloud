@@ -17,6 +17,7 @@ permissions:
 
 env:
   DOTNET_VERSION: "10.0.*"
+  AUTO_RELEASE_APP_ID: "12345"  # Replace with your actual App ID
 
 concurrency:
   group: release-${{ github.ref }}
@@ -159,11 +160,18 @@ jobs:
         service: ${{ fromJson(needs.detect-affected-services.outputs.services) }}
       fail-fast: false
     steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.AUTO_RELEASE_APP_ID }}
+          private-key: ${{ secrets.AUTO_RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
 
       - name: Debug service name
         run: |
@@ -194,7 +202,7 @@ jobs:
           # Create labels defined in .autorc (skip if already exist)
           auto create-labels || true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Release
         if: steps.check-config.outputs.has-config == 'true'
@@ -209,7 +217,7 @@ jobs:
           # 4. Create git tag with service prefix (e.g., catalog@v1.2.3)
           auto shipit
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
   # ===================================================================
   # SUMMARY: Report what was released
