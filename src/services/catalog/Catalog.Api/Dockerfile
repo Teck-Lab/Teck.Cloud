@@ -77,11 +77,17 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 ARG DOTNET_VERSION
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine-composite AS final
-ENV APP_UID=1000
+
+# Environment variables for .NET running in container
+ENV APP_UID=1000 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
+    ASPNETCORE_HTTP_PORTS=8080
+
 WORKDIR /app
 COPY --from=publish /app/publish .
 EXPOSE 8080
-EXPOSE 8081
 
 # Set user only in final stage (if needed)
 USER $APP_UID

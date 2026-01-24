@@ -179,6 +179,43 @@ jobs:
           echo "dockerfiles=$DOCKERFILES" >> $GITHUB_OUTPUT
           echo "Found Dockerfiles: $DOCKERFILES"
 
+      - name: Format affected projects for PR comment
+        if: steps.affected.outputs.has-changes == 'true'
+        id: format-affected
+        run: |
+          # Read affected projects and format them nicely
+          AFFECTED_LIST=""
+          while IFS= read -r project_path; do
+            if [ -z "$project_path" ]; then continue; fi
+            
+            # Extract project name and category
+            PROJECT_NAME=$(basename "$project_path" .csproj)
+            
+            # Determine category based on path
+            if [[ "$project_path" == *"/tests/"* ]]; then
+              CATEGORY="🧪 Test"
+            elif [[ "$project_path" == *"/Catalog.Api/"* ]] || [[ "$project_path" == *".Api/"* ]]; then
+              CATEGORY="🚀 Service"
+            elif [[ "$project_path" == *"/Migrator/"* ]]; then
+              CATEGORY="🔧 Tool"
+            elif [[ "$project_path" == *"/AppHost/"* ]]; then
+              CATEGORY="📦 Aspire"
+            elif [[ "$project_path" == *".Application/"* ]] || [[ "$project_path" == *".Domain/"* ]] || [[ "$project_path" == *".Infrastructure/"* ]]; then
+              CATEGORY="📚 Library"
+            else
+              CATEGORY="📄 Project"
+            fi
+            
+            AFFECTED_LIST="${AFFECTED_LIST}- ${CATEGORY}: \`${PROJECT_NAME}\`"$'\n'
+          done < "${{ runner.temp }}/affected/affected.txt"
+          
+          # Export as multiline output
+          {
+            echo 'formatted<<EOF'
+            echo "$AFFECTED_LIST"
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
       - name: Comment PR with affected projects
         if: steps.affected.outputs.has-changes == 'true'
         uses: marocchino/sticky-pull-request-comment@v2
@@ -187,22 +224,21 @@ jobs:
           message: |
             ## 🎯 Affected Projects
             
-            The following projects have changes:
-            
-            ```
-            ${{ steps.affected.outputs.affected }}
-            ```
+            ${{ steps.format-affected.outputs.formatted }}
             
             <details>
             <summary>ℹ️ About CI/CD Strategy</summary>
             
-            - **All .NET tests run** on every PR to ensure no regressions
-            - **Docker images** are only built for affected services to save time
-            - Affected projects are detected using dotnet-affected, which tracks:
-              - Projects with direct file changes
-              - Projects that depend on changed projects
-              - Projects affected by NuGet package updates in `Directory.Packages.props`
-              - Projects affected by changes to `Directory.Build.props`
+            **Testing Strategy:**
+            - ✅ All .NET tests run on every PR to ensure no regressions
+            - 🐳 Docker images are only built for affected services to save time
+            
+            **Detection Method:**
+            Projects are detected using `dotnet-affected`, which tracks:
+            - Projects with direct file changes
+            - Projects that depend on changed projects
+            - Projects affected by NuGet package updates in `Directory.Packages.props`
+            - Projects affected by changes to `Directory.Build.props`
             </details>
 
   build-test-dotnet:
