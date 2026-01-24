@@ -1,227 +1,304 @@
-# dotnet-affected Integration
+# dotnet-affected + Auto Integration
 
-This repository uses [dotnet-affected](https://github.com/leonardochaia/dotnet-affected) to optimize CI/CD pipelines by only building, testing, and releasing projects that are affected by changes.
+This repository uses [dotnet-affected](https://github.com/leonardochaia/dotnet-affected) to optimize CI/CD pipelines and [Intuit Auto](https://intuit.github.io/auto) for automated releases.
 
 ## How It Works
 
-dotnet-affected analyzes your project dependency graph and git history to determine:
-
+### dotnet-affected
+Analyzes your project dependency graph and git history to determine:
 1. **Which projects have changed** - Based on modified files
 2. **Which NuGet packages have changed** - By analyzing `Directory.Packages.props`
 3. **Which projects are affected** - By following project references and dependencies
 4. **Which projects need to be built/tested/deployed** - Transitive closure of affected projects
 
-### Example
+### Auto (Intuit Auto)
+Handles automated versioning and releases:
+1. **Label-based versioning** - Uses PR labels to determine version bumps
+2. **Changelog generation** - Automatically generates changelogs from PRs
+3. **Multi-branch releases** - Supports main, next, alpha, beta branches
+4. **Service-specific tags** - Creates tags like `catalog@v1.2.3`
 
-If you have this structure:
-- `SharedKernel.Core` (buildingblock)
-- `Catalog.Domain` (depends on SharedKernel.Core)
-- `Catalog.Api` (depends on Catalog.Domain)
-- `Inventory.Api` (independent service)
+## Workflow Overview
 
-**Scenario 1:** You change `Catalog.Api`
-- Only `Catalog.Api` needs to be built and tested
+### Pull Request Workflow
+```
+1. Developer opens PR
+2. dotnet-affected detects changed projects
+3. Only affected projects are built and tested
+4. PR comment shows which projects are affected
+5. Developer adds labels (major/minor/patch/etc.)
+```
 
-**Scenario 2:** You change `Catalog.Domain`
-- Both `Catalog.Domain` and `Catalog.Api` need to be built and tested
+### Release Workflow
+```
+1. PR merged to main/next/alpha/beta
+2. dotnet-affected detects which services changed
+3. Auto runs for each affected service
+4. Auto calculates version based on PR labels
+5. Creates release with changelog
+6. Tags release (e.g., catalog@v1.2.3)
+7. Docker builds triggered by tag
+```
 
-**Scenario 3:** You change `SharedKernel.Core`
-- All projects that depend on it need to be built and tested (Catalog.Domain, Catalog.Api, and any other dependent projects)
+## Using Auto Labels
 
-**Scenario 4:** You change `Inventory.Api`
-- Only `Inventory.Api` needs to be built and tested (Catalog service is unaffected)
+Auto uses PR labels to determine version bumps:
 
-## Workflows Using dotnet-affected
+### Version Labels
 
-### Pull Request Workflow (`dotnet-test-check.yaml`)
+| Label | Version Bump | Use When |
+|-------|-------------|----------|
+| `major` | 1.0.0 → 2.0.0 | Breaking changes |
+| `minor` | 1.0.0 → 1.1.0 | New features (backward compatible) |
+| `patch` | 1.0.0 → 1.0.1 | Bug fixes |
 
-When you open a PR, the workflow:
+### Special Labels
 
-1. **Detects affected projects** using `dotnet affected --from base --to head`
-2. **Generates `affected.proj`** - A traversal project containing only affected projects
-3. **Builds only affected projects** - `dotnet build affected.proj`
-4. **Tests only affected projects** - `dotnet test affected.proj`
-5. **Comments on PR** - Shows which projects will be built/tested
-6. **Builds Docker images** - Only for affected projects with Dockerfiles
+| Label | Behavior | Use When |
+|-------|----------|----------|
+| `skip-release` | No release created | WIP changes |
+| `release` | Force release | Manual release trigger |
+| `internal` | No version bump | Internal refactoring |
+| `documentation` | No version bump | Docs only |
+| `tests` | No version bump | Test updates only |
+| `dependencies` | No version bump | Dependency updates |
+| `performance` | Patch bump | Performance improvements |
 
-**Benefits:**
-- Faster CI runs (only build what changed)
-- Faster feedback loop for developers
-- Reduced resource usage
+### Example Workflow
 
-### Release Workflow (`release-services.yaml`)
+```bash
+# Create feature branch
+git checkout -b feature/add-search
 
-When you push to `main`/`next`/`alpha`/`beta`:
+# Make changes to catalog service
+# ... code changes ...
 
-1. **Detects affected services** since the last successful release
-2. **Runs semantic-release** for each affected service independently
-3. **Creates service-specific tags** (e.g., `catalog@v1.2.3`)
-4. **Generates changelogs** based on conventional commits
-5. **Triggers Docker builds** via the `docker-publish.yaml` workflow
+# Commit and push
+git commit -m "Add product search functionality"
+git push origin feature/add-search
 
-**Benefits:**
-- Only release services that have changed
-- Independent service versioning
-- Proper semantic versioning per service
+# Create PR
+gh pr create --title "Add product search" --label "minor"
 
-## Adding a New Service
+# When merged to main:
+# - Auto detects "minor" label
+# - Bumps catalog from v1.0.0 → v1.1.0
+# - Creates tag: catalog@v1.1.0
+# - Generates changelog with PR details
+# - Docker build triggered
+```
 
-To enable semantic-release for a new service:
+## Service Configuration
 
-1. Create `.releaserc.json` in your service directory (e.g., `src/services/inventory/.releaserc.json`)
+Each service needs an `.autorc` configuration file.
 
-```json
+### Creating Config for New Service
+
+1. Create `.autorc` in service directory:
+
+```bash
+# For catalog service
+cat > src/services/catalog/.autorc << 'EOF'
 {
-  "branches": [
-    "+([0-9])?(.{+([0-9]),x}).x",
-    "main",
-    { "name": "next", "prerelease": true, "channel": "next" },
-    "next-major",
-    { "name": "beta", "prerelease": true, "channel": "beta" },
-    { "name": "alpha", "prerelease": true, "channel": "alpha" }
-  ],
-  "tagFormat": "inventory@v${version}",
-  "plugins": [
-    [
-      "@semantic-release/commit-analyzer",
-      {
-        "preset": "conventionalcommits",
-        "releaseRules": [
-          { "type": "feat", "scope": "inventory", "release": "minor" },
-          { "type": "fix", "scope": "inventory", "release": "patch" },
-          { "type": "perf", "scope": "inventory", "release": "patch" },
-          { "type": "refactor", "scope": "inventory", "release": "patch" },
-          { "type": "build", "scope": "inventory", "release": "patch" },
-          { "breaking": true, "scope": "inventory", "release": "major" },
-          { "scope": "inventory", "release": false }
-        ]
-      }
-    ],
-    [
-      "@semantic-release/release-notes-generator",
-      {
-        "preset": "conventionalcommits",
-        "presetConfig": {
-          "types": [
-            { "type": "feat", "section": "✨ Features" },
-            { "type": "fix", "section": "🐛 Bug Fixes" },
-            { "type": "perf", "section": "⚡ Performance Improvements" },
-            { "type": "refactor", "section": "♻️ Code Refactoring" },
-            { "type": "docs", "section": "📚 Documentation", "hidden": false },
-            { "type": "test", "section": "✅ Tests", "hidden": false },
-            { "type": "build", "section": "🏗️ Build System", "hidden": false },
-            { "type": "ci", "section": "👷 CI/CD", "hidden": false }
-          ]
-        }
-      }
-    ],
-    [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "echo \"Preparing release ${nextRelease.version} for inventory service\""
-      }
-    ],
-    [
-      "@semantic-release/github",
-      {
-        "successComment": false,
-        "failTitle": false,
-        "releasedLabels": ["released<%= nextRelease.channel ? `-${nextRelease.channel}` : \"\" %>"]
-      }
-    ]
-  ]
+  "extends": "../../.autorc",
+  "git-tag": {
+    "tagPrefix": "catalog@"
+  }
 }
+EOF
 ```
 
-2. Update the `scope` and `tagFormat` to match your service name
+2. Replace `catalog@` with your service name (e.g., `inventory@`)
 
-## Commit Message Format
+### Root Configuration
 
-Use [Conventional Commits](https://www.conventionalcommits.org/) with the service scope:
+The root `.autorc` contains shared configuration:
+- PR labels and their meanings
+- Changelog titles
+- Release branches (main, next, alpha, beta)
+- Auto plugins
+
+## Branch Strategy
+
+### Main Branch
+- Stable releases
+- Version: `1.2.3`
+- Tag: `catalog@v1.2.3`
+
+### Next Branch  
+- Pre-releases for upcoming version
+- Version: `1.3.0-next.1`, `1.3.0-next.2`
+- Tag: `catalog@v1.3.0-next.1`
+
+### Alpha/Beta Branches
+- Early testing releases
+- Version: `1.2.0-alpha.1`, `1.2.0-beta.1`
+- Tag: `catalog@v1.2.0-alpha.1`
+
+## How Auto Handles Merges
+
+### Merging `next` → `main`
 
 ```
-feat(catalog): add product search endpoint
-fix(inventory): resolve stock calculation bug
-refactor(catalog): improve query performance
-docs(catalog): update API documentation
-
-feat(catalog)!: remove legacy endpoint
-# or
-feat(catalog): change API response format
-
-BREAKING CHANGE: The API now returns ISO 8601 dates
+Timeline:
+1. next: PR with "minor" label → catalog@v1.1.0-next.1
+2. next: PR with "patch" label → catalog@v1.1.0-next.2
+3. Merge next → main
+   → Auto finds last stable tag: catalog@v1.0.0
+   → Analyzes PRs since v1.0.0
+   → Creates: catalog@v1.1.0 (stable)
 ```
 
-**Scopes:**
-- `catalog` - Catalog service
-- `inventory` - Inventory service (when added)
-- `buildingblocks` - Shared buildingblocks
-- `ci` - CI/CD changes
+### After Hotfix on Main
+
+```
+1. main: Fix critical bug (patch) → catalog@v1.0.1
+2. Always merge main → next after hotfixes!
+   git checkout next
+   git merge main
+   # This keeps next in sync with main
+```
+
+## Example Scenarios
+
+### Scenario 1: Adding a Feature
+
+```bash
+# On feature branch
+git commit -m "feat: add product filtering"
+
+# Create PR with label
+gh pr create --label "minor"
+
+# After merge to main
+# Auto creates: catalog@v1.1.0
+```
+
+### Scenario 2: Breaking Change
+
+```bash
+# On feature branch  
+git commit -m "feat!: change API response format"
+
+# Create PR with label
+gh pr create --label "major"
+
+# After merge to main
+# Auto creates: catalog@v2.0.0
+```
+
+### Scenario 3: Multiple Changes in PR
+
+```bash
+# PR has commits:
+# - "fix: resolve bug"
+# - "feat: add feature"
+# - "docs: update readme"
+
+# Add label: "minor" (highest impact)
+gh pr edit --add-label "minor"
+
+# After merge to main
+# Auto creates: catalog@v1.1.0 (minor wins)
+```
+
+### Scenario 4: Pre-release on Next
+
+```bash
+# Merge PR to next branch (not main)
+git checkout next
+gh pr merge 123
+
+# Auto creates: catalog@v1.1.0-next.1
+```
+
+## Creating Labels
+
+Auto can automatically create the labels defined in `.autorc`:
+
+```bash
+# Run once per repository
+auto create-labels
+```
+
+Or the workflow will create them automatically on first run.
 
 ## Local Testing
 
-You can test which projects are affected locally:
+Test Auto locally before pushing:
 
 ```bash
-# Restore dotnet tools
-dotnet tool restore
+# See what version would be created
+cd src/services/catalog
+auto version
 
-# Check affected projects since last commit
-dotnet affected --verbose
+# See what changelog would be generated  
+auto changelog
 
-# Check affected projects between branches
-dotnet affected --from main --to feature/my-branch
-
-# Dry run to see what would be generated
-dotnet affected --dry-run --verbose
-
-# Assume changes to a specific project (useful for testing)
-dotnet affected --assume-changes Catalog.Api
-
-# Generate all output formats
-dotnet affected --format text json traversal --output-dir ./output
+# Dry run (won't create tags/releases)
+GH_TOKEN=your-token auto shipit --dry-run
 ```
-
-The tool generates:
-- `affected.proj` - MSBuild Traversal project
-- `affected.txt` - Plain text list of project paths
-- `affected.json` - JSON structured data
-
-## Excluding Projects from Affected Analysis
-
-To exclude certain projects (e.g., benchmarks, samples):
-
-```bash
-dotnet affected --exclude ".*Benchmarks.*" --exclude ".*Samples.*"
-```
-
-## Performance Tips
-
-1. **Fetch depth**: The workflows use `fetch-depth: 0` to get full git history for accurate comparison
-2. **Caching**: NuGet package caching is handled by GitHub Actions
-3. **Concurrency**: Docker builds run in parallel for different architectures
 
 ## Troubleshooting
 
-### "No projects affected" when you expect changes
+### "No published yet" error
 
-Check:
-- Git history is available (`fetch-depth: 0`)
-- You're comparing the right commits
-- Project files are properly referenced in the dependency graph
+If Auto says the service hasn't been published yet:
+1. Create an initial release manually: `gh release create catalog@v0.1.0`
+2. Or let Auto create the first release (it will default to v1.0.0)
 
-### Workflow says everything is affected
+### Labels not working
 
-This usually happens when:
-- Changes to `Directory.Build.props` or `Directory.Packages.props`
-- Changes to shared buildingblocks
-- First run (no previous baseline)
+1. Make sure labels exist: `auto create-labels`
+2. Check PR has correct label before merging
+3. Verify label name matches `.autorc` configuration
 
-This is correct behavior - these files affect all projects.
+### Release not created
+
+Possible reasons:
+1. No PR labels (Auto defaults to patch)
+2. `skip-release` label present
+3. Commit message contains `[skip ci]`
+4. No changes to service (dotnet-affected detected nothing)
+
+### Wrong version bump
+
+- Check which label was on the PR
+- Auto uses the highest priority label
+- Priority: major > minor > patch > none
+
+## Advantages Over Semantic-Release
+
+| Feature | Auto | Semantic-Release |
+|---------|------|------------------|
+| Commit message parsing | Optional (label-based) | Required |
+| Version control | PR labels (visual) | Commit messages (hidden) |
+| Multi-package monorepo | Excellent | Complex setup |
+| Prerelease branches | Built-in | Manual config |
+| Changelog quality | Rich (full PR context) | Basic (commit messages) |
+| Learning curve | Low (labels are intuitive) | Medium (commit format strict) |
+
+## Best Practices
+
+### ✅ Do
+
+- Add version labels to PRs before merging
+- Merge PRs (don't squash) to preserve PR context
+- Keep main → next synced after hotfixes
+- Use `skip-release` for WIP merges
+- Review changelog in release before publishing
+
+### ❌ Don't
+
+- Don't create version tags manually
+- Don't merge without labels (defaults to patch)
+- Don't squash merge (loses PR metadata)
+- Don't skip `fetch-depth: 0` in workflows
+- Don't use force push on release branches
 
 ## References
 
+- [Auto Documentation](https://intuit.github.io/auto)
 - [dotnet-affected Documentation](https://github.com/leonardochaia/dotnet-affected)
-- [Semantic Release](https://semantic-release.gitbook.io/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [MSBuild Traversal SDK](https://github.com/microsoft/MSBuildSdks/tree/main/src/Traversal)

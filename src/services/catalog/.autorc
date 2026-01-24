@@ -1,0 +1,6 @@
+{
+  "extends": "../../.autorc",
+  "git-tag": {
+    "tagPrefix": "catalog@"
+  }
+}
