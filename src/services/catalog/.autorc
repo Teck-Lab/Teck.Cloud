@@ -7,14 +7,11 @@
   "prereleaseBranches": ["next", "alpha", "beta"],
   "noVersionPrefix": false,
   "plugins": [
-    "git-tag",
+    ["git-tag", { "tagPrefix": "catalog@" }],
     "conventional-commits",
     "first-time-contributor",
     "released"
   ],
-  "git-tag": {
-    "tagPrefix": "catalog@"
-  },
   "labels": [
     {
       "name": "major",
