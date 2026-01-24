@@ -104,10 +104,20 @@ jobs:
             while IFS= read -r project_path; do
               if [ -z "$project_path" ]; then continue; fi
               
-              # Extract service name from path like: src/services/catalog/Catalog.Api/Catalog.Api.csproj
-              if echo "$project_path" | grep -q "src/services/.*/.*\.Api/"; then
-                SERVICE_NAME=$(echo "$project_path" | sed -n 's|src/services/\([^/]*\)/.*|\1|p')
+              # Extract service name from path (handles both absolute and relative paths)
+              # Examples:
+              # - /home/runner/work/Teck.Cloud/Teck.Cloud/src/services/catalog/Catalog.Api/Catalog.Api.csproj
+              # - src/services/catalog/Catalog.Api/Catalog.Api.csproj
+              if echo "$project_path" | grep -q "/src/services/.*/.*\.Api/\|^src/services/.*/.*\.Api/"; then
+                # Extract just the service directory name (e.g., "catalog")
+                # First try absolute path pattern, then try relative
+                SERVICE_NAME=$(echo "$project_path" | sed -n 's|.*/src/services/\([^/]*\)/.*|\1|p')
+                if [ -z "$SERVICE_NAME" ]; then
+                  SERVICE_NAME=$(echo "$project_path" | sed -n 's|^src/services/\([^/]*\)/.*|\1|p')
+                fi
+                
                 if [ -n "$SERVICE_NAME" ]; then
+                  echo "Found service: $SERVICE_NAME (from $project_path)"
                   SERVICE_NAMES+=("$SERVICE_NAME")
                 fi
               fi
@@ -160,6 +170,12 @@ jobs:
         uses: actions/setup-node@v6.2.0
         with:
           node-version: 'lts/*'
+
+      - name: Debug service name
+        run: |
+          echo "Service from matrix: ${{ matrix.service }}"
+          echo "Expected path: src/services/${{ matrix.service }}/.releaserc.json"
+          ls -la src/services/${{ matrix.service }}/ || echo "Directory not found"
 
       - name: Check if service has .releaserc.json
         id: check-config
