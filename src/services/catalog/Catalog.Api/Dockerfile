@@ -81,8 +81,6 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 EXPOSE 8080
 EXPOSE 8081
-
-
 # Set user only in final stage (if needed)
 # USER $APP_UID
 ENTRYPOINT ["dotnet", "Catalog.Api.dll"]
