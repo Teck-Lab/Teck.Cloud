@@ -217,12 +217,20 @@ jobs:
         run: |
           echo "Running Auto shipit for ${{ matrix.service }}"
           
+          # Get the calculated version from Auto
+          VERSION=$(auto version)
+          
+          if [ -z "$VERSION" ] || [ "$VERSION" = "" ]; then
+            echo "No version bump needed, skipping release"
+            exit 0
+          fi
+          
           # Auto shipit will:
           # 1. Calculate version based on PR labels
           # 2. Generate changelog
-          # 3. Create GitHub release
+          # 3. Create GitHub release with prefixed title
           # 4. Call exec plugin to create git tag with service prefix (e.g., catalog@v1.2.3)
-          auto shipit
+          auto shipit --title "${{ matrix.service }}@v${VERSION}"
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 

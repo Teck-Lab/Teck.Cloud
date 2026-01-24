@@ -1,7 +1,7 @@
 {
   "author": {
-    "name": "Teck",
-    "email": "github-actions[bot]@users.noreply.github.com"
+    "name": "Teck Bot",
+    "email": "1370271+teck-bot[bot]@users.noreply.github.com"
   },
   "baseBranch": "main",
   "prereleaseBranches": ["next", "alpha", "beta"],
