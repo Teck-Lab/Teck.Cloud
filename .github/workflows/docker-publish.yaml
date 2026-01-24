@@ -152,6 +152,14 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.parse-tag.outputs.version }}
             type=semver,pattern={{major}},value=${{ needs.parse-tag.outputs.version }}
             type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=${{ needs.parse-tag.outputs.service-name }}
+            org.opencontainers.image.description=Teck Cloud microservice - ${{ needs.parse-tag.outputs.service-name }}
+            org.opencontainers.image.vendor=Teck
+            com.teck.service.name=${{ needs.parse-tag.outputs.service-name }}
+            com.teck.build.workflow=${{ github.workflow }}
+            com.teck.build.run-id=${{ github.run_id }}
+            com.teck.build.run-number=${{ github.run_number }}
 
       - name: Build and push by digest
         id: build
@@ -166,6 +174,12 @@ jobs:
           cache-to: type=gha,mode=max
           network: host
           build-args: |
+            VERSION=${{ needs.parse-tag.outputs.version }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+            VCS_URL=${{ github.repositoryUrl }}
+            WEBSITE_URL=https://teck.dk
+            DOCS_URL=https://docs.teck.dk
             POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=${{ needs.parse-tag.outputs.service-name }};Username=postgres;Password=postgres
             RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 

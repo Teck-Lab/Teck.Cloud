@@ -55,6 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Required for dotnet-affected to compare commits
+          ref: ${{ github.event.pull_request.head.sha }}  # Checkout the actual PR head commit
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
@@ -72,6 +73,21 @@ jobs:
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           
           echo "Comparing $BASE_SHA (base) -> $HEAD_SHA (head)"
+          
+          # Ensure we have both commits in the local git history
+          git fetch origin $BASE_SHA --depth=1 || true
+          git fetch origin $HEAD_SHA --depth=1 || true
+          
+          # Verify commits exist
+          if ! git cat-file -e $BASE_SHA^{commit} 2>/dev/null; then
+            echo "ERROR: Base commit $BASE_SHA not found in git history"
+            exit 1
+          fi
+          
+          if ! git cat-file -e $HEAD_SHA^{commit} 2>/dev/null; then
+            echo "ERROR: Head commit $HEAD_SHA not found in git history"
+            exit 1
+          fi
           
           # Run dotnet-affected to generate affected projects
           # - traversal: Creates affected.proj for building/testing
@@ -382,11 +398,18 @@ jobs:
           push: false
           load: true
           tags: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: build
           network: host
           build-args: |
+            VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+            VCS_URL=${{ github.repositoryUrl }}
+            WEBSITE_URL=https://teck.dk
+            DOCS_URL=https://docs.teck.dk
             POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=catalog;Username=postgres;Password=postgres
             RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
