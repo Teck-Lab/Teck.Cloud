@@ -405,7 +405,7 @@ jobs:
           COSIGN_EXPERIMENTAL: 1
 
       - name: Generate SBOM (Software Bill of Materials)
-        uses: anchore/sbom-action@v0.17.10
+        uses: anchore/sbom-action@v0.22.0
         with:
           image: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: spdx-json
