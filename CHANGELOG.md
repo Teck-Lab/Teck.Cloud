@@ -1,3 +1,15 @@
+# v0.1.11 (Sun Jan 25 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Update release-services.yaml ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.1.10 (Sun Jan 25 2026)
 
 #### ⚠️ Pushed to `main`
