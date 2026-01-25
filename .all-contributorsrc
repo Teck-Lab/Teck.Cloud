@@ -9,7 +9,19 @@
   "imageSize": 100,
   "commit": false,
   "commitConvention": "angular",
-  "contributors": [],
+  "contributors": [
+    {
+      "login": "CaptainPowerTurtle",
+      "name": "CptPowerTurtle",
+      "avatar_url": "https://avatars.githubusercontent.com/u/25976147?v=4",
+      "profile": "https://github.com/CaptainPowerTurtle",
+      "contributions": [
+        "infra",
+        "code",
+        "doc"
+      ]
+    }
+  ],
   "contributorsPerLine": 7,
   "skipCi": true,
   "contributorsSortAlphabetically": true
