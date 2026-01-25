@@ -1,3 +1,15 @@
+# v0.1.9 (Sun Jan 25 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Update docker-publish.yaml ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.1.8 (Sun Jan 25 2026)
 
 #### ⚠️ Pushed to `main`
