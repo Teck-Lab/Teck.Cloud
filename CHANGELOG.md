@@ -1,3 +1,16 @@
+# v0.1.12 (Sun Jan 25 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Update docker-publish.yaml ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.1.11 (Sun Jan 25 2026)
 
 #### ⚠️ Pushed to `main`
