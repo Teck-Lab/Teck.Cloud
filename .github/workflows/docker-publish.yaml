@@ -377,14 +377,14 @@ jobs:
       - name: Get image digest
         id: digest
         run: |
-          # Get the digest for this specific service
-          DIGEST=$(docker manifest inspect ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }} | jq -r '.manifests[0].digest' || echo "")
+          # Get the digest of the multi-arch manifest list (not individual platform)
+          DIGEST=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }} --format '{{ json .Manifest }}' | jq -r '.digest')
           if [ -z "$DIGEST" ]; then
             echo "Failed to get image digest"
             exit 1
           fi
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "Image digest: $DIGEST"
+          echo "Multi-arch manifest digest: $DIGEST"
 
       - name: Sign the container image
         run: |
@@ -411,20 +411,27 @@ jobs:
           format: spdx-json
           output-file: sbom.spdx.json
 
-      - name: Attach SBOM to image
+      - name: Attest SBOM to image (in-toto attestation)
         run: |
-          cosign attach sbom --sbom sbom.spdx.json \
+          # Create and sign SBOM attestation using in-toto format
+          cosign attest --yes \
+            --predicate sbom.spdx.json \
+            --type spdxjson \
             ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
-      - name: Sign SBOM
+      - name: Verify SBOM attestation
         run: |
-          cosign sign --yes \
-            --attachment sbom \
+          # Verify the attestation was created successfully
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity=https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yaml@${{ github.ref }} \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
+
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
