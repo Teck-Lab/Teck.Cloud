@@ -230,8 +230,11 @@ jobs:
             <summary>ℹ️ About CI/CD Strategy</summary>
             
             **Testing Strategy:**
-            - ✅ All .NET tests run on every PR to ensure no regressions
-            - 🐳 Docker images are only built for affected services to save time
+            - ⚡ **Build**: Only affected projects are built for fast feedback
+            - ✅ **Test**: All .NET tests run on every PR to ensure no regressions
+            - 🐳 **Docker**: Only affected service Docker images are built to save time
+            
+            These jobs run **in parallel** for maximum speed.
             
             **Detection Method:**
             Projects are detected using `dotnet-affected`, which tracks:
@@ -241,9 +244,49 @@ jobs:
             - Projects affected by changes to `Directory.Build.props`
             </details>
 
-  build-test-dotnet:
+
+  # ===================================================================
+  # JOB 1: Build only affected projects (fast feedback)
+  # ===================================================================
+  build-affected:
     runs-on: ubuntu-latest
-    name: Build and test all projects
+    name: Build affected projects
+    needs: [check-label, detect-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Download affected.proj
+        uses: actions/download-artifact@v4
+        with:
+          name: affected-projects
+          path: ${{ runner.temp }}/affected
+
+      - name: Build affected projects
+        run: dotnet build "${{ runner.temp }}/affected/affected.proj" -c Release --no-restore
+
+      - name: Check formatting
+        run: dotnet format --verify-no-changes
+        continue-on-error: true
+
+  # ===================================================================
+  # JOB 2: Run ALL tests (ensure no regressions)
+  # ===================================================================
+  test-all:
+    runs-on: ubuntu-latest
+    name: Test all projects
     needs: [check-label]
     if: ${{ needs.check-label.outputs.status == 'success' }}
     steps:
@@ -261,10 +304,10 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build
+      - name: Build all projects
         run: dotnet build -c Release --no-restore
 
-      - name: Test
+      - name: Test all projects
         run: dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
 
       - name: Combine Coverage Reports
@@ -321,10 +364,6 @@ jobs:
           path: "${{ github.workspace }}/**/*.trx"
           reporter: dotnet-trx
 
-      - name: Check formatting
-        run: dotnet format --verify-no-changes
-        continue-on-error: true
-
       - name: Security scan with Trivy (Filesystem - Dependencies)
         uses: aquasecurity/trivy-action@0.31.0
         continue-on-error: true
@@ -345,14 +384,14 @@ jobs:
           sarif_file: trivy-fs-results.sarif
           category: 'trivy-filesystem'
 
-  build-test-docker:
+  # ===================================================================
+  # JOB 3: Build Docker images for affected services (verify Dockerfiles)
+  # ===================================================================
+  docker-affected:
     runs-on: ${{ matrix.builder.runner-image }}
-    name: Build and test docker image
-    needs: 
-      - build-test-dotnet
-      - detect-affected
-      - check-label
-    if: ${{ needs.detect-affected.outputs.has-changes == 'true' && needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.dockerfiles != '[]' }}
+    name: Build Docker image
+    needs: [check-label, detect-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
     
     # Service containers for Docker build (needed for Wolverine codegen)
     services:
@@ -470,22 +509,32 @@ jobs:
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
-    needs: [build-test-dotnet, build-test-docker, detect-affected, check-label]
+    needs: [build-affected, test-all, docker-affected, detect-affected, check-label]
     if: always()
     steps:
-      - name: Check if build-test-dotnet was successful
+      - name: Check if build-affected was successful or skipped
         run: |
-          if [[ "${{ needs.build-test-dotnet.result }}" == "success" ]]; then
-            echo "✅ Build and test job passed"
+          if [[ "${{ needs.build-affected.result }}" == "success" ]] || [[ "${{ needs.build-affected.result }}" == "skipped" ]]; then
+            echo "✅ Build affected job passed or was skipped - OK"
             exit 0
           else
-            echo "❌ Build and test job failed or was skipped"
+            echo "❌ Build affected job failed"
             exit 1
           fi
       
-      - name: Check if build-test-docker was successful or skipped
+      - name: Check if test-all was successful
         run: |
-          if [[ "${{ needs.build-test-docker.result }}" == "success" ]] || [[ "${{ needs.build-test-docker.result }}" == "skipped" ]]; then
+          if [[ "${{ needs.test-all.result }}" == "success" ]]; then
+            echo "✅ Test all job passed"
+            exit 0
+          else
+            echo "❌ Test all job failed or was skipped"
+            exit 1
+          fi
+      
+      - name: Check if docker-affected was successful or skipped
+        run: |
+          if [[ "${{ needs.docker-affected.result }}" == "success" ]] || [[ "${{ needs.docker-affected.result }}" == "skipped" ]]; then
             echo "✅ Docker build job passed or was skipped - OK"
             exit 0
           else
@@ -495,3 +544,4 @@ jobs:
       
       - name: All checks passed
         run: echo "✅ All required checks completed successfully or were skipped"
+

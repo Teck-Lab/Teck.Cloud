@@ -1,10 +1,15 @@
 name: Build and Publish Docker Images
 
 on:
-  push:
-    tags:
-      - '*@v*.*.*'      # Matches any service with stable version (e.g., catalog@v1.2.3)
-      - '*@v*.*.*-*'    # Matches any service with pre-release (e.g., catalog@v1.2.3-next.1)
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+    branches:
+      - main
+      - next
+      - alpha
+      - beta
 
 permissions:
   contents: read
@@ -15,71 +20,61 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  parse-tag:
-    name: Parse Tag and Extract Service Info
+  find-services:
+    name: Find All Services
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     outputs:
-      service-name: ${{ steps.parse.outputs.service-name }}
-      version: ${{ steps.parse.outputs.version }}
-      dockerfile-path: ${{ steps.find-dockerfile.outputs.dockerfile-path }}
+      services: ${{ steps.find.outputs.services }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Parse tag
-        id: parse
+      - name: Find all services
+        id: find
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "Full tag: $TAG"
-          
-          # Extract service name and version (e.g., catalog@v1.2.0 -> catalog, 1.2.0)
-          # Also handles pre-release tags like catalog@v1.2.0-next.1
-          SERVICE_NAME=$(echo "$TAG" | cut -d'@' -f1)
-          VERSION=$(echo "$TAG" | cut -d'@' -f2 | sed 's/^v//')
-          
-          echo "service-name=$SERVICE_NAME" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Service: $SERVICE_NAME, Version: $VERSION"
-
-      - name: Find Dockerfile
-        id: find-dockerfile
-        run: |
-          SERVICE_NAME="${{ steps.parse.outputs.service-name }}"
-          
-          # Convert service name to PascalCase for .NET project naming convention
-          # e.g., catalog -> Catalog, inventory -> Inventory
-          PASCAL_CASE=$(echo "$SERVICE_NAME" | sed 's/\b\(.\)/\u\1/g')
-          
-          # Common Dockerfile locations (in priority order)
-          POSSIBLE_PATHS=(
-            "src/services/${SERVICE_NAME}/${PASCAL_CASE}.Api/Dockerfile"
-            "src/services/${SERVICE_NAME}/${SERVICE_NAME}.api/Dockerfile"
-            "src/services/${SERVICE_NAME}/Dockerfile"
-            "src/${SERVICE_NAME}/Dockerfile"
-          )
-          
-          DOCKERFILE_PATH=""
-          for path in "${POSSIBLE_PATHS[@]}"; do
-            if [ -f "$path" ]; then
-              DOCKERFILE_PATH="$path"
-              echo "Found Dockerfile at: $DOCKERFILE_PATH"
-              break
+          # Find all directories in src/services/*/*.Api with Dockerfiles
+          SERVICES=()
+          for api_dir in src/services/*/*.Api; do
+            if [ -f "$api_dir/Dockerfile" ]; then
+              # Extract service name (e.g., src/services/catalog/Catalog.Api -> catalog)
+              SERVICE_NAME=$(echo "$api_dir" | sed -n 's|src/services/\([^/]*\)/.*|\1|p')
+              if [ -n "$SERVICE_NAME" ]; then
+                echo "Found service: $SERVICE_NAME"
+                SERVICES+=("$SERVICE_NAME")
+              fi
             fi
           done
           
-          if [ -z "$DOCKERFILE_PATH" ]; then
-            echo "ERROR: No Dockerfile found for service '$SERVICE_NAME'"
-            echo "Searched in:"
-            printf '%s\n' "${POSSIBLE_PATHS[@]}"
-            exit 1
-          fi
-          
-          echo "dockerfile-path=$DOCKERFILE_PATH" >> $GITHUB_OUTPUT
+          # Convert to JSON array
+          SERVICES_JSON=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -s -c .)
+          echo "services=$SERVICES_JSON" >> $GITHUB_OUTPUT
+          echo "Services to build: $SERVICES_JSON"
+
+  get-version:
+    name: Get Release Version
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest version tag
+        id: version
+        run: |
+          # Get the latest tag (should be from the release that just completed)
+          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
 
   build-and-push:
-    name: Build and Push Docker Image
+    name: Build ${{ matrix.service }} (${{ matrix.builder.platform }})
     runs-on: ${{ matrix.builder.runner-image }}
-    needs: parse-tag
+    needs: [find-services, get-version]
     
     # Service containers (needed for Wolverine codegen during build)
     services:
@@ -88,7 +83,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: ${{ needs.parse-tag.outputs.service-name }}
+          POSTGRES_DB: tempdb
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -113,21 +108,54 @@ jobs:
     
     strategy:
       matrix:
+        service: ${{ fromJson(needs.find-services.outputs.services) }}
         builder:
           - runner-image: ubuntu-24.04
             platform: linux/amd64
           - runner-image: ubuntu-24.04-arm
             platform: linux/arm64
+      fail-fast: false
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Find Dockerfile
+        id: find-dockerfile
+        run: |
+          SERVICE_NAME="${{ matrix.service }}"
+          
+          # Convert service name to PascalCase for .NET project naming convention
+          PASCAL_CASE=$(echo "$SERVICE_NAME" | sed 's/\b\(.\)/\u\1/g')
+          
+          # Common Dockerfile locations (in priority order)
+          POSSIBLE_PATHS=(
+            "src/services/${SERVICE_NAME}/${PASCAL_CASE}.Api/Dockerfile"
+            "src/services/${SERVICE_NAME}/${SERVICE_NAME}.api/Dockerfile"
+            "src/services/${SERVICE_NAME}/Dockerfile"
+          )
+          
+          DOCKERFILE_PATH=""
+          for path in "${POSSIBLE_PATHS[@]}"; do
+            if [ -f "$path" ]; then
+              DOCKERFILE_PATH="$path"
+              echo "Found Dockerfile at: $DOCKERFILE_PATH"
+              break
+            fi
+          done
+          
+          if [ -z "$DOCKERFILE_PATH" ]; then
+            echo "ERROR: No Dockerfile found for service '$SERVICE_NAME'"
+            exit 1
+          fi
+          
+          echo "dockerfile-path=$DOCKERFILE_PATH" >> $GITHUB_OUTPUT
+
       - name: Prepare environment variables
         run: |
           echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=${{ env.REGISTRY }}/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ needs.parse-tag.outputs.service-name }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ env.REGISTRY }}/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ matrix.service }}" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -146,17 +174,17 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }}
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.parse-tag.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.parse-tag.outputs.version }}
-            type=semver,pattern={{major}},value=${{ needs.parse-tag.outputs.version }}
-            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.get-version.outputs.version }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
-            org.opencontainers.image.title=${{ needs.parse-tag.outputs.service-name }}
-            org.opencontainers.image.description=Teck Cloud microservice - ${{ needs.parse-tag.outputs.service-name }}
+            org.opencontainers.image.title=${{ matrix.service }}
+            org.opencontainers.image.description=Teck Cloud microservice - ${{ matrix.service }}
             org.opencontainers.image.vendor=Teck
-            com.teck.service.name=${{ needs.parse-tag.outputs.service-name }}
+            com.teck.service.name=${{ matrix.service }}
             com.teck.build.workflow=${{ github.workflow }}
             com.teck.build.run-id=${{ github.run_id }}
             com.teck.build.run-number=${{ github.run_number }}
@@ -166,51 +194,53 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ needs.parse-tag.outputs.dockerfile-path }}
+          file: ${{ steps.find-dockerfile.outputs.dockerfile-path }}
           platforms: ${{ matrix.builder.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.service }}-${{ matrix.builder.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}-${{ matrix.builder.platform }}
           network: host
           build-args: |
-            VERSION=${{ needs.parse-tag.outputs.version }}
+            VERSION=${{ needs.get-version.outputs.version }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VCS_REF=${{ github.sha }}
             VCS_URL=${{ github.server_url }}/${{ github.repository }}
             WEBSITE_URL=https://teck.dk
             DOCS_URL=https://docs.teck.dk
-            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=${{ needs.parse-tag.outputs.service-name }};Username=postgres;Password=postgres
+            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=tempdb;Username=postgres;Password=postgres
             RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
       - name: Export digest
         run: |
-          mkdir -p /tmp/digests
+          mkdir -p /tmp/digests/${{ matrix.service }}
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          touch "/tmp/digests/${{ matrix.service }}/${digest#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/*
+          name: digests-${{ matrix.service }}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{ matrix.service }}/*
           if-no-files-found: error
           retention-days: 1
 
   merge-and-tag:
-    name: Merge manifests and push tags
+    name: Merge ${{ matrix.service }} manifests
     runs-on: ubuntu-latest
-    needs: 
-      - parse-tag
-      - build-and-push
+    needs: [find-services, get-version, build-and-push]
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.find-services.outputs.services) }}
+      fail-fast: false
     outputs:
-      image-digest: ${{ steps.merge.outputs.digest }}
+      image-digest-${{ matrix.service }}: ${{ steps.merge.outputs.digest }}
     steps:
-      - name: Download digests
+      - name: Download digests for ${{ matrix.service }}
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.service }}-*
           merge-multiple: true
 
       - name: Prepare environment variables
@@ -231,12 +261,12 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }}
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.parse-tag.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.parse-tag.outputs.version }}
-            type=semver,pattern={{major}},value=${{ needs.parse-tag.outputs.version }}
-            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.get-version.outputs.version }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Create manifest list and push
         id: merge
@@ -244,7 +274,7 @@ jobs:
         run: |
           # Create the manifest and capture the digest
           MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}@sha256:%s ' *))
+            $(printf '${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }}@sha256:%s ' *))
           
           # Extract digest from output
           DIGEST=$(echo "$MANIFEST_OUTPUT" | grep -oP 'sha256:[a-f0-9]{64}' | head -n1)
@@ -253,14 +283,16 @@ jobs:
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ needs.parse-tag.outputs.service-name }}:${{ needs.parse-tag.outputs.version }}
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/${{ matrix.service }}:${{ needs.get-version.outputs.version }}
 
   scan-image:
-    name: Scan Docker Image for Vulnerabilities
+    name: Scan ${{ matrix.service }} for vulnerabilities
     runs-on: ubuntu-latest
-    needs:
-      - parse-tag
-      - merge-and-tag
+    needs: [find-services, get-version, merge-and-tag]
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.find-services.outputs.services) }}
+      fail-fast: false
     permissions:
       contents: read
       security-events: write
@@ -268,7 +300,7 @@ jobs:
       - name: Prepare environment variables
         run: |
           echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=${{ env.REGISTRY }}/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ needs.parse-tag.outputs.service-name }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ env.REGISTRY }}/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ matrix.service }}" >> $GITHUB_ENV
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -280,7 +312,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.31.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -292,13 +324,13 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
-          category: 'trivy-image-${{ needs.parse-tag.outputs.service-name }}'
+          category: 'trivy-image-${{ matrix.service }}'
 
       - name: Run Trivy vulnerability scanner (JSON report)
         if: always()
         uses: aquasecurity/trivy-action@0.31.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: 'json'
           output: 'trivy-results.json'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -308,36 +340,23 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-scan-${{ needs.parse-tag.outputs.service-name }}-${{ needs.parse-tag.outputs.version }}
+          name: trivy-scan-${{ matrix.service }}-${{ needs.get-version.outputs.version }}
           path: trivy-results.json
           retention-days: 90
 
-      - name: Generate vulnerability summary
-        if: always()
-        run: |
-          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
-          ## 🔍 Security Scan Results
-          
-          **Image:** `${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}`
-          **Digest:** `${{ needs.merge-and-tag.outputs.image-digest }}`
-          
-          Trivy scan completed. Check the Security tab for detailed results.
-          
-          Download the full JSON report from the workflow artifacts.
-          EOF
-
   sign-image:
-    name: Sign Docker Image with Cosign
+    name: Sign ${{ matrix.service }} image
     runs-on: ubuntu-latest
-    needs:
-      - parse-tag
-      - merge-and-tag
-      - scan-image
+    needs: [find-services, get-version, merge-and-tag, scan-image]
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.find-services.outputs.services) }}
+      fail-fast: false
     steps:
       - name: Prepare environment variables
         run: |
           echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=${{ env.REGISTRY }}/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ needs.parse-tag.outputs.service-name }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ env.REGISTRY }}/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ matrix.service }}" >> $GITHUB_ENV
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.7.0
@@ -349,11 +368,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get image digest
+        id: digest
+        run: |
+          # Get the digest for this specific service
+          DIGEST=$(docker manifest inspect ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }} | jq -r '.manifests[0].digest' || echo "")
+          if [ -z "$DIGEST" ]; then
+            echo "Failed to get image digest"
+            exit 1
+          fi
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "Image digest: $DIGEST"
+
       - name: Sign the container image
         run: |
           # Sign the image digest (multi-arch manifest)
           cosign sign --yes \
-            ${{ env.IMAGE_NAME }}@${{ needs.merge-and-tag.outputs.image-digest }}
+            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
@@ -363,21 +394,21 @@ jobs:
           cosign verify \
             --certificate-identity=https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yaml@${{ github.ref }} \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.IMAGE_NAME }}@${{ needs.merge-and-tag.outputs.image-digest }}
+            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
       - name: Generate SBOM (Software Bill of Materials)
         uses: anchore/sbom-action@v0.17.10
         with:
-          image: ${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}
+          image: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: spdx-json
           output-file: sbom.spdx.json
 
       - name: Attach SBOM to image
         run: |
           cosign attach sbom --sbom sbom.spdx.json \
-            ${{ env.IMAGE_NAME }}@${{ needs.merge-and-tag.outputs.image-digest }}
+            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
@@ -385,54 +416,13 @@ jobs:
         run: |
           cosign sign --yes \
             --attachment sbom \
-            ${{ env.IMAGE_NAME }}@${{ needs.merge-and-tag.outputs.image-digest }}
+            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sbom-${{ needs.parse-tag.outputs.service-name }}-${{ needs.parse-tag.outputs.version }}
+          name: sbom-${{ matrix.service }}-${{ needs.get-version.outputs.version }}
           path: sbom.spdx.json
           retention-days: 90
-
-      - name: Create verification instructions
-        run: |
-          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
-          ## 🔒 Image Signed Successfully
-
-          **Image:** `${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}`
-          **Digest:** `${{ needs.merge-and-tag.outputs.image-digest }}`
-
-          ### Verify the signature:
-
-          ```bash
-          # Using regex pattern (recommended)
-          cosign verify \
-            --certificate-identity-regexp='^https://github\.com/${{ github.repository }}/\.github/workflows/docker-publish\.yaml@.*$' \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}
-
-          # Or with exact tag reference
-          cosign verify \
-            --certificate-identity=https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yaml@${{ github.ref }} \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}
-          ```
-
-          ### View the SBOM:
-
-          ```bash
-          cosign verify-attestation \
-            --type spdx \
-            --certificate-identity-regexp='^https://github\.com/${{ github.repository }}/\.github/workflows/docker-publish\.yaml@.*$' \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }}
-          ```
-
-          ### Download the SBOM:
-
-          ```bash
-          cosign download sbom ${{ env.IMAGE_NAME }}:${{ needs.parse-tag.outputs.version }} > sbom.json
-          ```
-          EOF

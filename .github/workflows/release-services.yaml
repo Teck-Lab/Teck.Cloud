@@ -1,4 +1,4 @@
-name: Release Services
+name: Release
 
 on:
   push:
@@ -23,150 +23,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ===================================================================
-  # DOTNET-AFFECTED: Detect which services need releasing
-  # Compares current commit with the last successful release
-  # ===================================================================
-  detect-affected-services:
-    name: Detect Affected Services
+  release:
+    name: Create Release
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
     outputs:
-      services: ${{ steps.detect.outputs.services }}
-      has-changes: ${{ steps.detect.outputs.has-changes }}
+      new-version: ${{ steps.shipit.outputs.newVersion }}
+      published: ${{ steps.shipit.outputs.published }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore dotnet tools
-        run: dotnet tool restore
-
-      - name: Get last successful release commit
-        id: last-release
-        run: |
-          # Find the last commit that triggered a successful release
-          # This uses the GitHub API to find the last successful workflow run
-          LAST_RELEASE_SHA=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "/repos/${{ github.repository }}/actions/workflows/release-services.yaml/runs?status=success&branch=${{ github.ref_name }}&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
-          
-          if [ -z "$LAST_RELEASE_SHA" ]; then
-            echo "No previous successful release found, comparing against first commit"
-            LAST_RELEASE_SHA=$(git rev-list --max-parents=0 HEAD)
-          fi
-          
-          echo "last-release-sha=$LAST_RELEASE_SHA" >> $GITHUB_OUTPUT
-          echo "Comparing from: $LAST_RELEASE_SHA to: ${{ github.sha }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Detect affected projects
-        id: detect
-        run: |
-          FROM_SHA="${{ steps.last-release.outputs.last-release-sha }}"
-          TO_SHA="${{ github.sha }}"
-          
-          echo "Running dotnet-affected from $FROM_SHA to $TO_SHA"
-          
-          # Run dotnet-affected
-          dotnet affected \
-            --from "$FROM_SHA" \
-            --to "$TO_SHA" \
-            --format json text \
-            --output-dir "${{ runner.temp }}/affected" \
-            --verbose || EXIT_CODE=$?
-          
-          # Exit code 166 means no projects changed
-          if [ "${EXIT_CODE:-0}" -eq 166 ]; then
-            echo "No projects affected since last release"
-            echo "has-changes=false" >> $GITHUB_OUTPUT
-            echo "services=[]" >> $GITHUB_OUTPUT
-            exit 0
-          elif [ "${EXIT_CODE:-0}" -ne 0 ]; then
-            echo "dotnet-affected failed with exit code ${EXIT_CODE}"
-            exit ${EXIT_CODE}
-          fi
-          
-          # Parse affected projects and extract service names
-          # We only care about projects in src/services/*/*.Api
-          SERVICES="[]"
-          if [ -f "${{ runner.temp }}/affected/affected.txt" ]; then
-            SERVICE_NAMES=()
-            while IFS= read -r project_path; do
-              if [ -z "$project_path" ]; then continue; fi
-              
-              # Extract service name from path (handles both absolute and relative paths)
-              # Examples:
-              # - /home/runner/work/Teck.Cloud/Teck.Cloud/src/services/catalog/Catalog.Api/Catalog.Api.csproj
-              # - src/services/catalog/Catalog.Api/Catalog.Api.csproj
-              if echo "$project_path" | grep -q "/src/services/.*/.*\.Api/\|^src/services/.*/.*\.Api/"; then
-                # Extract just the service directory name (e.g., "catalog")
-                # First try absolute path pattern, then try relative
-                SERVICE_NAME=$(echo "$project_path" | sed -n 's|.*/src/services/\([^/]*\)/.*|\1|p')
-                if [ -z "$SERVICE_NAME" ]; then
-                  SERVICE_NAME=$(echo "$project_path" | sed -n 's|^src/services/\([^/]*\)/.*|\1|p')
-                fi
-                
-                if [ -n "$SERVICE_NAME" ]; then
-                  echo "Found service: $SERVICE_NAME (from $project_path)"
-                  SERVICE_NAMES+=("$SERVICE_NAME")
-                fi
-              fi
-            done < "${{ runner.temp }}/affected/affected.txt"
-            
-            # Remove duplicates and convert to JSON array (compact, single line)
-            if [ ${#SERVICE_NAMES[@]} -gt 0 ]; then
-              SERVICES=$(printf '%s\n' "${SERVICE_NAMES[@]}" | sort -u | jq -R . | jq -s -c .)
-              echo "has-changes=true" >> $GITHUB_OUTPUT
-            else
-              echo "has-changes=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "has-changes=false" >> $GITHUB_OUTPUT
-          fi
-          
-          # Output as compact JSON (single line, no newlines)
-          echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "Affected services: $SERVICES"
-
-      - name: Upload affected projects artifact
-        if: steps.detect.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: affected-services
-          path: ${{ runner.temp }}/affected/*
-          retention-days: 1
-
-  # ===================================================================
-  # AUTO RELEASE: Release each affected service independently
-  # Each service gets its own version based on PR labels
-  # ===================================================================
-  release-service:
-    name: Release ${{ matrix.service }}
-    runs-on: ubuntu-latest
-    needs: detect-affected-services
-    if: needs.detect-affected-services.outputs.has-changes == 'true' && !contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')
-    strategy:
-      matrix:
-        service: ${{ fromJson(needs.detect-affected-services.outputs.services) }}
-      fail-fast: false
-      max-parallel: 3  # Limit parallel releases to reduce API rate limiting
-    steps:
-      - name: Add staggered delay
-        run: |
-          # Add a random delay (0-10 seconds) to reduce collision probability
-          # when multiple services are released simultaneously
-          DELAY=$((RANDOM % 10))
-          echo "Waiting ${DELAY} seconds before starting release..."
-          sleep $DELAY
       - name: Generate GitHub App Token
         id: generate-token
         uses: actions/create-github-app-token@v1
@@ -180,90 +44,45 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
 
-      - name: Debug service name
-        run: |
-          echo "Service from matrix: ${{ matrix.service }}"
-          echo "Expected path: src/services/${{ matrix.service }}/.autorc"
-          ls -la src/services/${{ matrix.service }}/ || echo "Directory not found"
-
-      - name: Check if service has .autorc
-        id: check-config
-        run: |
-          if [ -f "src/services/${{ matrix.service }}/.autorc" ]; then
-            echo "has-config=true" >> $GITHUB_OUTPUT
-            echo "✅ Found Auto config for ${{ matrix.service }}"
-          else
-            echo "has-config=false" >> $GITHUB_OUTPUT
-            echo "⚠️  Warning: No .autorc found for ${{ matrix.service }}"
-            echo "Create src/services/${{ matrix.service }}/.autorc to enable Auto releases"
-          fi
-
       - name: Setup Auto
-        if: steps.check-config.outputs.has-config == 'true'
         uses: auto-it/setup-auto@v2.0.0
 
       - name: Create labels
-        if: steps.check-config.outputs.has-config == 'true'
-        working-directory: ./src/services/${{ matrix.service }}
-        run: |
-          # Create labels defined in .autorc (skip if already exist)
-          auto create-labels || true
+        run: auto create-labels || true
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Release
-        if: steps.check-config.outputs.has-config == 'true'
-        working-directory: ./src/services/${{ matrix.service }}
+        id: shipit
         run: |
-          echo "Running Auto shipit for ${{ matrix.service }}"
+          # Run auto shipit and capture output
+          auto shipit --quiet > /tmp/auto-output.txt || echo "published=false" >> $GITHUB_OUTPUT
           
-          # Get the calculated version from Auto
-          VERSION=$(auto version)
-          
-          if [ -z "$VERSION" ] || [ "$VERSION" = "" ]; then
-            echo "No version bump needed, skipping release"
-            exit 0
+          # Check if a release was created
+          if grep -q "Published" /tmp/auto-output.txt; then
+            echo "published=true" >> $GITHUB_OUTPUT
+            # Extract version from output
+            VERSION=$(cat /tmp/auto-output.txt | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' || echo "")
+            echo "newVersion=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Released version: ${VERSION}"
+          else
+            echo "published=false" >> $GITHUB_OUTPUT
+            echo "No release created - no version bump needed"
           fi
-          
-          # Auto shipit will:
-          # 1. Calculate version based on PR labels
-          # 2. Generate changelog
-          # 3. Create GitHub release with prefixed title
-          # 4. Call exec plugin to create git tag with service prefix (e.g., catalog@v1.2.3)
-          auto shipit --title "${{ matrix.service }}@v${VERSION}"
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
-  # ===================================================================
-  # SUMMARY: Report what was released
-  # ===================================================================
-  release-summary:
-    name: Release Summary
-    runs-on: ubuntu-latest
-    needs: [detect-affected-services]
-    # Run after release-service if it ran, otherwise just after detect-affected-services
-    if: always() && needs.detect-affected-services.result != 'cancelled'
-    steps:
-      - name: Summary
+      - name: Release Summary
+        if: always()
         run: |
-          if [ "${{ needs.detect-affected-services.outputs.has-changes }}" == "false" ]; then
-            echo "## 📦 Release Summary" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.shipit.outputs.published }}" == "true" ]; then
+            echo "## 📦 Release Created" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "✅ No services affected since last release - nothing to do!" >> $GITHUB_STEP_SUMMARY
+            echo "**Version:** v${{ steps.shipit.outputs.newVersion }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Docker images will be built and published for all services." >> $GITHUB_STEP_SUMMARY
           else
-            echo "## 📦 Release Summary" >> $GITHUB_STEP_SUMMARY
+            echo "## ℹ️ No Release Created" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The following services were processed for release:" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Parse services JSON safely
-            SERVICES='${{ needs.detect-affected-services.outputs.services }}'
-            if [ -n "$SERVICES" ] && [ "$SERVICES" != "[]" ]; then
-              echo "$SERVICES" | jq -r '.[] | "- " + .' >> $GITHUB_STEP_SUMMARY || echo "- (Error parsing services list)" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- No services found" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Check the individual job outputs for release details." >> $GITHUB_STEP_SUMMARY
+            echo "No version bump detected - skipping release." >> $GITHUB_STEP_SUMMARY
           fi
