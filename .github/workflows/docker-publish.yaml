@@ -233,8 +233,6 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.find-services.outputs.services) }}
       fail-fast: false
-    outputs:
-      image-digest-${{ matrix.service }}: ${{ steps.merge.outputs.digest }}
     steps:
       - name: Download digests for ${{ matrix.service }}
         uses: actions/download-artifact@v4
