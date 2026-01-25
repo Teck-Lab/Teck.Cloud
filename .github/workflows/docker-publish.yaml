@@ -406,7 +406,7 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: spdx-json
-          output-file: sbom.spdx.json
+          output-file: sbom-${{ matrix.service }}.spdx.json
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -415,12 +415,21 @@ jobs:
         with:
           subject-name: ${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.digest.outputs.digest }}
-          sbom-path: sbom.spdx.json
+          sbom-path: sbom-${{ matrix.service }}.spdx.json
 
+      - name: Upload SBOM to Release
+        run: |
+          # Upload SBOM as a release asset
+          gh release upload v${{ needs.get-version.outputs.version }} \
+            sbom-${{ matrix.service }}.spdx.json \
+            --repo ${{ github.repository }} \
+            --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.service }}-${{ needs.get-version.outputs.version }}
-          path: sbom.spdx.json
+          path: sbom-${{ matrix.service }}.spdx.json
           retention-days: 90
