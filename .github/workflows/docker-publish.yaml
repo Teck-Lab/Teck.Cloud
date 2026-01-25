@@ -397,7 +397,7 @@ jobs:
         run: |
           # Verify the signature was created successfully
           cosign verify \
-            --certificate-github-workflow-repository=${{ github.repository }} \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
 
