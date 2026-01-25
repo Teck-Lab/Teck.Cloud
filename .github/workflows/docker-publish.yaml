@@ -14,7 +14,8 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write  # Required for cosign's keyless signing
+  id-token: write
+  attestations: write
 
 env:
   REGISTRY: ghcr.io
@@ -365,7 +366,7 @@ jobs:
           echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/${{ matrix.service }}" >> $GITHUB_ENV
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.7.0
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -391,18 +392,14 @@ jobs:
           # Sign the image digest (multi-arch manifest)
           cosign sign --yes \
             ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-        env:
-          COSIGN_EXPERIMENTAL: 1
 
       - name: Verify signature
         run: |
           # Verify the signature was created successfully
           cosign verify \
-            --certificate-identity=https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yaml@${{ github.ref }} \
+            --certificate-github-workflow-repository=${{ github.repository }} \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-        env:
-          COSIGN_EXPERIMENTAL: 1
 
       - name: Generate SBOM (Software Bill of Materials)
         uses: anchore/sbom-action@v0.22.0
@@ -410,27 +407,15 @@ jobs:
           image: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: spdx-json
           output-file: sbom.spdx.json
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Attest SBOM to image (in-toto attestation)
-        run: |
-          # Create and sign SBOM attestation using in-toto format
-          cosign attest --yes \
-            --predicate sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-        env:
-          COSIGN_EXPERIMENTAL: 1
-
-      - name: Verify SBOM attestation
-        run: |
-          # Verify the attestation was created successfully
-          cosign verify-attestation \
-            --type spdxjson \
-            --certificate-identity=https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yaml@${{ github.ref }} \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-        env:
-          COSIGN_EXPERIMENTAL: 1
+      - name: Attest SBOM to image
+        uses: actions/attest-sbom@v2
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          sbom-path: sbom.spdx.json
 
 
       - name: Upload SBOM artifact
