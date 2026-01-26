@@ -348,7 +348,7 @@
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="Soenneker.Utils.AutoBogus" Version="4.0.844" />
     <PackageVersion Include="Soenneker.Utils.AutoBogus.NSubstitute" Version="4.0.738" />
-    <PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.1" />
+    <PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.2" />
     <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.1" />
   </ItemGroup>
 
