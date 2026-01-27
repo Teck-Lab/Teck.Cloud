@@ -21,7 +21,7 @@
     <PackageVersion Include="WolverineFx.RabbitMQ" Version="5.11.0" />
     <PackageVersion Include="WolverineFx.SignalR" Version="5.11.0" />
     <PackageVersion Include="WolverineFx.Postgresql" Version="5.11.0" />
-    <PackageVersion Include="WolverineFx" Version="5.11.0" />
+    <PackageVersion Include="WolverineFx" Version="5.12.1" />
     <PackageVersion Include="WolverineFx.Http" Version="5.11.0" />
     <PackageVersion Include="WolverineFx.FluentValidation" Version="5.11.0" />
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="5.11.0" />
