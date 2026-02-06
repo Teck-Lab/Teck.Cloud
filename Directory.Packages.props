@@ -302,7 +302,7 @@
   <!-- ================================================== -->
   <ItemGroup Label="Code Quality Analyzers">
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="2.0.285" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="2.0.298" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
     <PackageVersion Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" />
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.15.0" />
