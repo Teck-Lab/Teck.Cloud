@@ -1,3 +1,33 @@
+# v0.2.0 (Fri Feb 06 2026)
+
+#### 🚀 Enhancement
+
+- feat(config): add git-tag plugin ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- feat(release): add debug commands to release workflow ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- feat: build and publish auth service docker image ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- feat: enable upload assets for changelog ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- feat: add canary release workflow ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### 🐛 Bug Fix
+
+- fix: trigger docker publish on canary releases and remove unused branches ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore: Bump TngTech.ArchUnitNET and TngTech.ArchUnitNET.xUnitV3 [#106](https://github.com/Teck-Lab/Teck.Cloud/pull/106) ([@dependabot[bot]](https://github.com/dependabot[bot]))
+
+#### ⚠️ Pushed to `main`
+
+- Remove deprecated env var and auto shipit improvements in release-services.yaml ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Refactor docker-publish.yaml to trigger on releases and remove auth-specific logic ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Introduce dedicated workflow for building and publishing auth images ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Add Dockerfile and README for Keycloak authentication service ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- refactor: simplify labels in .autorc ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 2
+
+- [@dependabot[bot]](https://github.com/dependabot[bot])
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.1.13 (Sun Jan 25 2026)
 
 #### ⚠️ Pushed to `main`
