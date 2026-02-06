@@ -12,9 +12,6 @@ permissions:
   pull-requests: write
   packages: write
 
-env:
-  DOTNET_VERSION: "10.0.*"
-
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -24,9 +21,6 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci') && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]')"
-    outputs:
-      new-version: ${{ steps.shipit.outputs.newVersion }}
-      published: ${{ steps.shipit.outputs.published }}
     steps:
       - name: Generate GitHub App Token
         id: generate-token
@@ -50,36 +44,6 @@ jobs:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Release
-        id: shipit
-        run: |
-          # Run auto shipit and capture output
-          auto shipit --quiet > /tmp/auto-output.txt || echo "published=false" >> $GITHUB_OUTPUT
-          
-          # Check if a release was created
-          if grep -q "Published" /tmp/auto-output.txt; then
-            echo "published=true" >> $GITHUB_OUTPUT
-            # Extract version from output
-            VERSION=$(cat /tmp/auto-output.txt | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' || echo "")
-            echo "newVersion=${VERSION}" >> $GITHUB_OUTPUT
-            echo "Released version: ${VERSION}"
-          else
-            echo "published=false" >> $GITHUB_OUTPUT
-            echo "No release created - no version bump needed"
-          fi
+        run: auto shipit
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-
-      - name: Release Summary
-        if: always()
-        run: |
-          if [ "${{ steps.shipit.outputs.published }}" == "true" ]; then
-            echo "## 📦 Release Created" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Version:** v${{ steps.shipit.outputs.newVersion }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Docker images will be built and published for all services." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## ℹ️ No Release Created" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "No version bump detected - skipping release." >> $GITHUB_STEP_SUMMARY
-          fi
