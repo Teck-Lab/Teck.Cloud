@@ -4,10 +4,10 @@
     "email": "1370271+teck-bot[bot]@users.noreply.github.com"
   },
   "baseBranch": "main",
-  "prereleaseBranches": ["next", "alpha", "beta"],
+  "prereleaseBranches": ["next"],
   "noVersionPrefix": false,
   "plugins": [
-    "git-tag",
+    ["upload-assets", { "assets": ["CHANGELOG.md"] }],
     [
       "all-contributors",
       {
