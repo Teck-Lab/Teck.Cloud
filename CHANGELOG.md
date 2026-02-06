@@ -1,3 +1,19 @@
+# v0.2.1 (Fri Feb 06 2026)
+
+#### 🐛 Bug Fix
+
+- fix(docker): Correct working directory and digest extraction for auth images ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.2.0 (Fri Feb 06 2026)
 
 #### 🚀 Enhancement
