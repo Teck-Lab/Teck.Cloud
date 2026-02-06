@@ -8,6 +8,7 @@
   "noVersionPrefix": false,
   "plugins": [
     ["upload-assets", { "assets": ["CHANGELOG.md"] }],
+    "git-tag",
     [
       "all-contributors",
       {
