@@ -1,3 +1,15 @@
+# v0.2.2 (Fri Feb 06 2026)
+
+#### 🐛 Bug Fix
+
+- fix: Correct working directory for manifest creation ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.2.1 (Fri Feb 06 2026)
 
 #### 🐛 Bug Fix
