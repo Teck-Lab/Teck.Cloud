@@ -43,6 +43,16 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
+      # Debug: show what version Auto would release (helps when shipit skips)
+      - name: Show next version (debug)
+        run: |
+          echo "--- auto version ---"
+          auto version || true
+          echo "--- auto shipit --dry-run ---"
+          auto shipit --dry-run 2>&1 || true
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+
       - name: Release
         run: auto shipit
         env:
