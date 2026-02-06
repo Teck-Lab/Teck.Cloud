@@ -179,11 +179,15 @@ jobs:
 
       - name: Create manifest list and push
         id: merge
-        working-directory: /tmp/digests
+        working-directory: /tmp/digests/auth
         env:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
         run: |
-          MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") $(printf '${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth@sha256:%s ' $(cat */*)))
+          # Create the manifest and capture the digest (same as docker-publish.yaml merge-and-tag)
+          MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth@sha256:%s ' *))
+          
+          # Extract digest from output
           DIGEST=$(echo "$MANIFEST_OUTPUT" | grep -oP 'sha256:[a-f0-9]{64}' | head -n1)
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "Image digest: $DIGEST"
