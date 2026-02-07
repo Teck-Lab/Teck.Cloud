@@ -73,20 +73,13 @@ jobs:
         run: |
           echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/auth" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/auth" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Harbor
         uses: docker/login-action@v3
@@ -99,9 +92,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth
-            ${{ secrets.HARBOR_URL }}/teck-lab/auth
+          images: ${{ secrets.HARBOR_URL }}/teck-lab/auth
           tags: |
             type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
@@ -124,8 +115,7 @@ jobs:
           file: src/auth/Dockerfile
           platforms: ${{ matrix.builder.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: ${{ steps.meta.outputs.tags }}
-          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ secrets.HARBOR_URL }}/teck-lab/auth,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=auth-${{ matrix.builder.platform }}
           cache-to: type=gha,mode=max,scope=auth-${{ matrix.builder.platform }}
           build-args: |
@@ -169,13 +159,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Log in to Harbor
         uses: docker/login-action@v3
         with:
@@ -187,9 +170,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth
-            ${{ secrets.HARBOR_URL }}/teck-lab/auth
+          images: ${{ secrets.HARBOR_URL }}/teck-lab/auth
           tags: |
             type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
@@ -204,7 +185,7 @@ jobs:
         run: |
           # Create the manifest and capture the digest
           MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '%s@sha256:%s ' $(echo "$DOCKER_METADATA_OUTPUT_JSON" | jq -r '.tags[0]' | cut -d: -f1) *))
+            $(printf '${{ secrets.HARBOR_URL }}/teck-lab/auth@sha256:%s ' *))
           
           # Extract digest from output
           DIGEST=$(echo "$MANIFEST_OUTPUT" | grep -oP 'sha256:[a-f0-9]{64}' | head -n1)
@@ -213,7 +194,7 @@ jobs:
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth:${{ needs.get-version.outputs.version }}
+          docker buildx imagetools inspect ${{ secrets.HARBOR_URL }}/teck-lab/auth:${{ needs.get-version.outputs.version }}
 
   scan-image-auth:
     name: Scan auth for vulnerabilities
@@ -227,22 +208,21 @@ jobs:
     steps:
       - name: Prepare environment variables
         run: |
-          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/auth" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/auth" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Harbor
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ secrets.HARBOR_URL }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.31.0
         continue-on-error: true
         env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: 'sarif'
@@ -262,8 +242,8 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@0.31.0
         env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: 'json'
@@ -287,18 +267,17 @@ jobs:
     steps:
       - name: Prepare environment variables
         run: |
-          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/auth" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/auth" >> $GITHUB_ENV
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v4.0.0
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Harbor
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ secrets.HARBOR_URL }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Get image digest
         id: digest
