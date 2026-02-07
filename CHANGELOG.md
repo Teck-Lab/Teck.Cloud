@@ -1,3 +1,16 @@
+# v0.3.0 (Sat Feb 07 2026)
+
+#### 🚀 Enhancement
+
+- feat(docker): publish images to Harbor registry ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- feat(docker): add Harbor registry login to publish workflows ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.2.2 (Fri Feb 06 2026)
 
 #### 🐛 Bug Fix
