@@ -198,6 +198,7 @@ jobs:
           file: ${{ steps.find-dockerfile.outputs.dockerfile-path }}
           platforms: ${{ matrix.builder.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.service }}-${{ matrix.builder.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}-${{ matrix.builder.platform }}

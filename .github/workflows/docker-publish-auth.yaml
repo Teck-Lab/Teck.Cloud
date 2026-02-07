@@ -124,6 +124,7 @@ jobs:
           file: src/auth/Dockerfile
           platforms: ${{ matrix.builder.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=auth-${{ matrix.builder.platform }}
           cache-to: type=gha,mode=max,scope=auth-${{ matrix.builder.platform }}
