@@ -1,3 +1,19 @@
+# v0.4.0 (Sat Feb 07 2026)
+
+#### 🚀 Enhancement
+
+- feat(docker): add tags to docker publish workflows ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.3.0 (Sat Feb 07 2026)
 
 #### 🚀 Enhancement
