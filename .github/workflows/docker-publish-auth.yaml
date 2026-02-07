@@ -124,7 +124,7 @@ jobs:
           file: src/auth/Dockerfile
           platforms: ${{ matrix.builder.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=auth-${{ matrix.builder.platform }}
           cache-to: type=gha,mode=max,scope=auth-${{ matrix.builder.platform }}
           build-args: |
@@ -201,9 +201,9 @@ jobs:
         env:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
         run: |
-          # Create the manifest and capture the digest (same as docker-publish.yaml merge-and-tag)
+          # Create the manifest and capture the digest
           MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth@sha256:%s ' *))
+            $(printf '%s@sha256:%s ' $(echo "$DOCKER_METADATA_OUTPUT_JSON" | jq -r '.tags[0]' | cut -d: -f1) *))
           
           # Extract digest from output
           DIGEST=$(echo "$MANIFEST_OUTPUT" | grep -oP 'sha256:[a-f0-9]{64}' | head -n1)
