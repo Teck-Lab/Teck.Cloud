@@ -1,3 +1,15 @@
+# v0.5.0 (Sat Feb 07 2026)
+
+#### 🚀 Enhancement
+
+- feat: Migrate docker publishing to Harbor ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.4.0 (Sat Feb 07 2026)
 
 #### 🚀 Enhancement
