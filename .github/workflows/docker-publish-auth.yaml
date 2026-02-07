@@ -88,11 +88,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.HARBOR_URL }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth
+          images: |
+            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth
+            ${{ secrets.HARBOR_URL }}/teck-lab/auth
           tags: |
             type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
@@ -166,11 +175,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.HARBOR_URL }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth
+          images: |
+            ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}/auth
+            ${{ secrets.HARBOR_URL }}/teck-lab/auth
           tags: |
             type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
