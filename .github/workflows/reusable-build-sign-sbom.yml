@@ -390,9 +390,9 @@ jobs:
             --bundle sbom-${{ inputs.service-name }}.spdx.json.bundle \
             sbom-${{ inputs.service-name }}.spdx.json
           
-          # Extract signature and certificate for separate storage
-          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.base64Signature' | base64 -d > sbom-${{ inputs.service-name }}.spdx.json.sig
-          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.cert' > sbom-${{ inputs.service-name }}.spdx.json.cert
+          # Extract signature and certificate for separate storage (Cosign bundle v0.3 format)
+          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.messageSignature.signature' | base64 -d > sbom-${{ inputs.service-name }}.spdx.json.sig
+          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.verificationMaterial.certificate.rawBytes' | base64 -d > sbom-${{ inputs.service-name }}.spdx.json.cert
 
       - name: Sign CycloneDX SBOM with Cosign
         run: |
@@ -400,9 +400,9 @@ jobs:
             --bundle sbom-${{ inputs.service-name }}.cyclonedx.json.bundle \
             sbom-${{ inputs.service-name }}.cyclonedx.json
           
-          # Extract signature and certificate
-          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.base64Signature' | base64 -d > sbom-${{ inputs.service-name }}.cyclonedx.json.sig
-          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.cert' > sbom-${{ inputs.service-name }}.cyclonedx.json.cert
+          # Extract signature and certificate (Cosign bundle v0.3 format)
+          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.messageSignature.signature' | base64 -d > sbom-${{ inputs.service-name }}.cyclonedx.json.sig
+          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.verificationMaterial.certificate.rawBytes' | base64 -d > sbom-${{ inputs.service-name }}.cyclonedx.json.cert
 
       - name: Verify SPDX SBOM signature
         run: |
@@ -563,9 +563,9 @@ jobs:
             --bundle vex-${{ inputs.service-name }}.openvex.json.bundle \
             vex-${{ inputs.service-name }}.openvex.json
           
-          # Extract signature and certificate
-          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.base64Signature' | base64 -d > vex-${{ inputs.service-name }}.openvex.json.sig
-          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.cert' > vex-${{ inputs.service-name }}.openvex.json.cert
+          # Extract signature and certificate (Cosign bundle v0.3 format)
+          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.messageSignature.signature' | base64 -d > vex-${{ inputs.service-name }}.openvex.json.sig
+          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.verificationMaterial.certificate.rawBytes' | base64 -d > vex-${{ inputs.service-name }}.openvex.json.cert
 
       - name: Verify VEX signature
         run: |
