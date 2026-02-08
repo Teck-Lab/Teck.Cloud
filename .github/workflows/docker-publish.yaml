@@ -396,8 +396,8 @@ jobs:
           image: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
           format: spdx-json
           output-file: sbom-${{ matrix.service }}.spdx.json
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          registry-username: ${{ secrets.HARBOR_USERNAME }}
+          registry-password: ${{ secrets.HARBOR_PASSWORD }}
 
       - name: Attest SBOM to image
         uses: actions/attest-sbom@v2
