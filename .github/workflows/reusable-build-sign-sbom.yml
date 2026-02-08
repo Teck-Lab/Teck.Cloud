@@ -257,7 +257,7 @@ jobs:
           password: ${{ secrets.harbor-password }}
 
       - name: Run Trivy vulnerability scanner (SARIF)
-        uses: aquasecurity/trivy-action@f781cce5aab226378ee181d764ab90ea0be3cdd8 # 0.31.0
+        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
         continue-on-error: true
         env:
           TRIVY_USERNAME: ${{ secrets.harbor-username }}
@@ -279,7 +279,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner (JSON)
         if: always()
-        uses: aquasecurity/trivy-action@f781cce5aab226378ee181d764ab90ea0be3cdd8 # 0.31.0
+        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
         env:
           TRIVY_USERNAME: ${{ secrets.harbor-username }}
           TRIVY_PASSWORD: ${{ secrets.harbor-password }}
