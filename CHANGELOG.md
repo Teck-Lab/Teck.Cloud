@@ -1,3 +1,16 @@
+# v0.8.1 (Sun Feb 08 2026)
+
+#### 🐛 Bug Fix
+
+- fix: update attest-sbom SHA to valid commit ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- fix: update codeql-action SHA to valid commit ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.7.0 (Sun Feb 08 2026)
 
 #### 🚀 Enhancement
