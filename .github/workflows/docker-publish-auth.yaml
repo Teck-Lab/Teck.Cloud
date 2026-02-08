@@ -62,7 +62,4 @@ jobs:
       postgres-connection: ''
       rabbitmq-connection: ''
     secrets:
-      harbor-url: ${{ secrets.HARBOR_URL }}
-      harbor-username: ${{ secrets.HARBOR_USERNAME }}
-      harbor-password: ${{ secrets.HARBOR_PASSWORD }}
       github-token: ${{ secrets.GITHUB_TOKEN }}

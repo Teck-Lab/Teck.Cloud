@@ -31,17 +31,8 @@ on:
         type: string
         default: 'amqp://guest:guest@localhost:5672/'
     secrets:
-      harbor-url:
-        description: 'Harbor registry URL'
-        required: true
-      harbor-username:
-        description: 'Harbor username'
-        required: true
-      harbor-password:
-        description: 'Harbor password'
-        required: true
       github-token:
-        description: 'GitHub token for release uploads'
+        description: 'GitHub token for authentication and release uploads'
         required: true
 
 permissions:
@@ -52,7 +43,7 @@ permissions:
   security-events: write
 
 env:
-  IMAGE_NAME: ${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}
 
 jobs:
   build-and-push:
@@ -118,12 +109,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
-      - name: Log in to Harbor
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
-          registry: ${{ secrets.harbor-url }}
-          username: ${{ secrets.harbor-username }}
-          password: ${{ secrets.harbor-password }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.github-token }}
 
       - name: Docker metadata
         id: meta
@@ -201,12 +192,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
-      - name: Log in to Harbor
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
-          registry: ${{ secrets.harbor-url }}
-          username: ${{ secrets.harbor-username }}
-          password: ${{ secrets.harbor-password }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.github-token }}
 
       - name: Docker metadata
         id: meta
@@ -254,23 +245,23 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "Image reference: $IMAGE_REF"
           
-      - name: Log in to Harbor
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
-          registry: ${{ secrets.harbor-url }}
-          username: ${{ secrets.harbor-username }}
-          password: ${{ secrets.harbor-password }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.github-token }}
 
       - name: Run Trivy vulnerability scanner (SARIF)
         uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
         continue-on-error: true
         env:
-          TRIVY_USERNAME: ${{ secrets.harbor-username }}
-          TRIVY_PASSWORD: ${{ secrets.harbor-password }}
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.github-token }}
         with:
           image-ref: ${{ steps.set-image.outputs.ref }}
           format: 'sarif'
@@ -290,8 +281,8 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
         env:
-          TRIVY_USERNAME: ${{ secrets.harbor-username }}
-          TRIVY_PASSWORD: ${{ secrets.harbor-password }}
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.github-token }}
         with:
           image-ref: ${{ steps.set-image.outputs.ref }}
           format: 'json'
@@ -319,16 +310,16 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "Image reference: $IMAGE_REF"
           
-      - name: Log in to Harbor
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
-          registry: ${{ secrets.harbor-url }}
-          username: ${{ secrets.harbor-username }}
-          password: ${{ secrets.harbor-password }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.github-token }}
 
       - name: Generate SPDX SBOM
         uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
@@ -336,8 +327,8 @@ jobs:
           image: ${{ steps.set-image.outputs.ref }}
           format: spdx-json
           output-file: sbom-${{ inputs.service-name }}.spdx.json
-          registry-username: ${{ secrets.harbor-username }}
-          registry-password: ${{ secrets.harbor-password }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.github-token }}
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
@@ -345,8 +336,8 @@ jobs:
           image: ${{ steps.set-image.outputs.ref }}
           format: cyclonedx-json
           output-file: sbom-${{ inputs.service-name }}.cyclonedx.json
-          registry-username: ${{ secrets.harbor-username }}
-          registry-password: ${{ secrets.harbor-password }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.github-token }}
 
       - name: Upload SPDX SBOM artifact
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
@@ -371,7 +362,7 @@ jobs:
       - name: Set image name
         id: set-image
         run: |
-          echo "name=${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}" >> $GITHUB_OUTPUT
+          echo "name=ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_OUTPUT
           
       - name: Download SPDX SBOM
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -460,7 +451,7 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           
       - name: Download SPDX SBOM
@@ -598,7 +589,7 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_NAME="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}"
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}"
           IMAGE_REF="$IMAGE_NAME@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "name=$IMAGE_NAME" >> $GITHUB_OUTPUT
@@ -606,12 +597,12 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
-      - name: Log in to Harbor
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
-          registry: ${{ secrets.harbor-url }}
-          username: ${{ secrets.harbor-username }}
-          password: ${{ secrets.harbor-password }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.github-token }}
 
       - name: Sign container image
         run: |
@@ -641,7 +632,7 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           
       - name: Download signed SPDX SBOM

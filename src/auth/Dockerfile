@@ -27,4 +27,7 @@ LABEL com.teck.service.name="auth" \
       com.teck.service.type="keycloak" \
       com.teck.keycloak.version="${KEYCLOAK_VERSION}" \
       com.teck.keycloak.distribution="phasetwo"
-COPY --from=builder --chown=keycloak:keycloak /opt/keycloak/providers/tailcloakify-theme.jar /opt/keycloak/providers/tailcloakify-theme.jar
+
+# Copy entire keycloak directory to preserve Phase Two providers and filesystem state
+COPY --from=builder /opt/keycloak /opt/keycloak
+WORKDIR /opt/keycloak
