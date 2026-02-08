@@ -1,3 +1,15 @@
+# v0.10.1 (Sun Feb 08 2026)
+
+#### 🐛 Bug Fix
+
+- fix: lowercase repository owner for Docker image names ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.10.0 (Sun Feb 08 2026)
 
 #### 🚀 Enhancement
