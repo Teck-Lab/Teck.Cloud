@@ -42,9 +42,6 @@ permissions:
   attestations: write
   security-events: write
 
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}
-
 jobs:
   build-and-push:
     name: Build ${{ inputs.service-name }} (${{ matrix.builder.platform }})
@@ -102,6 +99,9 @@ jobs:
       - name: Prepare environment variables
         run: |
           echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
+          # Lowercase repository owner for Docker image name (Docker requires lowercase)
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
@@ -189,6 +189,12 @@ jobs:
           pattern: digests-${{ inputs.service-name }}-*
           merge-multiple: true
 
+      - name: Prepare environment variables
+        run: |
+          # Lowercase repository owner for Docker image name (Docker requires lowercase)
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
@@ -245,7 +251,8 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "Image reference: $IMAGE_REF"
           
@@ -310,7 +317,8 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "Image reference: $IMAGE_REF"
           
@@ -362,7 +370,8 @@ jobs:
       - name: Set image name
         id: set-image
         run: |
-          echo "name=ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_OUTPUT
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_OUTPUT
           
       - name: Download SPDX SBOM
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -589,7 +598,8 @@ jobs:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}"
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}"
           IMAGE_REF="$IMAGE_NAME@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "name=$IMAGE_NAME" >> $GITHUB_OUTPUT
