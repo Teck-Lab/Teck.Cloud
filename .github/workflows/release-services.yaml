@@ -36,7 +36,7 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Setup Auto
-        uses: auto-it/setup-auto@d478b95604772bdf2179e7c78d5e211872e6ff25 # v2.0.0
+        uses: auto-it/setup-auto@8088350955c4009f66570db1f401fa1e0adb5a38 # v2.0.0
 
       - name: Create labels
         run: auto create-labels || true

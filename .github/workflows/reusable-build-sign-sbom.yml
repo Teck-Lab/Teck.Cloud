@@ -315,7 +315,7 @@ jobs:
           password: ${{ secrets.harbor-password }}
 
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.22.0
+        uses: anchore/sbom-action@62ad5284b8ced813296287a0b63906cb364b73ee # v0.22.0
         with:
           image: ${{ needs.merge-manifests.outputs.image-ref }}
           format: spdx-json
@@ -324,7 +324,7 @@ jobs:
           registry-password: ${{ secrets.harbor-password }}
 
       - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.22.0
+        uses: anchore/sbom-action@62ad5284b8ced813296287a0b63906cb364b73ee # v0.22.0
         with:
           image: ${{ needs.merge-manifests.outputs.image-ref }}
           format: cyclonedx-json
@@ -363,7 +363,7 @@ jobs:
           name: sbom-cyclonedx-${{ inputs.service-name }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v4.0.0
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
       - name: Sign SPDX SBOM with Cosign
         run: |
@@ -530,7 +530,7 @@ jobs:
           echo "VEX document generated with $(cat vex-${{ inputs.service-name }}.openvex.json | jq '.statements | length') statements"
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v4.0.0
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
       - name: Sign VEX document
         run: |
@@ -569,7 +569,7 @@ jobs:
     
     steps:
       - name: Install Cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v4.0.0
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
       - name: Log in to Harbor
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
