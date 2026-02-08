@@ -1,3 +1,15 @@
+# v0.10.0 (Sun Feb 08 2026)
+
+#### 🚀 Enhancement
+
+- feat: migrate to GHCR and fix Keycloak JAR corruption ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.9.7 (Sun Feb 08 2026)
 
 #### 🐛 Bug Fix
