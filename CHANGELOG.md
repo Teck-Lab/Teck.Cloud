@@ -1,3 +1,15 @@
+# v0.5.1 (Sun Feb 08 2026)
+
+#### 🐛 Bug Fix
+
+- fix: Ensure release workflow has token with write permissions ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.5.0 (Sat Feb 07 2026)
 
 #### 🚀 Enhancement
