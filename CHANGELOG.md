@@ -1,3 +1,29 @@
+# v0.7.0 (Sun Feb 08 2026)
+
+#### 🚀 Enhancement
+
+- chore(deps)(deps): Bump actions/attest-build-provenance from 3.1.0 to 3.2.0 [#162](https://github.com/Teck-Lab/Teck.Cloud/pull/162) ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- chore(deps)(deps): Bump danielpalme/ReportGenerator-GitHub-Action from 5.2.4 to 5.5.1 [#158](https://github.com/Teck-Lab/Teck.Cloud/pull/158) ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- chore(deps)(deps): Bump aquasecurity/trivy-action from 0.25.0 to 0.33.1 [#161](https://github.com/Teck-Lab/Teck.Cloud/pull/161) ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- chore(deps)(deps): Bump docker/login-action from 3.3.0 to 3.7.0 [#159](https://github.com/Teck-Lab/Teck.Cloud/pull/159) ([@dependabot[bot]](https://github.com/dependabot[bot]))
+
+#### 🐛 Bug Fix
+
+- fix: correct action SHAs for supply chain security ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- fix: Update SHA for create-github-app-token action ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- infra. updated workflow to be more secure ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 2
+
+- [@dependabot[bot]](https://github.com/dependabot[bot])
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.6.0 (Sun Feb 08 2026)
 
 #### 🚀 Enhancement
