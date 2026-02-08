@@ -402,7 +402,7 @@ jobs:
             sbom-${{ inputs.service-name }}.cyclonedx.json
 
       - name: Attest SPDX SBOM
-        uses: actions/attest-sbom@48d923ff87ef83b2e52a5e00c07733e1d03f7462 # v2.2.0
+        uses: actions/attest-sbom@5026d3663739160db546203eeaffa6aa1c51a4d6 # v1
         with:
           subject-name: ${{ env.IMAGE_NAME }}
           subject-digest: ${{ needs.merge-manifests.outputs.digest }}
