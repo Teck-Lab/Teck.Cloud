@@ -1,3 +1,15 @@
+# v0.9.7 (Sun Feb 08 2026)
+
+#### 🐛 Bug Fix
+
+- fix: deduplicate tags to prevent Harbor 412 Precondition Failed error ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.9.6 (Sun Feb 08 2026)
 
 #### 🐛 Bug Fix
