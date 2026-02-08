@@ -1,3 +1,23 @@
+# v0.6.0 (Sun Feb 08 2026)
+
+#### 🚀 Enhancement
+
+- feat: Remove redundant Docker Buildx setup steps in docker-publish.yaml ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### 🐛 Bug Fix
+
+- fix: Use HARBOR_USERNAME and HARBOR_PASSWORD secrets for SBOM attestation ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.5.2 (Sun Feb 08 2026)
 
 #### 🐛 Bug Fix
