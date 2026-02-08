@@ -249,10 +249,12 @@ jobs:
     needs: [merge-manifests]
     
     steps:
-      - name: Debug image reference
+      - name: Set image reference
+        id: set-image
         run: |
-          echo "Image ref from merge: ${{ needs.merge-manifests.outputs.image-ref }}"
-          echo "Image digest from merge: ${{ needs.merge-manifests.outputs.digest }}"
+          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          echo "Image reference: $IMAGE_REF"
           
       - name: Log in to Harbor
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
@@ -268,7 +270,7 @@ jobs:
           TRIVY_USERNAME: ${{ secrets.harbor-username }}
           TRIVY_PASSWORD: ${{ secrets.harbor-password }}
         with:
-          image-ref: ${{ needs.merge-manifests.outputs.image-ref }}
+          image-ref: ${{ steps.set-image.outputs.ref }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -289,7 +291,7 @@ jobs:
           TRIVY_USERNAME: ${{ secrets.harbor-username }}
           TRIVY_PASSWORD: ${{ secrets.harbor-password }}
         with:
-          image-ref: ${{ needs.merge-manifests.outputs.image-ref }}
+          image-ref: ${{ steps.set-image.outputs.ref }}
           format: 'json'
           output: 'trivy-results.json'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
@@ -312,6 +314,13 @@ jobs:
       cyclonedx-sbom: sbom-${{ inputs.service-name }}.cyclonedx.json
     
     steps:
+      - name: Set image reference
+        id: set-image
+        run: |
+          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          echo "Image reference: $IMAGE_REF"
+          
       - name: Log in to Harbor
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -322,7 +331,7 @@ jobs:
       - name: Generate SPDX SBOM
         uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
         with:
-          image: ${{ needs.merge-manifests.outputs.image-ref }}
+          image: ${{ steps.set-image.outputs.ref }}
           format: spdx-json
           output-file: sbom-${{ inputs.service-name }}.spdx.json
           registry-username: ${{ secrets.harbor-username }}
@@ -331,7 +340,7 @@ jobs:
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
         with:
-          image: ${{ needs.merge-manifests.outputs.image-ref }}
+          image: ${{ steps.set-image.outputs.ref }}
           format: cyclonedx-json
           output-file: sbom-${{ inputs.service-name }}.cyclonedx.json
           registry-username: ${{ secrets.harbor-username }}
@@ -357,6 +366,11 @@ jobs:
     needs: [merge-manifests, generate-sboms]
     
     steps:
+      - name: Set image name
+        id: set-image
+        run: |
+          echo "name=${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}" >> $GITHUB_OUTPUT
+          
       - name: Download SPDX SBOM
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
@@ -409,7 +423,7 @@ jobs:
       - name: Attest SPDX SBOM
         uses: actions/attest-sbom@5026d3663739160db546203eeaffa6aa1c51a4d6 # v1
         with:
-          subject-name: ${{ env.IMAGE_NAME }}
+          subject-name: ${{ steps.set-image.outputs.name }}
           subject-digest: ${{ needs.merge-manifests.outputs.digest }}
           sbom-path: sbom-${{ inputs.service-name }}.spdx.json
 
@@ -441,6 +455,12 @@ jobs:
     needs: [merge-manifests, generate-sboms, scan-vulnerabilities]
     
     steps:
+      - name: Set image reference
+        id: set-image
+        run: |
+          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          
       - name: Download SPDX SBOM
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
@@ -511,7 +531,7 @@ jobs:
                   "timestamp": vex["timestamp"],
                   "products": [{
                       "component": {
-                          "id": "${{ needs.merge-manifests.outputs.image-ref }}"
+                          "id": "${{ steps.set-image.outputs.ref }}"
                       }
                   }],
                   "status": status
@@ -573,6 +593,14 @@ jobs:
     needs: [merge-manifests, scan-vulnerabilities]
     
     steps:
+      - name: Set image reference
+        id: set-image
+        run: |
+          IMAGE_NAME="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}"
+          IMAGE_REF="$IMAGE_NAME@${{ needs.merge-manifests.outputs.digest }}"
+          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          echo "name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          
       - name: Install Cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
@@ -586,19 +614,19 @@ jobs:
       - name: Sign container image
         run: |
           cosign sign --yes \
-            ${{ needs.merge-manifests.outputs.image-ref }}
+            ${{ steps.set-image.outputs.ref }}
 
       - name: Verify image signature
         run: |
           cosign verify \
             --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ needs.merge-manifests.outputs.image-ref }}
+            ${{ steps.set-image.outputs.ref }}
 
       - name: Generate build provenance attestation (SLSA L3)
         uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
         with:
-          subject-name: ${{ env.IMAGE_NAME }}
+          subject-name: ${{ steps.set-image.outputs.name }}
           subject-digest: ${{ needs.merge-manifests.outputs.digest }}
           push-to-registry: true
 
@@ -608,6 +636,12 @@ jobs:
     needs: [merge-manifests, sign-sboms, generate-vex, sign-image, scan-vulnerabilities]
     
     steps:
+      - name: Set image reference
+        id: set-image
+        run: |
+          IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
+          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          
       - name: Download all signed artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
@@ -655,7 +689,7 @@ jobs:
           ## 🎉 Build Complete: ${{ inputs.service-name }} v${{ inputs.version }}
           
           ### 📦 Image Details
-          - **Image**: `${{ needs.merge-manifests.outputs.image-ref }}`
+          - **Image**: `${{ steps.set-image.outputs.ref }}`
           - **Version**: `${{ inputs.version }}`
           - **Platforms**: linux/amd64, linux/arm64
           - **Signed**: ✅ Yes (Cosign keyless with Sigstore)
@@ -676,12 +710,12 @@ jobs:
           cosign verify \
             --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ needs.merge-manifests.outputs.image-ref }}
+            ${{ steps.set-image.outputs.ref }}
           ```
           
           **Verify SBOM attestation:**
           ```bash
-          gh attestation verify oci://${{ needs.merge-manifests.outputs.image-ref }} --owner ${{ github.repository_owner }}
+          gh attestation verify oci://${{ steps.set-image.outputs.ref }} --owner ${{ github.repository_owner }}
           ```
           
           **Download SBOMs from release:**
