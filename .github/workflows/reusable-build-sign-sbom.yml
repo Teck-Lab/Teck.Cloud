@@ -119,7 +119,7 @@ jobs:
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
       - name: Log in to Harbor
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ secrets.harbor-url }}
           username: ${{ secrets.harbor-username }}
@@ -202,7 +202,7 @@ jobs:
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
       - name: Log in to Harbor
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ secrets.harbor-url }}
           username: ${{ secrets.harbor-username }}
@@ -250,7 +250,7 @@ jobs:
     
     steps:
       - name: Log in to Harbor
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ secrets.harbor-url }}
           username: ${{ secrets.harbor-username }}
@@ -308,7 +308,7 @@ jobs:
     
     steps:
       - name: Log in to Harbor
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ secrets.harbor-url }}
           username: ${{ secrets.harbor-username }}
@@ -572,7 +572,7 @@ jobs:
         uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v4.0.0
 
       - name: Log in to Harbor
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ secrets.harbor-url }}
           username: ${{ secrets.harbor-username }}
