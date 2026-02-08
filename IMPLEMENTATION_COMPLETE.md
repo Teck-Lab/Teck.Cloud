@@ -472,3 +472,27 @@ Your Teck.Cloud project now has:
 ---
 
 **Questions or issues?** Check `SECURITY.md` or open a GitHub issue.
+
+---
+
+## 🔧 Recent Fixes
+
+### Fixed: Incorrect SHA for create-github-app-token (2026-02-08)
+
+**Issue:** Workflow failed with "An action could not be found at the URI"
+
+**Root cause:** Used incorrect SHA `cc048e6...` for `actions/create-github-app-token@v1.12.1`  
+- v1.12.1 doesn't exist
+- Latest v1 is at SHA `d72941d...`
+
+**Fix applied:** Updated `release-services.yaml` line 27:
+```yaml
+# Before (incorrect)
+uses: actions/create-github-app-token@cc048e667baebf25e8cd6356b82d67e6ffb6671c # v1.12.1
+
+# After (correct)
+uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+```
+
+**Status:** ✅ Fixed - workflow should now run successfully
+

@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: generate-token
-        uses: actions/create-github-app-token@cc048e667baebf25e8cd6356b82d67e6ffb6671c # v1.12.1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ vars.AUTO_RELEASE_APP_ID }}
           private-key: ${{ secrets.AUTO_RELEASE_APP_PRIVATE_KEY }}
