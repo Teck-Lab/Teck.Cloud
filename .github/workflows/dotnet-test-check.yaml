@@ -365,7 +365,7 @@ jobs:
           reporter: dotnet-trx
 
       - name: Security scan with Trivy (Filesystem - Dependencies)
-        uses: aquasecurity/trivy-action@0.31.0
+        uses: aquasecurity/trivy-action@0.33.1
         continue-on-error: true
         with:
           scan-type: 'fs'
@@ -489,7 +489,7 @@ jobs:
             RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
       - name: Run Trivy vulnerability scanner on Docker image
-        uses: aquasecurity/trivy-action@0.31.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
           format: 'sarif'
