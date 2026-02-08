@@ -1,3 +1,15 @@
+# v0.9.6 (Sun Feb 08 2026)
+
+#### 🐛 Bug Fix
+
+- fix: correct Cosign bundle v0.3 signature extraction paths ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.9.4 (Sun Feb 08 2026)
 
 
