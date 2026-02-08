@@ -1,3 +1,19 @@
+# v0.5.2 (Sun Feb 08 2026)
+
+#### 🐛 Bug Fix
+
+- fix: Correct GH_TOKEN environment variable in release workflow ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.5.1 (Sun Feb 08 2026)
 
 #### 🐛 Bug Fix
