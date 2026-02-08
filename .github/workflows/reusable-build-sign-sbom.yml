@@ -226,7 +226,9 @@ jobs:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
         run: |
           # Create the manifest and capture the digest
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+          # Deduplicate tags to avoid "412 Precondition Failed" errors
+          TAGS=$(jq -cr '.tags | unique | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          docker buildx imagetools create $TAGS \
             $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
           
           # Inspect the image to get the digest
