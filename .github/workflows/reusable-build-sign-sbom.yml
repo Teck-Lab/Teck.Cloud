@@ -249,6 +249,11 @@ jobs:
     needs: [merge-manifests]
     
     steps:
+      - name: Debug image reference
+        run: |
+          echo "Image ref from merge: ${{ needs.merge-manifests.outputs.image-ref }}"
+          echo "Image digest from merge: ${{ needs.merge-manifests.outputs.digest }}"
+          
       - name: Log in to Harbor
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
