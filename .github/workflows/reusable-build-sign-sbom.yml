@@ -642,10 +642,29 @@ jobs:
           IMAGE_REF="${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           
-      - name: Download all signed artifacts
+      - name: Download signed SPDX SBOM
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          path: artifacts
+          name: sbom-spdx-signed-${{ inputs.service-name }}
+          path: artifacts/sbom-spdx-signed-${{ inputs.service-name }}
+
+      - name: Download signed CycloneDX SBOM
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: sbom-cyclonedx-signed-${{ inputs.service-name }}
+          path: artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}
+
+      - name: Download VEX documents
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: vex-${{ inputs.service-name }}
+          path: artifacts/vex-${{ inputs.service-name }}
+
+      - name: Download Trivy scan results
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: trivy-scan-${{ inputs.service-name }}
+          path: artifacts/trivy-scan-${{ inputs.service-name }}
 
       - name: Organize release artifacts
         run: |
