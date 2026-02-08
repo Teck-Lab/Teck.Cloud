@@ -4,6 +4,7 @@ registries:
     type: nuget-feed
     url: https://api.nuget.org/v3/index.json
 updates:
+  # NuGet dependencies
   - package-ecosystem: nuget
     directory: "/"
     ignore:
@@ -19,3 +20,20 @@ updates:
     open-pull-requests-limit: 25
     commit-message:
       prefix: "chore"
+  
+  # GitHub Actions dependencies (auto-update SHA pins)
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: "main"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "security"

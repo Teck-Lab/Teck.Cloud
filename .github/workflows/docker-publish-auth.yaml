@@ -9,9 +9,7 @@ permissions:
   packages: write
   id-token: write
   attestations: write
-
-env:
-  REGISTRY: ghcr.io
+  security-events: write
 
 jobs:
   get-version:
@@ -35,7 +33,7 @@ jobs:
       exists: ${{ steps.check.outputs.exists }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: refs/tags/${{ github.event.release.tag_name }}
 
@@ -50,286 +48,21 @@ jobs:
             echo "Auth Dockerfile not found - skipping"
           fi
 
-  build-and-push-auth:
-    name: Build auth (${{ matrix.builder.platform }})
-    runs-on: ${{ matrix.builder.runner-image }}
+  build-sign-sbom-auth:
+    name: Build, Sign & SBOM - auth
     needs: [get-version, check-auth]
     if: needs.check-auth.outputs.exists == 'true'
-    strategy:
-      matrix:
-        builder:
-          - runner-image: ubuntu-24.04
-            platform: linux/amd64
-          - runner-image: ubuntu-24.04-arm
-            platform: linux/arm64
-      fail-fast: false
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: refs/tags/${{ github.event.release.tag_name }}
-
-      - name: Prepare environment variables
-        run: |
-          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/auth" >> $GITHUB_ENV
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.HARBOR_URL }}/teck-lab/auth
-          tags: |
-            type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}},value=${{ needs.get-version.outputs.version }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-          labels: |
-            org.opencontainers.image.title=auth
-            org.opencontainers.image.description=Teck Cloud authentication service - Keycloak with Phase Two and Tailcloakify
-            org.opencontainers.image.vendor=Teck
-            com.teck.service.name=auth
-            com.teck.build.workflow=${{ github.workflow }}
-            com.teck.build.run-id=${{ github.run_id }}
-            com.teck.build.run-number=${{ github.run_number }}
-
-      - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: src/auth/Dockerfile
-          platforms: ${{ matrix.builder.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ secrets.HARBOR_URL }}/teck-lab/auth,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=auth-${{ matrix.builder.platform }}
-          cache-to: type=gha,mode=max,scope=auth-${{ matrix.builder.platform }}
-          build-args: |
-            VERSION=${{ needs.get-version.outputs.version }}
-            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-            VCS_REF=${{ github.sha }}
-            VCS_URL=${{ github.server_url }}/${{ github.repository }}
-            KEYCLOAK_VERSION=26.5.2
-
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests/auth
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/auth/${digest#sha256:}"
-
-      - name: Upload digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-auth-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/auth/*
-          if-no-files-found: error
-          retention-days: 1
-
-  merge-and-tag-auth:
-    name: Merge auth manifests
-    runs-on: ubuntu-latest
-    needs: [get-version, check-auth, build-and-push-auth]
-    if: needs.check-auth.outputs.exists == 'true'
-    steps:
-      - name: Download digests for auth
-        uses: actions/download-artifact@v4
-        with:
-          path: /tmp/digests
-          pattern: digests-auth-*
-          merge-multiple: true
-
-      - name: Prepare environment variables
-        run: |
-          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.HARBOR_URL }}/teck-lab/auth
-          tags: |
-            type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}},value=${{ needs.get-version.outputs.version }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Create manifest list and push
-        id: merge
-        working-directory: /tmp/digests
-        env:
-          DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
-        run: |
-          # Create the manifest and capture the digest
-          MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ secrets.HARBOR_URL }}/teck-lab/auth@sha256:%s ' *))
-          
-          # Extract digest from output
-          DIGEST=$(echo "$MANIFEST_OUTPUT" | grep -oP 'sha256:[a-f0-9]{64}' | head -n1)
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "Image digest: $DIGEST"
-
-      - name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ secrets.HARBOR_URL }}/teck-lab/auth:${{ needs.get-version.outputs.version }}
-
-  scan-image-auth:
-    name: Scan auth for vulnerabilities
-    runs-on: ubuntu-latest
-    needs: [get-version, check-auth, merge-and-tag-auth]
-    if: needs.check-auth.outputs.exists == 'true'
-    permissions:
-      contents: read
-      packages: read
-      security-events: write
-    steps:
-      - name: Prepare environment variables
-        run: |
-          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/auth" >> $GITHUB_ENV
-
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.31.0
-        continue-on-error: true
-        env:
-          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: 1
-          ignore-unfixed: true
-
-      - name: Upload Trivy scan results to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-results.sarif'
-          category: 'trivy-image-auth'
-
-      - name: Run Trivy vulnerability scanner (JSON report)
-        if: always()
-        uses: aquasecurity/trivy-action@0.31.0
-        env:
-          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
-          format: 'json'
-          output: 'trivy-results.json'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          ignore-unfixed: true
-
-      - name: Upload Trivy JSON report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-scan-auth-${{ needs.get-version.outputs.version }}
-          path: trivy-results.json
-          retention-days: 90
-
-  sign-image-auth:
-    name: Sign auth image
-    runs-on: ubuntu-latest
-    needs: [get-version, check-auth, merge-and-tag-auth, scan-image-auth]
-    if: needs.check-auth.outputs.exists == 'true'
-    steps:
-      - name: Prepare environment variables
-        run: |
-          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/auth" >> $GITHUB_ENV
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.0.0
-
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Get image digest
-        id: digest
-        run: |
-          DIGEST=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }} --format '{{ json .Manifest }}' | jq -r '.digest')
-          if [ -z "$DIGEST" ]; then
-            echo "Failed to get image digest"
-            exit 1
-          fi
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "Multi-arch manifest digest: $DIGEST"
-
-      - name: Sign the container image
-        run: |
-          cosign sign --yes \
-            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-
-      - name: Verify signature
-        run: |
-          cosign verify \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-
-      - name: Generate SBOM (Software Bill of Materials)
-        uses: anchore/sbom-action@v0.22.0
-        with:
-          image: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
-          format: spdx-json
-          output-file: sbom-auth.spdx.json
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Attest SBOM to image
-        uses: actions/attest-sbom@v2
-        with:
-          subject-name: ${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.digest.outputs.digest }}
-          sbom-path: sbom-auth.spdx.json
-
-      - name: Upload SBOM to Release
-        run: |
-          gh release upload v${{ needs.get-version.outputs.version }} \
-            sbom-auth.spdx.json \
-            --repo ${{ github.repository }} \
-            --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-auth-${{ needs.get-version.outputs.version }}
-          path: sbom-auth.spdx.json
-          retention-days: 90
+    uses: ./.github/workflows/reusable-build-sign-sbom.yml
+    with:
+      service-name: auth
+      version: ${{ needs.get-version.outputs.version }}
+      dockerfile-path: src/auth/Dockerfile
+      docker-context: '.'
+      # Auth service doesn't need PostgreSQL/RabbitMQ (Keycloak-based)
+      postgres-connection: ''
+      rabbitmq-connection: ''
+    secrets:
+      harbor-url: ${{ secrets.HARBOR_URL }}
+      harbor-username: ${{ secrets.HARBOR_USERNAME }}
+      harbor-password: ${{ secrets.HARBOR_PASSWORD }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}

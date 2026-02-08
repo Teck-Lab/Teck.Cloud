@@ -10,9 +10,7 @@ permissions:
   packages: write
   id-token: write
   attestations: write
-
-env:
-  REGISTRY: ghcr.io
+  security-events: write
 
 jobs:
   find-services:
@@ -22,7 +20,7 @@ jobs:
       services: ${{ steps.find.outputs.services }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: refs/tags/${{ github.event.release.tag_name }}
 
@@ -61,59 +59,24 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
 
-  build-and-push:
-    name: Build ${{ matrix.service }} (${{ matrix.builder.platform }})
-    runs-on: ${{ matrix.builder.runner-image }}
-    needs: [find-services, get-version]
-    
-    # Service containers (needed for Wolverine codegen during build)
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: tempdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      rabbitmq:
-        image: rabbitmq:3-management-alpine
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
-    
+  find-dockerfile:
+    name: Find Dockerfile for ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [find-services]
     strategy:
       matrix:
         service: ${{ fromJson(needs.find-services.outputs.services) }}
-        builder:
-          - runner-image: ubuntu-24.04
-            platform: linux/amd64
-          - runner-image: ubuntu-24.04-arm
-            platform: linux/arm64
       fail-fast: false
-    
+    outputs:
+      dockerfile-paths: ${{ steps.export.outputs.paths }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: refs/tags/${{ github.event.release.tag_name }}
 
-      - name: Find Dockerfile
-        id: find-dockerfile
+      - name: Find Dockerfile path
+        id: find
         run: |
           SERVICE_NAME="${{ matrix.service }}"
           
@@ -141,284 +104,31 @@ jobs:
             exit 1
           fi
           
-          echo "dockerfile-path=$DOCKERFILE_PATH" >> $GITHUB_OUTPUT
+          echo "path=$DOCKERFILE_PATH" >> $GITHUB_OUTPUT
+          echo "$SERVICE_NAME=$DOCKERFILE_PATH" >> $GITHUB_ENV
 
-      - name: Prepare environment variables
+      - name: Export paths
+        id: export
         run: |
-          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
-          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }}" >> $GITHUB_ENV
+          echo "paths={\"${{ matrix.service }}\":\"${{ steps.find.outputs.path }}\"}" >> $GITHUB_OUTPUT
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }}
-          tags: |
-            type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}},value=${{ needs.get-version.outputs.version }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-          labels: |
-            org.opencontainers.image.title=${{ matrix.service }}
-            org.opencontainers.image.description=Teck Cloud microservice - ${{ matrix.service }}
-            org.opencontainers.image.vendor=Teck
-            com.teck.service.name=${{ matrix.service }}
-            com.teck.build.workflow=${{ github.workflow }}
-            com.teck.build.run-id=${{ github.run_id }}
-            com.teck.build.run-number=${{ github.run_number }}
-
-      - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ steps.find-dockerfile.outputs.dockerfile-path }}
-          platforms: ${{ matrix.builder.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ matrix.service }}-${{ matrix.builder.platform }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}-${{ matrix.builder.platform }}
-          network: host
-          build-args: |
-            VERSION=${{ needs.get-version.outputs.version }}
-            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-            VCS_REF=${{ github.sha }}
-            VCS_URL=${{ github.server_url }}/${{ github.repository }}
-            WEBSITE_URL=https://teck.dk
-            DOCS_URL=https://docs.teck.dk
-            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=tempdb;Username=postgres;Password=postgres
-            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
-
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests/${{ matrix.service }}
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${{ matrix.service }}/${digest#sha256:}"
-
-      - name: Upload digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ matrix.service }}-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/${{ matrix.service }}/*
-          if-no-files-found: error
-          retention-days: 1
-
-  merge-and-tag:
-    name: Merge ${{ matrix.service }} manifests
-    runs-on: ubuntu-latest
-    needs: [find-services, get-version, build-and-push]
+  build-sign-sbom:
+    name: Build, Sign & SBOM - ${{ matrix.service }}
+    needs: [find-services, get-version, find-dockerfile]
     strategy:
       matrix:
         service: ${{ fromJson(needs.find-services.outputs.services) }}
       fail-fast: false
-    steps:
-      - name: Download digests for ${{ matrix.service }}
-        uses: actions/download-artifact@v4
-        with:
-          path: /tmp/digests
-          pattern: digests-${{ matrix.service }}-*
-          merge-multiple: true
-
-      - name: Prepare environment variables
-        run: |
-          echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }}
-          tags: |
-            type=semver,pattern={{version}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.get-version.outputs.version }}
-            type=semver,pattern={{major}},value=${{ needs.get-version.outputs.version }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Create manifest list and push
-        id: merge
-        working-directory: /tmp/digests
-        env:
-          DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
-        run: |
-          # Create the manifest and capture the digest
-          MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }}@sha256:%s ' *))
-          
-          # Extract digest from output
-          DIGEST=$(echo "$MANIFEST_OUTPUT" | grep -oP 'sha256:[a-f0-9]{64}' | head -n1)
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "Image digest: $DIGEST"
-
-      - name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }}:${{ needs.get-version.outputs.version }}
-
-  scan-image:
-    name: Scan ${{ matrix.service }} for vulnerabilities
-    runs-on: ubuntu-latest
-    needs: [find-services, get-version, merge-and-tag]
-    strategy:
-      matrix:
-        service: ${{ fromJson(needs.find-services.outputs.services) }}
-      fail-fast: false
-    permissions:
-      contents: read
-      packages: read
-      security-events: write
-    steps:
-      - name: Prepare environment variables
-        run: |
-          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }}" >> $GITHUB_ENV
-
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.31.0
-        continue-on-error: true
-        env:
-          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: 1
-          ignore-unfixed: true
-
-      - name: Upload Trivy scan results to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'trivy-results.sarif'
-          category: 'trivy-image-${{ matrix.service }}'
-
-      - name: Run Trivy vulnerability scanner (JSON report)
-        if: always()
-        uses: aquasecurity/trivy-action@0.31.0
-        env:
-          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
-          format: 'json'
-          output: 'trivy-results.json'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          ignore-unfixed: true
-
-      - name: Upload Trivy JSON report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-scan-${{ matrix.service }}-${{ needs.get-version.outputs.version }}
-          path: trivy-results.json
-          retention-days: 90
-
-  sign-image:
-    name: Sign ${{ matrix.service }} image
-    runs-on: ubuntu-latest
-    needs: [find-services, get-version, merge-and-tag, scan-image]
-    strategy:
-      matrix:
-        service: ${{ fromJson(needs.find-services.outputs.services) }}
-      fail-fast: false
-    steps:
-      - name: Prepare environment variables
-        run: |
-          echo "IMAGE_NAME=${{ secrets.HARBOR_URL }}/teck-lab/${{ matrix.service }}" >> $GITHUB_ENV
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.0.0
-
-      - name: Log in to Harbor
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.HARBOR_URL }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Get image digest
-        id: digest
-        run: |
-          # Get the digest of the multi-arch manifest list (not individual platform)
-          DIGEST=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }} --format '{{ json .Manifest }}' | jq -r '.digest')
-          if [ -z "$DIGEST" ]; then
-            echo "Failed to get image digest"
-            exit 1
-          fi
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "Multi-arch manifest digest: $DIGEST"
-
-      - name: Sign the container image
-        run: |
-          # Sign the image digest (multi-arch manifest)
-          cosign sign --yes \
-            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-
-      - name: Verify signature
-        run: |
-          # Verify the signature was created successfully
-          cosign verify \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.IMAGE_NAME }}@${{ steps.digest.outputs.digest }}
-
-      - name: Generate SBOM (Software Bill of Materials)
-        uses: anchore/sbom-action@v0.22.0
-        with:
-          image: ${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
-          format: spdx-json
-          output-file: sbom-${{ matrix.service }}.spdx.json
-          registry-username: ${{ secrets.HARBOR_USERNAME }}
-          registry-password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Attest SBOM to image
-        uses: actions/attest-sbom@v2
-        with:
-          subject-name: ${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.digest.outputs.digest }}
-          sbom-path: sbom-${{ matrix.service }}.spdx.json
-
-      - name: Upload SBOM to Release
-        run: |
-          # Upload SBOM as a release asset
-          gh release upload v${{ needs.get-version.outputs.version }} \
-            sbom-${{ matrix.service }}.spdx.json \
-            --repo ${{ github.repository }} \
-            --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-${{ matrix.service }}-${{ needs.get-version.outputs.version }}
-          path: sbom-${{ matrix.service }}.spdx.json
-          retention-days: 90
+    uses: ./.github/workflows/reusable-build-sign-sbom.yml
+    with:
+      service-name: ${{ matrix.service }}
+      version: ${{ needs.get-version.outputs.version }}
+      dockerfile-path: src/services/${{ matrix.service }}/${{ matrix.service == 'catalog' && 'Catalog.Api' || format('{0}.Api', matrix.service) }}/Dockerfile
+      docker-context: '.'
+      postgres-connection: 'Host=localhost;Port=5432;Database=tempdb;Username=postgres;Password=postgres'
+      rabbitmq-connection: 'amqp://guest:guest@localhost:5672/'
+    secrets:
+      harbor-url: ${{ secrets.HARBOR_URL }}
+      harbor-username: ${{ secrets.HARBOR_USERNAME }}
+      harbor-password: ${{ secrets.HARBOR_PASSWORD }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -24,19 +24,19 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: generate-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@cc048e667baebf25e8cd6356b82d67e6ffb6671c # v1.12.1
         with:
           app-id: ${{ vars.AUTO_RELEASE_APP_ID }}
           private-key: ${{ secrets.AUTO_RELEASE_APP_PRIVATE_KEY }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Setup Auto
-        uses: auto-it/setup-auto@v2.0.0
+        uses: auto-it/setup-auto@d478b95604772bdf2179e7c78d5e211872e6ff25 # v2.0.0
 
       - name: Create labels
         run: auto create-labels || true

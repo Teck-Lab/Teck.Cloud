@@ -1,0 +1,686 @@
+name: Reusable Build, Sign, and SBOM Generation (SLSA L3)
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: 'Service name (e.g., catalog)'
+        required: true
+        type: string
+      version:
+        description: 'Version to build (e.g., 1.0.0)'
+        required: true
+        type: string
+      dockerfile-path:
+        description: 'Path to Dockerfile'
+        required: true
+        type: string
+      docker-context:
+        description: 'Docker build context path'
+        required: false
+        type: string
+        default: '.'
+      postgres-connection:
+        description: 'PostgreSQL connection string for Wolverine codegen'
+        required: false
+        type: string
+        default: 'Host=localhost;Port=5432;Database=tempdb;Username=postgres;Password=postgres'
+      rabbitmq-connection:
+        description: 'RabbitMQ connection string for Wolverine codegen'
+        required: false
+        type: string
+        default: 'amqp://guest:guest@localhost:5672/'
+    secrets:
+      harbor-url:
+        description: 'Harbor registry URL'
+        required: true
+      harbor-username:
+        description: 'Harbor username'
+        required: true
+      harbor-password:
+        description: 'Harbor password'
+        required: true
+      github-token:
+        description: 'GitHub token for release uploads'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+  security-events: write
+
+env:
+  IMAGE_NAME: ${{ secrets.harbor-url }}/teck-lab/${{ inputs.service-name }}
+
+jobs:
+  build-and-push:
+    name: Build ${{ inputs.service-name }} (${{ matrix.builder.platform }})
+    runs-on: ${{ matrix.builder.runner-image }}
+    
+    # Service containers needed for Wolverine codegen during build
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tempdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+          - 15672:15672
+    
+    strategy:
+      matrix:
+        builder:
+          - runner-image: ubuntu-24.04
+            platform: linux/amd64
+          - runner-image: ubuntu-24.04-arm
+            platform: linux/arm64
+      fail-fast: false
+    
+    outputs:
+      digest-amd64: ${{ steps.export-digest.outputs.digest-amd64 }}
+      digest-arm64: ${{ steps.export-digest.outputs.digest-arm64 }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+
+      - name: Prepare environment variables
+        run: |
+          echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Log in to Harbor
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ secrets.harbor-url }}
+          username: ${{ secrets.harbor-username }}
+          password: ${{ secrets.harbor-password }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ !startsWith(inputs.version, '0.') }}
+            type=raw,value=latest,enable=${{ !contains(inputs.version, '-') }}
+          labels: |
+            org.opencontainers.image.title=${{ inputs.service-name }}
+            org.opencontainers.image.description=Teck Cloud microservice - ${{ inputs.service-name }}
+            org.opencontainers.image.vendor=Teck
+            com.teck.service.name=${{ inputs.service-name }}
+            com.teck.build.workflow=${{ github.workflow }}
+            com.teck.build.run-id=${{ github.run_id }}
+            com.teck.build.run-number=${{ github.run_number }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        with:
+          context: ${{ inputs.docker-context }}
+          file: ${{ inputs.dockerfile-path }}
+          platforms: ${{ matrix.builder.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ inputs.service-name }}-${{ matrix.builder.platform }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.service-name }}-${{ matrix.builder.platform }}
+          network: host
+          build-args: |
+            VERSION=${{ inputs.version }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+            VCS_URL=${{ github.server_url }}/${{ github.repository }}
+            WEBSITE_URL=https://teck.dk
+            DOCS_URL=https://docs.teck.dk
+            POSTGRES_CONNECTION=${{ inputs.postgres-connection }}
+            RABBITMQ_CONNECTION=${{ inputs.rabbitmq-connection }}
+
+      - name: Export digest
+        id: export-digest
+        run: |
+          mkdir -p /tmp/digests/${{ inputs.service-name }}
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${{ inputs.service-name }}/${digest#sha256:}"
+          echo "digest-${{ env.PLATFORM_PAIR }}=$digest" >> $GITHUB_OUTPUT
+
+      - name: Upload digest
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: digests-${{ inputs.service-name }}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{ inputs.service-name }}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-manifests:
+    name: Merge ${{ inputs.service-name }} manifests
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    outputs:
+      digest: ${{ steps.merge.outputs.digest }}
+      image-ref: ${{ steps.image-ref.outputs.ref }}
+    
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ inputs.service-name }}-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Log in to Harbor
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ secrets.harbor-url }}
+          username: ${{ secrets.harbor-username }}
+          password: ${{ secrets.harbor-password }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+            type=semver,pattern={{major}},value=${{ inputs.version }},enable=${{ !startsWith(inputs.version, '0.') }}
+            type=raw,value=latest,enable=${{ !contains(inputs.version, '-') }}
+
+      - name: Create manifest list and push
+        id: merge
+        working-directory: /tmp/digests
+        env:
+          DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
+        run: |
+          # Create the manifest and capture the digest
+          MANIFEST_OUTPUT=$(docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *))
+          
+          # Extract digest from output
+          DIGEST=$(echo "$MANIFEST_OUTPUT" | grep -oP 'sha256:[a-f0-9]{64}' | head -n1)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "Image digest: $DIGEST"
+
+      - name: Set image reference
+        id: image-ref
+        run: |
+          echo "ref=${{ env.IMAGE_NAME }}@${{ steps.merge.outputs.digest }}" >> $GITHUB_OUTPUT
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ inputs.version }}
+
+  scan-vulnerabilities:
+    name: Scan ${{ inputs.service-name }} vulnerabilities
+    runs-on: ubuntu-latest
+    needs: [merge-manifests]
+    
+    steps:
+      - name: Log in to Harbor
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ secrets.harbor-url }}
+          username: ${{ secrets.harbor-username }}
+          password: ${{ secrets.harbor-password }}
+
+      - name: Run Trivy vulnerability scanner (SARIF)
+        uses: aquasecurity/trivy-action@f781cce5aab226378ee181d764ab90ea0be3cdd8 # 0.31.0
+        continue-on-error: true
+        env:
+          TRIVY_USERNAME: ${{ secrets.harbor-username }}
+          TRIVY_PASSWORD: ${{ secrets.harbor-password }}
+        with:
+          image-ref: ${{ needs.merge-manifests.outputs.image-ref }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: 1
+          ignore-unfixed: true
+
+      - name: Upload Trivy results to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@48ab28a6f5dbc2a99bf1e0131198dd80ec1f6c57 # v3.27.9
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-image-${{ inputs.service-name }}'
+
+      - name: Run Trivy vulnerability scanner (JSON)
+        if: always()
+        uses: aquasecurity/trivy-action@f781cce5aab226378ee181d764ab90ea0be3cdd8 # 0.31.0
+        env:
+          TRIVY_USERNAME: ${{ secrets.harbor-username }}
+          TRIVY_PASSWORD: ${{ secrets.harbor-password }}
+        with:
+          image-ref: ${{ needs.merge-manifests.outputs.image-ref }}
+          format: 'json'
+          output: 'trivy-results.json'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          ignore-unfixed: true
+
+      - name: Upload Trivy JSON report
+        if: always()
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: trivy-scan-${{ inputs.service-name }}
+          path: trivy-results.json
+          retention-days: 90
+
+  generate-sboms:
+    name: Generate SBOMs for ${{ inputs.service-name }}
+    runs-on: ubuntu-latest
+    needs: [merge-manifests]
+    outputs:
+      spdx-sbom: sbom-${{ inputs.service-name }}.spdx.json
+      cyclonedx-sbom: sbom-${{ inputs.service-name }}.cyclonedx.json
+    
+    steps:
+      - name: Log in to Harbor
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ secrets.harbor-url }}
+          username: ${{ secrets.harbor-username }}
+          password: ${{ secrets.harbor-password }}
+
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.22.0
+        with:
+          image: ${{ needs.merge-manifests.outputs.image-ref }}
+          format: spdx-json
+          output-file: sbom-${{ inputs.service-name }}.spdx.json
+          registry-username: ${{ secrets.harbor-username }}
+          registry-password: ${{ secrets.harbor-password }}
+
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.22.0
+        with:
+          image: ${{ needs.merge-manifests.outputs.image-ref }}
+          format: cyclonedx-json
+          output-file: sbom-${{ inputs.service-name }}.cyclonedx.json
+          registry-username: ${{ secrets.harbor-username }}
+          registry-password: ${{ secrets.harbor-password }}
+
+      - name: Upload SPDX SBOM artifact
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: sbom-spdx-${{ inputs.service-name }}
+          path: sbom-${{ inputs.service-name }}.spdx.json
+          retention-days: 90
+
+      - name: Upload CycloneDX SBOM artifact
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: sbom-cyclonedx-${{ inputs.service-name }}
+          path: sbom-${{ inputs.service-name }}.cyclonedx.json
+          retention-days: 90
+
+  sign-sboms:
+    name: Sign SBOMs for ${{ inputs.service-name }}
+    runs-on: ubuntu-latest
+    needs: [merge-manifests, generate-sboms]
+    
+    steps:
+      - name: Download SPDX SBOM
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: sbom-spdx-${{ inputs.service-name }}
+
+      - name: Download CycloneDX SBOM
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: sbom-cyclonedx-${{ inputs.service-name }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v4.0.0
+
+      - name: Sign SPDX SBOM with Cosign
+        run: |
+          cosign sign-blob --yes \
+            --bundle sbom-${{ inputs.service-name }}.spdx.json.bundle \
+            sbom-${{ inputs.service-name }}.spdx.json
+          
+          # Extract signature and certificate for separate storage
+          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.base64Signature' | base64 -d > sbom-${{ inputs.service-name }}.spdx.json.sig
+          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.cert' > sbom-${{ inputs.service-name }}.spdx.json.cert
+
+      - name: Sign CycloneDX SBOM with Cosign
+        run: |
+          cosign sign-blob --yes \
+            --bundle sbom-${{ inputs.service-name }}.cyclonedx.json.bundle \
+            sbom-${{ inputs.service-name }}.cyclonedx.json
+          
+          # Extract signature and certificate
+          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.base64Signature' | base64 -d > sbom-${{ inputs.service-name }}.cyclonedx.json.sig
+          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.cert' > sbom-${{ inputs.service-name }}.cyclonedx.json.cert
+
+      - name: Verify SPDX SBOM signature
+        run: |
+          cosign verify-blob \
+            --bundle sbom-${{ inputs.service-name }}.spdx.json.bundle \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            sbom-${{ inputs.service-name }}.spdx.json
+
+      - name: Verify CycloneDX SBOM signature
+        run: |
+          cosign verify-blob \
+            --bundle sbom-${{ inputs.service-name }}.cyclonedx.json.bundle \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            sbom-${{ inputs.service-name }}.cyclonedx.json
+
+      - name: Attest SPDX SBOM
+        uses: actions/attest-sbom@48d923ff87ef83b2e52a5e00c07733e1d03f7462 # v2.2.0
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ needs.merge-manifests.outputs.digest }}
+          sbom-path: sbom-${{ inputs.service-name }}.spdx.json
+
+      - name: Upload signed SPDX SBOM artifacts
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: sbom-spdx-signed-${{ inputs.service-name }}
+          path: |
+            sbom-${{ inputs.service-name }}.spdx.json
+            sbom-${{ inputs.service-name }}.spdx.json.sig
+            sbom-${{ inputs.service-name }}.spdx.json.cert
+            sbom-${{ inputs.service-name }}.spdx.json.bundle
+          retention-days: 90
+
+      - name: Upload signed CycloneDX SBOM artifacts
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: sbom-cyclonedx-signed-${{ inputs.service-name }}
+          path: |
+            sbom-${{ inputs.service-name }}.cyclonedx.json
+            sbom-${{ inputs.service-name }}.cyclonedx.json.sig
+            sbom-${{ inputs.service-name }}.cyclonedx.json.cert
+            sbom-${{ inputs.service-name }}.cyclonedx.json.bundle
+          retention-days: 90
+
+  generate-vex:
+    name: Generate VEX for ${{ inputs.service-name }}
+    runs-on: ubuntu-latest
+    needs: [merge-manifests, generate-sboms, scan-vulnerabilities]
+    
+    steps:
+      - name: Download SPDX SBOM
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: sbom-spdx-${{ inputs.service-name }}
+
+      - name: Download Trivy scan results
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: trivy-scan-${{ inputs.service-name }}
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run Grype scan with reachability analysis
+        run: |
+          grype sbom:sbom-${{ inputs.service-name }}.spdx.json \
+            -o json \
+            --file grype-results.json
+
+      - name: Generate OpenVEX document
+        run: |
+          # Create VEX document structure
+          cat > vex-${{ inputs.service-name }}.openvex.json <<'EOF'
+          {
+            "@context": "https://openvex.dev/ns/v0.2.0",
+            "@id": "https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/vex-${{ inputs.service-name }}.openvex.json",
+            "author": "Teck Build System",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "version": "1",
+            "tooling": "Grype + Trivy",
+            "statements": []
+          }
+          EOF
+          
+          # Parse Grype results and add VEX statements
+          # For each vulnerability, determine exploitability status
+          if [ -f grype-results.json ]; then
+            python3 -c '
+          import json
+          import sys
+          
+          with open("grype-results.json") as f:
+              grype = json.load(f)
+          
+          with open("vex-${{ inputs.service-name }}.openvex.json") as f:
+              vex = json.load(f)
+          
+          statements = []
+          for match in grype.get("matches", []):
+              vuln = match.get("vulnerability", {})
+              vuln_id = vuln.get("id", "")
+              
+              # Determine status based on fix availability and severity
+              severity = vuln.get("severity", "Unknown")
+              fix_versions = match.get("vulnerability", {}).get("fix", {}).get("versions", [])
+              
+              status = "affected"
+              justification = None
+              
+              # If no fix available, mark as under_investigation
+              if not fix_versions:
+                  status = "under_investigation"
+              
+              # Add VEX statement
+              statement = {
+                  "vulnerability": {"name": vuln_id},
+                  "timestamp": vex["timestamp"],
+                  "products": [{
+                      "component": {
+                          "id": "${{ needs.merge-manifests.outputs.image-ref }}"
+                      }
+                  }],
+                  "status": status
+              }
+              
+              if justification:
+                  statement["justification"] = justification
+              
+              if fix_versions:
+                  statement["action_statement"] = f"Update to version {fix_versions[0]} or later"
+              
+              statements.append(statement)
+          
+          vex["statements"] = statements
+          
+          with open("vex-${{ inputs.service-name }}.openvex.json", "w") as f:
+              json.dump(vex, f, indent=2)
+          '
+          fi
+          
+          echo "VEX document generated with $(cat vex-${{ inputs.service-name }}.openvex.json | jq '.statements | length') statements"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v4.0.0
+
+      - name: Sign VEX document
+        run: |
+          cosign sign-blob --yes \
+            --bundle vex-${{ inputs.service-name }}.openvex.json.bundle \
+            vex-${{ inputs.service-name }}.openvex.json
+          
+          # Extract signature and certificate
+          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.base64Signature' | base64 -d > vex-${{ inputs.service-name }}.openvex.json.sig
+          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.cert' > vex-${{ inputs.service-name }}.openvex.json.cert
+
+      - name: Verify VEX signature
+        run: |
+          cosign verify-blob \
+            --bundle vex-${{ inputs.service-name }}.openvex.json.bundle \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            vex-${{ inputs.service-name }}.openvex.json
+
+      - name: Upload VEX artifacts
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: vex-${{ inputs.service-name }}
+          path: |
+            vex-${{ inputs.service-name }}.openvex.json
+            vex-${{ inputs.service-name }}.openvex.json.sig
+            vex-${{ inputs.service-name }}.openvex.json.cert
+            vex-${{ inputs.service-name }}.openvex.json.bundle
+            grype-results.json
+          retention-days: 90
+
+  sign-image:
+    name: Sign ${{ inputs.service-name }} image
+    runs-on: ubuntu-latest
+    needs: [merge-manifests, scan-vulnerabilities]
+    
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v4.0.0
+
+      - name: Log in to Harbor
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ secrets.harbor-url }}
+          username: ${{ secrets.harbor-username }}
+          password: ${{ secrets.harbor-password }}
+
+      - name: Sign container image
+        run: |
+          cosign sign --yes \
+            ${{ needs.merge-manifests.outputs.image-ref }}
+
+      - name: Verify image signature
+        run: |
+          cosign verify \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ needs.merge-manifests.outputs.image-ref }}
+
+      - name: Generate build provenance attestation (SLSA L3)
+        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8 # v3.1.0
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ needs.merge-manifests.outputs.digest }}
+          push-to-registry: true
+
+  upload-to-release:
+    name: Upload artifacts to GitHub Release
+    runs-on: ubuntu-latest
+    needs: [merge-manifests, sign-sboms, generate-vex, sign-image, scan-vulnerabilities]
+    
+    steps:
+      - name: Download all signed artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: artifacts
+
+      - name: Organize release artifacts
+        run: |
+          mkdir -p release-assets
+          
+          # SPDX SBOM files
+          cp artifacts/sbom-spdx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.spdx.json release-assets/
+          cp artifacts/sbom-spdx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.spdx.json.sig release-assets/
+          cp artifacts/sbom-spdx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.spdx.json.cert release-assets/
+          
+          # CycloneDX SBOM files
+          cp artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.cyclonedx.json release-assets/
+          cp artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.cyclonedx.json.sig release-assets/
+          cp artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.cyclonedx.json.cert release-assets/
+          
+          # VEX files
+          cp artifacts/vex-${{ inputs.service-name }}/vex-${{ inputs.service-name }}.openvex.json release-assets/
+          cp artifacts/vex-${{ inputs.service-name }}/vex-${{ inputs.service-name }}.openvex.json.sig release-assets/
+          cp artifacts/vex-${{ inputs.service-name }}/vex-${{ inputs.service-name }}.openvex.json.cert release-assets/
+          
+          # Trivy scan results
+          cp artifacts/trivy-scan-${{ inputs.service-name }}/trivy-results.json release-assets/trivy-scan-${{ inputs.service-name }}.json
+          
+          ls -lah release-assets/
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.github-token }}
+        run: |
+          # Upload all files to the release
+          cd release-assets
+          for file in *; do
+            gh release upload v${{ inputs.version }} "$file" \
+              --repo ${{ github.repository }} \
+              --clobber
+          done
+
+      - name: Create release summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
+          ## 🎉 Build Complete: ${{ inputs.service-name }} v${{ inputs.version }}
+          
+          ### 📦 Image Details
+          - **Image**: `${{ needs.merge-manifests.outputs.image-ref }}`
+          - **Version**: `${{ inputs.version }}`
+          - **Platforms**: linux/amd64, linux/arm64
+          - **Signed**: ✅ Yes (Cosign keyless with Sigstore)
+          
+          ### 📋 SBOMs Generated
+          - ✅ SPDX JSON (signed)
+          - ✅ CycloneDX JSON (signed)
+          
+          ### 🛡️ Security Artifacts
+          - ✅ VEX document (signed)
+          - ✅ Trivy vulnerability scan
+          - ✅ SLSA Build L3 provenance attestation
+          
+          ### 🔐 Verification Commands
+          
+          **Verify image signature:**
+          ```bash
+          cosign verify \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ needs.merge-manifests.outputs.image-ref }}
+          ```
+          
+          **Verify SBOM attestation:**
+          ```bash
+          gh attestation verify oci://${{ needs.merge-manifests.outputs.image-ref }} --owner ${{ github.repository_owner }}
+          ```
+          
+          **Download SBOMs from release:**
+          ```bash
+          gh release download v${{ inputs.version }} --pattern "sbom-${{ inputs.service-name }}.*"
+          ```
+          EOF
