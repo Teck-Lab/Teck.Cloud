@@ -230,7 +230,7 @@ jobs:
             $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
           
           # Inspect the image to get the digest
-          DIGEST=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ inputs.version }} --format '{{.Manifest.Digest}}')
+          DIGEST=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ inputs.version }} --raw | sha256sum | awk '{print "sha256:"$1}')
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "Image digest: $DIGEST"
 
