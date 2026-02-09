@@ -1,3 +1,15 @@
+# v0.10.2 (Mon Feb 09 2026)
+
+#### 🐛 Bug Fix
+
+- fix: simplify auth Dockerfile to single-stage with proper ownership ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.10.1 (Sun Feb 08 2026)
 
 #### 🐛 Bug Fix
