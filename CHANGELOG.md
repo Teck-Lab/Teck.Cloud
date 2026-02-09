@@ -1,3 +1,19 @@
+# v0.13.0 (Mon Feb 09 2026)
+
+#### 🚀 Enhancement
+
+- feat(auth): Dockerfile - Use Keycloakify production pattern ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.12.0 (Mon Feb 09 2026)
 
 #### 🚀 Enhancement
