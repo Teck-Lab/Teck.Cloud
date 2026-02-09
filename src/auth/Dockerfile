@@ -1,7 +1,13 @@
-# Single-stage Dockerfile for custom Keycloak with Tailcloakify theme
+# Multi-stage Dockerfile for custom Keycloak with Tailcloakify theme
 ARG KEYCLOAK_VERSION=26.5.2
 ARG TAILCLOAKIFY_VERSION=1.2.2
-ARG TAILCLOAKIFY_JAR_URL=https://github.com/ALMiG-Kompressoren-GmbH/tailcloakify/releases/download/v${TAILCLOAKIFY_VERSION}/keycloak-theme-for-kc-22-to-25.jar
+ARG TAILCLOAKIFY_JAR_URL=https://github.com/ALMiG-Kompressoren-GmbH/tailcloakify/releases/download/v${TAILCLOAKIFY_VERSION}/keycloak-theme-for-kc-all-other-versions.jar
+
+FROM quay.io/phasetwo/phasetwo-keycloak:${KEYCLOAK_VERSION} AS builder
+ARG TAILCLOAKIFY_JAR_URL
+
+# Add Tailcloakify theme JAR to providers
+ADD --chown=keycloak:keycloak ${TAILCLOAKIFY_JAR_URL} /opt/keycloak/providers/tailcloakify-theme.jar
 
 FROM quay.io/phasetwo/phasetwo-keycloak:${KEYCLOAK_VERSION}
 ARG VERSION=1.0.0
@@ -9,17 +15,12 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VCS_URL
 ARG KEYCLOAK_VERSION
-ARG TAILCLOAKIFY_JAR_URL
 
-# Switch to root to add theme JAR
-USER root
+# Copy entire keycloak directory from builder (includes the added theme JAR)
+COPY --from=builder /opt/keycloak /opt/keycloak
 
-# Add Tailcloakify theme JAR with proper ownership (keycloak:root/0)
-ADD --chown=1000:0 ${TAILCLOAKIFY_JAR_URL} /opt/keycloak/providers/tailcloakify-theme.jar
-RUN chmod 0644 /opt/keycloak/providers/tailcloakify-theme.jar
-
-# Switch back to keycloak user
 USER 1000
+WORKDIR /opt/keycloak
 
 LABEL org.opencontainers.image.title="Teck Keycloak Auth" \
       org.opencontainers.image.description="Custom Keycloak authentication service with Phase Two and Tailcloakify theme" \
