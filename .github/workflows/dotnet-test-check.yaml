@@ -52,7 +52,7 @@ jobs:
       dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Required for dotnet-affected to compare commits
           ref: ${{ github.event.pull_request.head.sha }}  # Checkout the actual PR head commit
@@ -255,7 +255,7 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
@@ -291,7 +291,7 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
@@ -439,7 +439,7 @@ jobs:
           echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Extract service name from Dockerfile path
         run: |
