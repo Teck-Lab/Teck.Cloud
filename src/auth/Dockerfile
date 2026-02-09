@@ -9,6 +9,9 @@ ARG TAILCLOAKIFY_JAR_URL
 # Add Tailcloakify theme JAR to providers
 ADD --chown=keycloak:keycloak ${TAILCLOAKIFY_JAR_URL} /opt/keycloak/providers/tailcloakify-theme.jar
 
+# Rebuild Keycloak with Phase Two SPI settings to include the theme
+RUN /opt/keycloak/bin/kc.sh build --spi-email-template-provider=freemarker-plus-mustache --spi-email-template-freemarker-plus-mustache-enabled=true --spi-theme-cache-themes=false
+
 FROM quay.io/phasetwo/phasetwo-keycloak:${KEYCLOAK_VERSION}
 ARG VERSION=1.0.0
 ARG BUILD_DATE
@@ -16,10 +19,12 @@ ARG VCS_REF
 ARG VCS_URL
 ARG KEYCLOAK_VERSION
 
-# Copy entire keycloak directory from builder (includes the added theme JAR)
-COPY --from=builder /opt/keycloak /opt/keycloak
-
 USER 1000
+
+# Copy built artifacts from builder
+COPY --from=builder /opt/keycloak/lib/quarkus/ /opt/keycloak/lib/quarkus/
+COPY --from=builder /opt/keycloak/providers/ /opt/keycloak/providers/
+
 WORKDIR /opt/keycloak
 
 LABEL org.opencontainers.image.title="Teck Keycloak Auth" \
