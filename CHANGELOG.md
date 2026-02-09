@@ -1,3 +1,19 @@
+# v0.11.0 (Mon Feb 09 2026)
+
+#### 🚀 Enhancement
+
+- feat(auth): migrate to multi-stage docker build ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.10.2 (Mon Feb 09 2026)
 
 #### 🐛 Bug Fix
