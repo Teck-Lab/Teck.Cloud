@@ -1,16 +1,8 @@
 # Multi-stage Dockerfile for custom Keycloak with Tailcloakify theme
+# Following Keycloakify production pattern: add JAR, run kc.sh build, use --optimized
 ARG KEYCLOAK_VERSION=26.5.2
 ARG TAILCLOAKIFY_VERSION=1.2.2
 ARG TAILCLOAKIFY_JAR_URL=https://github.com/ALMiG-Kompressoren-GmbH/tailcloakify/releases/download/v${TAILCLOAKIFY_VERSION}/keycloak-theme-for-kc-all-other-versions.jar
-
-FROM quay.io/phasetwo/phasetwo-keycloak:${KEYCLOAK_VERSION} AS builder
-ARG TAILCLOAKIFY_JAR_URL
-
-# Add Tailcloakify theme JAR to providers
-ADD --chown=keycloak:keycloak ${TAILCLOAKIFY_JAR_URL} /opt/keycloak/providers/tailcloakify-theme.jar
-
-# Rebuild Keycloak with Phase Two SPI settings to include the theme
-RUN /opt/keycloak/bin/kc.sh build --spi-email-template-provider=freemarker-plus-mustache --spi-email-template-freemarker-plus-mustache-enabled=true --spi-theme-cache-themes=false
 
 FROM quay.io/phasetwo/phasetwo-keycloak:${KEYCLOAK_VERSION}
 ARG VERSION=1.0.0
@@ -18,14 +10,17 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VCS_URL
 ARG KEYCLOAK_VERSION
-
-USER 1000
-
-# Copy built artifacts from builder
-COPY --from=builder /opt/keycloak/lib/quarkus/ /opt/keycloak/lib/quarkus/
-COPY --from=builder /opt/keycloak/providers/ /opt/keycloak/providers/
+ARG TAILCLOAKIFY_JAR_URL
 
 WORKDIR /opt/keycloak
+
+# Add Tailcloakify theme JAR to providers
+ADD --chown=keycloak:keycloak ${TAILCLOAKIFY_JAR_URL} /opt/keycloak/providers/tailcloakify-theme.jar
+
+# Run kc.sh build to process the theme (required for --optimized mode)
+RUN /opt/keycloak/bin/kc.sh build
+
+USER 1000
 
 LABEL org.opencontainers.image.title="Teck Keycloak Auth" \
       org.opencontainers.image.description="Custom Keycloak authentication service with Phase Two and Tailcloakify theme" \
