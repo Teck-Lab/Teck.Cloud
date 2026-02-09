@@ -269,7 +269,7 @@ jobs:
         run: dotnet restore
 
       - name: Download affected.proj
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected
