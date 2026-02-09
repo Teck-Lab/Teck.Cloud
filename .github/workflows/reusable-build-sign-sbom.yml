@@ -149,11 +149,6 @@ jobs:
           network: host
           build-args: |
             VERSION=${{ inputs.version }}
-            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-            VCS_REF=${{ github.sha }}
-            VCS_URL=${{ github.server_url }}/${{ github.repository }}
-            WEBSITE_URL=https://teck.dk
-            DOCS_URL=https://docs.teck.dk
             POSTGRES_CONNECTION=${{ inputs.postgres-connection }}
             RABBITMQ_CONNECTION=${{ inputs.rabbitmq-connection }}
 

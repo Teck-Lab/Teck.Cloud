@@ -1,34 +1,18 @@
-# Multi-stage Dockerfile for custom Keycloak with Tailcloakify theme
-# Following Keycloakify production pattern: add JAR, run kc.sh build, use --optimized
+# Dockerfile for Teck Keycloak Auth
+# Based on Phase Two Keycloak distribution
 ARG KEYCLOAK_VERSION=26.5.2
-ARG TAILCLOAKIFY_VERSION=1.2.2
-ARG TAILCLOAKIFY_JAR_URL=https://github.com/ALMiG-Kompressoren-GmbH/tailcloakify/releases/download/v${TAILCLOAKIFY_VERSION}/keycloak-theme-for-kc-all-other-versions.jar
 
 FROM quay.io/phasetwo/phasetwo-keycloak:${KEYCLOAK_VERSION}
 ARG VERSION=1.0.0
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VCS_URL
 ARG KEYCLOAK_VERSION
-ARG TAILCLOAKIFY_JAR_URL
-
-WORKDIR /opt/keycloak
-
-# Add Tailcloakify theme JAR to providers
-ADD --chown=keycloak:keycloak ${TAILCLOAKIFY_JAR_URL} /opt/keycloak/providers/tailcloakify-theme.jar
-
-# Run kc.sh build to process the theme (required for --optimized mode)
-RUN /opt/keycloak/bin/kc.sh build
 
 USER 1000
+WORKDIR /opt/keycloak
 
 LABEL org.opencontainers.image.title="Teck Keycloak Auth" \
-      org.opencontainers.image.description="Custom Keycloak authentication service with Phase Two and Tailcloakify theme" \
+      org.opencontainers.image.description="Keycloak authentication service with Phase Two extensions" \
       org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.authors="Teck Team" \
-      org.opencontainers.image.source="${VCS_URL}" \
-      org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.vendor="Teck" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.base.name="quay.io/phasetwo/phasetwo-keycloak:${KEYCLOAK_VERSION}"
