@@ -132,7 +132,7 @@ jobs:
 
       - name: Upload affected.proj artifact
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected/affected.proj
@@ -140,7 +140,7 @@ jobs:
 
       - name: Upload affected projects list
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: affected-list
           path: |
@@ -323,7 +323,7 @@ jobs:
           toolpath: "reportgeneratortool"
 
       - name: Upload Combined Coverage XML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage
           path: ${{ github.workspace }}/Cobertura.xml
@@ -350,7 +350,7 @@ jobs:
           path: code-coverage-results.md
 
       - name: Upload Test Result Files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
