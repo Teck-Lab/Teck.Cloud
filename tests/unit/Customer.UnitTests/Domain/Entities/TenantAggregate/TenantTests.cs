@@ -2,7 +2,7 @@ using Customer.Domain.Entities.TenantAggregate;
 using Customer.Domain.Entities.TenantAggregate.Events;
 using ErrorOr;
 using SharedKernel.Core.Pricing;
-using SharedKernel.Migration.Models;
+
 using Shouldly;
 
 namespace Customer.UnitTests.Domain.Entities.TenantAggregate;
@@ -113,92 +113,21 @@ public class TenantTests
             DatabaseProvider.PostgreSQL).Value;
         
         var serviceName = "catalog";
-        var vaultWritePath = "database/tenants/tenant-id/catalog/write";
-        var vaultReadPath = "database/tenants/tenant-id/catalog/read";
+        var writeKey = "ConnectionStrings__Tenants__tenant-id__Write";
+        var readKey = "ConnectionStrings__Tenants__tenant-id__Read";
         var hasSeparateReadDatabase = true;
-
+ 
         // Act
-        tenant.AddDatabaseMetadata(serviceName, vaultWritePath, vaultReadPath, hasSeparateReadDatabase);
-
+        tenant.AddDatabaseMetadata(serviceName, writeKey, readKey, hasSeparateReadDatabase);
+ 
         // Assert
         tenant.Databases.ShouldContain(db => db.ServiceName == serviceName);
         var metadata = tenant.Databases.First(db => db.ServiceName == serviceName);
-        metadata.VaultWritePath.ShouldBe(vaultWritePath);
-        metadata.VaultReadPath.ShouldBe(vaultReadPath);
+        metadata.WriteEnvVarKey.ShouldBe(writeKey);
+        metadata.ReadEnvVarKey.ShouldBe(readKey);
         metadata.HasSeparateReadDatabase.ShouldBe(hasSeparateReadDatabase);
     }
 
-    [Fact]
-    public void InitializeMigrationStatus_ShouldAddMigrationStatus_WhenServiceNameProvided()
-    {
-        // Arrange
-        var tenant = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL).Value;
-        
-        var serviceName = "catalog";
-
-        // Act
-        tenant.InitializeMigrationStatus(serviceName);
-
-        // Assert
-        tenant.MigrationStatuses.ShouldContain(ms => ms.ServiceName == serviceName);
-        var status = tenant.MigrationStatuses.First(ms => ms.ServiceName == serviceName);
-        status.Status.ShouldBe(MigrationStatus.Pending);
-        status.LastMigrationVersion.ShouldBeNull();
-        status.ErrorMessage.ShouldBeNull();
-    }
-
-    [Fact]
-    public void UpdateMigrationStatus_ShouldUpdateStatus_WhenStatusExists()
-    {
-        // Arrange
-        var tenant = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL).Value;
-        
-        var serviceName = "catalog";
-        tenant.InitializeMigrationStatus(serviceName);
-        
-        var newStatus = MigrationStatus.Completed;
-        var lastMigrationVersion = "0001_InitialMigration";
-
-        // Act
-        var result = tenant.UpdateMigrationStatus(serviceName, newStatus, lastMigrationVersion, null);
-
-        // Assert
-        result.IsError.ShouldBeFalse();
-        var status = tenant.MigrationStatuses.First(ms => ms.ServiceName == serviceName);
-        status.Status.ShouldBe(newStatus);
-        status.LastMigrationVersion.ShouldBe(lastMigrationVersion);
-    }
-
-    [Fact]
-    public void UpdateMigrationStatus_ShouldReturnError_WhenServiceNotFound()
-    {
-        // Arrange
-        var tenant = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL).Value;
-        
-        var serviceName = "nonexistent";
-
-        // Act
-        var result = tenant.UpdateMigrationStatus(serviceName, MigrationStatus.Completed, null, null);
-
-        // Assert
-        result.IsError.ShouldBeTrue();
-        result.FirstError.Code.ShouldBe("Tenant.MigrationStatusNotFound");
-    }
 
     [Fact]
     public void Activate_ShouldSetIsActiveToTrue()

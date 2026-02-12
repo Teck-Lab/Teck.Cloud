@@ -15,7 +15,7 @@ using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.Auth;
-using SharedKernel.Persistence.Database.Migrations;
+
 using SharedKernel.Secrets;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
@@ -149,9 +149,6 @@ public static class InfrastructureServiceExtensions
         // Add Vault secrets management for database credentials
         builder.Services.AddVaultSecretsManagement(builder.Configuration);
 
-        // Add multi-tenant migration services
-        builder.Services.AddMultiTenantMigrations<ApplicationWriteDbContext>(
-            DatabaseProvider.PostgreSQL);
 
         // Automatically register services.
         builder.Services.Scan(selector => selector

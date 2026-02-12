@@ -16,7 +16,7 @@ public sealed class VaultOptions
     public string Address { get; init; } = string.Empty;
 
     /// <summary>
-    /// Authentication method (Token, AppRole, Kubernetes, etc.).
+    /// Authentication method (Token, AppRole, Kubernetes, UserPass, etc.).
     /// </summary>
     public VaultAuthMethod AuthMethod { get; init; } = VaultAuthMethod.Token;
 
@@ -41,6 +41,16 @@ public sealed class VaultOptions
     public string? KubernetesRole { get; init; }
 
     /// <summary>
+    /// Username for UserPass authentication.
+    /// </summary>
+    public string? Username { get; init; }
+
+    /// <summary>
+    /// Password for UserPass authentication.
+    /// </summary>
+    public string? Password { get; init; }
+
+    /// <summary>
     /// Path to Kubernetes service account token file.
     /// </summary>
     public string? KubernetesTokenPath { get; init; } = "/var/run/secrets/kubernetes.io/serviceaccount/token";
@@ -54,6 +64,11 @@ public sealed class VaultOptions
     /// Base path for database credentials in Vault.
     /// </summary>
     public string DatabaseSecretsPath { get; init; } = "database";
+
+    /// <summary>
+    /// Vault namespace (for enterprise Vault namespaces). If not set, no namespace header will be sent.
+    /// </summary>
+    public string? Namespace { get; init; }
 
     /// <summary>
     /// Cache duration for secrets in minutes (default: 5 minutes).
@@ -90,4 +105,9 @@ public enum VaultAuthMethod
     /// Kubernetes authentication (recommended for K8s deployments).
     /// </summary>
     Kubernetes,
+
+    /// <summary>
+    /// Username/password authentication (userpass).
+    /// </summary>
+    UserPass,
 }

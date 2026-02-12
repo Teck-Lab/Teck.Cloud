@@ -36,8 +36,8 @@ public sealed class GetTenantDatabaseInfoQueryHandlerTests
         var tenant = tenantResult.Value;
         tenant.AddDatabaseMetadata(
             serviceName,
-            "secret/data/tenants/test-tenant/catalog/write",
-            "secret/data/tenants/test-tenant/catalog/read",
+            "ConnectionStrings__Tenants__test-tenant__Write",
+            "ConnectionStrings__Tenants__test-tenant__Read",
             true);
 
         _tenantRepository.GetByIdAsync(tenantId, Arg.Any<CancellationToken>())
@@ -53,8 +53,8 @@ public sealed class GetTenantDatabaseInfoQueryHandlerTests
         var dto = result.Value;
         
         dto.ShouldNotBeNull();
-        dto.VaultWritePath.ShouldBe("secret/data/tenants/test-tenant/catalog/write");
-        dto.VaultReadPath.ShouldBe("secret/data/tenants/test-tenant/catalog/read");
+        dto.WriteEnvVarKey.ShouldBe("ConnectionStrings__Tenants__test-tenant__Write");
+        dto.ReadEnvVarKey.ShouldBe("ConnectionStrings__Tenants__test-tenant__Read");
         dto.HasSeparateReadDatabase.ShouldBeTrue();
 
         await _tenantRepository.Received(1).GetByIdAsync(tenantId, Arg.Any<CancellationToken>());
@@ -94,8 +94,8 @@ public sealed class GetTenantDatabaseInfoQueryHandlerTests
         var dto = result.Value;
         
         dto.ShouldNotBeNull();
-        dto.VaultWritePath.ShouldBe("secret/data/tenants/test-tenant/catalog/write");
-        dto.VaultReadPath.ShouldBeNull();
+        dto.WriteEnvVarKey.ShouldBe("ConnectionStrings__Tenants__test-tenant__Write");
+        dto.ReadEnvVarKey.ShouldBeNull();
         dto.HasSeparateReadDatabase.ShouldBeFalse();
 
         await _tenantRepository.Received(1).GetByIdAsync(tenantId, Arg.Any<CancellationToken>());

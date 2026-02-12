@@ -37,17 +37,9 @@ public sealed class GetTenantByIdQueryHandlerTests
         // Add database metadata
         tenant.AddDatabaseMetadata(
             "CatalogService",
-            "secret/data/tenants/test-tenant/catalog/write",
-            "secret/data/tenants/test-tenant/catalog/read",
+            "ConnectionStrings__Tenants__test-tenant__Write",
+            "ConnectionStrings__Tenants__test-tenant__Read",
             true);
-
-        // Initialize and update migration status
-        tenant.InitializeMigrationStatus("CatalogService");
-        tenant.UpdateMigrationStatus(
-            "CatalogService",
-            SharedKernel.Migration.Models.MigrationStatus.Completed,
-            "20240101_InitialMigration",
-            null);
 
         _tenantRepository.GetByIdAsync(tenantId, Arg.Any<CancellationToken>())
             .Returns(tenant);
@@ -73,16 +65,9 @@ public sealed class GetTenantByIdQueryHandlerTests
         dto.Databases.Count.ShouldBe(1);
         var database = dto.Databases.First();
         database.ServiceName.ShouldBe("CatalogService");
-        database.VaultWritePath.ShouldBe("secret/data/tenants/test-tenant/catalog/write");
-        database.VaultReadPath.ShouldBe("secret/data/tenants/test-tenant/catalog/read");
+        database.WriteEnvVarKey.ShouldBe("ConnectionStrings__Tenants__test-tenant__Write");
+        database.ReadEnvVarKey.ShouldBe("ConnectionStrings__Tenants__test-tenant__Read");
         database.HasSeparateReadDatabase.ShouldBeTrue();
-        
-        dto.MigrationStatuses.Count.ShouldBe(1);
-        var migrationStatus = dto.MigrationStatuses.First();
-        migrationStatus.ServiceName.ShouldBe("CatalogService");
-        migrationStatus.Status.ShouldBe(SharedKernel.Migration.Models.MigrationStatus.Completed);
-        migrationStatus.LastMigrationVersion.ShouldBe("20240101_InitialMigration");
-        migrationStatus.ErrorMessage.ShouldBeNull();
 
         await _tenantRepository.Received(1).GetByIdAsync(tenantId, Arg.Any<CancellationToken>());
     }
@@ -136,9 +121,7 @@ public sealed class GetTenantByIdQueryHandlerTests
             "secret/data/tenants/multi/customer/read",
             true);
 
-        // Initialize migration statuses
-        tenant.InitializeMigrationStatus("CatalogService");
-        tenant.InitializeMigrationStatus("CustomerService");
+
 
         _tenantRepository.GetByIdAsync(tenantId, Arg.Any<CancellationToken>())
             .Returns(tenant);
@@ -156,8 +139,6 @@ public sealed class GetTenantByIdQueryHandlerTests
         dto.Databases.ShouldContain(db => db.ServiceName == "CatalogService");
         dto.Databases.ShouldContain(db => db.ServiceName == "CustomerService");
         
-        dto.MigrationStatuses.Count.ShouldBe(2);
-        dto.MigrationStatuses.ShouldContain(ms => ms.ServiceName == "CatalogService");
-        dto.MigrationStatuses.ShouldContain(ms => ms.ServiceName == "CustomerService");
+
     }
 }

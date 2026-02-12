@@ -1,9 +1,11 @@
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
+using Microsoft.Extensions.Configuration;
+using SharedKernel.Core;
 using SharedKernel.Core.CQRS;
-using SharedKernel.Migration.Models;
 
 namespace Customer.Application.Tenants.Queries.CheckServiceReadiness;
+
 
 /// <summary>
 /// Handler for CheckServiceReadinessQuery.
@@ -30,13 +32,23 @@ public class CheckServiceReadinessQueryHandler : IQueryHandler<CheckServiceReadi
             return Error.NotFound("Tenant.NotFound", $"Tenant with ID '{query.TenantId}' not found");
         }
 
-        var migrationStatus = tenant.MigrationStatuses.FirstOrDefault(status => status.ServiceName == query.ServiceName);
-        if (migrationStatus == null)
+        // Determine readiness by checking if tenant has a DB entry for the service and if the DSN env var is present.
+        var dbMetadata = tenant.Databases.FirstOrDefault(metadata => metadata.ServiceName == query.ServiceName);
+        if (dbMetadata == null)
         {
-            return Error.NotFound("Tenant.MigrationStatusNotFound", $"Migration status for service '{query.ServiceName}' not found");
+            return Error.NotFound("Tenant.DatabaseMetadataNotFound", $"Database metadata for service '{query.ServiceName}' not found");
         }
 
-        var isReady = migrationStatus.Status == MigrationStatus.Completed;
-        return isReady;
+        // Attempt to resolve the write DSN env var for the tenant/service.
+        try
+        {
+            var dsn = TenantConnectionProvider.GetTenantConnection(new ConfigurationBuilder().AddEnvironmentVariables().Build(), tenant.Identifier, readOnly: false);
+            return !string.IsNullOrWhiteSpace(dsn);
+        }
+        catch (Exception ex)
+        {
+            return Error.Unexpected("Tenant.DsnResolutionFailed", ex.Message);
+        }
+
     }
 }

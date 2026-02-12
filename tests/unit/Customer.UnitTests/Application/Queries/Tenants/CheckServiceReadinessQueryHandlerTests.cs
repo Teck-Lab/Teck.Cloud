@@ -4,7 +4,7 @@ using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
 using NSubstitute;
 using SharedKernel.Core.Pricing;
-using SharedKernel.Migration.Models;
+
 using Shouldly;
 
 namespace Customer.UnitTests.Application.Queries.Tenants;
@@ -35,17 +35,20 @@ public sealed class CheckServiceReadinessQueryHandlerTests
             DatabaseProvider.PostgreSQL);
 
         var tenant = tenantResult.Value;
-        tenant.InitializeMigrationStatus(serviceName);
-        tenant.UpdateMigrationStatus(
+        tenant.AddDatabaseMetadata(
             serviceName,
-            MigrationStatus.Completed,
-            "20240101_InitialMigration",
-            null);
+            "ConnectionStrings__Tenants__test-tenant__Write",
+            "ConnectionStrings__Tenants__test-tenant__Read",
+            true);
+
+        // Set environment variable for the tenant write DSN
+        Environment.SetEnvironmentVariable("ConnectionStrings__Tenants__test-tenant__Write", "Host=localhost;Database=db;Username=user;Password=pass");
 
         _tenantRepository.GetByIdAsync(tenantId, Arg.Any<CancellationToken>())
             .Returns(tenant);
 
         var query = new CheckServiceReadinessQuery(tenantId, serviceName);
+
 
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
@@ -57,11 +60,8 @@ public sealed class CheckServiceReadinessQueryHandlerTests
         await _tenantRepository.Received(1).GetByIdAsync(tenantId, Arg.Any<CancellationToken>());
     }
 
-    [Theory]
-    [InlineData(MigrationStatus.Pending)]
-    [InlineData(MigrationStatus.InProgress)]
-    [InlineData(MigrationStatus.Failed)]
-    public async Task Handle_ShouldReturnFalse_WhenMigrationStatusIsNotCompleted(MigrationStatus status)
+    [Fact]
+    public async Task Handle_ShouldReturnFalse_WhenDsnEnvVarIsMissing()
     {
         // Arrange
         var tenantId = Guid.NewGuid();
@@ -75,12 +75,14 @@ public sealed class CheckServiceReadinessQueryHandlerTests
             DatabaseProvider.PostgreSQL);
 
         var tenant = tenantResult.Value;
-        tenant.InitializeMigrationStatus(serviceName);
-        tenant.UpdateMigrationStatus(
+        tenant.AddDatabaseMetadata(
             serviceName,
-            status,
+            "ConnectionStrings__Tenants__test-tenant__Write",
             null,
-            status == MigrationStatus.Failed ? "Migration failed" : null);
+            false);
+
+        // Ensure no env var is set for write DSN to simulate non-ready state
+        Environment.SetEnvironmentVariable("ConnectionStrings__Tenants__test-tenant__Write", null);
 
         _tenantRepository.GetByIdAsync(tenantId, Arg.Any<CancellationToken>())
             .Returns(tenant);
@@ -96,6 +98,7 @@ public sealed class CheckServiceReadinessQueryHandlerTests
 
         await _tenantRepository.Received(1).GetByIdAsync(tenantId, Arg.Any<CancellationToken>());
     }
+
 
     [Fact]
     public async Task Handle_ShouldReturnNotFoundError_WhenTenantDoesNotExist()
@@ -122,7 +125,7 @@ public sealed class CheckServiceReadinessQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnNotFoundError_WhenMigrationStatusForServiceDoesNotExist()
+    public async Task Handle_ShouldReturnNotFoundError_WhenDatabaseMetadataForServiceDoesNotExist()
     {
         // Arrange
         var tenantId = Guid.NewGuid();
@@ -136,13 +139,18 @@ public sealed class CheckServiceReadinessQueryHandlerTests
             DatabaseProvider.PostgreSQL);
 
         var tenant = tenantResult.Value;
-        // Initialize migration status for a different service
-        tenant.InitializeMigrationStatus("CatalogService");
+        // Add metadata for a different service
+        tenant.AddDatabaseMetadata(
+            "CatalogService",
+            "ConnectionStrings__Tenants__test-tenant__Write",
+            null,
+            false);
 
         _tenantRepository.GetByIdAsync(tenantId, Arg.Any<CancellationToken>())
             .Returns(tenant);
 
         var query = new CheckServiceReadinessQuery(tenantId, serviceName);
+
 
         // Act
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
@@ -150,9 +158,10 @@ public sealed class CheckServiceReadinessQueryHandlerTests
         // Assert
         result.IsError.ShouldBeTrue();
         result.FirstError.Type.ShouldBe(ErrorType.NotFound);
-        result.FirstError.Code.ShouldBe("Tenant.MigrationStatusNotFound");
-        result.FirstError.Description.ShouldBe($"Migration status for service '{serviceName}' not found");
+        result.FirstError.Code.ShouldBe("Tenant.DatabaseMetadataNotFound");
+        result.FirstError.Description.ShouldBe($"Database metadata for service '{serviceName}' not found");
 
         await _tenantRepository.Received(1).GetByIdAsync(tenantId, Arg.Any<CancellationToken>());
     }
+
 }

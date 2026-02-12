@@ -42,18 +42,9 @@ public class GetTenantByIdQueryHandler : IQueryHandler<GetTenantByIdQuery, Error
             Databases = tenant.Databases.Select(database => new TenantDatabaseMetadataDto
             {
                 ServiceName = database.ServiceName,
-                VaultWritePath = database.VaultWritePath,
-                VaultReadPath = database.VaultReadPath,
+                WriteEnvVarKey = database.WriteEnvVarKey,
+                ReadEnvVarKey = database.ReadEnvVarKey,
                 HasSeparateReadDatabase = database.HasSeparateReadDatabase
-            }).ToList(),
-            MigrationStatuses = tenant.MigrationStatuses.Select(migrationStatus => new TenantMigrationStatusDto
-            {
-                ServiceName = migrationStatus.ServiceName,
-                Status = migrationStatus.Status,
-                LastMigrationVersion = migrationStatus.LastMigrationVersion,
-                StartedAt = migrationStatus.StartedAt,
-                CompletedAt = migrationStatus.CompletedAt,
-                ErrorMessage = migrationStatus.ErrorMessage
             }).ToList(),
             CreatedAt = tenant.CreatedAt,
             UpdatedOn = tenant.UpdatedOn

@@ -48,8 +48,10 @@ var catalogapi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
     .WithEnvironment("Services__CustomerApi__Url", "${CUSTOMERAPI_URL}")
     .WithEnvironment("ASPIRE_LOCAL", "true")
     .WithEnvironment("Vault__Address", "http://host.docker.internal:8200")
-    .WithEnvironment("Vault__AuthMethod", "Token")
-    .WithEnvironment("Vault__Token", "${OPENBAO_ROOT_TOKEN}");
+    .WithEnvironment("Vault__AuthMethod", "UserPass")
+    .WithEnvironment("Vault__Username", "teck-cloud-local")
+    .WithEnvironment("Vault__Password", "Multiply4-Musty6-Tradition7-Perennial7-Acclaim4-Never2")
+    .WithEnvironment("Vault__Namespace", "development");
 
 var customerapi = builder.AddProject<Projects.Customer_Api>("customer-api")
     .WithReference(cache)
@@ -67,8 +69,10 @@ var customerapi = builder.AddProject<Projects.Customer_Api>("customer-api")
     .WithEnvironment("Services__CustomerApi__Url", "${CUSTOMERAPI_URL}")
     .WithEnvironment("ASPIRE_LOCAL", "true")
     .WithEnvironment("Vault__Address", "http://host.docker.internal:8200")
-    .WithEnvironment("Vault__AuthMethod", "Token")
-    .WithEnvironment("Vault__Token", "${OPENBAO_ROOT_TOKEN}");
+    .WithEnvironment("Vault__AuthMethod", "UserPass")
+    .WithEnvironment("Vault__Username", "teck-cloud-local")
+    .WithEnvironment("Vault__Password", "Multiply4-Musty6-Tradition7-Perennial7-Acclaim4-Never2")
+    .WithEnvironment("Vault__Namespace", "development");
 
 var webbff = builder.AddProject<Projects.Web_BFF>("web-bff")
     .WithReference(cache)
@@ -84,8 +88,10 @@ var webbff = builder.AddProject<Projects.Web_BFF>("web-bff")
     .WithEnvironment("Services__CustomerApi__Url", "${CUSTOMERAPI_URL}")
     .WithEnvironment("ASPIRE_LOCAL", "true")
     .WithEnvironment("Vault__Address", "http://host.docker.internal:8200")
-    .WithEnvironment("Vault__AuthMethod", "Token")
-    .WithEnvironment("Vault__Token", "${OPENBAO_ROOT_TOKEN}");
+    .WithEnvironment("Vault__AuthMethod", "UserPass")
+    .WithEnvironment("Vault__Username", "teck-cloud-local")
+    .WithEnvironment("Vault__Password", "Multiply4-Musty6-Tradition7-Perennial7-Acclaim4-Never2")
+    .WithEnvironment("Vault__Namespace", "development");
 
 // Configure multi-tenant settings for Keycloak nested organization claims
 // These will be passed to the API projects as environment variables
@@ -118,19 +124,5 @@ foreach (var setting in multiTenantSettings)
 // No explicit injection required here — `WithReference` will supply the runtime connection details.
 
 
-// Add migration projects to run before APIs start (development fallback will handle missing SQL)
-var catalogMigration = builder.AddProject<Projects.Catalog_Migration>("catalog-migration")
-    .WithReference(catalogDb_postgresWrite, "postgres-write")
-    .WithReference(keycloak)
-    .WaitFor(catalogDb_postgresWrite);
-
-var customerMigration = builder.AddProject<Projects.Customer_Migration>("customer-migration")
-    .WithReference(customerdb_postgresWrite, "postgres-write")
-    .WithReference(keycloak)
-    .WaitFor(customerdb_postgresWrite);
-
-// Ensure migrations run before the APIs by setting dependencies
-catalogapi.WaitFor(catalogMigration);
-customerapi.WaitFor(customerMigration);
 
 await builder.Build().RunAsync();

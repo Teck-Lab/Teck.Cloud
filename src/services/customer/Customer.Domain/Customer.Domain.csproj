@@ -10,7 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Core\SharedKernel.Core.csproj" />
     <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Events\SharedKernel.Events.csproj" />
-    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Migration\SharedKernel.Migration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -101,4 +101,11 @@ public interface IVaultSecretsManager
         string path,
         Dictionary<string, string> data,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists keys under a KV v2 metadata path (e.g., tenants/)
+    /// </summary>
+    Task<IEnumerable<string>> ListSecretsAsync(
+        string path,
+        CancellationToken cancellationToken = default);
 }

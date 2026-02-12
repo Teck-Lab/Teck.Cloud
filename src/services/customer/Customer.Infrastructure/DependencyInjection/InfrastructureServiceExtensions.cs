@@ -11,7 +11,7 @@ using RabbitMQ.Client;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
-using SharedKernel.Persistence.Database.Migrations;
+
 using SharedKernel.Secrets;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
@@ -58,6 +58,7 @@ public static class InfrastructureServiceExtensions
         builder.Services.AddScoped<ITenantWriteRepository, TenantWriteRepository>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+
         // Configure Wolverine
         builder.UseWolverine(opts =>
         {
@@ -97,9 +98,7 @@ public static class InfrastructureServiceExtensions
         // Add Vault secrets management for database credentials
         builder.Services.AddVaultSecretsManagement(builder.Configuration);
 
-        // Add multi-tenant migration services
-        builder.Services.AddMultiTenantMigrations<CustomerWriteDbContext>(
-            DatabaseProvider.PostgreSQL);
+
     }
 
     /// <summary>

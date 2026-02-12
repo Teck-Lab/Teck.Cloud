@@ -38,9 +38,10 @@ public class GetTenantDatabaseInfoQueryHandler : IQueryHandler<GetTenantDatabase
 
         var dto = new ServiceDatabaseInfoDto
         {
-            VaultWritePath = database.VaultWritePath,
-            VaultReadPath = database.VaultReadPath,
+            WriteEnvVarKey = database.WriteEnvVarKey,
+            ReadEnvVarKey = database.ReadEnvVarKey,
             HasSeparateReadDatabase = database.HasSeparateReadDatabase
+
         };
 
         return dto;

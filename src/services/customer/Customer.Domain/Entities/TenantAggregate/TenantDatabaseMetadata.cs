@@ -4,7 +4,7 @@ namespace Customer.Domain.Entities.TenantAggregate;
 
 /// <summary>
 /// Database metadata for a tenant's service.
-/// Stores Vault paths and read replica configuration.
+/// Stores environment variable keys for runtime DSN resolution and read replica configuration.
 /// </summary>
 public class TenantDatabaseMetadata : BaseEntity
 {
@@ -19,14 +19,15 @@ public class TenantDatabaseMetadata : BaseEntity
     public string ServiceName { get; internal set; } = default!;
 
     /// <summary>
-    /// Gets the Vault path for write database credentials.
+    /// Gets the environment variable key for write database connection string.
+    /// Example: ConnectionStrings__Tenants__{tenantId}__Write.
     /// </summary>
-    public string VaultWritePath { get; internal set; } = default!;
+    public string WriteEnvVarKey { get; internal set; } = default!;
 
     /// <summary>
-    /// Gets the Vault path for read database credentials (if separate).
+    /// Gets the environment variable key for read database connection string (if separate).
     /// </summary>
-    public string? VaultReadPath { get; internal set; }
+    public string? ReadEnvVarKey { get; internal set; }
 
     /// <summary>
     /// Gets a value indicating whether this tenant has a separate read database.

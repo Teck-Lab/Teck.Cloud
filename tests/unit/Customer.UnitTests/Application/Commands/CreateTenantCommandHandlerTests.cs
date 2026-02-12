@@ -130,38 +130,6 @@ public class CreateTenantCommandHandlerTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task Handle_ShouldInitializeMigrationStatus_ForEachService()
-    {
-        // Arrange
-        var command = new CreateTenantCommand(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL,
-            null);
-
-        _tenantRepository.ExistsByIdentifierAsync(command.Identifier, Arg.Any<CancellationToken>())
-            .Returns(false);
-
-        _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(
-                Arg.Any<string>(),
-                Arg.Any<DatabaseCredentials>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
-        _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
-            .Returns(1);
-
-        // Act
-        ErrorOr<TenantDto> result = await _sut.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.IsError.ShouldBeFalse();
-        result.Value.MigrationStatuses.Count.ShouldBe(3); // catalog, orders, customer
-        result.Value.MigrationStatuses.ShouldAllBe(ms => ms.Status == SharedKernel.Migration.Models.MigrationStatus.Pending);
-    }
 
     [Fact]
     public async Task Handle_ShouldUseSharedCredentials_WhenStrategyIsShared()

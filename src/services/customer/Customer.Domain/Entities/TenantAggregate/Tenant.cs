@@ -50,16 +50,6 @@ public class Tenant : BaseEntity, IAggregateRoot
     /// </summary>
     public IReadOnlyList<TenantDatabaseMetadata> Databases => _databases.AsReadOnly();
 
-    /// <summary>
-    /// Gets the migration status for each service.
-    /// </summary>
-    private readonly List<TenantMigrationStatus> _migrationStatuses = new();
-
-    /// <summary>
-    /// Gets the migration status for each service.
-    /// </summary>
-    public IReadOnlyList<TenantMigrationStatus> MigrationStatuses => _migrationStatuses.AsReadOnly();
-
     private Tenant() { } // EF Core constructor
 
     /// <summary>
@@ -116,65 +106,25 @@ public class Tenant : BaseEntity, IAggregateRoot
     /// Adds database metadata for a service.
     /// </summary>
     /// <param name="serviceName">The service name.</param>
-    /// <param name="vaultWritePath">The vault write path.</param>
-    /// <param name="vaultReadPath">The vault read path.</param>
-    /// <param name="hasSeparateReadDatabase">Whether the service has a separate read database.</param>
+    /// <param name="writeEnvVarKey">The environment variable key for the write DSN.</param>
+    /// <param name="readEnvVarKey">The environment variable key for the read DSN, if separate.</param>
+    /// <param name="hasSeparateReadDatabase">Whether the tenant has a separate read database.</param>
     public void AddDatabaseMetadata(
         string serviceName,
-        string vaultWritePath,
-        string? vaultReadPath,
+        string writeEnvVarKey,
+        string? readEnvVarKey,
         bool hasSeparateReadDatabase)
     {
         var metadata = new TenantDatabaseMetadata
         {
             TenantId = Id,
             ServiceName = serviceName,
-            VaultWritePath = vaultWritePath,
-            VaultReadPath = vaultReadPath,
+            WriteEnvVarKey = writeEnvVarKey,
+            ReadEnvVarKey = readEnvVarKey,
             HasSeparateReadDatabase = hasSeparateReadDatabase,
         };
 
         _databases.Add(metadata);
-    }
-
-    /// <summary>
-    /// Initializes migration status for a service.
-    /// </summary>
-    /// <param name="serviceName">The service name.</param>
-    public void InitializeMigrationStatus(string serviceName)
-    {
-        var status = new TenantMigrationStatus
-        {
-            TenantId = Id,
-            ServiceName = serviceName,
-            Status = SharedKernel.Migration.Models.MigrationStatus.Pending,
-        };
-
-        _migrationStatuses.Add(status);
-    }
-
-    /// <summary>
-    /// Updates migration status for a service.
-    /// </summary>
-    /// <param name="serviceName">The service name.</param>
-    /// <param name="status">The migration status.</param>
-    /// <param name="lastMigrationVersion">The last applied migration version.</param>
-    /// <param name="errorMessage">The error message if failed.</param>
-    /// <returns>Updated result or error.</returns>
-    public ErrorOr<Updated> UpdateMigrationStatus(
-        string serviceName,
-        SharedKernel.Migration.Models.MigrationStatus status,
-        string? lastMigrationVersion,
-        string? errorMessage)
-    {
-        var migrationStatus = _migrationStatuses.FirstOrDefault(migration => migration.ServiceName == serviceName);
-
-        if (migrationStatus is null)
-            return Error.NotFound("Tenant.MigrationStatusNotFound", $"Migration status for service {serviceName} not found");
-
-        migrationStatus.UpdateStatus(status, lastMigrationVersion, errorMessage);
-
-        return Result.Updated;
     }
 
     /// <summary>

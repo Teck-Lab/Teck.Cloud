@@ -76,12 +76,10 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
             {
                 return setupResult.Errors;
             }
-
-            // Initialize migration status for this service
-            tenant.InitializeMigrationStatus(serviceName);
         }
 
         // Save tenant
+
         await _tenantRepository.AddAsync(tenant, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -160,8 +158,12 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
             return Error.Validation("Tenant.InvalidStrategy", $"Invalid database strategy: {strategy.Name}");
         }
 
-        // Add database metadata to tenant
-        tenant.AddDatabaseMetadata(serviceName, vaultWritePath, vaultReadPath, hasSeparateReadDatabase);
+        // Build environment variable keys for runtime DSN resolution
+        var writeEnvVarKey = $"ConnectionStrings__Tenants__{tenant.Identifier}__Write";
+        string? readEnvVarKey = hasSeparateReadDatabase ? $"ConnectionStrings__Tenants__{tenant.Identifier}__Read" : null;
+
+        // Add database metadata to tenant (store env-var keys, not vault paths)
+        tenant.AddDatabaseMetadata(serviceName, writeEnvVarKey, readEnvVarKey, hasSeparateReadDatabase);
 
         return Result.Success;
     }
@@ -227,18 +229,9 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
             Databases = tenant.Databases.Select(database => new TenantDatabaseMetadataDto
             {
                 ServiceName = database.ServiceName,
-                VaultWritePath = database.VaultWritePath,
-                VaultReadPath = database.VaultReadPath,
+                WriteEnvVarKey = database.WriteEnvVarKey,
+                ReadEnvVarKey = database.ReadEnvVarKey,
                 HasSeparateReadDatabase = database.HasSeparateReadDatabase
-            }).ToList(),
-            MigrationStatuses = tenant.MigrationStatuses.Select(migrationStatus => new TenantMigrationStatusDto
-            {
-                ServiceName = migrationStatus.ServiceName,
-                Status = migrationStatus.Status,
-                LastMigrationVersion = migrationStatus.LastMigrationVersion,
-                StartedAt = migrationStatus.StartedAt,
-                CompletedAt = migrationStatus.CompletedAt,
-                ErrorMessage = migrationStatus.ErrorMessage
             }).ToList(),
             CreatedAt = tenant.CreatedAt,
             UpdatedOn = tenant.UpdatedOn

@@ -6,14 +6,14 @@ namespace Customer.Application.Tenants.DTOs;
 public record ServiceDatabaseInfoDto
 {
     /// <summary>
-    /// Gets the Vault path for write database credentials.
+    /// Gets the environment variable key for write database connection string.
     /// </summary>
-    public string VaultWritePath { get; init; } = default!;
+    public string WriteEnvVarKey { get; init; } = default!;
 
     /// <summary>
-    /// Gets the Vault path for read database credentials.
+    /// Gets the environment variable key for read database connection string (if separate).
     /// </summary>
-    public string? VaultReadPath { get; init; }
+    public string? ReadEnvVarKey { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this service has a separate read database.

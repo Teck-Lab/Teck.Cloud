@@ -1,5 +1,3 @@
-using SharedKernel.Migration.Models;
-
 namespace Customer.Application.Tenants.DTOs;
 
 /// <summary>
@@ -48,11 +46,6 @@ public record TenantDto
     public IReadOnlyCollection<TenantDatabaseMetadataDto> Databases { get; init; } = Array.Empty<TenantDatabaseMetadataDto>();
 
     /// <summary>
-    /// Gets the migration statuses for each service.
-    /// </summary>
-    public IReadOnlyCollection<TenantMigrationStatusDto> MigrationStatuses { get; init; } = Array.Empty<TenantMigrationStatusDto>();
-
-    /// <summary>
     /// Gets the creation date.
     /// </summary>
     public DateTimeOffset CreatedAt { get; init; }
@@ -74,53 +67,21 @@ public record TenantDatabaseMetadataDto
     public string ServiceName { get; init; } = default!;
 
     /// <summary>
-    /// Gets the Vault path for write database credentials.
+    /// Gets the environment variable key for write database connection string.
+    /// Example: ConnectionStrings__Tenants__{tenantId}__Write.
     /// </summary>
-    public string VaultWritePath { get; init; } = default!;
+    public string WriteEnvVarKey { get; init; } = default!;
 
     /// <summary>
-    /// Gets the Vault path for read database credentials.
+    /// Gets the environment variable key for read database connection string.
     /// </summary>
-    public string? VaultReadPath { get; init; }
+    public string? ReadEnvVarKey { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this service has a separate read database.
     /// </summary>
     public bool HasSeparateReadDatabase { get; init; }
+
 }
 
-/// <summary>
-/// Data transfer object for TenantMigrationStatus.
-/// </summary>
-public record TenantMigrationStatusDto
-{
-    /// <summary>
-    /// Gets the service name.
-    /// </summary>
-    public string ServiceName { get; init; } = default!;
 
-    /// <summary>
-    /// Gets the migration status.
-    /// </summary>
-    public MigrationStatus Status { get; init; }
-
-    /// <summary>
-    /// Gets the last migration version applied.
-    /// </summary>
-    public string? LastMigrationVersion { get; init; }
-
-    /// <summary>
-    /// Gets the time when the migration started.
-    /// </summary>
-    public DateTime? StartedAt { get; init; }
-
-    /// <summary>
-    /// Gets the time when the migration completed.
-    /// </summary>
-    public DateTime? CompletedAt { get; init; }
-
-    /// <summary>
-    /// Gets the error message if the migration failed.
-    /// </summary>
-    public string? ErrorMessage { get; init; }
-}

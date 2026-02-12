@@ -22,7 +22,7 @@
     <Project Path="src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
-    <Project Path="src/buildingblocks/SharedKernel.Migration/SharedKernel.Migration.csproj" />
+
     <Project Path="src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Secrets/SharedKernel.Secrets.csproj" />
   </Folder>
@@ -38,7 +38,7 @@
     <Project Path="src/services/catalog/Catalog.Application/Catalog.Application.csproj" />
     <Project Path="src/services/catalog/Catalog.Domain/Catalog.Domain.csproj" />
     <Project Path="src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
-    <Project Path="src/services/catalog/Catalog.Migration/Catalog.Migration.csproj" />
+
   </Folder>
   <Folder Name="/src/services/customer/">
     <File Path="src/services/customer/Directory.Build.props" />
@@ -46,7 +46,7 @@
     <Project Path="src/services/customer/Customer.Application/Customer.Application.csproj" />
     <Project Path="src/services/customer/Customer.Domain/Customer.Domain.csproj" />
     <Project Path="src/services/customer/Customer.Infrastructure/Customer.Infrastructure.csproj" />
-    <Project Path="src/services/customer/Customer.Migration/Customer.Migration.csproj" />
+
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
@@ -67,7 +67,7 @@
     <Project Path="tests/unit/Catalog.UnitTests/Catalog.UnitTests.csproj" />
     <Project Path="tests/unit/Customer.UnitTests/Customer.UnitTests.csproj" />
     <Project Path="tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj" />
-    <Project Path="tests/unit/SharedKernel.Migration.UnitTests/SharedKernel.Migration.UnitTests.csproj" />
+
     <Project Path="tests/unit/SharedKernel.Persistence.UnitTests/SharedKernel.Persistence.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/" />

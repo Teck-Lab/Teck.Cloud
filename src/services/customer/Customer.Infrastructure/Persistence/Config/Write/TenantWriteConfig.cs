@@ -63,42 +63,18 @@ public class TenantWriteConfig : IEntityTypeConfiguration<Tenant>
                 .HasMaxLength(100)
                 .IsRequired();
 
-            databasesBuilder.Property(metadata => metadata.VaultWritePath)
+            databasesBuilder.Property(metadata => metadata.WriteEnvVarKey)
                 .HasMaxLength(500)
                 .IsRequired();
 
-            databasesBuilder.Property(metadata => metadata.VaultReadPath)
+            databasesBuilder.Property(metadata => metadata.ReadEnvVarKey)
                 .HasMaxLength(500);
 
             databasesBuilder.Property(metadata => metadata.HasSeparateReadDatabase)
                 .IsRequired();
         });
 
-        builder.OwnsMany(tenant => tenant.MigrationStatuses, statusesBuilder =>
-        {
-            statusesBuilder.ToTable("TenantMigrationStatuses");
-            statusesBuilder.WithOwner().HasForeignKey(status => status.TenantId);
-            statusesBuilder.HasKey(status => new { status.TenantId, status.ServiceName });
 
-            statusesBuilder.Property(status => status.ServiceName)
-                .HasMaxLength(100)
-                .IsRequired();
-
-            statusesBuilder.Property(status => status.Status)
-                .HasConversion<string>()
-                .HasMaxLength(50)
-                .IsRequired();
-
-            statusesBuilder.Property(status => status.LastMigrationVersion)
-                .HasMaxLength(100);
-
-            statusesBuilder.Property(status => status.ErrorMessage)
-                .HasMaxLength(2000);
-
-            statusesBuilder.Property(status => status.StartedAt);
-
-            statusesBuilder.Property(status => status.CompletedAt);
-        });
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();

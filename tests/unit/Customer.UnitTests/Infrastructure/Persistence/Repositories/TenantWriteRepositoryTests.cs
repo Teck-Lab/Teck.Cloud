@@ -260,35 +260,6 @@ public class TenantWriteRepositoryTests : IDisposable
         saved.Databases[0].ServiceName.ShouldBe("catalog");
     }
 
-    [Fact]
-    public async Task Repository_ShouldHandleTenantWithMigrationStatus()
-    {
-        // Arrange
-        var tenantResult = Tenant.Create(
-            "with-status",
-            "Tenant With Status",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL);
-
-        var tenant = tenantResult.Value;
-        tenant.InitializeMigrationStatus("catalog");
-
-        // Act
-        await _repository.AddAsync(tenant, TestContext.Current.CancellationToken);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Assert
-        var saved = await _dbContext.Tenants
-            .Include(t => t.MigrationStatuses)
-            .FirstOrDefaultAsync(t => t.Id == tenant.Id, TestContext.Current.CancellationToken);
-
-        saved.ShouldNotBeNull();
-        saved.MigrationStatuses.ShouldNotBeEmpty();
-        saved.MigrationStatuses.Count.ShouldBe(1);
-        saved.MigrationStatuses[0].ServiceName.ShouldBe("catalog");
-        saved.MigrationStatuses[0].Status.ShouldBe(SharedKernel.Migration.Models.MigrationStatus.Pending);
-    }
 
     public void Dispose()
     {

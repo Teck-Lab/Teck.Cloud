@@ -8,6 +8,10 @@ using VaultSharp.V1.AuthMethods.AppRole;
 using VaultSharp.V1.AuthMethods.Kubernetes;
 using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.Commons;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Net.Http.Headers;
+
 
 namespace SharedKernel.Secrets;
 
@@ -21,6 +25,7 @@ public sealed class VaultSecretsManager : IVaultSecretsManager, IDisposable
     private readonly IMemoryCache _cache;
     private readonly ILogger<VaultSecretsManager> _logger;
     private readonly TimeSpan _cacheDuration;
+    private readonly HttpClient? _httpClientForDirectApi;
 
     /// <inheritdoc/>
     public VaultSecretsManager(
@@ -33,15 +38,96 @@ public sealed class VaultSecretsManager : IVaultSecretsManager, IDisposable
         _logger = logger;
         _cacheDuration = TimeSpan.FromMinutes(_options.CacheDurationMinutes);
 
-        var authMethod = CreateAuthMethod();
-        var vaultClientSettings = new VaultClientSettings(
-            _options.Address,
-            authMethod)
+        // Handle UserPass specially since VaultSharp doesn't provide a direct UserPass auth method info.
+        if (_options.AuthMethod == VaultAuthMethod.UserPass)
         {
-            VaultServiceTimeout = TimeSpan.FromSeconds(_options.TimeoutSeconds),
-        };
+            if (string.IsNullOrEmpty(_options.Username) || string.IsNullOrEmpty(_options.Password))
+            {
+                throw new InvalidOperationException("Username and Password are required for UserPass authentication");
+            }
 
-        _vaultClient = new VaultClient(vaultClientSettings);
+            // Perform a userpass login via the Vault HTTP API to retrieve a token, then create a VaultClient with that token.
+            var loginUrl = new Uri(new Uri(_options.Address), $"/v1/auth/userpass/login/{_options.Username}");
+            var httpClient = new HttpClient { BaseAddress = new Uri(_options.Address) };
+            if (!string.IsNullOrEmpty(_options.Namespace))
+            {
+                httpClient.DefaultRequestHeaders.Add("X-Vault-Namespace", _options.Namespace);
+            }
+            var payload = new { password = _options.Password };
+            var response = httpClient.PostAsJsonAsync($"/v1/auth/userpass/login/{_options.Username}", payload).GetAwaiter().GetResult();
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                throw new InvalidOperationException($"Failed to login to Vault via userpass: {response.StatusCode} {body}");
+            }
+
+            var json = response.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult();
+            if (!json.TryGetProperty("auth", out var authElem) || !authElem.TryGetProperty("client_token", out var clientTokenElem))
+            {
+                throw new InvalidOperationException("Userpass login response did not contain a client_token");
+            }
+
+            var clientToken = clientTokenElem.GetString() ?? throw new InvalidOperationException("Client token missing");
+            // Ensure direct HTTP client includes the client token for metadata API calls
+            httpClient.DefaultRequestHeaders.Add("X-Vault-Token", clientToken);
+            var tokenAuth = new TokenAuthMethodInfo(clientToken);
+            var vaultClientSettings = new VaultClientSettings(
+                _options.Address,
+                tokenAuth)
+            {
+                VaultServiceTimeout = TimeSpan.FromSeconds(_options.TimeoutSeconds),
+            };
+
+            if (!string.IsNullOrEmpty(_options.Namespace))
+            {
+                try
+                {
+                    var settingsType = typeof(VaultClientSettings);
+                    var nsProp = settingsType.GetProperty("Namespace");
+                    if (nsProp != null && nsProp.CanWrite)
+                    {
+                        nsProp.SetValue(vaultClientSettings, _options.Namespace);
+                    }
+                }
+                catch
+                {
+                    // Ignore reflection errors
+                }
+            }
+
+            _vaultClient = new VaultClient(vaultClientSettings);
+            _httpClientForDirectApi = httpClient;
+        }
+
+        else
+        {
+            var authMethod = CreateAuthMethod();
+            var vaultClientSettings = new VaultClientSettings(
+                _options.Address,
+                authMethod)
+            {
+                VaultServiceTimeout = TimeSpan.FromSeconds(_options.TimeoutSeconds),
+            };
+
+            if (!string.IsNullOrEmpty(_options.Namespace))
+            {
+                try
+                {
+                    var settingsType = typeof(VaultClientSettings);
+                    var nsProp = settingsType.GetProperty("Namespace");
+                    if (nsProp != null && nsProp.CanWrite)
+                    {
+                        nsProp.SetValue(vaultClientSettings, _options.Namespace);
+                    }
+                }
+                catch
+                {
+                    // Ignore; we'll fallback to adding header on HTTP requests when necessary.
+                }
+            }
+
+            _vaultClient = new VaultClient(vaultClientSettings);
+        }
     }
 
     /// <inheritdoc />
@@ -217,6 +303,99 @@ public sealed class VaultSecretsManager : IVaultSecretsManager, IDisposable
             throw;
         }
     }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<string>> ListSecretsAsync(
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        // Normalize path - vault kv v2 metadata endpoint expects a path without leading/trailing slashes.
+        var normalized = path?.Trim('/') ?? string.Empty;
+
+        try
+        {
+            // First try VaultSharp's KV v1 list helper if available (ReadSecretPathsAsync)
+            try
+            {
+                var secret = await _vaultClient.V1.Secrets.KeyValue.V1.ReadSecretPathsAsync(path: normalized, mountPoint: _options.MountPoint);
+                var dataObj = secret?.Data;
+                if (dataObj is not null)
+                {
+                    // Try common property names (Paths, Keys)
+                    var type = dataObj.GetType();
+                    var prop = type.GetProperty("Paths") ?? type.GetProperty("Keys");
+                    if (prop != null)
+                    {
+                        if (prop.GetValue(dataObj) is IEnumerable<string> seq)
+                        {
+                            return seq.ToArray();
+                        }
+                        // Try cast via reflection to IEnumerable<object>
+                        if (prop.GetValue(dataObj) is IEnumerable<object> objSeq)
+                        {
+                            return objSeq.Select(o => o?.ToString() ?? string.Empty).ToArray();
+                        }
+                    }
+                }
+            }
+            catch (VaultApiException vae) when (vae.HttpStatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogDebug("No metadata found at path {Path} (KV v1)", normalized);
+                return Array.Empty<string>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "KV v1 ReadSecretPathsAsync unavailable or failed for path {Path}, falling back to KV v2 metadata HTTP API", normalized);
+            }
+
+            // Fallback to KV v2 HTTP metadata endpoint
+            var apiPath = $"/v1/{_options.MountPoint}/metadata/{normalized}?list=true";
+            HttpResponseMessage response;
+
+            if (_httpClientForDirectApi is not null)
+            {
+                response = await _httpClientForDirectApi.GetAsync(apiPath, cancellationToken);
+            }
+            else
+            {
+                using var httpClient = new HttpClient { BaseAddress = new Uri(_options.Address) };
+                if (!string.IsNullOrEmpty(_options.Namespace)) httpClient.DefaultRequestHeaders.Add("X-Vault-Namespace", _options.Namespace);
+                response = await httpClient.GetAsync(apiPath, cancellationToken);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return Array.Empty<string>();
+                }
+
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException($"Vault metadata list failed: {response.StatusCode} {body}");
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cancellationToken);
+            if (json.ValueKind != JsonValueKind.Object || !json.TryGetProperty("data", out var dataElem) || !dataElem.TryGetProperty("keys", out var keysElem))
+            {
+                return Array.Empty<string>();
+            }
+
+            var keysList = new List<string>();
+            foreach (var k in keysElem.EnumerateArray())
+            {
+                keysList.Add(k.GetString() ?? string.Empty);
+            }
+
+            return keysList;
+        }
+
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to list secrets at path {Path}", path);
+            throw;
+        }
+    }
+
 
     /// <inheritdoc />
     public async Task<string?> GetSecretAsync(
@@ -406,6 +585,12 @@ public sealed class VaultSecretsManager : IVaultSecretsManager, IDisposable
             VaultAuthMethod.Kubernetes => new KubernetesAuthMethodInfo(
                 _options.KubernetesRole ?? throw new InvalidOperationException("KubernetesRole is required for Kubernetes authentication"),
                 File.ReadAllText(_options.KubernetesTokenPath ?? throw new InvalidOperationException("KubernetesTokenPath is required"))),
+
+            VaultAuthMethod.UserPass =>
+                // VaultSharp doesn't have a dedicated UserPass AuthMethodInfo, so we will fall back to Token auth after performing a login.
+                // The Vault client will still be constructed with a token; for UserPass we must perform the login first to obtain a token.
+                // To support this, we will construct a temporary TokenAuthMethodInfo with the provided Username/Password used by the service to login separately.
+                new TokenAuthMethodInfo(_options.Token ?? string.Empty),
 
             _ => throw new NotSupportedException($"Authentication method {_options.AuthMethod} is not supported"),
         };
