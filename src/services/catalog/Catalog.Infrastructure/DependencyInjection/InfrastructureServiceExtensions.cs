@@ -1,6 +1,5 @@
 using System.Reflection;
 using Catalog.Infrastructure.Persistence;
-using JasperFx;
 using JasperFx.CodeGeneration;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
@@ -148,7 +147,6 @@ public static class InfrastructureServiceExtensions
 
         // Add Vault secrets management for database credentials
         builder.Services.AddVaultSecretsManagement(builder.Configuration);
-
 
         // Automatically register services.
         builder.Services.Scan(selector => selector
