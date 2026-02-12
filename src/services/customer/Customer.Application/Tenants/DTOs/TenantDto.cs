@@ -83,5 +83,3 @@ public record TenantDatabaseMetadataDto
     public bool HasSeparateReadDatabase { get; init; }
 
 }
-
-

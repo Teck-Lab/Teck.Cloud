@@ -45,9 +45,9 @@ public class CheckServiceReadinessQueryHandler : IQueryHandler<CheckServiceReadi
             var dsn = TenantConnectionProvider.GetTenantConnection(new ConfigurationBuilder().AddEnvironmentVariables().Build(), tenant.Identifier, readOnly: false);
             return !string.IsNullOrWhiteSpace(dsn);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            return Error.Unexpected("Tenant.DsnResolutionFailed", ex.Message);
+            return Error.Unexpected("Tenant.DsnResolutionFailed", exception.ToString());
         }
 
     }

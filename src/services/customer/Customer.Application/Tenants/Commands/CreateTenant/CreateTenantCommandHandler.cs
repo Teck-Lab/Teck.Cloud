@@ -79,7 +79,6 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         }
 
         // Save tenant
-
         await _tenantRepository.AddAsync(tenant, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
