@@ -81,5 +81,5 @@ public record TenantDatabaseMetadataDto
     /// Gets a value indicating whether this service has a separate read database.
     /// </summary>
     public bool HasSeparateReadDatabase { get; init; }
-
 }
+

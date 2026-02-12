@@ -6,7 +6,6 @@ using SharedKernel.Core.CQRS;
 
 namespace Customer.Application.Tenants.Queries.CheckServiceReadiness;
 
-
 /// <summary>
 /// Handler for CheckServiceReadinessQuery.
 /// </summary>
@@ -49,6 +48,6 @@ public class CheckServiceReadinessQueryHandler : IQueryHandler<CheckServiceReadi
         {
             return Error.Unexpected("Tenant.DsnResolutionFailed", exception.ToString());
         }
-
     }
+
 }

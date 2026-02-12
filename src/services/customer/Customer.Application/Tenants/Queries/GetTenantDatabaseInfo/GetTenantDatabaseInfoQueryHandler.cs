@@ -41,7 +41,6 @@ public class GetTenantDatabaseInfoQueryHandler : IQueryHandler<GetTenantDatabase
             WriteEnvVarKey = database.WriteEnvVarKey,
             ReadEnvVarKey = database.ReadEnvVarKey,
             HasSeparateReadDatabase = database.HasSeparateReadDatabase
-
         };
 
         return dto;
