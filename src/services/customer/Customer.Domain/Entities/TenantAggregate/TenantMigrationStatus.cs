@@ -1,5 +1,5 @@
 using SharedKernel.Core.Domain;
-using SharedKernel.Migration.Models;
+
 
 namespace Customer.Domain.Entities.TenantAggregate;
 
@@ -22,7 +22,7 @@ public class TenantMigrationStatus : BaseEntity
     /// <summary>
     /// Gets the current migration status.
     /// </summary>
-    public MigrationStatus Status { get; internal set; }
+    public SharedKernel.Migration.Models.MigrationStatus Status { get; internal set; }
 
     /// <summary>
     /// Gets the last applied migration version/script name.
@@ -57,20 +57,20 @@ public class TenantMigrationStatus : BaseEntity
     /// <param name="status">The new migration status.</param>
     /// <param name="lastMigrationVersion">The last applied migration version.</param>
     /// <param name="errorMessage">The error message if migration failed.</param>
-    internal void UpdateStatus(
-        MigrationStatus status,
+internal void UpdateStatus(
+        SharedKernel.Migration.Models.MigrationStatus status,
         string? lastMigrationVersion,
         string? errorMessage)
     {
         var previousStatus = Status;
         Status = status;
 
-        if (previousStatus == MigrationStatus.Pending && status == MigrationStatus.InProgress)
+        if (previousStatus == SharedKernel.Migration.Models.MigrationStatus.Pending && status == SharedKernel.Migration.Models.MigrationStatus.InProgress)
         {
             StartedAt = DateTime.UtcNow;
         }
 
-        if (status == MigrationStatus.Completed || status == MigrationStatus.Failed)
+        if (status == SharedKernel.Migration.Models.MigrationStatus.Completed || status == SharedKernel.Migration.Models.MigrationStatus.Failed)
         {
             CompletedAt = DateTime.UtcNow;
         }
