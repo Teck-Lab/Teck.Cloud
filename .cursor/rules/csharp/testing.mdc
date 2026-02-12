@@ -18,6 +18,24 @@ General:
     - Follow consistent patterns
     - Maintain high code coverage
     - Configure proper CI/CD test execution
+    
+  Coverage Requirements:
+    - ALL code MUST have corresponding unit tests
+    - Minimum code coverage threshold: 80% (line, branch, and method coverage)
+    - Coverage is enforced for all projects EXCEPT src/buildingblocks/**
+    - Every new feature, bug fix, or code change MUST include tests
+    - Tests must verify both happy paths and error scenarios
+    - Public APIs must have comprehensive test coverage
+    - Critical business logic must have near 100% coverage
+    
+  Enforcement:
+    - CI/CD pipelines must fail if coverage drops below 80%
+    - Pull requests should include coverage reports
+    - Coverage exclusions are only allowed for:
+      - Code under src/buildingblocks/** (temporary exclusion)
+      - Auto-generated code
+      - Program.cs/Startup.cs boilerplate
+    - No coverage exclusion attributes should be used without justification
 
 Project Setup:
   - Configure test projects:
@@ -29,6 +47,10 @@ Project Setup:
           <IsTestProject>true</IsTestProject>
           <CollectCoverage>true</CollectCoverage>
           <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+          <ThresholdType>line,branch,method</ThresholdType>
+          <ThresholdStat>total</ThresholdStat>
+          <Threshold>80</Threshold>
+          <ExcludeByFile>**/buildingblocks/**/*.cs</ExcludeByFile>
         </PropertyGroup>
         
         <ItemGroup>
@@ -40,6 +62,13 @@ Project Setup:
         </ItemGroup>
       </Project>
       ```
+      
+  - Required Coverage Configuration:
+      - All test projects MUST include coverage collection
+      - Minimum threshold of 80% for line, branch, and method coverage
+      - Buildingblocks are temporarily excluded from coverage requirements
+      - Use ExcludeByFile to exclude buildingblocks: `**/buildingblocks/**/*.cs`
+      - Coverage reports should be generated in cobertura format for CI/CD integration
 
 Test Class Structure:
   - Use ITestOutputHelper for logging:
@@ -185,22 +214,33 @@ Test Isolation:
       ```
 
 CI/CD Configuration:
-  - Configure test runs:
+  - Configure test runs with coverage enforcement:
       ```yaml
       - name: Test
         run: |
           dotnet test --configuration Release \
                       --collect:"XPlat Code Coverage" \
                       --logger:trx \
-                      --results-directory ./coverage
+                      --results-directory ./coverage \
+                      /p:CollectCoverage=true \
+                      /p:CoverletOutputFormat=cobertura \
+                      /p:Threshold=80 \
+                      /p:ThresholdType=line,branch,method \
+                      /p:ExcludeByFile="**/buildingblocks/**/*.cs"
       
       - name: Upload coverage
         uses: actions/upload-artifact@v3
         with:
           name: coverage-results
           path: coverage/**
+          
+      - name: Check coverage threshold
+        run: |
+          # Fail the build if coverage is below 80%
+          # This is automatically enforced by coverlet threshold settings
       ```
-  - Enable code coverage:
+      
+  - Enable code coverage with buildingblocks exclusion:
       ```xml
       <PropertyGroup>
         <CollectCoverage>true</CollectCoverage>
@@ -209,8 +249,17 @@ CI/CD Configuration:
         <ThresholdType>line,branch,method</ThresholdType>
         <ThresholdStat>total</ThresholdStat>
         <Threshold>80</Threshold>
+        <ExcludeByFile>**/buildingblocks/**/*.cs</ExcludeByFile>
+        <ThresholdStat>total</ThresholdStat>
       </PropertyGroup>
       ```
+      
+  - Coverage Reporting:
+      - Generate coverage reports on every test run
+      - Display coverage metrics in pull request comments
+      - Fail CI/CD pipeline if coverage falls below 80%
+      - Track coverage trends over time
+      - Exclude buildingblocks directory from coverage calculations
 
 Integration Testing:
   - Always use TestContainers for infrastructure:
@@ -425,6 +474,33 @@ Best Practices:
           Assert.True(result.IsSuccess);
       }
       ```
+
+What Must Be Tested:
+  - All public methods and properties must have unit tests
+  - All business logic must be tested with multiple scenarios
+  - Error handling paths must be tested (exceptions, validation failures)
+  - Boundary conditions and edge cases must be tested
+  - Integration points between components must have integration tests
+  - API endpoints must have integration tests
+  - Domain models and value objects must be tested
+  - Service classes and their methods must be tested
+  - Repository implementations must be tested (using TestContainers)
+  - Event handlers and message processors must be tested
+  - Background services and workers must be tested
+  
+What Can Be Excluded (Temporarily):
+  - Code under src/buildingblocks/** (temporary exclusion until buildingblocks are stabilized)
+  - Auto-generated code (marked with [GeneratedCode] attribute)
+  - Simple DTOs with no logic (properties-only classes)
+  - Program.cs/Startup.cs minimal boilerplate
+  - Migration files
+  
+Coverage Enforcement Rules:
+  - Every pull request must maintain or improve coverage
+  - New code must have 100% coverage (no coverage debt)
+  - Existing code below 80% should be improved when modified
+  - Coverage reports must be reviewed during code review
+  - No [ExcludeFromCodeCoverage] attributes without team approval
 
 Assertions:
   - Use xUnit's built-in assertions:

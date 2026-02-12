@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -29,6 +29,7 @@
 	  <PackageReference Include="ErrorOr" />
 	  <PackageReference Include="Bogus" />
     <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
@@ -40,8 +41,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Api\Catalog.Api.csproj" />
+  </ItemGroup>
+
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Application\Catalog.Application.csproj" />
     <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Domain\Catalog.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

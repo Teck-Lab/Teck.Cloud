@@ -6,10 +6,11 @@ namespace Catalog.IntegrationTests.Shared
     {
         public static RabbitMqContainer Create()
         {
-            return new RabbitMqBuilder("rabbitmq:latest")
+            return new RabbitMqBuilder("rabbitmq:3.11-management")
                 .WithUsername("guest")
                 .WithPassword("guest")
                 .Build();
         }
     }
 }
+

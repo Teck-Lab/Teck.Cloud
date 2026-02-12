@@ -4,26 +4,16 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Folder Name="/migrations/">
-    <File Path="tools/migrations/Add-Migration.ps1" />
-    <File Path="tools/migrations/Install-EfTools.ps1" />
-    <File Path="tools/migrations/README.md" />
-    <File Path="tools/migrations/Update-MigrationRunner.ps1" />
-  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
-    <File Path="LICENSE.md" />
     <File Path="nuget.config" />
     <File Path="README.md" />
     <File Path="stylecop.json" />
   </Folder>
-  <Folder Name="/src/">
-    <File Path="src/Directory.Build.props" />
-  </Folder>
+  <Folder Name="/src/" />
   <Folder Name="/src/aspire/">
-    <File Path="src/services/device/Directory.Build.props" />
     <Project Path="src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj" />
     <Project Path="src/aspire/Teck.Cloud.ServiceDefaults/Teck.Cloud.ServiceDefaults.csproj" />
   </Folder>
@@ -32,16 +22,31 @@
     <Project Path="src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+    <Project Path="src/buildingblocks/SharedKernel.Migration/SharedKernel.Migration.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Secrets/SharedKernel.Secrets.csproj" />
   </Folder>
-  <Folder Name="/src/services/" />
+  <Folder Name="/src/gateways/">
+    <Project Path="src/gateways/Web.BFF/Web.BFF.csproj" />
+  </Folder>
+  <Folder Name="/src/services/">
+    <File Path="src/services/Directory.Build.props" />
+  </Folder>
   <Folder Name="/src/services/catalog/">
     <File Path="src/services/catalog/Directory.Build.props" />
     <Project Path="src/services/catalog/Catalog.Api/Catalog.Api.csproj" />
     <Project Path="src/services/catalog/Catalog.Application/Catalog.Application.csproj" />
     <Project Path="src/services/catalog/Catalog.Domain/Catalog.Domain.csproj" />
     <Project Path="src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
+    <Project Path="src/services/catalog/Catalog.Migration/Catalog.Migration.csproj" />
+  </Folder>
+  <Folder Name="/src/services/customer/">
+    <File Path="src/services/customer/Directory.Build.props" />
+    <Project Path="src/services/customer/Customer.Api/Customer.Api.csproj" />
+    <Project Path="src/services/customer/Customer.Application/Customer.Application.csproj" />
+    <Project Path="src/services/customer/Customer.Domain/Customer.Domain.csproj" />
+    <Project Path="src/services/customer/Customer.Infrastructure/Customer.Infrastructure.csproj" />
+    <Project Path="src/services/customer/Customer.Migration/Customer.Migration.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
@@ -60,6 +65,10 @@
   </Folder>
   <Folder Name="/tests/unit/">
     <Project Path="tests/unit/Catalog.UnitTests/Catalog.UnitTests.csproj" />
+    <Project Path="tests/unit/Customer.UnitTests/Customer.UnitTests.csproj" />
+    <Project Path="tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj" />
+    <Project Path="tests/unit/SharedKernel.Migration.UnitTests/SharedKernel.Migration.UnitTests.csproj" />
+    <Project Path="tests/unit/SharedKernel.Persistence.UnitTests/SharedKernel.Persistence.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/" />
 </Solution>

@@ -9,20 +9,23 @@ namespace Catalog.Application.Brands.Features.CreateBrand.V1
     /// </summary>
     public sealed class CreateBrandValidator : Validator<CreateBrandRequest>
     {
+        private readonly IBrandReadRepository _brandReadRepository;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CreateBrandValidator"/> class.
         /// </summary>
-        public CreateBrandValidator()
+        /// <param name="brandReadRepository">The brand read repository.</param>
+        public CreateBrandValidator(IBrandReadRepository brandReadRepository)
         {
+            _brandReadRepository = brandReadRepository;
+
             RuleFor(brand => brand.Name)
                 .NotEmpty()
                 .MaximumLength(100)
                 .WithName("Name")
                 .MustAsync(async (name, ct) =>
                 {
-                    // For per-request checks, use Resolve<T>() inside the rule
-                    var repo = Resolve<IBrandReadRepository>();
-                    return !await repo.ExistsAsync(brand => brand.Name.Equals(name), cancellationToken: ct);
+                    return !await _brandReadRepository.ExistsAsync(brand => brand.Name.Equals(name), cancellationToken: ct);
                 })
                 .WithMessage((_, productSku) => $"Brand with the name '{productSku}' already Exists.");
         }

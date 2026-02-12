@@ -36,24 +36,45 @@ public sealed record DatabaseCredentials
     public Dictionary<string, string>? AdditionalParameters { get; init; }
 
     /// <summary>
+    /// Database provider (e.g., "PostgreSQL", "SqlServer", "MySQL").
+    /// </summary>
+    public string? Provider { get; init; }
+
+    /// <summary>
     /// Gets the connection string for admin user.
     /// </summary>
     public string GetAdminConnectionString(string provider) =>
-        BuildConnectionString(Admin, provider);
+        BuildConnectionString(Admin, provider, null, null);
+
+    /// <summary>
+    /// Gets the connection string for admin user with optional host/port override.
+    /// </summary>
+    public string GetAdminConnectionString(string provider, string? overrideHost, int? overridePort) =>
+        BuildConnectionString(Admin, provider, overrideHost, overridePort);
 
     /// <summary>
     /// Gets the connection string for application user.
     /// </summary>
     public string GetApplicationConnectionString(string provider) =>
-        BuildConnectionString(Application, provider);
+        BuildConnectionString(Application, provider, null, null);
 
-    private string BuildConnectionString(UserCredentials credentials, string provider)
+    /// <summary>
+    /// Gets the connection string for application user with optional host/port override.
+    /// Useful for read replicas that use different host/port but same credentials.
+    /// </summary>
+    public string GetApplicationConnectionString(string provider, string? overrideHost, int? overridePort) =>
+        BuildConnectionString(Application, provider, overrideHost, overridePort);
+
+    private string BuildConnectionString(UserCredentials credentials, string provider, string? overrideHost, int? overridePort)
     {
+        var host = overrideHost ?? Host;
+        var port = overridePort ?? Port;
+
         var builder = provider.ToLowerInvariant() switch
         {
-            "postgresql" or "postgres" or "npgsql" => BuildPostgreSqlConnectionString(credentials),
-            "sqlserver" or "mssql" => BuildSqlServerConnectionString(credentials),
-            "mysql" => BuildMySqlConnectionString(credentials),
+            "postgresql" or "postgres" or "npgsql" => BuildPostgreSqlConnectionString(credentials, host, port),
+            "sqlserver" or "mssql" => BuildSqlServerConnectionString(credentials, host, port),
+            "mysql" => BuildMySqlConnectionString(credentials, host, port),
             _ => throw new NotSupportedException($"Database provider '{provider}' is not supported."),
         };
 
@@ -68,21 +89,21 @@ public sealed record DatabaseCredentials
         return builder.ToString();
     }
 
-    private System.Text.StringBuilder BuildPostgreSqlConnectionString(UserCredentials credentials)
+    private System.Text.StringBuilder BuildPostgreSqlConnectionString(UserCredentials credentials, string host, int port)
     {
         var builder = new System.Text.StringBuilder();
-        builder.Append($"Host={Host};");
-        builder.Append($"Port={Port};");
+        builder.Append($"Host={host};");
+        builder.Append($"Port={port};");
         builder.Append($"Database={Database};");
         builder.Append($"Username={credentials.Username};");
         builder.Append($"Password={credentials.Password};");
         return builder;
     }
 
-    private System.Text.StringBuilder BuildSqlServerConnectionString(UserCredentials credentials)
+    private System.Text.StringBuilder BuildSqlServerConnectionString(UserCredentials credentials, string host, int port)
     {
         var builder = new System.Text.StringBuilder();
-        builder.Append($"Server={Host},{Port};");
+        builder.Append($"Server={host},{port};");
         builder.Append($"Database={Database};");
         builder.Append($"User Id={credentials.Username};");
         builder.Append($"Password={credentials.Password};");
@@ -90,11 +111,11 @@ public sealed record DatabaseCredentials
         return builder;
     }
 
-    private System.Text.StringBuilder BuildMySqlConnectionString(UserCredentials credentials)
+    private System.Text.StringBuilder BuildMySqlConnectionString(UserCredentials credentials, string host, int port)
     {
         var builder = new System.Text.StringBuilder();
-        builder.Append($"Server={Host};");
-        builder.Append($"Port={Port};");
+        builder.Append($"Server={host};");
+        builder.Append($"Port={port};");
         builder.Append($"Database={Database};");
         builder.Append($"Uid={credentials.Username};");
         builder.Append($"Pwd={credentials.Password};");

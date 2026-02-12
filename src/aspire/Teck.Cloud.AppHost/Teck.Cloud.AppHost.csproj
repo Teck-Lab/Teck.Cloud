@@ -23,6 +23,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\services\catalog\Catalog.Api\Catalog.Api.csproj" />
     <ProjectReference Include="..\Teck.Cloud.ServiceDefaults\Teck.Cloud.ServiceDefaults.csproj" IsAspireProjectResource="false"/>
+    <ProjectReference Include="..\..\services\customer\Customer.Api\Customer.Api.csproj" />
+    <ProjectReference Include="..\..\gateways\Web.BFF\Web.BFF.csproj" />
+    <ProjectReference Include="..\..\services\catalog\Catalog.Migration\Catalog.Migration.csproj" />
+    <ProjectReference Include="..\..\services\customer\Customer.Migration\Customer.Migration.csproj" />
   </ItemGroup>
 
 </Project>

@@ -44,5 +44,6 @@
 <ItemGroup>
     <InternalsVisibleTo Include="Catalog.UnitTests" />
     <InternalsVisibleTo Include="Catalog.Arch.UnitTests" />
+    <InternalsVisibleTo Include="Catalog.IntegrationTests" />
 </ItemGroup>
 </Project>

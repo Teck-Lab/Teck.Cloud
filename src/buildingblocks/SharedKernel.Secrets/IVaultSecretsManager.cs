@@ -6,7 +6,7 @@ namespace SharedKernel.Secrets;
 public interface IVaultSecretsManager
 {
     /// <summary>
-    /// Retrieves database credentials for a tenant.
+    /// Retrieves database credentials for a tenant (legacy method - uses convention-based path).
     /// </summary>
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -16,7 +16,17 @@ public interface IVaultSecretsManager
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Retrieves database credentials for the shared database.
+    /// Retrieves database credentials from a specific Vault path.
+    /// </summary>
+    /// <param name="vaultPath">Full Vault path (e.g., "database/shared/postgres/catalog/write").</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Database credentials with admin and application users.</returns>
+    Task<DatabaseCredentials> GetDatabaseCredentialsByPathAsync(
+        string vaultPath,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves database credentials for the shared database (legacy method - uses convention-based path).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Database credentials with admin and application users.</returns>
@@ -24,7 +34,21 @@ public interface IVaultSecretsManager
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Stores database credentials for a tenant.
+    /// Retrieves database credentials for a shared database with service-aware path.
+    /// </summary>
+    /// <param name="serviceName">The service name (e.g., "catalog", "orders").</param>
+    /// <param name="provider">Database provider (e.g., "postgres", "sqlserver").</param>
+    /// <param name="isReadDatabase">Whether this is for a read database.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Database credentials with admin and application users.</returns>
+    Task<DatabaseCredentials> GetSharedDatabaseCredentialsAsync(
+        string serviceName,
+        string provider,
+        bool isReadDatabase = false,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores database credentials for a tenant (legacy method - uses convention-based path).
     /// </summary>
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="credentials">Database credentials to store.</param>
@@ -32,6 +56,27 @@ public interface IVaultSecretsManager
     Task StoreDatabaseCredentialsAsync(
         string tenantId,
         DatabaseCredentials credentials,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores database credentials at a specific Vault path.
+    /// </summary>
+    /// <param name="vaultPath">Full Vault path (e.g., "database/tenants/tenant-123/catalog/write").</param>
+    /// <param name="credentials">Database credentials to store.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task StoreDatabaseCredentialsByPathAsync(
+        string vaultPath,
+        DatabaseCredentials credentials,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if database credentials exist at a specific Vault path.
+    /// </summary>
+    /// <param name="vaultPath">Full Vault path.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if credentials exist, false otherwise.</returns>
+    Task<bool> CredentialsExistAsync(
+        string vaultPath,
         CancellationToken cancellationToken = default);
 
     /// <summary>
