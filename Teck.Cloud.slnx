@@ -24,7 +24,7 @@
     <Project Path="src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
 
     <Project Path="src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
-    <Project Path="src/buildingblocks/SharedKernel.Secrets/SharedKernel.Secrets.csproj" />
+
   </Folder>
   <Folder Name="/src/gateways/">
     <Project Path="src/gateways/Web.BFF/Web.BFF.csproj" />
