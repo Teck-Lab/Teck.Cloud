@@ -32,7 +32,7 @@
     <ProjectReference Include="..\SharedKernel.Core\SharedKernel.Core.csproj" />
     <ProjectReference Include="..\SharedKernel.Events\SharedKernel.Events.csproj" />
     <ProjectReference Include="..\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
-    <ProjectReference Include="..\SharedKernel.Secrets\SharedKernel.Secrets.csproj" />
+    <ProjectReference Include="..\SharedKernel.Core\SharedKernel.Core.csproj" />
   </ItemGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
