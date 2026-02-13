@@ -12,10 +12,9 @@ using RabbitMQ.Client;
 using Scrutor;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
-using SharedKernel.Core.Pricing;
-using SharedKernel.Infrastructure.Auth;
 
-using SharedKernel.Secrets;
+using SharedKernel.Infrastructure.Auth;
+using SharedKernel.Core.Database;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Postgresql;
@@ -122,8 +121,7 @@ public static class InfrastructureServiceExtensions
                     (builder, defaultWriteConnectionString, _) =>
                     {
                         builder.UseNpgsql(defaultWriteConnectionString.Value, assembly => assembly.MigrationsAssembly(dbContextAssembly));
-                    },
-                    AutoCreate.CreateOrUpdate);
+                    });
             });
         }
         catch (Exception wolverineException)
@@ -145,8 +143,7 @@ public static class InfrastructureServiceExtensions
             timeout: TimeSpan.FromSeconds(5),
             tags: new[] { "messagebus", "rabbitmq" });
 
-        // Add Vault secrets management for database credentials
-        builder.Services.AddVaultSecretsManagement(builder.Configuration);
+
 
         // Automatically register services.
         builder.Services.Scan(selector => selector

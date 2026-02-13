@@ -1,6 +1,6 @@
 using Customer.Application.Tenants.Commands.CreateTenant;
 using FluentValidation.TestHelper;
-using SharedKernel.Secrets;
+using SharedKernel.Core.Database;
 
 namespace Customer.UnitTests.Application.Validators;
 

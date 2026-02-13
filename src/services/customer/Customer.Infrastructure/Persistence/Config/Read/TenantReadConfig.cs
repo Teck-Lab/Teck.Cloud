@@ -50,7 +50,6 @@ public class TenantReadConfig : IEntityTypeConfiguration<TenantDto>
         // Ignore collections for now - they will be loaded separately if needed
         builder.Ignore(tenant => tenant.Databases);
 
-
         // Read-only queries don't need to track changes
         builder.HasQueryFilter(tenant => !EF.Property<bool>(tenant, "IsDeleted"));
     }

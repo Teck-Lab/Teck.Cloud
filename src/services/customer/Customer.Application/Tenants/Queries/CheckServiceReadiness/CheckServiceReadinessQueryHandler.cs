@@ -49,5 +49,4 @@ public class CheckServiceReadinessQueryHandler : IQueryHandler<CheckServiceReadi
             return Error.Unexpected("Tenant.DsnResolutionFailed", exception.ToString());
         }
     }
-
 }

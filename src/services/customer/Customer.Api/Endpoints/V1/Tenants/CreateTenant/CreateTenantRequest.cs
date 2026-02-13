@@ -1,4 +1,4 @@
-using SharedKernel.Secrets;
+using SharedKernel.Core.Database;
 
 namespace Customer.Api.Endpoints.V1.Tenants.CreateTenant;
 

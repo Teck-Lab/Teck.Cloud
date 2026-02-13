@@ -2,7 +2,7 @@ using Customer.Application.Tenants.DTOs;
 using ErrorOr;
 using SharedKernel.Core.CQRS;
 using SharedKernel.Core.Pricing;
-using SharedKernel.Secrets;
+using SharedKernel.Core.Database;
 
 namespace Customer.Application.Tenants.Commands.CreateTenant;
 

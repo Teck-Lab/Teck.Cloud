@@ -21,6 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\services\catalog\Catalog.Api\Catalog.Api.csproj" />
+    <ProjectReference Include="..\..\services\customer\Customer.Api\Customer.Api.csproj" />
+    <ProjectReference Include="..\..\gateways\Web.BFF\Web.BFF.csproj" />
   </ItemGroup>
 
 </Project>

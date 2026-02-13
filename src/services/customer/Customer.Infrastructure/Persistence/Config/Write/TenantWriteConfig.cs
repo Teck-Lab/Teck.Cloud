@@ -72,9 +72,7 @@ public class TenantWriteConfig : IEntityTypeConfiguration<Tenant>
 
             databasesBuilder.Property(metadata => metadata.HasSeparateReadDatabase)
                 .IsRequired();
-        });
-
-
+            });
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();

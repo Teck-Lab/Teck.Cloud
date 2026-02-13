@@ -5,6 +5,7 @@ using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
 using NSubstitute;
 using SharedKernel.Core.Pricing;
+
 using SharedKernel.Secrets;
 using Shouldly;
 
@@ -13,16 +14,15 @@ namespace Customer.UnitTests.Application.Commands;
 public class CreateTenantCommandHandlerTests
 {
     private readonly ITenantWriteRepository _tenantRepository;
-    private readonly IVaultSecretsManager _vaultSecretsManager;
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly CreateTenantCommandHandler _sut;
 
     public CreateTenantCommandHandlerTests()
     {
         _tenantRepository = Substitute.For<ITenantWriteRepository>();
-        _vaultSecretsManager = Substitute.For<IVaultSecretsManager>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
-        _sut = new CreateTenantCommandHandler(_tenantRepository, _vaultSecretsManager, _unitOfWork);
+        _sut = new CreateTenantCommandHandler(_tenantRepository, _unitOfWork);
     }
 
     [Fact]
@@ -40,14 +40,9 @@ public class CreateTenantCommandHandlerTests
         _tenantRepository.ExistsByIdentifierAsync(command.Identifier, Arg.Any<CancellationToken>())
             .Returns(false);
 
-        _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(
-                Arg.Any<string>(),
-                Arg.Any<DatabaseCredentials>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
         _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns(1);
+
 
         // Act
         ErrorOr<TenantDto> result = await _sut.Handle(command, CancellationToken.None);
@@ -108,14 +103,9 @@ public class CreateTenantCommandHandlerTests
         _tenantRepository.ExistsByIdentifierAsync(command.Identifier, Arg.Any<CancellationToken>())
             .Returns(false);
 
-        _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(
-                Arg.Any<string>(),
-                Arg.Any<DatabaseCredentials>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
         _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns(1);
+
 
         // Act
         ErrorOr<TenantDto> result = await _sut.Handle(command, CancellationToken.None);
@@ -123,11 +113,8 @@ public class CreateTenantCommandHandlerTests
         // Assert
         result.IsError.ShouldBeFalse();
 
-        // Should store credentials for 3 services (catalog, orders, customer) x 2 (write + read) = 6 total
-        await _vaultSecretsManager.Received(6).StoreDatabaseCredentialsByPathAsync(
-            Arg.Any<string>(),
-            Arg.Any<DatabaseCredentials>(),
-            Arg.Any<CancellationToken>());
+        // Credentials are provided externally at runtime; no Vault writes expected in this flow.
+
     }
 
 
@@ -146,20 +133,9 @@ public class CreateTenantCommandHandlerTests
         _tenantRepository.ExistsByIdentifierAsync(command.Identifier, Arg.Any<CancellationToken>())
             .Returns(false);
 
-        // Mock CredentialsExistAsync to return false so credentials get generated
-        _vaultSecretsManager.CredentialsExistAsync(
-                Arg.Any<string>(),
-                Arg.Any<CancellationToken>())
-            .Returns(false);
-
-        _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(
-                Arg.Any<string>(),
-                Arg.Any<DatabaseCredentials>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
         _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns(1);
+
 
         // Act
         ErrorOr<TenantDto> result = await _sut.Handle(command, CancellationToken.None);
@@ -167,11 +143,8 @@ public class CreateTenantCommandHandlerTests
         // Assert
         result.IsError.ShouldBeFalse();
 
-        // For shared strategy, credentials are generated and stored for each service x 2 (write + read) = 6 total
-        await _vaultSecretsManager.Received(6).StoreDatabaseCredentialsByPathAsync(
-            Arg.Is<string>(path => path.Contains("database/shared/")),
-            Arg.Any<DatabaseCredentials>(),
-            Arg.Any<CancellationToken>());
+        // Credentials are provided externally at runtime; no Vault writes expected in this flow.
+
     }
 
     [Fact]
@@ -199,14 +172,9 @@ public class CreateTenantCommandHandlerTests
         _tenantRepository.ExistsByIdentifierAsync(command.Identifier, Arg.Any<CancellationToken>())
             .Returns(false);
 
-        _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(
-                Arg.Any<string>(),
-                Arg.Any<DatabaseCredentials>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
         _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns(1);
+
 
         // Act
         ErrorOr<TenantDto> result = await _sut.Handle(command, CancellationToken.None);
@@ -214,11 +182,7 @@ public class CreateTenantCommandHandlerTests
         // Assert
         result.IsError.ShouldBeFalse();
 
-        // For External strategy, should store custom credentials only for write path (3 services)
-        // External databases don't have separate read replicas managed by us
-        await _vaultSecretsManager.Received(3).StoreDatabaseCredentialsByPathAsync(
-            Arg.Is<string>(path => path.Contains("database/tenants/") && path.EndsWith("/write")),
-            Arg.Is<DatabaseCredentials>(creds => creds.Host == "custom-postgres"),
-            Arg.Any<CancellationToken>());
+        // External databases are managed externally; no Vault writes expected.
+
     }
 }

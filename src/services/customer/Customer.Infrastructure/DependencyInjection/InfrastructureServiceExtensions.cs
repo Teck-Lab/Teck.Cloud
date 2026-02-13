@@ -10,9 +10,7 @@ using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
-using SharedKernel.Core.Pricing;
-
-using SharedKernel.Secrets;
+using SharedKernel.Core.Database;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Postgresql;
@@ -58,7 +56,6 @@ public static class InfrastructureServiceExtensions
         builder.Services.AddScoped<ITenantWriteRepository, TenantWriteRepository>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-
         // Configure Wolverine
         builder.UseWolverine(opts =>
         {
@@ -94,10 +91,6 @@ public static class InfrastructureServiceExtensions
                 },
                 timeout: TimeSpan.FromSeconds(5),
                 tags: ["messagebus", "rabbitmq"]);
-
-        // Add Vault secrets management for database credentials
-        builder.Services.AddVaultSecretsManagement(builder.Configuration);
-
 
     }
 

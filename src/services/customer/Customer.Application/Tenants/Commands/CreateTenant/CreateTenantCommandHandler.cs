@@ -5,7 +5,7 @@ using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
 using SharedKernel.Core.CQRS;
 using SharedKernel.Core.Pricing;
-using SharedKernel.Secrets;
+using SharedKernel.Core.Database;
 
 namespace Customer.Application.Tenants.Commands.CreateTenant;
 
@@ -17,22 +17,18 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
     private static readonly string[] Services = ["catalog", "orders", "customer"];
 
     private readonly ITenantWriteRepository _tenantRepository;
-    private readonly IVaultSecretsManager _vaultSecretsManager;
     private readonly IUnitOfWork _unitOfWork;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateTenantCommandHandler"/> class.
     /// </summary>
     /// <param name="tenantRepository">The tenant repository.</param>
-    /// <param name="vaultSecretsManager">The vault secrets manager.</param>
     /// <param name="unitOfWork">The unit of work.</param>
     public CreateTenantCommandHandler(
         ITenantWriteRepository tenantRepository,
-        IVaultSecretsManager vaultSecretsManager,
         IUnitOfWork unitOfWork)
     {
         _tenantRepository = tenantRepository;
-        _vaultSecretsManager = vaultSecretsManager;
         _unitOfWork = unitOfWork;
     }
 
@@ -96,60 +92,26 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         DatabaseCredentials? customCredentials,
         CancellationToken cancellationToken)
     {
-        DatabaseCredentials credentials;
-        string vaultWritePath;
-        string? vaultReadPath = null;
         bool hasSeparateReadDatabase = false;
 
         if (strategy == DatabaseStrategy.Shared)
         {
-            // Shared database - use shared credentials
-            vaultWritePath = $"database/shared/{provider.Name.ToLowerInvariant()}/{serviceName}/write";
-            vaultReadPath = $"database/shared/{provider.Name.ToLowerInvariant()}/{serviceName}/read";
-
-            // Check if shared credentials already exist
-            var credentialsExist = await _vaultSecretsManager.CredentialsExistAsync(vaultWritePath, cancellationToken);
-            if (!credentialsExist)
-            {
-                // Generate and store shared credentials for the first time
-                credentials = GenerateCredentials(serviceName, provider, strategy);
-                await _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(vaultWritePath, credentials, cancellationToken);
-
-                // For shared databases, we typically use the same credentials for read
-                // In production, you might want separate read-only credentials
-                await _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(vaultReadPath, credentials, cancellationToken);
-            }
-
+            // Shared database - runtime will supply DSNs via environment variables; nothing to persist here.
             hasSeparateReadDatabase = true;
         }
         else if (strategy == DatabaseStrategy.Dedicated)
         {
-            // Dedicated database - create tenant-specific credentials
-            vaultWritePath = $"database/tenants/{tenant.Id}/{serviceName}/write";
-            vaultReadPath = $"database/tenants/{tenant.Id}/{serviceName}/read";
-
-            credentials = GenerateCredentials(serviceName, provider, strategy, tenant.Identifier);
-            await _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(vaultWritePath, credentials, cancellationToken);
-
-            // For dedicated databases, create separate read credentials with a different user
-            var readCredentials = GenerateCredentials(serviceName, provider, strategy, tenant.Identifier, true);
-            await _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(vaultReadPath, readCredentials, cancellationToken);
-
+            // Dedicated database - assume external provisioning will populate env vars for this tenant/service.
             hasSeparateReadDatabase = true;
         }
         else if (strategy == DatabaseStrategy.External)
         {
-            // External database - use provided credentials
+            // External database - use provided credentials (do not persist to Vault)
             if (customCredentials == null)
             {
                 return Error.Validation("Tenant.ExternalCredentialsRequired", "Custom credentials are required for External database strategy");
             }
 
-            vaultWritePath = $"database/tenants/{tenant.Id}/{serviceName}/write";
-            credentials = customCredentials;
-            await _vaultSecretsManager.StoreDatabaseCredentialsByPathAsync(vaultWritePath, credentials, cancellationToken);
-
-            // External databases typically don't have separate read replicas managed by us
             hasSeparateReadDatabase = false;
         }
         else
@@ -161,7 +123,7 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         var writeEnvVarKey = $"ConnectionStrings__Tenants__{tenant.Identifier}__Write";
         string? readEnvVarKey = hasSeparateReadDatabase ? $"ConnectionStrings__Tenants__{tenant.Identifier}__Read" : null;
 
-        // Add database metadata to tenant (store env-var keys, not vault paths)
+        // Add database metadata to tenant (store env-var keys for runtime resolution)
         tenant.AddDatabaseMetadata(serviceName, writeEnvVarKey, readEnvVarKey, hasSeparateReadDatabase);
 
         return Result.Success;
