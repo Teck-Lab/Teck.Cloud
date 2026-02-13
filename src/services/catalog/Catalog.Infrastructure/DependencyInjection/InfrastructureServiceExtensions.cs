@@ -12,13 +12,13 @@ using RabbitMQ.Client;
 using Scrutor;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
-
-using SharedKernel.Infrastructure.Auth;
 using SharedKernel.Core.Database;
+using SharedKernel.Infrastructure.Auth;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Postgresql;
 using Wolverine.RabbitMQ;
+
 
 namespace Catalog.Infrastructure.DependencyInjection;
 
@@ -130,7 +130,9 @@ public static class InfrastructureServiceExtensions
             throw;
         }
 
+
         builder.Services.AddHealthChecks().AddRabbitMQ(
+
             sp =>
             {
                 var factory = new ConnectionFactory

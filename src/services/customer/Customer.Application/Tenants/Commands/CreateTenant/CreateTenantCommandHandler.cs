@@ -3,10 +3,8 @@ using Customer.Domain.Entities.TenantAggregate;
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
 using SharedKernel.Core.CQRS;
-using SharedKernel.Core.Models;
 using SharedKernel.Core.Pricing;
-
-
+using SharedKernel.Core.Models;
 namespace Customer.Application.Tenants.Commands.CreateTenant;
 
 /// <summary>
@@ -14,23 +12,24 @@ namespace Customer.Application.Tenants.Commands.CreateTenant;
 /// </summary>
 public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, ErrorOr<TenantDto>>
 {
-    private static readonly string[] Services = ["catalog", "orders", "customer"];
+
+    private static readonly string[] Services = new[] { "catalog", "orders", "customer" };
 
     private readonly ITenantWriteRepository _tenantRepository;
     private readonly Customer.Application.Common.Interfaces.IUnitOfWork _unitOfWork;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateTenantCommandHandler"/> class.
     /// </summary>
     /// <param name="tenantRepository">The tenant repository.</param>
     /// <param name="unitOfWork">The unit of work.</param>
-public CreateTenantCommandHandler(
+    public CreateTenantCommandHandler(
         ITenantWriteRepository tenantRepository,
         Customer.Application.Common.Interfaces.IUnitOfWork unitOfWork)
     {
         _tenantRepository = tenantRepository;
         _unitOfWork = unitOfWork;
     }
+
 
     /// <inheritdoc/>
     public async ValueTask<ErrorOr<TenantDto>> Handle(CreateTenantCommand command, CancellationToken cancellationToken)
@@ -83,7 +82,9 @@ public CreateTenantCommandHandler(
         return dto;
     }
 
-private static Task<ErrorOr<Success>> SetupServiceDatabaseAsync(
+
+    private static Task<ErrorOr<Success>> SetupServiceDatabaseAsync(
+
         Tenant tenant,
         string serviceName,
         DatabaseStrategy strategy,
