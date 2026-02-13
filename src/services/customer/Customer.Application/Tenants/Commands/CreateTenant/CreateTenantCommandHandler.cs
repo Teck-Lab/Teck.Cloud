@@ -1,11 +1,11 @@
-using Customer.Application.Common.Interfaces;
 using Customer.Application.Tenants.DTOs;
 using Customer.Domain.Entities.TenantAggregate;
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
 using SharedKernel.Core.CQRS;
-using SharedKernel.Core.Pricing;
 using SharedKernel.Core.Models;
+using SharedKernel.Core.Pricing;
+
 
 namespace Customer.Application.Tenants.Commands.CreateTenant;
 
@@ -64,9 +64,8 @@ public CreateTenantCommandHandler(
                 tenant,
                 serviceName,
                 command.DatabaseStrategy,
-                command.DatabaseProvider,
-                command.CustomCredentials,
-                cancellationToken);
+                command.CustomCredentials);
+
 
             if (setupResult.IsError)
             {
@@ -84,97 +83,47 @@ public CreateTenantCommandHandler(
         return dto;
     }
 
-    private async Task<ErrorOr<Success>> SetupServiceDatabaseAsync(
+private static Task<ErrorOr<Success>> SetupServiceDatabaseAsync(
         Tenant tenant,
         string serviceName,
         DatabaseStrategy strategy,
-        DatabaseProvider provider,
-        DatabaseCredentials? customCredentials,
-        CancellationToken cancellationToken)
+        DatabaseCredentials? customCredentials)
+
     {
         bool hasSeparateReadDatabase = false;
 
         if (strategy == DatabaseStrategy.Shared)
         {
-            // Shared database - runtime will supply DSNs via environment variables; nothing to persist here.
             hasSeparateReadDatabase = true;
         }
         else if (strategy == DatabaseStrategy.Dedicated)
         {
-            // Dedicated database - assume external provisioning will populate env vars for this tenant/service.
             hasSeparateReadDatabase = true;
         }
         else if (strategy == DatabaseStrategy.External)
         {
-            // External database - use provided credentials (do not persist to Vault)
             if (customCredentials == null)
             {
-                return Error.Validation("Tenant.ExternalCredentialsRequired", "Custom credentials are required for External database strategy");
+                return Task.FromResult<ErrorOr<Success>>(Error.Validation("Tenant.ExternalCredentialsRequired", "Custom credentials are required for External database strategy"));
             }
 
             hasSeparateReadDatabase = false;
         }
         else
         {
-            return Error.Validation("Tenant.InvalidStrategy", $"Invalid database strategy: {strategy.Name}");
+            return Task.FromResult<ErrorOr<Success>>(Error.Validation("Tenant.InvalidStrategy", $"Invalid database strategy: {strategy.Name}"));
         }
 
-        // Build environment variable keys for runtime DSN resolution
         var writeEnvVarKey = $"ConnectionStrings__Tenants__{tenant.Identifier}__Write";
         string? readEnvVarKey = hasSeparateReadDatabase ? $"ConnectionStrings__Tenants__{tenant.Identifier}__Read" : null;
 
-        // Add database metadata to tenant (store env-var keys for runtime resolution)
         tenant.AddDatabaseMetadata(serviceName, writeEnvVarKey, readEnvVarKey, hasSeparateReadDatabase);
 
-        return Result.Success;
+        return Task.FromResult<ErrorOr<Success>>(Result.Success);
+
     }
 
-    private static DatabaseCredentials GenerateCredentials(
-        string serviceName,
-        DatabaseProvider provider,
-        DatabaseStrategy strategy,
-        string tenantIdentifier = "",
-        bool isReadOnly = false)
-    {
-        var suffix = isReadOnly ? "_ro" : "_rw";
-        var strategyPrefix = strategy == DatabaseStrategy.Shared ? "shared" : tenantIdentifier;
 
-        var username = $"{strategyPrefix}_{serviceName}_user{suffix}";
-        var password = GenerateSecurePassword();
-        var host = "localhost"; // Default, will be overridden in environment
-        var port = provider.DefaultPort;
-        var databaseName = strategy == DatabaseStrategy.Shared
-            ? $"{serviceName}_shared"
-            : $"{serviceName}_{tenantIdentifier.Replace("-", "_", StringComparison.Ordinal)}";
-
-        return new DatabaseCredentials
-        {
-            Admin = new UserCredentials
-            {
-                Username = username,
-                Password = password
-            },
-            Application = new UserCredentials
-            {
-                Username = username,
-                Password = password
-            },
-            Host = host,
-            Port = port,
-            Database = databaseName,
-            Provider = provider.Name
-        };
-    }
-
-    private static string GenerateSecurePassword()
-    {
-        // In production, use a proper secure password generator
-        // For now, generate a random GUID-based password
-        return Convert.ToBase64String(Guid.NewGuid().ToByteArray())
-            .Replace("+", "x", StringComparison.Ordinal)
-            .Replace("/", "y", StringComparison.Ordinal)
-            .Replace("=", "z", StringComparison.Ordinal);
-    }
 
     private static TenantDto MapToDto(Tenant tenant)
     {
