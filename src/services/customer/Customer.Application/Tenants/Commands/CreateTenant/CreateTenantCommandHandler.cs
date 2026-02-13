@@ -5,7 +5,7 @@ using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
 using SharedKernel.Core.CQRS;
 using SharedKernel.Core.Pricing;
-using SharedKernel.Core.Database;
+using SharedKernel.Core.Models;
 
 namespace Customer.Application.Tenants.Commands.CreateTenant;
 
@@ -17,16 +17,16 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
     private static readonly string[] Services = ["catalog", "orders", "customer"];
 
     private readonly ITenantWriteRepository _tenantRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly Customer.Application.Common.Interfaces.IUnitOfWork _unitOfWork;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateTenantCommandHandler"/> class.
     /// </summary>
     /// <param name="tenantRepository">The tenant repository.</param>
     /// <param name="unitOfWork">The unit of work.</param>
-    public CreateTenantCommandHandler(
+public CreateTenantCommandHandler(
         ITenantWriteRepository tenantRepository,
-        IUnitOfWork unitOfWork)
+        Customer.Application.Common.Interfaces.IUnitOfWork unitOfWork)
     {
         _tenantRepository = tenantRepository;
         _unitOfWork = unitOfWork;

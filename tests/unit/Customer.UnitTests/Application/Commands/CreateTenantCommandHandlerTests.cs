@@ -6,7 +6,7 @@ using ErrorOr;
 using NSubstitute;
 using SharedKernel.Core.Pricing;
 
-using SharedKernel.Secrets;
+using SharedKernel.Core.Models;
 using Shouldly;
 
 namespace Customer.UnitTests.Application.Commands;
