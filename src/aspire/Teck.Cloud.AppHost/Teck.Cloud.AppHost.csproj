@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <Sdk Name="Aspire.AppHost.Sdk" Version="9.3.1" />
+  <Sdk Name="Aspire.AppHost.Sdk" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\services\catalog\Catalog.Api\Catalog.Api.csproj" />
     <ProjectReference Include="..\..\services\customer\Customer.Api\Customer.Api.csproj" />
     <ProjectReference Include="..\..\gateways\Web.BFF\Web.BFF.csproj" />
+    <ProjectReference Include="..\..\gateways\Web.Edge\Web.Edge.csproj" />
   </ItemGroup>
 
 </Project>

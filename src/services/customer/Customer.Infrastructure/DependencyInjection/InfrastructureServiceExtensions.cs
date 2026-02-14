@@ -1,5 +1,5 @@
+#pragma warning disable IDE0005
 using System.Reflection;
-using Customer.Application.Common.Interfaces;
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using Customer.Infrastructure.Persistence;
 using Customer.Infrastructure.Persistence.Repositories.Write;
@@ -8,9 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
+using SharedKernel.Core.Database;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
-using SharedKernel.Core.Database;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Postgresql;
@@ -54,7 +54,7 @@ public static class InfrastructureServiceExtensions
 
         // Register repositories
         builder.Services.AddScoped<ITenantWriteRepository, TenantWriteRepository>();
-        builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+        builder.Services.AddScoped<Customer.Application.Common.Interfaces.IUnitOfWork, Customer.Infrastructure.Persistence.UnitOfWork>();
 
         // Configure Wolverine
         builder.UseWolverine(opts =>
@@ -78,7 +78,7 @@ public static class InfrastructureServiceExtensions
 
         // Add health checks
         builder.Services.AddHealthChecks()
-            .AddNpgSql(defaultWriteConnectionString, name: "postgres-write", tags: ["database", "postgres"])
+            .AddNpgSql(defaultWriteConnectionString, name: "postgres-write", tags: new[] { "database", "postgres" })
             .AddRabbitMQ(
                 serviceProvider =>
                 {
@@ -90,8 +90,7 @@ public static class InfrastructureServiceExtensions
                     return factory.CreateConnectionAsync();
                 },
                 timeout: TimeSpan.FromSeconds(5),
-                tags: ["messagebus", "rabbitmq"]);
-
+                tags: new[] { "messagebus", "rabbitmq" });
     }
 
     /// <summary>

@@ -120,8 +120,7 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ## Development Guidelines
 
-See the `.cursor/rules/` directory for detailed coding standards and best practices:
-- **C# Coding Style**: Functional patterns, immutable data, value objects
-- **Testing Guidelines**: xUnit patterns, test isolation, TestContainers for integration tests
-- **Solution Management**: SDK versioning, build properties, package management
-- **Dependency Management**: Security scanning, license compliance, version management
+See the canonical AI rule set under `docs/ai/rules/`:
+- **Rule Index**: `docs/ai/rules/README.md`
+- **Copilot Entrypoint**: `.github/copilot-instructions.md`
+- **Agent Entrypoint**: `AGENTS.md`

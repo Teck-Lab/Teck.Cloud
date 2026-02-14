@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^dotnet test tests/unit/SharedKernel\\.Persistence\\.UnitTests/SharedKernel\\.Persistence\\.UnitTests\\.csproj --nologo --verbosity minimal$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

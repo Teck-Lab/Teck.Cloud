@@ -111,14 +111,14 @@ public sealed class GetTenantByIdQueryHandlerTests
         // Add multiple database metadata
         tenant.AddDatabaseMetadata(
             "CatalogService",
-            "secret/data/tenants/multi/catalog/write",
+            "ConnectionStrings__Tenants__multi__Write",
             null,
             false);
 
         tenant.AddDatabaseMetadata(
             "CustomerService",
-            "secret/data/tenants/multi/customer/write",
-            "secret/data/tenants/multi/customer/read",
+            "ConnectionStrings__Tenants__multi__Write",
+            "ConnectionStrings__Tenants__multi__Read",
             true);
 
 

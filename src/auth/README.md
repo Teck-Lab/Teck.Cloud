@@ -1,11 +1,11 @@
 # Teck Auth (Keycloak)
 
-Custom Keycloak image for Teck.Cloud, based on [Phase Two Keycloak](https://github.com/p2-inc/keycloak) with the [Tailcloakify](https://github.com/ALMiG-Kompressoren-GmbH/tailcloakify) theme.
+Custom Keycloak image for Teck.Cloud, based on the [official Keycloak image](https://www.keycloak.org/server/containers) with the [keycloak-shadcn](https://github.com/emirhannaneli/keycloak-shadcn) theme extension.
 
 ## Image
 
-- **Base:** `quay.io/phasetwo/phasetwo-keycloak:26.5.2`
-- **Theme:** Tailcloakify (JAR added to `/opt/keycloak/providers/`)
+- **Base:** `quay.io/keycloak/keycloak:26.5.23`
+- **Theme:** keycloak-shadcn (JAR added to `/opt/keycloak/providers/`)
 - **Tags:** Same semantic version as the rest of the repo (e.g. `v1.2.3`), published to GHCR as `ghcr.io/<org>/<repo>/auth:<version>`.
 
 ## Build args
@@ -16,7 +16,7 @@ Custom Keycloak image for Teck.Cloud, based on [Phase Two Keycloak](https://gith
 | `BUILD_DATE` | - | OCI image created timestamp |
 | `VCS_REF` | - | Git commit SHA |
 | `VCS_URL` | - | Repository URL |
-| `KEYCLOAK_VERSION` | 26.5.2 | Base Keycloak version |
+| `KEYCLOAK_VERSION` | 26.5.23 | Base Keycloak version |
 
 ## Local build
 
@@ -30,4 +30,4 @@ The auth image is built and published by `.github/workflows/docker-publish.yaml`
 
 ## Theme configuration
 
-Tailcloakify and Phase Two are configured via Keycloak environment variables. See Phase Two and Tailcloakify documentation for theme and realm options.
+The image includes the keycloak-shadcn extension JAR. Configure theme behavior via Keycloak realm/theme settings and relevant environment variables.

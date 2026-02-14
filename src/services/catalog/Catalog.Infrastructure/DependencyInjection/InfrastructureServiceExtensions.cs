@@ -1,3 +1,4 @@
+#pragma warning disable IDE0005
 using System.Reflection;
 using Catalog.Infrastructure.Persistence;
 using JasperFx.CodeGeneration;
@@ -10,15 +11,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using Scrutor;
+using SharedKernel.Core.Database;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
-using SharedKernel.Core.Database;
 using SharedKernel.Infrastructure.Auth;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Postgresql;
 using Wolverine.RabbitMQ;
-
 
 namespace Catalog.Infrastructure.DependencyInjection;
 
@@ -117,11 +117,10 @@ public static class InfrastructureServiceExtensions
                 rabbit.EnableWolverineControlQueues();
                 rabbit.UseConventionalRouting();
 
-                opts.Services.AddDbContextWithWolverineManagedMultiTenancy<ApplicationWriteDbContext>(
-                    (builder, defaultWriteConnectionString, _) =>
-                    {
-                        builder.UseNpgsql(defaultWriteConnectionString.Value, assembly => assembly.MigrationsAssembly(dbContextAssembly));
-                    });
+                opts.Services.AddDbContextWithWolverineManagedMultiTenancy<ApplicationWriteDbContext>((builder, defaultWriteConnectionString, _) =>
+                {
+                    builder.UseNpgsql(defaultWriteConnectionString.Value, assembly => assembly.MigrationsAssembly(dbContextAssembly));
+                });
             });
         }
         catch (Exception wolverineException)
@@ -130,9 +129,7 @@ public static class InfrastructureServiceExtensions
             throw;
         }
 
-
         builder.Services.AddHealthChecks().AddRabbitMQ(
-
             sp =>
             {
                 var factory = new ConnectionFactory
@@ -144,8 +141,6 @@ public static class InfrastructureServiceExtensions
             },
             timeout: TimeSpan.FromSeconds(5),
             tags: new[] { "messagebus", "rabbitmq" });
-
-
 
         // Automatically register services.
         builder.Services.Scan(selector => selector

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-api
+  labels:
+    app: customer-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: customer-api
+  template:
+    metadata:
+      labels:
+        app: customer-api
+    spec:
+      containers:
+        - name: customer-api
+          image: harbor.tecklab.dk/teck-lab/customer-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: ConnectionStrings__postgres-write
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-secrets
+                  key: postgres-write
+            - name: ConnectionStrings__postgres-read
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-secrets
+                  key: postgres-read
+            - name: ConnectionStrings__rabbitmq
+              valueFrom:
+                secretKeyRef:
+                  name: shared-platform-secrets
+                  key: rabbitmq
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20

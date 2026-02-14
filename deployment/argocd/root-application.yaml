@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: teck-cloud-root
+  namespace: argocd
+spec:
+  project: teck-cloud
+  source:
+    repoURL: https://github.com/Teck-Lab/Teck.Cloud.git
+    targetRevision: main
+    path: deployment/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

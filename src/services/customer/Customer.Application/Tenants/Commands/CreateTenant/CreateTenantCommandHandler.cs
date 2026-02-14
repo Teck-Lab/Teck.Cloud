@@ -1,10 +1,15 @@
+#pragma warning disable IDE0005
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Customer.Application.Tenants.DTOs;
 using Customer.Domain.Entities.TenantAggregate;
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
 using SharedKernel.Core.CQRS;
-using SharedKernel.Core.Pricing;
 using SharedKernel.Core.Models;
+using SharedKernel.Core.Pricing;
+
 namespace Customer.Application.Tenants.Commands.CreateTenant;
 
 /// <summary>
@@ -12,11 +17,11 @@ namespace Customer.Application.Tenants.Commands.CreateTenant;
 /// </summary>
 public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, ErrorOr<TenantDto>>
 {
-
     private static readonly string[] Services = new[] { "catalog", "orders", "customer" };
 
     private readonly ITenantWriteRepository _tenantRepository;
     private readonly Customer.Application.Common.Interfaces.IUnitOfWork _unitOfWork;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateTenantCommandHandler"/> class.
     /// </summary>
@@ -29,7 +34,6 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         _tenantRepository = tenantRepository;
         _unitOfWork = unitOfWork;
     }
-
 
     /// <inheritdoc/>
     public async ValueTask<ErrorOr<TenantDto>> Handle(CreateTenantCommand command, CancellationToken cancellationToken)
@@ -65,7 +69,6 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
                 command.DatabaseStrategy,
                 command.CustomCredentials);
 
-
             if (setupResult.IsError)
             {
                 return setupResult.Errors;
@@ -82,14 +85,11 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         return dto;
     }
 
-
     private static Task<ErrorOr<Success>> SetupServiceDatabaseAsync(
-
         Tenant tenant,
         string serviceName,
         DatabaseStrategy strategy,
         DatabaseCredentials? customCredentials)
-
     {
         bool hasSeparateReadDatabase = false;
 
@@ -121,10 +121,7 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         tenant.AddDatabaseMetadata(serviceName, writeEnvVarKey, readEnvVarKey, hasSeparateReadDatabase);
 
         return Task.FromResult<ErrorOr<Success>>(Result.Success);
-
     }
-
-
 
     private static TenantDto MapToDto(Tenant tenant)
     {

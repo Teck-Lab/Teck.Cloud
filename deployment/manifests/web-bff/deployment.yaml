@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-bff
+  labels:
+    app: web-bff
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-bff
+  template:
+    metadata:
+      labels:
+        app: web-bff
+    spec:
+      containers:
+        - name: web-bff
+          image: harbor.tecklab.dk/teck-lab/web-bff:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: Services__CustomerApi__Url
+              value: "http://customer-api.teck-cloud.svc.cluster.local"
+            - name: ReverseProxy__Clusters__catalog__Destinations__cluster1__Address
+              value: "http://catalog-api.teck-cloud.svc.cluster.local/"
+            - name: Keycloak__Authority
+              valueFrom:
+                secretKeyRef:
+                  name: web-bff-secrets
+                  key: keycloak-authority
+            - name: Keycloak__GatewayClientId
+              valueFrom:
+                secretKeyRef:
+                  name: web-bff-secrets
+                  key: gateway-client-id
+            - name: Keycloak__GatewayClientSecret
+              valueFrom:
+                secretKeyRef:
+                  name: web-bff-secrets
+                  key: gateway-client-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20

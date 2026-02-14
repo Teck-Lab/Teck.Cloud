@@ -1,8 +1,4 @@
 using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 using NSubstitute;
@@ -52,5 +48,51 @@ public class TokenExchangeServiceEdgeTests
         var svc = new TokenExchangeService(httpFactory, fusion, config);
 
         await Should.ThrowAsync<HttpRequestException>(async () => await svc.ExchangeTokenAsync("subj","aud","t"));
+    }
+
+    [Fact]
+    public async Task ExchangeToken_ThrowsOnNonTokenPayload()
+    {
+        // Arrange: body is not OAuth token response
+        using var handler = new DelegatingHandlerStub("{ \"foo\": \"bar\" }");
+        using var client = new HttpClient(handler);
+        var httpFactory = Substitute.For<IHttpClientFactory>();
+        httpFactory.CreateClient(Arg.Is<string>(s => s == "KeycloakTokenClient")).Returns(client);
+
+        using var fusion = new FusionCache(new FusionCacheOptions());
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>()
+        {
+            ["Keycloak:Authority"] = "https://example.com",
+            ["Keycloak:GatewayClientId"] = "gateway",
+            ["Keycloak:GatewayClientSecret"] = "secret"
+        }).Build();
+
+        var svc = new TokenExchangeService(httpFactory, fusion, config);
+
+        await Should.ThrowAsync<HttpRequestException>(async () =>
+            await svc.ExchangeTokenAsync("subj", "aud", "t", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task ExchangeToken_ThrowsWhenAccessTokenIsEmpty()
+    {
+        // Arrange: token response with empty access token should fail
+        using var handler = new DelegatingHandlerStub("{ \"access_token\": \"\", \"expires_in\": 60 }");
+        using var client = new HttpClient(handler);
+        var httpFactory = Substitute.For<IHttpClientFactory>();
+        httpFactory.CreateClient(Arg.Is<string>(s => s == "KeycloakTokenClient")).Returns(client);
+
+        using var fusion = new FusionCache(new FusionCacheOptions());
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>()
+        {
+            ["Keycloak:Authority"] = "https://example.com",
+            ["Keycloak:GatewayClientId"] = "gateway",
+            ["Keycloak:GatewayClientSecret"] = "secret"
+        }).Build();
+
+        var svc = new TokenExchangeService(httpFactory, fusion, config);
+
+        await Should.ThrowAsync<HttpRequestException>(async () =>
+            await svc.ExchangeTokenAsync("subj", "aud", "t", TestContext.Current.CancellationToken));
     }
 }

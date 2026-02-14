@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Core.Pricing;
@@ -14,6 +15,8 @@ namespace SharedKernel.Persistence.Database.MultiTenant
     /// </summary>
     public class TenantDbConnectionResolver : ITenantDbConnectionResolver
     {
+        private const string TenantIdHeader = "X-TenantId";
+        private const string TenantDbStrategyHeader = "X-Tenant-DbStrategy";
         // Cache for tenant connection information as a fallback/performance optimization
         private static readonly ConcurrentDictionary<string, (string WriteConnectionString, string? ReadConnectionString, DatabaseProvider Provider, DatabaseStrategy Strategy)> _connectionCache =
             new ConcurrentDictionary<string, (string, string?, DatabaseProvider, DatabaseStrategy)>();
@@ -23,6 +26,7 @@ namespace SharedKernel.Persistence.Database.MultiTenant
         private readonly ILogger<TenantDbConnectionResolver> _logger;
         private readonly Lazy<IFusionCache> _fusionCache;
         private readonly Lazy<IHttpClientFactory> _httpClientFactory;
+        private readonly Lazy<IHttpContextAccessor?> _httpContextAccessor;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TenantDbConnectionResolver"/> class.
@@ -52,6 +56,9 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             _httpClientFactory = new Lazy<IHttpClientFactory>(() =>
                 serviceProvider.GetService<IHttpClientFactory>() ??
                 throw new InvalidOperationException("HttpClientFactory service is not registered"));
+
+            _httpContextAccessor = new Lazy<IHttpContextAccessor?>(() =>
+                serviceProvider.GetService<IHttpContextAccessor>());
         }
 
         /// <summary>
@@ -65,6 +72,11 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             if (tenantInfo == null)
             {
                 return (_defaultWriteConnectionString, _defaultReadConnectionString, _defaultProvider, DatabaseStrategy.Shared);
+            }
+
+            if (TryResolveFromGatewayHint(tenantInfo, out var hintedConnection))
+            {
+                return hintedConnection;
             }
 
             // Try to get from static cache first for best performance
@@ -139,6 +151,59 @@ namespace SharedKernel.Persistence.Database.MultiTenant
 
             // Fallback to looking in tenant properties if API fetch fails
             return GetConnectionFromTenantProperties(tenantInfo);
+        }
+
+        private bool TryResolveFromGatewayHint(
+            TenantDetails tenantInfo,
+            out (string WriteConnectionString, string? ReadConnectionString, DatabaseProvider Provider, DatabaseStrategy Strategy) connection)
+        {
+            connection = default;
+
+            var headers = _httpContextAccessor.Value?.HttpContext?.Request?.Headers;
+            if (headers == null)
+            {
+                return false;
+            }
+
+            if (headers.TryGetValue(TenantIdHeader, out var tenantHeader) &&
+                !string.IsNullOrWhiteSpace(tenantInfo.Id) &&
+                !string.Equals(tenantHeader.ToString(), tenantInfo.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!headers.TryGetValue(TenantDbStrategyHeader, out var strategyHeader) ||
+                string.IsNullOrWhiteSpace(strategyHeader))
+            {
+                return false;
+            }
+
+            if (!DatabaseStrategy.TryFromName(strategyHeader.ToString(), true, out var strategy))
+            {
+                return false;
+            }
+
+            if (strategy == DatabaseStrategy.Shared)
+            {
+                connection = (_defaultWriteConnectionString, _defaultReadConnectionString, _defaultProvider, DatabaseStrategy.Shared);
+
+                if (!string.IsNullOrWhiteSpace(tenantInfo.Id))
+                {
+                    _connectionCache[tenantInfo.Id] = connection;
+                }
+
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(tenantInfo.Id) &&
+                _connectionCache.TryGetValue(tenantInfo.Id, out var cachedConnection) &&
+                cachedConnection.Strategy == strategy)
+            {
+                connection = cachedConnection;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

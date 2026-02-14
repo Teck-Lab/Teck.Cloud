@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: catalog-api
+  namespace: argocd
+spec:
+  project: teck-cloud
+  source:
+    repoURL: https://github.com/Teck-Lab/Teck.Cloud.git
+    targetRevision: main
+    path: deployment/manifests/catalog-api
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: teck-cloud
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

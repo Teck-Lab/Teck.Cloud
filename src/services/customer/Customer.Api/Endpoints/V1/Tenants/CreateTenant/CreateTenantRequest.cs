@@ -1,4 +1,4 @@
-using SharedKernel.Core.Database;
+using SharedKernel.Core.Models;
 
 namespace Customer.Api.Endpoints.V1.Tenants.CreateTenant;
 

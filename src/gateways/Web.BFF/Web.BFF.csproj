@@ -11,10 +11,12 @@
     <PackageReference Include="Keycloak.AuthServices.Authentication" />
     <PackageReference Include="Keycloak.AuthServices.Authorization" />
     <PackageReference Include="Keycloak.AuthServices.Sdk" />
+    <PackageReference Include="IdentityModel" />
     <PackageReference Include="ZiggyCreatures.FusionCache" />
     <PackageReference Include="Finbuckle.MultiTenant.AspNetCore" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="FastEndpoints" />
+    <PackageReference Include="FastEndpoints.Swagger" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />

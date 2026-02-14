@@ -28,6 +28,7 @@
   </Folder>
   <Folder Name="/src/gateways/">
     <Project Path="src/gateways/Web.BFF/Web.BFF.csproj" />
+    <Project Path="src/gateways/Web.Edge/Web.Edge.csproj" />
   </Folder>
   <Folder Name="/src/services/">
     <File Path="src/services/Directory.Build.props" />
@@ -69,6 +70,7 @@
     <Project Path="tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj" />
 
     <Project Path="tests/unit/SharedKernel.Persistence.UnitTests/SharedKernel.Persistence.UnitTests.csproj" />
+    <Project Path="tests/unit/Web.Edge.UnitTests/Web.Edge.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/" />
 </Solution>

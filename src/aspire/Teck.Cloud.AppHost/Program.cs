@@ -24,10 +24,15 @@ var rabbitmqPassword = builder.CreateResourceBuilder(new ParameterResource(
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq", rabbitmqUserName, rabbitmqPassword).WithManagementPlugin();
 
-var keycloak = builder.AddKeycloakContainer("keycloak", "26.5.1")
+var keycloak = builder.AddKeycloakContainer("keycloak", "0.14.1")
+    .WithImage("ghcr.io/teck-lab/teck-cloud/auth")
     .WithDataVolume("local");
 
 var realm = keycloak.AddRealm("Teck-Cloud");
+
+const string edgeTrustSigningKey = "local-edge-trust-signing-key-change-me-0123456789";
+const string edgeTrustIssuer = "teck-edge";
+const string edgeTrustAudience = "teck-web-bff-internal";
 
 
 var catalogapi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
@@ -45,13 +50,8 @@ var catalogapi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
     .WithEnvironment("ConnectionStrings__postgres-read", "${POSTGRES_WRITE_URI}")
     .WithEnvironment("ConnectionStrings__rabbitmq", "${RABBITMQ_URI}")
     .WithEnvironment("ConnectionStrings__redis", "${REDIS_URI}")
-    .WithEnvironment("Services__CustomerApi__Url", "${CUSTOMERAPI_URL}")
-    .WithEnvironment("ASPIRE_LOCAL", "true")
-    .WithEnvironment("Vault__Address", "http://host.docker.internal:8200")
-    .WithEnvironment("Vault__AuthMethod", "UserPass")
-    .WithEnvironment("Vault__Username", "teck-cloud-local")
-    .WithEnvironment("Vault__Password", "Multiply4-Musty6-Tradition7-Perennial7-Acclaim4-Never2")
-    .WithEnvironment("Vault__Namespace", "development");
+    .WithEnvironment("Services__CustomerApi__Url", "http://customer-api")
+    .WithEnvironment("ASPIRE_LOCAL", "true");
 
 var customerapi = builder.AddProject<Projects.Customer_Api>("customer-api")
     .WithReference(cache)
@@ -66,13 +66,7 @@ var customerapi = builder.AddProject<Projects.Customer_Api>("customer-api")
     .WithEnvironment("ConnectionStrings__postgres-read", "${POSTGRES_WRITE_URI}")
     .WithEnvironment("ConnectionStrings__rabbitmq", "${RABBITMQ_URI}")
     .WithEnvironment("ConnectionStrings__redis", "${REDIS_URI}")
-    .WithEnvironment("Services__CustomerApi__Url", "${CUSTOMERAPI_URL}")
-    .WithEnvironment("ASPIRE_LOCAL", "true")
-    .WithEnvironment("Vault__Address", "http://host.docker.internal:8200")
-    .WithEnvironment("Vault__AuthMethod", "UserPass")
-    .WithEnvironment("Vault__Username", "teck-cloud-local")
-    .WithEnvironment("Vault__Password", "Multiply4-Musty6-Tradition7-Perennial7-Acclaim4-Never2")
-    .WithEnvironment("Vault__Namespace", "development");
+    .WithEnvironment("ASPIRE_LOCAL", "true");
 
 var webbff = builder.AddProject<Projects.Web_BFF>("web-bff")
     .WithReference(cache)
@@ -85,13 +79,32 @@ var webbff = builder.AddProject<Projects.Web_BFF>("web-bff")
     .WithEnvironment("ConnectionStrings__postgres-read", "${POSTGRES_WRITE_URI}")
     .WithEnvironment("ConnectionStrings__rabbitmq", "${RABBITMQ_URI}")
     .WithEnvironment("ConnectionStrings__redis", "${REDIS_URI}")
-    .WithEnvironment("Services__CustomerApi__Url", "${CUSTOMERAPI_URL}")
-    .WithEnvironment("ASPIRE_LOCAL", "true")
-    .WithEnvironment("Vault__Address", "http://host.docker.internal:8200")
-    .WithEnvironment("Vault__AuthMethod", "UserPass")
-    .WithEnvironment("Vault__Username", "teck-cloud-local")
-    .WithEnvironment("Vault__Password", "Multiply4-Musty6-Tradition7-Perennial7-Acclaim4-Never2")
-    .WithEnvironment("Vault__Namespace", "development");
+    .WithEnvironment("Services__CustomerApi__Url", "http://customer-api")
+    .WithEnvironment("ReverseProxy__Clusters__catalog__Destinations__cluster1__Address", "http://catalog-api")
+    .WithEnvironment("EdgeTrust__SigningKey", edgeTrustSigningKey)
+    .WithEnvironment("EdgeTrust__Issuer", edgeTrustIssuer)
+    .WithEnvironment("EdgeTrust__Audience", edgeTrustAudience)
+    .WithEnvironment("EdgeTrust__Enforce", "true")
+    .WithEnvironment("ASPIRE_LOCAL", "true");
+
+var webedge = builder.AddProject<Projects.Web_Edge>("web-edge")
+    .WithReference(keycloak)
+    .WithReference(realm)
+    .WithEnvironment("ReverseProxy__Clusters__bff__Destinations__cluster1__Address", "http://web-bff")
+    .WithEnvironment("ReverseProxy__Clusters__catalog__Destinations__cluster1__Address", "http://catalog-api")
+    .WithEnvironment("ReverseProxy__Clusters__customer__Destinations__cluster1__Address", "http://customer-api")
+    .WithEnvironment("EdgeTrust__SigningKey", edgeTrustSigningKey)
+    .WithEnvironment("EdgeTrust__Issuer", edgeTrustIssuer)
+    .WithEnvironment("EdgeTrust__Audience", edgeTrustAudience)
+    .WithEnvironment("EdgeTrust__LifetimeSeconds", "120")
+    .WithEnvironment("ASPIRE_LOCAL", "true");
+
+catalogapi.WithReference(customerapi).WaitFor(customerapi);
+webbff.WithReference(customerapi).WaitFor(customerapi);
+webbff.WithReference(catalogapi).WaitFor(catalogapi);
+webedge.WithReference(webbff).WaitFor(webbff);
+webedge.WithReference(catalogapi).WaitFor(catalogapi);
+webedge.WithReference(customerapi).WaitFor(customerapi);
 
 // Configure multi-tenant settings for Keycloak nested organization claims
 // These will be passed to the API projects as environment variables
