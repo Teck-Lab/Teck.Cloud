@@ -260,7 +260,7 @@
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.0.2" />
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.0.2" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.0.2" />
-    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.0" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.1" />
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.1.0" />
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.0" />
     <PackageVersion Include="Keycloak.AuthServices.Aspire.Hosting" Version="0.2.0" />
