@@ -1,3 +1,30 @@
+# v0.14.1 (Sat Feb 14 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Removes obsolete secrets project and dependencies ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- style: fix using ordering and spacing in infrastructure service extensions and tenant handler ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- refactor(tenant): remove unused credential generation, make setup static and store env var keys; satisfy analyzers ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore(secrets): remove SharedKernel.Secrets project from solution and delete legacy files ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore(secrets): remove leftover SharedKernel.Secrets files; move DTOs to SharedKernel.Core.Models ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore(secrets): replace SharedKernel.Secrets project references with SharedKernel.Core ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore(secrets): move DatabaseCredentials/UserCredentials to SharedKernel.Core.Models and remove Vault runtime impl ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- refactor(catalog): remove unused using and clean blank lines ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- style: fix blank lines and analyzer naming in tenant handlers and DTOs ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- style: fix blank-line and analyzer issues in tenant DTO and readiness handler ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore(migrations): remove runtime migration code and clean references; fix style issues in Tenant DTOs and readiness handler ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore: resolve migration status type collision; add Wolverine refs to migration host; bump Wolverine to 5.15.0 ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore: add WolverineFx refs to Customer.Migration project ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore: bump WolverineFx packages to 5.15.0 ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore: align WolverineFx central package version to 5.11.0 ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.14.0 (Mon Feb 09 2026)
 
 #### 🚀 Enhancement
