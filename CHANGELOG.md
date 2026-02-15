@@ -1,3 +1,19 @@
+# v0.16.0 (Sun Feb 15 2026)
+
+#### 🚀 Enhancement
+
+- feat: Add Keycloak client configurations for various services ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Merge branch 'main' of https://github.com/Teck-Lab/Teck.Cloud ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.15.0 (Sat Feb 14 2026)
 
 #### 🚀 Enhancement
