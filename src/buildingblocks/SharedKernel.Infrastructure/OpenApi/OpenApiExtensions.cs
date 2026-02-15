@@ -3,6 +3,8 @@ using FastEndpoints.Swagger;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
+using NSwag;
 using Scalar.AspNetCore;
 using SharedKernel.Infrastructure.Options;
 
@@ -36,16 +38,15 @@ namespace SharedKernel.Infrastructure.OpenApi
                     {
                         setting.Version = $"v{apiVersion}";
                         setting.Title = $"{appOptions.Name} API";
-                        setting.DocumentName = $"{appOptions.Name.ToLowerInvariant().Replace(" ", "-", StringComparison.InvariantCulture)}-v{apiVersion}";
+                        setting.DocumentName = $"v{apiVersion}";
                         setting.Description = appOptions.Description;
 
-                        if (keycloakOptions != null)
-                        {
-                            // TODO: Fix security scheme configuration - needs proper FastEndpoints API
-                            // setting.SecuritySchemes.Add("oAuth2", AddOAuthScheme(keycloakOptions.KeycloakTokenEndpoint, keycloakOptions.KeycloakUrlRealm + "protocol/openid-connect/auth", keycloakOptions.KeycloakTokenEndpoint));
-                        }
+                        var (tokenEndpoint, authorizationEndpoint) = ResolveOAuthEndpoints(builder.Configuration, keycloakOptions);
 
-                        // setting.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("oAuth2"));
+                        setting.AddAuth(
+                            "oAuth2",
+                            AddOAuthScheme(tokenEndpoint, authorizationEndpoint),
+                            ["openid", "profile", "email"]);
                     };
                 });
 
@@ -74,7 +75,7 @@ namespace SharedKernel.Infrastructure.OpenApi
                 options.OpenApiRoutePattern = "/openapi/{documentName}/openapi.json";
                 foreach (var apiVersion in appOptions.Versions)
                 {
-                    options.AddDocument($"{appOptions.Name.ToLowerInvariant().Replace(" ", "-", StringComparison.InvariantCulture)}-v{apiVersion}");
+                    options.AddDocument($"v{apiVersion}");
                 }
 
                 options
@@ -85,6 +86,58 @@ namespace SharedKernel.Infrastructure.OpenApi
                     flow.Pkce = Pkce.Sha256; // Enable PKCE
                 });
             });
+        }
+
+        private static OpenApiSecurityScheme AddOAuthScheme(string tokenEndpoint, string authorizationEndpoint)
+        {
+            return new OpenApiSecurityScheme
+            {
+                Type = OpenApiSecuritySchemeType.OAuth2,
+                Flows = new OpenApiOAuthFlows
+                {
+                    AuthorizationCode = new OpenApiOAuthFlow
+                    {
+                        AuthorizationUrl = authorizationEndpoint,
+                        TokenUrl = tokenEndpoint,
+                        Scopes = new Dictionary<string, string>
+                        {
+                            ["openid"] = "OpenID Connect",
+                            ["profile"] = "User profile",
+                            ["email"] = "User email"
+                        }
+                    }
+                }
+            };
+        }
+
+        private static (string TokenEndpoint, string AuthorizationEndpoint) ResolveOAuthEndpoints(
+            IConfiguration configuration,
+            KeycloakAuthenticationOptions? keycloakOptions)
+        {
+            const string fallbackRealmBase = "http://localhost:8080/realms/Teck.Cloud";
+
+            var authority = configuration["Keycloak:Authority"]?.TrimEnd('/');
+            var realmBase = keycloakOptions?.KeycloakUrlRealm?.TrimEnd('/');
+
+            if (string.IsNullOrWhiteSpace(realmBase))
+            {
+                realmBase = authority;
+            }
+
+            if (string.IsNullOrWhiteSpace(realmBase))
+            {
+                realmBase = fallbackRealmBase;
+            }
+
+            var tokenEndpoint = keycloakOptions?.KeycloakTokenEndpoint;
+            if (string.IsNullOrWhiteSpace(tokenEndpoint))
+            {
+                tokenEndpoint = $"{realmBase}/protocol/openid-connect/token";
+            }
+
+            var authorizationEndpoint = $"{realmBase}/protocol/openid-connect/auth";
+
+            return (tokenEndpoint, authorizationEndpoint);
         }
     }
 }

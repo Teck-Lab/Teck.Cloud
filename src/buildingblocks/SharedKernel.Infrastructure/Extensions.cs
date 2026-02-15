@@ -53,7 +53,8 @@ namespace SharedKernel.Infrastructure
 
             builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
-            // 2. Authorization
+            // 2. Authentication/Authorization baseline
+            builder.Services.AddAuthentication();
             builder.Services.AddAuthorization();
 
             // 3. CORS

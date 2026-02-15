@@ -156,11 +156,42 @@ namespace SharedKernel.Infrastructure.Auth
                     .AddKeycloakAuthorization()
                     .AddAuthorizationServer(config);
 
-            // Add health check for Keycloak's OpenID Connect server
-            services.AddHealthChecks().AddOpenIdConnectServer(
-                new Uri($"{keycloakOptions.AuthServerUrl}/realms/{keycloakOptions.Realm}/"),
-                tags: ["openId", "identity", "keycloak"],
-                failureStatus: HealthStatus.Degraded);
+            // Add health check for Keycloak's OpenID Connect server.
+            // Prefer AuthServerUrl+Realm when available, otherwise fall back to Authority/KeycloakUrlRealm.
+            var openIdBaseUrl = keycloakOptions.AuthServerUrl;
+            if (string.IsNullOrWhiteSpace(openIdBaseUrl))
+            {
+                if (!string.IsNullOrWhiteSpace(keycloakOptions.KeycloakUrlRealm))
+                {
+                    openIdBaseUrl = keycloakOptions.KeycloakUrlRealm;
+                }
+                else
+                {
+                    openIdBaseUrl = config["Keycloak:Authority"];
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(openIdBaseUrl))
+            {
+                string healthEndpoint;
+                if (!string.IsNullOrWhiteSpace(keycloakOptions.Realm) &&
+                    !openIdBaseUrl.Contains("/realms/", StringComparison.OrdinalIgnoreCase))
+                {
+                    healthEndpoint = $"{openIdBaseUrl.TrimEnd('/')}/realms/{keycloakOptions.Realm.Trim('/')}/";
+                }
+                else
+                {
+                    healthEndpoint = $"{openIdBaseUrl.TrimEnd('/')}/";
+                }
+
+                if (Uri.TryCreate(healthEndpoint, UriKind.Absolute, out var openIdUri))
+                {
+                    services.AddHealthChecks().AddOpenIdConnectServer(
+                        openIdUri,
+                        tags: ["openId", "identity", "keycloak"],
+                        failureStatus: HealthStatus.Degraded);
+                }
+            }
 
             return services;
         }

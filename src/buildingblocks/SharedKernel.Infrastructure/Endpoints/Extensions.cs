@@ -17,20 +17,27 @@ namespace SharedKernel.Infrastructure.Endpoints
         /// Add fast endpoints extension.
         /// </summary>
         /// <param name="services">The services.</param>
-        /// <param name="applicationAssembly">The application assembly.</param>
+        /// <param name="validatorAssembly"></param>
+        /// <param name="apiAssembly"></param>
         public static IServiceCollection AddFastEndpointsInfrastructure(
             this IServiceCollection services,
-            Assembly? applicationAssembly = null)
+            Assembly? validatorAssembly = null,
+            Assembly? apiAssembly = null)
         {
             services.AddFastEndpoints(ep =>
             {
-                if (applicationAssembly is not null)
+                var assemblies = new List<Assembly>();
+                if (apiAssembly is not null)
                 {
-                    ep.Assemblies = [applicationAssembly];
+                    assemblies.Add(apiAssembly);
                 }
+                if (validatorAssembly is not null)
+                {
+                    assemblies.Add(validatorAssembly);
+                    services.AddValidatorsFromAssembly(validatorAssembly, filter: filter => filter.ValidatorType.BaseType?.GetGenericTypeDefinition() != typeof(FastEndpoints.Validator<>));
+                }
+                ep.Assemblies = assemblies.ToArray();
             }).AddIdempotency();
-
-            services.AddValidatorsFromAssembly(applicationAssembly, filter: filter => filter.ValidatorType.BaseType?.GetGenericTypeDefinition() != typeof(FastEndpoints.Validator<>));
 
             return services;
         }

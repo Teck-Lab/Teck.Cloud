@@ -38,7 +38,9 @@ public static class InfrastructureServiceExtensions
 
         // Only attempt to bind Keycloak options if a Keycloak server URL is provided and looks valid.
         KeycloakAuthenticationOptions? keycloakOptions = null;
-        var keycloakAuthServerUrl = builder.Configuration["Keycloak:AuthServerUrl"];
+        var keycloakAuthServerUrl = builder.Configuration["Keycloak:AuthServerUrl"]
+            ?? builder.Configuration["Keycloak:auth-server-url"]
+            ?? builder.Configuration["Keycloak:Authority"];
         if (!string.IsNullOrWhiteSpace(keycloakAuthServerUrl) && Uri.IsWellFormedUriString(keycloakAuthServerUrl, UriKind.Absolute))
         {
             try

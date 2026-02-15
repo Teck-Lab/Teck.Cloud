@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-  
+
   <!-- Language & Compilation Settings -->
   <PropertyGroup>
     <NoWarn>IDE00585;CS8669;HLQ012</NoWarn>

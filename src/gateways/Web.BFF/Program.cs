@@ -1,23 +1,22 @@
-using System.Security.Cryptography;
-using System.Text;
+using System.Reflection;
 using Keycloak.AuthServices.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using SharedKernel.Infrastructure.Auth;
+using SharedKernel.Infrastructure.Endpoints;
 using SharedKernel.Infrastructure.MultiTenant;
+using SharedKernel.Infrastructure.OpenApi;
+using SharedKernel.Infrastructure.Options;
 using Web.BFF.Middleware.InternalTrust;
-using ZiggyCreatures.Caching.Fusion;
-using Yarp.ReverseProxy.Transforms;
-using FastEndpoints;
-using FastEndpoints.Swagger;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
 
 // Configuration sections
 var keycloakSection = builder.Configuration.GetSection("Keycloak");
+Assembly applicationAssembly = typeof(Web.BFF.Services.TokenExchangeService).Assembly;
+Assembly apiAssembly = typeof(Web.BFF.Services.TokenExchangeService).Assembly;
+var appOptions = new AppOptions();
+builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 
 // Add Keycloak auth (uses SharedKernel helper)
 var keycloakOptions = new KeycloakAuthenticationOptions();
@@ -43,27 +42,36 @@ builder.Services.AddHttpClient("KeycloakTokenClient", client =>
 builder.Services.AddHttpClient("CustomerApi", client =>
 {
     var customerApiUrl = builder.Configuration["Services:CustomerApi:Url"];
+    if (string.IsNullOrWhiteSpace(customerApiUrl))
+    {
+        customerApiUrl = builder.Configuration["ReverseProxy:Clusters:customer:Destinations:cluster1:Address"];
+    }
+
     if (!string.IsNullOrWhiteSpace(customerApiUrl))
     {
         client.BaseAddress = new Uri(customerApiUrl);
     }
 });
 
+builder.Services.AddHttpClient("CatalogApi", client =>
+{
+    var catalogApiUrl = builder.Configuration["Services:CatalogApi:Url"];
+    if (string.IsNullOrWhiteSpace(catalogApiUrl))
+    {
+        catalogApiUrl = builder.Configuration["ReverseProxy:Clusters:catalog:Destinations:cluster1:Address"];
+    }
+
+    if (!string.IsNullOrWhiteSpace(catalogApiUrl))
+    {
+        client.BaseAddress = new Uri(catalogApiUrl);
+    }
+});
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<Web.BFF.Services.ITokenExchangeService, Web.BFF.Services.TokenExchangeService>();
 builder.Services.AddSingleton<Web.BFF.Services.ITenantRoutingMetadataService, Web.BFF.Services.TenantRoutingMetadataService>();
-
-// FastEndpoints
-builder.Services.AddFastEndpoints();
-builder.Services.SwaggerDocument(options =>
-{
-    options.DocumentSettings = settings =>
-    {
-        settings.DocumentName = "v1";
-        settings.Title = "Teck Web BFF";
-        settings.Version = "v1";
-    };
-});
+builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
+builder.AddOpenApiInfrastructure(appOptions);
 
 // Authentication/Authorization middleware (Keycloak)
 builder.Services.AddAuthentication();
@@ -71,23 +79,17 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok("ok"));
-
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseFastEndpointsInfrastructure();
+app.UseOpenApiInfrastructure(appOptions);
 
 app.UseMiddleware<InternalIdentityValidationMiddleware>();
 
 // Token exchange middleware should run before ReverseProxy so it can mutate headers
 app.UseMiddleware<Web.BFF.Middleware.TokenExchangeMiddleware>();
-
-// Use FastEndpoints for small auth endpoints
-app.UseFastEndpoints();
-app.UseSwaggerGen(swaggerOptions =>
-{
-    swaggerOptions.Path = "/openapi/{documentName}/openapi.json";
-});
 
 app.MapReverseProxy();
 

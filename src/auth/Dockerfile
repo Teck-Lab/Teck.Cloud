@@ -1,9 +1,9 @@
 # Dockerfile for Teck Keycloak Auth
 # Based on official Keycloak distribution
-ARG KEYCLOAK_VERSION=26.5.23
+ARG KEYCLOAK_VERSION=26.5.3
 ARG VERSION=1.0.0
 
-FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION} as builder
+FROM docker.io/keycloak/keycloak:${KEYCLOAK_VERSION} as builder
 
 USER 1000
 WORKDIR /opt/keycloak
@@ -12,7 +12,7 @@ ADD --chown=1000:0 https://github.com/emirhannaneli/keycloak-shadcn/releases/dow
 
 RUN /opt/keycloak/bin/kc.sh build
 
-FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+FROM docker.io/keycloak/keycloak:${KEYCLOAK_VERSION}
 ARG VERSION
 ARG KEYCLOAK_VERSION
 
@@ -27,7 +27,7 @@ LABEL org.opencontainers.image.title="Teck Keycloak Auth" \
       org.opencontainers.image.authors="Teck Team" \
       org.opencontainers.image.vendor="Teck" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.base.name="quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}"
+      org.opencontainers.image.base.name="docker.io/keycloak/keycloak:${KEYCLOAK_VERSION}"
 
 LABEL com.teck.service.name="auth" \
       com.teck.service.type="keycloak" \

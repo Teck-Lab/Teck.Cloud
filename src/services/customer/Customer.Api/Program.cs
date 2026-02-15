@@ -13,14 +13,15 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 Assembly applicationAssembly = typeof(ICustomerApplication).Assembly;
+Assembly apiAssembly = typeof(Program).Assembly;
 var appOptions = new AppOptions();
 builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 
 builder.AddBaseInfrastructure(appOptions);
 builder.AddInfrastructureServices(applicationAssembly);
 
-builder.Services.AddFastEndpointsInfrastructure(applicationAssembly);
 builder.AddMediatorInfrastructure(applicationAssembly);
+builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
 builder.AddOpenApiInfrastructure(appOptions);
 
 builder.Services.AddRequestTimeouts();

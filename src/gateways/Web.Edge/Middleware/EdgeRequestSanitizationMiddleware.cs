@@ -1,5 +1,6 @@
 namespace Web.Edge.Middleware;
 
+using System.Security.Claims;
 using Web.Edge.Security;
 
 public sealed class EdgeRequestSanitizationMiddleware
@@ -32,15 +33,33 @@ public sealed class EdgeRequestSanitizationMiddleware
             context.Request.Headers.Remove(header);
         }
 
-        if (context.User?.Identity?.IsAuthenticated == true)
+        if (context.Request.Path.StartsWithSegments("/openapi/admin", StringComparison.OrdinalIgnoreCase))
         {
-            var internalIdentityToken = _internalIdentityTokenService.CreateToken(context.User);
-            if (!string.IsNullOrWhiteSpace(internalIdentityToken))
-            {
-                context.Request.Headers["X-Internal-Identity"] = internalIdentityToken;
-            }
+            context.Request.Headers.Remove("Authorization");
+        }
+
+        var principal = context.User?.Identity?.IsAuthenticated == true
+            ? context.User
+            : CreateServicePrincipal();
+
+        var internalIdentityToken = _internalIdentityTokenService.CreateToken(principal);
+        if (!string.IsNullOrWhiteSpace(internalIdentityToken))
+        {
+            context.Request.Headers["X-Internal-Identity"] = internalIdentityToken;
         }
 
         await _next(context);
+    }
+
+    private static ClaimsPrincipal CreateServicePrincipal()
+    {
+        var identity = new ClaimsIdentity(
+        [
+            new Claim("sub", "web-edge"),
+            new Claim("client_id", "web-edge")
+        ],
+        authenticationType: "EdgeInternal");
+
+        return new ClaimsPrincipal(identity);
     }
 }

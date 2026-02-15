@@ -22,13 +22,14 @@ builder.AddCachingInfrastructure();
 builder.AddMultiTenantSupport(customerApiUrl);
 
 Assembly applicationAssembly = typeof(ICatalogApplication).Assembly;
+Assembly apiAssembly = typeof(Program).Assembly;
 var appOptions = new AppOptions();
 builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 
 builder.AddBaseInfrastructure(appOptions);
 builder.AddInfrastructureServices(applicationAssembly);
 
-builder.Services.AddFastEndpointsInfrastructure(applicationAssembly);
+builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
 builder.AddMediatorInfrastructure(applicationAssembly);
 builder.AddOpenApiInfrastructure(appOptions);
 

@@ -39,6 +39,16 @@ public static class InfrastructureServiceExtensions
         string defaultReadConnectionString = builder.Configuration.GetConnectionString("postgres-read")
             ?? defaultWriteConnectionString;
 
+        var normalizedRabbit = rabbitmqConnectionString;
+        if (normalizedRabbit.StartsWith("rabbitmqs://", StringComparison.OrdinalIgnoreCase))
+        {
+            normalizedRabbit = string.Concat("amqps://".AsSpan(), normalizedRabbit.AsSpan("rabbitmqs://".Length));
+        }
+        else if (normalizedRabbit.StartsWith("rabbitmq://", StringComparison.OrdinalIgnoreCase))
+        {
+            normalizedRabbit = string.Concat("amqp://".AsSpan(), normalizedRabbit.AsSpan("rabbitmq://".Length));
+        }
+
         // Add DbContexts
         builder.Services.AddDbContext<CustomerWriteDbContext>(
             options =>
@@ -70,7 +80,7 @@ public static class InfrastructureServiceExtensions
             opts.PublishDomainEventsFromEntityFrameworkCore<BaseEntity>(entity => entity.DomainEvents);
             opts.Policies.UseDurableLocalQueues();
 
-            var rabbit = opts.UseRabbitMq(new Uri(rabbitmqConnectionString));
+            var rabbit = opts.UseRabbitMq(new Uri(normalizedRabbit));
             rabbit.AutoProvision();
             rabbit.EnableWolverineControlQueues();
             rabbit.UseConventionalRouting();
@@ -84,7 +94,7 @@ public static class InfrastructureServiceExtensions
                 {
                     var factory = new ConnectionFactory
                     {
-                        Uri = new Uri(rabbitmqConnectionString),
+                        Uri = new Uri(normalizedRabbit),
                         AutomaticRecoveryEnabled = true
                     };
                     return factory.CreateConnectionAsync();
