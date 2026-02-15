@@ -116,7 +116,7 @@
   <!-- MULTI-TENANCY                                      -->
   <!-- ================================================== -->
   <ItemGroup Label="Multi-Tenancy">
-    <PackageVersion Include="Finbuckle.MultiTenant" Version="10.0.2" />
+    <PackageVersion Include="Finbuckle.MultiTenant" Version="10.0.3" />
     <PackageVersion Include="Finbuckle.MultiTenant.EntityFrameworkCore" Version="10.0.2" />
     <PackageVersion Include="Finbuckle.MultiTenant.AspNetCore" Version="10.0.2" />
   </ItemGroup>
