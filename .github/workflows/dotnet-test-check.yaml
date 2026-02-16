@@ -379,7 +379,7 @@ jobs:
 
       - name: Upload Trivy filesystem scan results to Security tab
         if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.32.3
         with:
           sarif_file: trivy-fs-results.sarif
           category: 'trivy-filesystem'
@@ -500,7 +500,7 @@ jobs:
 
       - name: Upload Trivy scan results to Security tab
         if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.32.3
         with:
           sarif_file: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
           category: 'trivy-image-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}'
