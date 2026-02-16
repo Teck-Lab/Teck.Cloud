@@ -259,7 +259,7 @@ jobs:
           password: ${{ secrets.github-token }}
 
       - name: Run Trivy vulnerability scanner (SARIF)
-        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # 0.31.0
         continue-on-error: true
         env:
           TRIVY_USERNAME: ${{ github.actor }}
@@ -281,7 +281,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner (JSON)
         if: always()
-        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # 0.31.0
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.github-token }}
