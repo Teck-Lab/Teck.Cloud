@@ -161,7 +161,7 @@ jobs:
           echo "digest-${{ env.PLATFORM_PAIR }}=$digest" >> $GITHUB_OUTPUT
 
       - name: Upload digest
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@47309c993abb98030a35d55ef7ff34b7fa1074b5 # v4.5.0
         with:
           name: digests-${{ inputs.service-name }}-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/${{ inputs.service-name }}/*
@@ -294,7 +294,7 @@ jobs:
 
       - name: Upload Trivy JSON report
         if: always()
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@47309c993abb98030a35d55ef7ff34b7fa1074b5 # v4.5.0
         with:
           name: trivy-scan-${{ inputs.service-name }}
           path: trivy-results.json
@@ -343,14 +343,14 @@ jobs:
           registry-password: ${{ secrets.github-token }}
 
       - name: Upload SPDX SBOM artifact
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@47309c993abb98030a35d55ef7ff34b7fa1074b5 # v4.5.0
         with:
           name: sbom-spdx-${{ inputs.service-name }}
           path: sbom-${{ inputs.service-name }}.spdx.json
           retention-days: 90
 
       - name: Upload CycloneDX SBOM artifact
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@47309c993abb98030a35d55ef7ff34b7fa1074b5 # v4.5.0
         with:
           name: sbom-cyclonedx-${{ inputs.service-name }}
           path: sbom-${{ inputs.service-name }}.cyclonedx.json
@@ -425,7 +425,7 @@ jobs:
           sbom-path: sbom-${{ inputs.service-name }}.spdx.json
 
       - name: Upload signed SPDX SBOM artifacts
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@47309c993abb98030a35d55ef7ff34b7fa1074b5 # v4.5.0
         with:
           name: sbom-spdx-signed-${{ inputs.service-name }}
           path: |
@@ -436,7 +436,7 @@ jobs:
           retention-days: 90
 
       - name: Upload signed CycloneDX SBOM artifacts
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@47309c993abb98030a35d55ef7ff34b7fa1074b5 # v4.5.0
         with:
           name: sbom-cyclonedx-signed-${{ inputs.service-name }}
           path: |
@@ -573,7 +573,7 @@ jobs:
             vex-${{ inputs.service-name }}.openvex.json
 
       - name: Upload VEX artifacts
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@47309c993abb98030a35d55ef7ff34b7fa1074b5 # v4.5.0
         with:
           name: vex-${{ inputs.service-name }}
           path: |
