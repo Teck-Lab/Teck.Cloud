@@ -37,7 +37,7 @@ namespace Catalog.IntegrationTests.Shared
         }
 
 
-        private void TryConfigurePodmanSocketIfAvailable()
+        private static void TryConfigurePodmanSocketIfAvailable()
         {
             try
             {
@@ -136,11 +136,11 @@ namespace Catalog.IntegrationTests.Shared
                 var rabbitConn = rabbitConnRaw;
                 if (rabbitConnRaw.StartsWith("rabbitmqs://", StringComparison.OrdinalIgnoreCase))
                 {
-                    rabbitConn = "amqps://" + rabbitConnRaw.Substring("rabbitmqs://".Length);
+                    rabbitConn = string.Concat("amqps://", rabbitConnRaw.AsSpan("rabbitmqs://".Length));
                 }
                 else if (rabbitConnRaw.StartsWith("rabbitmq://", StringComparison.OrdinalIgnoreCase))
                 {
-                    rabbitConn = "amqp://" + rabbitConnRaw.Substring("rabbitmq://".Length);
+                    rabbitConn = string.Concat("amqp://", rabbitConnRaw.AsSpan("rabbitmq://".Length));
                 }
                 Console.WriteLine($"[Testcontainers] RabbitMQ started: {rabbitConn}");
                 Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", rabbitConn);

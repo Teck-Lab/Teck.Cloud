@@ -14,10 +14,11 @@ internal static class Extensions
 {
     internal static IHostApplicationBuilder ConfigureTeckCloudOpenTelemetry(this IHostApplicationBuilder builder)
     {
-        var compositeTextMapPropagator = new CompositeTextMapPropagator(new TextMapPropagator[]
-        {
-            new TraceContextPropagator(),
-            new BaggagePropagator()
+        var compositeTextMapPropagator = new CompositeTextMapPropagator(
+            new TextMapPropagator[]
+            {
+                new TraceContextPropagator(),
+                new BaggagePropagator(),
             });
 
         Sdk.SetDefaultTextMapPropagator(compositeTextMapPropagator);

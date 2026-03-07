@@ -13,11 +13,11 @@ namespace SharedKernel.Infrastructure.Endpoints
     public static class Extensions
     {
         /// <summary>
-        /// Adds FastEndpoints and validator infrastructure.
+        /// Registers FastEndpoints and wires validator discovery with idempotency middleware support.
         /// </summary>
         /// <param name="services">The service collection.</param>
-        /// <param name="assemblies">Optional assemblies containing endpoints and validators.</param>
-        /// <returns>The service collection.</returns>
+        /// <param name="assemblies">Optional assemblies to scan for endpoint and validator types.</param>
+        /// <returns>The updated service collection instance.</returns>
         public static IServiceCollection AddFastEndpointsInfrastructure(
             this IServiceCollection services,
             params Assembly[] assemblies)
@@ -54,14 +54,24 @@ namespace SharedKernel.Infrastructure.Endpoints
         }
 
         /// <summary>
-        /// Enables FastEndpoints pipeline, swagger and Scalar API reference.
+        /// Enables the FastEndpoints runtime pipeline using the default route prefix behavior.
+        /// </summary>
+        /// <param name="app">The application builder.</param>
+        /// <returns>The same application builder for fluent chaining.</returns>
+        public static IApplicationBuilder UseFastEndpointsInfrastructure(this IApplicationBuilder app)
+        {
+            return UseFastEndpointsInfrastructure(app, null);
+        }
+
+        /// <summary>
+        /// Enables the FastEndpoints runtime pipeline and applies an explicit route prefix when provided.
         /// </summary>
         /// <param name="app">The application builder.</param>
         /// <param name="routePrefix">Optional service route prefix (for example: customer, catalog).</param>
-        /// <returns>The application builder.</returns>
+        /// <returns>The same application builder for fluent chaining.</returns>
         public static IApplicationBuilder UseFastEndpointsInfrastructure(
             this IApplicationBuilder app,
-            string? routePrefix = null)
+            string? routePrefix)
         {
             WebApplication webApplication = (WebApplication)app;
 

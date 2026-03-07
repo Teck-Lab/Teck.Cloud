@@ -1,7 +1,7 @@
+using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Caching;
 using SharedKernel.Core.Database;
 using SharedKernel.Infrastructure.MultiTenant;
-using Finbuckle.MultiTenant.Abstractions;
 using ZiggyCreatures.Caching.Fusion;
 
 namespace SharedKernel.Persistence.Caching

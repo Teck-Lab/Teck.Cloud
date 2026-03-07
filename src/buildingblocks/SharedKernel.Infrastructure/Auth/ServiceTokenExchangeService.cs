@@ -42,6 +42,39 @@ public sealed class TokenExchangeException : Exception
     /// <summary>
     /// Initializes a new instance of the <see cref="TokenExchangeException"/> class.
     /// </summary>
+    public TokenExchangeException()
+        : base("Token exchange failed.")
+    {
+        Error = "unknown_error";
+        Description = "n/a";
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TokenExchangeException"/> class.
+    /// </summary>
+    /// <param name="message">Exception message.</param>
+    public TokenExchangeException(string message)
+        : base(message)
+    {
+        Error = "unknown_error";
+        Description = "n/a";
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TokenExchangeException"/> class.
+    /// </summary>
+    /// <param name="message">Exception message.</param>
+    /// <param name="innerException">Inner exception.</param>
+    public TokenExchangeException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+        Error = "unknown_error";
+        Description = "n/a";
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TokenExchangeException"/> class.
+    /// </summary>
     /// <param name="message">Exception message.</param>
     /// <param name="error">Identity provider error code.</param>
     /// <param name="description">Identity provider error description.</param>
@@ -129,16 +162,18 @@ public sealed class ServiceTokenExchangeService : IServiceTokenExchangeService
         HttpClient client = _httpClientFactory.CreateClient("KeycloakTokenClient");
         string tokenEndpoint = ResolveTokenEndpoint(_configuration);
 
+        using var tokenExchangeRequest = new TokenExchangeTokenRequest
+        {
+            Address = tokenEndpoint,
+            ClientId = ResolveClientId(_configuration),
+            ClientSecret = ResolveClientSecret(_configuration),
+            SubjectToken = subjectToken,
+            SubjectTokenType = "urn:ietf:params:oauth:token-type:access_token",
+            Audience = audience,
+        };
+
         var response = await client.RequestTokenExchangeTokenAsync(
-            new TokenExchangeTokenRequest
-            {
-                Address = tokenEndpoint,
-                ClientId = ResolveClientId(_configuration),
-                ClientSecret = ResolveClientSecret(_configuration),
-                SubjectToken = subjectToken,
-                SubjectTokenType = "urn:ietf:params:oauth:token-type:access_token",
-                Audience = audience,
-            },
+            tokenExchangeRequest,
             cancellationToken);
 
         if (response.IsError)
@@ -231,8 +266,7 @@ public sealed class ServiceTokenExchangeService : IServiceTokenExchangeService
 
     private static string Sha256(string input)
     {
-        using SHA256 sha = SHA256.Create();
-        byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+        byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
 
         return Convert.ToHexString(bytes);
     }

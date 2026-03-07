@@ -82,7 +82,7 @@ internal static class Extensions
         }
         else
         {
-            serilogConfig.WriteTo.Async(a => a.Console(theme: AnsiConsoleTheme.Literate, outputTemplate:
+            serilogConfig.WriteTo.Async(consoleWriter => consoleWriter.Console(theme: AnsiConsoleTheme.Literate, outputTemplate:
                     "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}"));
         }
     }

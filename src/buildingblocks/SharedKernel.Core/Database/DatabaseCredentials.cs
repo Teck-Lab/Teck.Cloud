@@ -6,37 +6,37 @@ namespace SharedKernel.Core.Models;
 public sealed record DatabaseCredentials
 {
     /// <summary>
-    /// Admin user credentials for database migrations and schema changes.
+    /// Gets admin user credentials for database migrations and schema changes.
     /// </summary>
     public required UserCredentials Admin { get; init; }
 
     /// <summary>
-    /// Application user credentials for runtime database access.
+    /// Gets application user credentials for runtime database access.
     /// </summary>
     public required UserCredentials Application { get; init; }
 
     /// <summary>
-    /// Database host.
+    /// Gets database host.
     /// </summary>
     public required string Host { get; init; }
 
     /// <summary>
-    /// Database port.
+    /// Gets database port.
     /// </summary>
     public required int Port { get; init; }
 
     /// <summary>
-    /// Database name.
+    /// Gets database name.
     /// </summary>
     public required string Database { get; init; }
 
     /// <summary>
-    /// Additional connection parameters.
+    /// Gets additional connection parameters.
     /// </summary>
-    public Dictionary<string, string>? AdditionalParameters { get; init; }
+    public IReadOnlyDictionary<string, string>? AdditionalParameters { get; init; }
 
     /// <summary>
-    /// Database provider (e.g., "PostgreSQL", "SqlServer", "MySQL").
+    /// Gets database provider (e.g., "PostgreSQL", "SqlServer", "MySQL").
     /// </summary>
     public string? Provider { get; init; }
 
@@ -129,12 +129,12 @@ public sealed record DatabaseCredentials
 public sealed record UserCredentials
 {
     /// <summary>
-    /// Username.
+    /// Gets username.
     /// </summary>
     public required string Username { get; init; }
 
     /// <summary>
-    /// Password.
+    /// Gets password.
     /// </summary>
     public required string Password { get; init; }
 }

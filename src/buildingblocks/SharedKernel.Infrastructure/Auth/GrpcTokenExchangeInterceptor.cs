@@ -57,75 +57,35 @@ public sealed class GrpcTokenExchangeInterceptor : Interceptor
         where TRequest : class
         where TResponse : class
     {
-        Task<OutboundSecurityContext> contextTask = _securityContextFactory.CreateAsync(
-            _httpContextAccessor.HttpContext,
-            _audience,
-            CancellationToken.None);
+        OutboundSecurityContext outbound = _securityContextFactory
+            .CreateAsync(_httpContextAccessor.HttpContext, _audience, CancellationToken.None)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
 
-        async Task<AsyncUnaryCall<TResponse>> BuildCallAsync()
+        Metadata headers = [];
+        if (context.Options.Headers is not null)
         {
-            OutboundSecurityContext outbound = await contextTask.ConfigureAwait(false);
-            Metadata headers = [];
-            if (context.Options.Headers is not null)
+            foreach (Metadata.Entry entry in context.Options.Headers)
             {
-                foreach (Metadata.Entry entry in context.Options.Headers)
-                {
-                    headers.Add(entry);
-                }
+                headers.Add(entry);
             }
-
-            ApplyHeaders(headers, outbound);
-
-            CallOptions callOptions = context.Options.WithHeaders(headers);
-            ClientInterceptorContext<TRequest, TResponse> nextContext =
-                new(context.Method, context.Host, callOptions);
-
-            return continuation(request, nextContext);
         }
 
-        Task<AsyncUnaryCall<TResponse>> callTask = BuildCallAsync();
+        ApplyHeaders(headers, outbound);
 
-        async Task<TResponse> AwaitResponseAsync()
-        {
-            AsyncUnaryCall<TResponse> call = await callTask.ConfigureAwait(false);
-            return await call.ResponseAsync.ConfigureAwait(false);
-        }
+        CallOptions callOptions = context.Options.WithHeaders(headers);
+        ClientInterceptorContext<TRequest, TResponse> nextContext =
+            new(context.Method, context.Host, callOptions);
 
-        Task<Metadata> AwaitResponseHeadersAsync()
-        {
-            return callTask.ContinueWith(
-                static task => task.Result.ResponseHeadersAsync,
-                TaskContinuationOptions.OnlyOnRanToCompletion).Unwrap();
-        }
-
-        Status GetStatus()
-        {
-            AsyncUnaryCall<TResponse> call = callTask.GetAwaiter().GetResult();
-            return call.GetStatus();
-        }
-
-        Metadata GetTrailers()
-        {
-            AsyncUnaryCall<TResponse> call = callTask.GetAwaiter().GetResult();
-            return call.GetTrailers();
-        }
-
-        void Dispose()
-        {
-            if (!callTask.IsCompletedSuccessfully)
-            {
-                return;
-            }
-
-            callTask.Result.Dispose();
-        }
+        AsyncUnaryCall<TResponse> call = continuation(request, nextContext);
 
         return new AsyncUnaryCall<TResponse>(
-            AwaitResponseAsync(),
-            AwaitResponseHeadersAsync(),
-            GetStatus,
-            GetTrailers,
-            Dispose);
+            call.ResponseAsync,
+            call.ResponseHeadersAsync,
+            call.GetStatus,
+            call.GetTrailers,
+            call.Dispose);
     }
 
     private static void ApplyHeaders(Metadata headers, OutboundSecurityContext outbound)

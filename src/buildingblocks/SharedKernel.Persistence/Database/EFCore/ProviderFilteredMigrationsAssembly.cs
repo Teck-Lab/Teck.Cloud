@@ -2,8 +2,6 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Migrations.Operations;
-using Microsoft.EntityFrameworkCore.Migrations.Internal;
 
 namespace SharedKernel.Persistence.Database.EFCore;
 
@@ -46,13 +44,8 @@ internal sealed class ProviderFilteredMigrationsAssembly : IMigrationsAssembly
 
     public Migration CreateMigration(TypeInfo migrationClass, string activeProvider)
     {
-        Migration migration = (Migration)Activator.CreateInstance(migrationClass.AsType())!;
-
-        PropertyInfo? activeProviderProperty = typeof(Migration)
-            .GetProperty("ActiveProvider", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        activeProviderProperty?.SetValue(migration, activeProvider);
-
-        return migration;
+        _ = activeProvider;
+        return (Migration)Activator.CreateInstance(migrationClass.AsType())!;
     }
 
     public string? FindMigrationId(string nameOrId)

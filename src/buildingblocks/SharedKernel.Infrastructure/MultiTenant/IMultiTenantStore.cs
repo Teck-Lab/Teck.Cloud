@@ -1,5 +1,3 @@
-using Finbuckle.MultiTenant;
-
 namespace SharedKernel.Infrastructure.MultiTenant
 {
     /// <summary>

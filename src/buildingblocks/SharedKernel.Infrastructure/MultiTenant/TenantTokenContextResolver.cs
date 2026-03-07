@@ -66,6 +66,12 @@ public sealed class TenantTokenContextResolver : ITenantTokenContextResolver
             }
             catch (JsonException)
             {
+                foreach (string tenantId in organizationClaimValue
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(static tenantId => !string.IsNullOrWhiteSpace(tenantId)))
+                {
+                    tenantIds.Add(tenantId);
+                }
             }
         }
 

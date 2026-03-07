@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Core.Pricing;
@@ -15,6 +15,7 @@ namespace SharedKernel.Persistence.Database.MultiTenant
     {
         private const string TenantIdHeader = "X-TenantId";
         private const string TenantDbStrategyHeader = "X-Tenant-DbStrategy";
+
         // Cache for tenant connection information as a fallback/performance optimization
         private static readonly ConcurrentDictionary<string, (string WriteConnectionString, string? ReadConnectionString, DatabaseProvider Provider, DatabaseStrategy Strategy)> _connectionCache =
             new ConcurrentDictionary<string, (string, string?, DatabaseProvider, DatabaseStrategy)>();
@@ -294,15 +295,12 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             directories.Add("/mnt/secrets-store");
             directories.Add("/var/run/secrets");
 
-            foreach (string directory in directories.Distinct(StringComparer.OrdinalIgnoreCase))
+            foreach (string directory in directories
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(Directory.Exists))
             {
                 try
                 {
-                    if (!Directory.Exists(directory))
-                    {
-                        continue;
-                    }
-
                     var fileCandidates = new[]
                     {
                         Path.Combine(directory, envStyleKey),
@@ -310,15 +308,12 @@ namespace SharedKernel.Persistence.Database.MultiTenant
                         Path.Combine(directory, envStyleKey.Replace("__", "-", StringComparison.Ordinal)),
                     };
 
-                    foreach (string filePath in fileCandidates)
+                    foreach (string filePath in fileCandidates.Where(File.Exists))
                     {
-                        if (File.Exists(filePath))
+                        string value = File.ReadAllText(filePath).Trim();
+                        if (!string.IsNullOrWhiteSpace(value))
                         {
-                            string value = File.ReadAllText(filePath).Trim();
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                return value;
-                            }
+                            return value;
                         }
                     }
                 }

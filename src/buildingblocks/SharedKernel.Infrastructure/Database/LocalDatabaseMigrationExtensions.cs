@@ -1,5 +1,5 @@
-using System.Data.Common;
 using System.Data;
+using System.Data.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -80,7 +80,7 @@ public static class LocalDatabaseMigrationExtensions
         return app;
     }
 
-    private static void ApplyMigrationsIfNeeded(DbContext dbContext, string? connectionStringOverride = null)
+    private static void ApplyMigrationsIfNeeded(DbContext dbContext, string? connectionStringOverride)
     {
         string? effectiveConnectionString = connectionStringOverride;
 
@@ -109,7 +109,12 @@ public static class LocalDatabaseMigrationExtensions
         dbContext.Database.Migrate();
     }
 
-    private static void TryApplyMigrationsIfNeeded(DbContext dbContext, ILogger logger, string? connectionStringOverride = null)
+    private static void TryApplyMigrationsIfNeeded(DbContext dbContext, ILogger logger)
+    {
+        TryApplyMigrationsIfNeeded(dbContext, logger, null);
+    }
+
+    private static void TryApplyMigrationsIfNeeded(DbContext dbContext, ILogger logger, string? connectionStringOverride)
     {
         try
         {

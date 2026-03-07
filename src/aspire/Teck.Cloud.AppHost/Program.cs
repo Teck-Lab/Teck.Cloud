@@ -7,8 +7,8 @@ var postgresWrite = builder.AddPostgres("db-write")
     .WithDataVolume(isReadOnly: false);
 
 var catalogDb_postgresWrite = postgresWrite.AddDatabase("catalogdb");
-var sitedb_postgresWrite = postgresWrite.AddDatabase("sitedb");
-var devicedb_postgresWrite = postgresWrite.AddDatabase("devicedb");
+_ = postgresWrite.AddDatabase("sitedb");
+_ = postgresWrite.AddDatabase("devicedb");
 var customerdb_postgresWrite = postgresWrite.AddDatabase("customerdb");
 
 var rabbitmqUserName = builder.CreateResourceBuilder(new ParameterResource(

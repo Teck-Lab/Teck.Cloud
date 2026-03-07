@@ -35,8 +35,8 @@ namespace Catalog.Api.Extensions
                 // Behaviors are executed in listed order, wrapping around the core handler.
                 options.PipelineBehaviors =
                 [
-                typeof(LoggingBehavior<,>),         // Logs request start, end, and duration.
-            ];
+                    typeof(LoggingBehavior<,>), // Logs request start, end, and duration.
+                ];
             });
 
             return builder;

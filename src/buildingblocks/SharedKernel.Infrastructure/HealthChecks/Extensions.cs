@@ -16,13 +16,28 @@ public static class Extensions
     /// <param name="builder">The web application builder.</param>
     /// <param name="provider">The selected database provider.</param>
     /// <param name="writeConnectionString">The write database connection string.</param>
+    /// <returns>The same builder for chaining.</returns>
+    public static WebApplicationBuilder AddReadWriteHealthChecks(
+        this WebApplicationBuilder builder,
+        DatabaseProvider provider,
+        string writeConnectionString)
+    {
+        return AddReadWriteHealthChecks(builder, provider, writeConnectionString, null);
+    }
+
+    /// <summary>
+    /// Adds database health checks for write and optional read endpoints based on provider.
+    /// </summary>
+    /// <param name="builder">The web application builder.</param>
+    /// <param name="provider">The selected database provider.</param>
+    /// <param name="writeConnectionString">The write database connection string.</param>
     /// <param name="readConnectionString">The optional read-only database connection string.</param>
     /// <returns>The same builder for chaining.</returns>
     public static WebApplicationBuilder AddReadWriteHealthChecks(
         this WebApplicationBuilder builder,
         DatabaseProvider provider,
         string writeConnectionString,
-        string? readConnectionString = null)
+        string? readConnectionString)
     {
         var healthChecks = builder.Services.AddHealthChecks();
 
@@ -42,12 +57,25 @@ public static class Extensions
     /// </summary>
     /// <param name="builder">The web application builder.</param>
     /// <param name="writeConnectionString">The write database connection string.</param>
+    /// <returns>The same builder for chaining.</returns>
+    public static WebApplicationBuilder AddPostgresReadWriteHealthChecks(
+        this WebApplicationBuilder builder,
+        string writeConnectionString)
+    {
+        return builder.AddReadWriteHealthChecks(DatabaseProvider.PostgreSQL, writeConnectionString, null);
+    }
+
+    /// <summary>
+    /// Adds PostgreSQL health checks for write and optional read endpoints.
+    /// </summary>
+    /// <param name="builder">The web application builder.</param>
+    /// <param name="writeConnectionString">The write database connection string.</param>
     /// <param name="readConnectionString">The optional read-only database connection string.</param>
     /// <returns>The same builder for chaining.</returns>
     public static WebApplicationBuilder AddPostgresReadWriteHealthChecks(
         this WebApplicationBuilder builder,
         string writeConnectionString,
-        string? readConnectionString = null)
+        string? readConnectionString)
     {
         return builder.AddReadWriteHealthChecks(DatabaseProvider.PostgreSQL, writeConnectionString, readConnectionString);
     }

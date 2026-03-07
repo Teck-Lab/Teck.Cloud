@@ -1,6 +1,6 @@
+using FastEndpoints;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
-using FastEndpoints;
 using Microsoft.AspNetCore.Authentication;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Auth;
@@ -70,12 +70,13 @@ builder.Services.AddOpenApi();
 
 WebApplication app = builder.Build();
 
-app.MapRemote(ResolveRemoteAddress(
-    builder.Configuration,
-    "Services:CustomerApi:Url"),
-    c =>
+app.MapRemote(
+    ResolveRemoteAddress(
+        builder.Configuration,
+        "Services:CustomerApi:Url"),
+    remote =>
     {
-        c.Register<SharedKernel.Grpc.Contracts.Remote.V1.Tenants.GetTenantDatabaseInfoCommand, SharedKernel.Grpc.Contracts.Remote.V1.Tenants.TenantDatabaseInfoRpcResult>();
+        remote.Register<SharedKernel.Grpc.Contracts.Remote.V1.Tenants.GetTenantDatabaseInfoCommand, SharedKernel.Grpc.Contracts.Remote.V1.Tenants.TenantDatabaseInfoRpcResult>();
     });
 
 app.UseRouting();
@@ -123,4 +124,3 @@ static bool TryBuildAbsoluteUri(string? value, out Uri uri)
 
     return false;
 }
-

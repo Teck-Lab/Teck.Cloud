@@ -73,7 +73,7 @@ internal sealed class AdminRouteAuthorizationMiddleware
                 context,
                 StatusCodes.Status403Forbidden,
                 "Forbidden",
-            $"Missing required role '{_securityOptions.EmployeeRole}'.",
+                $"Missing required role '{_securityOptions.EmployeeRole}'.",
                 "authorization.role.missing");
 
             return;

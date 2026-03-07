@@ -7,7 +7,7 @@ namespace Web.Edge.Services;
 /// <summary>
 /// Resolves tenant database strategy metadata for downstream routing decisions.
 /// </summary>
-public interface ITenantDatabaseStrategyResolver
+internal interface ITenantDatabaseStrategyResolver
 {
     /// <summary>
     /// Resolves tenant database metadata for a downstream service.

@@ -196,7 +196,8 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 var client = _httpClientFactory.CreateClient(_options.HttpClientName);
                 string encodedIdentifier = Uri.EscapeDataString(identifier);
                 var endpoint = _options.TenantDetailsEndpoint.Replace("{tenantId}", encodedIdentifier, StringComparison.Ordinal);
-                var response = await client.GetAsync(endpoint).ConfigureAwait(false);
+                Uri requestUri = BuildRequestUri(endpoint);
+                var response = await client.GetAsync(requestUri).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -279,7 +280,8 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 var client = _httpClientFactory.CreateClient(_options.HttpClientName);
                 string encodedId = Uri.EscapeDataString(id);
                 var endpoint = _options.TenantByIdEndpoint.Replace("{id}", encodedId, StringComparison.Ordinal);
-                var response = await client.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                Uri requestUri = BuildRequestUri(endpoint);
+                var response = await client.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -356,7 +358,8 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 {
                     var client = _httpClientFactory.CreateClient(_options.HttpClientName);
                     var endpoint = _options.TenantByNameEndpoint.Replace("{name}", Uri.EscapeDataString(name), StringComparison.Ordinal);
-                    var response = await client.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
+                    Uri requestUri = BuildRequestUri(endpoint);
+                    var response = await client.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
                     {
                         resolvedTenant = await response.Content.ReadFromJsonAsync<TenantDetails>(cancellationToken);
@@ -437,6 +440,13 @@ namespace SharedKernel.Infrastructure.MultiTenant
             // Not implemented in this version
             _logger.LogWarning("Updating tenants via HTTP is not implemented");
             return Task.FromResult(false);
+        }
+
+        private static Uri BuildRequestUri(string endpoint)
+        {
+            return Uri.TryCreate(endpoint, UriKind.Absolute, out Uri? absoluteUri)
+                ? absoluteUri
+                : new Uri(endpoint, UriKind.Relative);
         }
 
         // All caching is now handled by FusionCache's GetOrSetAsync methods above.

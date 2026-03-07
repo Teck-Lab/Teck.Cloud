@@ -47,6 +47,8 @@ file_header_template = <copyright file="{fileName}" company="TeckLab">\nCopyrigh
 [**/Persistence/Migrations/**/*.cs]
 dotnet_diagnostic.S1186.severity = none
 
+[*.cs]
+
 # https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/csharp-formatting-options
 # New line preferences
 csharp_new_line_before_open_brace = all

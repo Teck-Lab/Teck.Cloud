@@ -1,14 +1,14 @@
+using FastEndpoints;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
-using FastEndpoints;
+using SharedKernel.Grpc.Contracts.Remote.V1.ServiceVersions;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Auth;
 using SharedKernel.Infrastructure.Caching;
-using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Infrastructure.OpenApi;
 using SharedKernel.Infrastructure.Options;
-using SharedKernel.Grpc.Contracts.Remote.V1.ServiceVersions;
 using Web.Aggregate.Gateway.Services;
 
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
@@ -92,20 +92,22 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.MapRemote(ResolveRemoteAddress(
-    builder.Configuration,
-    "Services:CatalogApi:Url"),
-    c =>
+app.MapRemote(
+    ResolveRemoteAddress(
+        builder.Configuration,
+        "Services:CatalogApi:Url"),
+    remote =>
     {
-        c.Register<GetCatalogServiceVersionCommand, ServiceVersionRpcResult>();
+        remote.Register<GetCatalogServiceVersionCommand, ServiceVersionRpcResult>();
     });
 
-app.MapRemote(ResolveRemoteAddress(
-    builder.Configuration,
-    "Services:CustomerApi:Url"),
-    c =>
+app.MapRemote(
+    ResolveRemoteAddress(
+        builder.Configuration,
+        "Services:CustomerApi:Url"),
+    remote =>
     {
-        c.Register<GetCustomerServiceVersionCommand, ServiceVersionRpcResult>();
+        remote.Register<GetCustomerServiceVersionCommand, ServiceVersionRpcResult>();
     });
 
 app.UseBaseInfrastructure();
@@ -113,7 +115,7 @@ app.UseBaseInfrastructure();
 app.UseFastEndpointsInfrastructure("aggregate");
 app.UseOpenApiInfrastructure(appOptions);
 
-app.Run();
+await app.RunAsync();
 
 static string ResolveRemoteAddress(IConfiguration configuration, string key)
 {

@@ -59,7 +59,11 @@ namespace SharedKernel.Infrastructure.Endpoints
         {
             if (!result.IsError)
             {
-                return Results.Created(location, result.Value);
+                Uri locationUri = Uri.TryCreate(location, UriKind.RelativeOrAbsolute, out Uri? parsedLocation)
+                    ? parsedLocation
+                    : new Uri(location, UriKind.Relative);
+
+                return Results.Created(locationUri, result.Value);
             }
 
             return CreateErrorResult(result, httpContext);

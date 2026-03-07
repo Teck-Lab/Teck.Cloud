@@ -63,7 +63,7 @@ public sealed class GenericCacheServiceTests
         key.ShouldBe("DummyEntity:123");
     }
 
-    public sealed class DummyEntity
+    private sealed class DummyEntity
     {
     }
 }

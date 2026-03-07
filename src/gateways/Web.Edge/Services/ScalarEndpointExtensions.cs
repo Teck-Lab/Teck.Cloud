@@ -1,5 +1,5 @@
-using Scalar.AspNetCore;
 using System.Text.RegularExpressions;
+using Scalar.AspNetCore;
 
 namespace Web.Edge.Services;
 
@@ -28,14 +28,13 @@ internal static class ScalarEndpointExtensions
                         string service = prefixPath.Trim('/');
                         string normalizedService = service.ToLowerInvariant();
 
-                        foreach (IConfigurationSection pathNode in swagger.GetSection("Paths").GetChildren())
+                        foreach (string path in swagger
+                            .GetSection("Paths")
+                            .GetChildren()
+                            .Select(pathNode => pathNode.Value)
+                            .Where(static path => !string.IsNullOrWhiteSpace(path))
+                            .Cast<string>())
                         {
-                            string? path = pathNode.Value;
-                            if (string.IsNullOrWhiteSpace(path))
-                            {
-                                continue;
-                            }
-
                             Match versionMatch = Regex.Match(path, @"v\d+");
                             string version = versionMatch.Success ? versionMatch.Value : "v1";
                             string normalizedVersion = version.ToLowerInvariant();

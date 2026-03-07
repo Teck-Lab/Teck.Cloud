@@ -12,7 +12,7 @@ namespace Web.Edge.Services;
 /// <param name="StatusCode">The HTTP status code to map on failure.</param>
 /// <param name="ErrorCode">The machine-readable error code on failure.</param>
 /// <param name="ErrorDetail">The human-readable error detail on failure.</param>
-public sealed record TenantDatabaseStrategyLookupResult(
+internal sealed record TenantDatabaseStrategyLookupResult(
     bool Success,
     string? DatabaseStrategy,
     int? StatusCode,

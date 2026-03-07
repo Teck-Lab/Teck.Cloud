@@ -86,8 +86,11 @@ public static class Extensions
             Predicate = static remote => remote.Tags.Contains("live"),
         }).AllowAnonymous();
 
-        app.Lifetime.ApplicationStarted.Register(() =>
+        CancellationTokenRegistration applicationStartedRegistration = default;
+        applicationStartedRegistration = app.Lifetime.ApplicationStarted.Register(() =>
         {
+            applicationStartedRegistration.Dispose();
+
             using var scope = app.Services.CreateScope();
             var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("HealthChecks");
             var options = scope.ServiceProvider.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value;

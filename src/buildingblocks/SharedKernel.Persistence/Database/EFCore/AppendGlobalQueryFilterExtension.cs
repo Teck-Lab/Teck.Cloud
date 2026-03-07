@@ -17,9 +17,8 @@ namespace SharedKernel.Persistence.Database.EFCore
                     entity.ClrType.GetInterface(typeof(TInterface).Name) is not null)
                 .ToArray();
 
-            foreach (var entityType in entities)
+            foreach (Type entity in entities.Select(entityType => entityType.ClrType))
             {
-                Type entity = entityType.ClrType;
                 ParameterExpression parameterType = Expression.Parameter(modelBuilder.Entity(entity).Metadata.ClrType);
                 Expression filterBody = ReplaceParameter(filter.Body, filter.Parameters[0], parameterType);
 

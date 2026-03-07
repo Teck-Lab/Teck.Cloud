@@ -257,11 +257,19 @@ internal sealed class TenantEnforcementMiddleware
             bool expiredOrInvalidToken = statusCode == StatusCodes.Status401Unauthorized
                 && IsExpiredOrInvalidTokenDescription(exception.Description);
 
-            string detail = expiredOrInvalidToken
-                ? "Bearer token expired or invalid. Re-authenticate and try again."
-                : string.IsNullOrWhiteSpace(exception.Description)
-                    ? "Unable to exchange token for downstream service access."
-                    : exception.Description;
+            string detail;
+            if (expiredOrInvalidToken)
+            {
+                detail = "Bearer token expired or invalid. Re-authenticate and try again.";
+            }
+            else if (string.IsNullOrWhiteSpace(exception.Description))
+            {
+                detail = "Unable to exchange token for downstream service access.";
+            }
+            else
+            {
+                detail = exception.Description;
+            }
 
             string errorCode = expiredOrInvalidToken
                 ? "authorization.token.expired"
