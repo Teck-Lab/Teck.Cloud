@@ -1,5 +1,4 @@
 using Catalog.Application.Brands.Features.GetPaginatedBrands.V1;
-using Catalog.Application.Brands.Features.Responses;
 using Catalog.Application.Brands.Repositories;
 using NSubstitute;
 using SharedKernel.Core.Pagination;
@@ -14,7 +13,7 @@ namespace Catalog.UnitTests.Application.Brands
         {
             // Arrange
             var brandRepository = Substitute.For<IBrandReadRepository>();
-            var expected = new PagedList<BrandResponse>([], 0, 1, 10);
+            var expected = new PagedList<GetPaginatedBrandsResponse>([], 0, 1, 10);
             var request = new GetPaginatedBrandsQuery(1, 10, "test");
 
             var sut = new GetPaginatedBrandsQueryHandler(brandRepository);

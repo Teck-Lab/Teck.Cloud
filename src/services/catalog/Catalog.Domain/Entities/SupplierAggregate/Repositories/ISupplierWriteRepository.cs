@@ -1,3 +1,7 @@
+// <copyright file="ISupplierWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Database;
 
 namespace Catalog.Domain.Entities.SupplierAggregate.Repositories;
@@ -13,5 +17,5 @@ public interface ISupplierWriteRepository : IGenericWriteRepository<Supplier, Gu
     /// <param name="name">The name of the supplier.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The supplier if found, otherwise null.</returns>
-    Task<Supplier?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<Supplier?> GetByNameAsync(string name, CancellationToken cancellationToken);
 }

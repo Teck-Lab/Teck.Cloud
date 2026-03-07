@@ -1,3 +1,7 @@
+// <copyright file="ProductCreatedDomainEvent.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Events;
 
 namespace Catalog.Domain.Entities.ProductAggregate.Events

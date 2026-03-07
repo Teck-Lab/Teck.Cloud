@@ -27,11 +27,12 @@ public class UnitOfWorkTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "test-tenant",
+                "Test Tenant",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -61,18 +62,20 @@ public class UnitOfWorkTests : IDisposable
     {
         // Arrange
         var tenant1Result = Tenant.Create(
-            "tenant-1",
-            "Tenant 1",
-            "Starter",
-            DatabaseStrategy.Shared,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "tenant-1",
+                "Tenant 1",
+                "Starter",
+                DatabaseStrategy.Shared,
+                DatabaseProvider.PostgreSQL));
 
         var tenant2Result = Tenant.Create(
-            "tenant-2",
-            "Tenant 2",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "tenant-2",
+                "Tenant 2",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL));
 
         await _dbContext.Tenants.AddAsync(tenant1Result.Value, TestContext.Current.CancellationToken);
         await _dbContext.Tenants.AddAsync(tenant2Result.Value, TestContext.Current.CancellationToken);
@@ -91,11 +94,12 @@ public class UnitOfWorkTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "update-tenant",
-            "Original Name",
-            "Starter",
-            DatabaseStrategy.Shared,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "update-tenant",
+                "Original Name",
+                "Starter",
+                DatabaseStrategy.Shared,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -118,11 +122,12 @@ public class UnitOfWorkTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "delete-tenant",
-            "To Be Deleted",
-            "Starter",
-            DatabaseStrategy.Shared,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "delete-tenant",
+                "To Be Deleted",
+                "Starter",
+                DatabaseStrategy.Shared,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -143,6 +148,26 @@ public class UnitOfWorkTests : IDisposable
     public void Dispose()
     {
         _dbContext?.Dispose();
+    }
+
+    private static TenantCreateArgs CreateArgs(
+        string identifier,
+        string name,
+        string plan,
+        DatabaseStrategy strategy,
+        DatabaseProvider provider)
+    {
+        return new TenantCreateArgs
+        {
+            Identifier = identifier,
+            Name = name,
+            Plan = plan,
+            Database = new TenantCreateDatabaseSettings
+            {
+                DatabaseStrategy = strategy,
+                DatabaseProvider = provider,
+            },
+        };
     }
 
     // Test-specific DbContext that bypasses multi-tenant complications

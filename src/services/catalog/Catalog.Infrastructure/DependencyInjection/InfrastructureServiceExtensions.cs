@@ -1,24 +1,24 @@
-#pragma warning disable IDE0005
+// <copyright file="InfrastructureServiceExtensions.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using System.Reflection;
 using Catalog.Infrastructure.Persistence;
-using JasperFx.CodeGeneration;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using RabbitMQ.Client;
 using Scrutor;
-using SharedKernel.Core.Database;
-using SharedKernel.Core.Domain;
 using SharedKernel.Core.Exceptions;
+using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.Auth;
+using SharedKernel.Infrastructure.Database;
+using SharedKernel.Infrastructure.HealthChecks;
+using SharedKernel.Infrastructure.Messaging;
+using SharedKernel.Persistence.Database;
 using Wolverine;
-using Wolverine.EntityFrameworkCore;
-using Wolverine.Postgresql;
-using Wolverine.RabbitMQ;
 
 namespace Catalog.Infrastructure.DependencyInjection;
 
@@ -34,125 +34,14 @@ public static class InfrastructureServiceExtensions
     /// <param name="applicationAssembly">The application assembly to scan for services.</param>
     public static void AddInfrastructureServices(this WebApplicationBuilder builder, Assembly applicationAssembly)
     {
-        Assembly dbContextAssembly = typeof(ApplicationWriteDbContext).Assembly;
+        ValidateInputs(builder, applicationAssembly);
+        CatalogConnectionSettings connectionSettings = ResolveConnectionSettings(builder.Configuration);
 
-        // Only attempt to bind Keycloak options if a Keycloak server URL is provided and looks valid.
-        KeycloakAuthenticationOptions? keycloakOptions = null;
-        var keycloakAuthServerUrl = builder.Configuration["Keycloak:AuthServerUrl"]
-            ?? builder.Configuration["Keycloak:auth-server-url"]
-            ?? builder.Configuration["Keycloak:Authority"];
-        if (!string.IsNullOrWhiteSpace(keycloakAuthServerUrl) && Uri.IsWellFormedUriString(keycloakAuthServerUrl, UriKind.Absolute))
-        {
-            try
-            {
-                keycloakOptions = builder.Configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>();
-            }
-            catch (Exception bindException)
-            {
-                Console.WriteLine($"[Startup] Failed to bind Keycloak options: {bindException}");
-            }
-        }
-
-        string rabbitmqConnectionString = builder.Configuration.GetConnectionString("rabbitmq")
-            ?? throw new ConfigurationMissingException("RabbitMq");
-
-        string defaultWriteConnectionString = builder.Configuration.GetConnectionString("postgres-write")
-            ?? throw new ConfigurationMissingException("Database (write)");
-        string defaultReadConnectionString = builder.Configuration.GetConnectionString("postgres-read")
-            ?? defaultWriteConnectionString;
-
-        // Only configure Keycloak if options are present and the configured authority is a valid absolute URI.
-        if (keycloakOptions != null &&
-            !string.IsNullOrWhiteSpace(keycloakOptions.KeycloakUrlRealm) &&
-            Uri.IsWellFormedUriString(keycloakOptions.KeycloakUrlRealm, UriKind.Absolute))
-        {
-            try
-            {
-                builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
-            }
-            catch (Exception addKeycloakException)
-            {
-                // Log and continue; tests should be able to run without Keycloak configured correctly
-                Console.WriteLine($"[Startup] AddKeycloak failed: {addKeycloakException}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("[Startup] Keycloak not configured or authority invalid; skipping Keycloak registration for tests.");
-        }
-
-        builder.AddCqrsDatabase(dbContextAssembly, defaultWriteConnectionString, defaultReadConnectionString);
-
-        try
-        {
-            builder.UseWolverine(opts =>
-            {
-                // Use dynamic type loading in development, static in production
-                opts.CodeGeneration.TypeLoadMode = builder.Environment.IsDevelopment()
-                    ? TypeLoadMode.Dynamic
-                    : TypeLoadMode.Static;
-
-                opts.PersistMessagesWithPostgresql(defaultWriteConnectionString, schemaName: "wolverine")
-                    .UseMasterTableTenancy(data =>
-                    {
-                        data.RegisterDefault(defaultWriteConnectionString);
-                    });
-
-                opts.UseEntityFrameworkCoreTransactions();
-                opts.PublishDomainEventsFromEntityFrameworkCore<BaseEntity>(entity => entity.DomainEvents);
-                opts.Policies.UseDurableLocalQueues();
-
-                // Normalize rabbitmq URI scheme to amqp/amqps for RabbitMQ.Client compatibility
-                var normalizedRabbit = rabbitmqConnectionString;
-                if (normalizedRabbit.StartsWith("rabbitmqs://", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    normalizedRabbit = string.Concat("amqps://".AsSpan(), normalizedRabbit.AsSpan("rabbitmqs://".Length));
-                }
-                else if (normalizedRabbit.StartsWith("rabbitmq://", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    normalizedRabbit = string.Concat("amqp://".AsSpan(), normalizedRabbit.AsSpan("rabbitmq://".Length));
-                }
-
-                Console.WriteLine($"[Startup] Using RabbitMQ URI for Wolverine: {normalizedRabbit}");
-                var rabbit = opts.UseRabbitMq(new Uri(normalizedRabbit));
-                rabbit.AutoProvision();
-                rabbit.EnableWolverineControlQueues();
-                rabbit.UseConventionalRouting();
-
-                opts.Services.AddDbContextWithWolverineManagedMultiTenancy<ApplicationWriteDbContext>((builder, defaultWriteConnectionString, _) =>
-                {
-                    builder.UseNpgsql(defaultWriteConnectionString.Value, assembly => assembly.MigrationsAssembly(dbContextAssembly));
-                });
-            });
-        }
-        catch (Exception wolverineException)
-        {
-            Console.WriteLine($"[Startup][Error] Exception configuring Wolverine/RabbitMQ: {wolverineException}");
-            throw;
-        }
-
-        builder.Services.AddHealthChecks().AddRabbitMQ(
-            sp =>
-            {
-                var factory = new ConnectionFactory
-                {
-                    Uri = new Uri(rabbitmqConnectionString),
-                    AutomaticRecoveryEnabled = true
-                };
-                return factory.CreateConnectionAsync();
-            },
-            timeout: TimeSpan.FromSeconds(5),
-            tags: new[] { "messagebus", "rabbitmq" });
-
-        // Automatically register services.
-        builder.Services.Scan(selector => selector
-            .FromAssemblies(applicationAssembly, dbContextAssembly)
-            .AddClasses(classes => classes.Where(type =>
-                type != typeof(ApplicationReadDbContext) &&
-                type != typeof(ApplicationWriteDbContext)))
-            .UsingRegistrationStrategy(RegistrationStrategy.Skip)
-            .AsMatchingInterface()
-            .WithScopedLifetime());
+        ConfigureIdentity(builder);
+        ConfigureDatabase(builder, connectionSettings);
+        ConfigureWolverine(builder, connectionSettings);
+        ConfigureHealthChecks(builder, connectionSettings);
+        RegisterServices(builder.Services, applicationAssembly);
     }
 
     /// <summary>
@@ -162,6 +51,169 @@ public static class InfrastructureServiceExtensions
     /// <returns>An IApplicationBuilder.</returns>
     public static IApplicationBuilder UseInfrastructureServices(this IApplicationBuilder app)
     {
+        ArgumentNullException.ThrowIfNull(app);
+        app.ApplyLocalDatabaseMigrations<ApplicationWriteDbContext, ApplicationReadDbContext>();
         return app;
+    }
+
+    private static string ResolveWriteConnectionString(IConfiguration configuration, DatabaseProvider provider)
+    {
+        _ = provider;
+        return configuration.GetConnectionString("db-write")
+            ?? throw new ConfigurationMissingException("Database (write)");
+    }
+
+    private static string ResolveReadConnectionString(IConfiguration configuration, DatabaseProvider provider, string defaultWriteConnectionString)
+    {
+        _ = provider;
+        return configuration.GetConnectionString("db-read")
+            ?? defaultWriteConnectionString;
+    }
+
+    private static void ConfigureIdentity(WebApplicationBuilder builder)
+    {
+        if (!TryGetKeycloakOptions(builder.Configuration, out KeycloakAuthenticationOptions? keycloakOptions) || keycloakOptions is null)
+        {
+            Console.WriteLine("[Startup] Keycloak not configured or authority invalid; skipping Keycloak registration for tests.");
+            return;
+        }
+
+        builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
+    }
+
+    private static void ConfigureDatabase(WebApplicationBuilder builder, CatalogConnectionSettings settings)
+    {
+        Assembly dbContextAssembly = typeof(ApplicationWriteDbContext).Assembly;
+        Assembly migrationsAssembly = ResolveMigrationsAssembly(settings.DatabaseProvider, dbContextAssembly);
+
+        builder.AddCqrsDatabase(
+            migrationsAssembly,
+            settings.WriteConnectionString,
+            settings.ReadConnectionString,
+            settings.DatabaseProvider);
+    }
+
+    private static Assembly ResolveMigrationsAssembly(DatabaseProvider provider, Assembly fallbackAssembly)
+    {
+        string suffix;
+        if (provider == DatabaseProvider.SqlServer)
+        {
+            suffix = "SqlServer";
+        }
+        else if (provider == DatabaseProvider.MySQL)
+        {
+            suffix = "MySql";
+        }
+        else
+        {
+            suffix = "PostgreSQL";
+        }
+
+        string assemblyName = $"Catalog.Infrastructure.Migrations.{suffix}";
+        Assembly? alreadyLoaded = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, assemblyName, StringComparison.Ordinal));
+        if (alreadyLoaded is not null)
+        {
+            return alreadyLoaded;
+        }
+
+        string assemblyPath = Path.Combine(AppContext.BaseDirectory, $"{assemblyName}.dll");
+        if (File.Exists(assemblyPath))
+        {
+            AssemblyName migrationAssemblyName = new(assemblyName);
+            return Assembly.Load(migrationAssemblyName);
+        }
+
+        return fallbackAssembly;
+    }
+
+    private static void ConfigureWolverine(WebApplicationBuilder builder, CatalogConnectionSettings settings)
+    {
+        bool isDevelopment = builder.Environment.IsDevelopment();
+
+        builder.UseWolverine(options =>
+        {
+            WolverinePersistenceConfigurator.ConfigureStandardRuntime(
+                options,
+                isDevelopment,
+                settings.DatabaseProvider,
+                settings.WriteConnectionString,
+                settings.RabbitConnectionString);
+
+            Console.WriteLine($"[Startup] Using RabbitMQ URI for Wolverine: {settings.RabbitConnectionString}");
+        });
+    }
+
+    private static void ConfigureHealthChecks(WebApplicationBuilder builder, CatalogConnectionSettings settings)
+    {
+        builder.AddRabbitMqHealthCheck(settings.RabbitConnectionString);
+    }
+
+    private static void RegisterServices(IServiceCollection services, Assembly applicationAssembly)
+    {
+        Assembly dbContextAssembly = typeof(ApplicationWriteDbContext).Assembly;
+
+        services.Scan(selector => selector
+            .FromAssemblies(applicationAssembly, dbContextAssembly)
+            .AddClasses(classes => classes.Where(type =>
+                type != typeof(ApplicationReadDbContext) &&
+                type != typeof(ApplicationWriteDbContext)))
+            .UsingRegistrationStrategy(RegistrationStrategy.Skip)
+            .AsMatchingInterface()
+            .WithScopedLifetime());
+    }
+
+    private static CatalogConnectionSettings ResolveConnectionSettings(IConfiguration configuration)
+    {
+        string rabbitConnectionString = configuration.GetConnectionString("rabbitmq")
+            ?? throw new ConfigurationMissingException("RabbitMq");
+        DatabaseProvider databaseProvider = configuration.GetDatabaseProvider();
+        string writeConnectionString = ResolveWriteConnectionString(configuration, databaseProvider);
+        string readConnectionString = ResolveReadConnectionString(configuration, databaseProvider, writeConnectionString);
+
+        return new CatalogConnectionSettings
+        {
+            RabbitConnectionString = WolverinePersistenceConfigurator.NormalizeRabbitConnectionString(rabbitConnectionString),
+            WriteConnectionString = writeConnectionString,
+            ReadConnectionString = readConnectionString,
+            DatabaseProvider = databaseProvider,
+        };
+    }
+
+    private static bool TryGetKeycloakOptions(ConfigurationManager configuration, out KeycloakAuthenticationOptions? keycloakOptions)
+    {
+        keycloakOptions = null;
+        string? keycloakAuthServerUrl = configuration["Keycloak:AuthServerUrl"]
+            ?? configuration["Keycloak:auth-server-url"]
+            ?? configuration["Keycloak:Authority"];
+
+        if (string.IsNullOrWhiteSpace(keycloakAuthServerUrl) ||
+            !Uri.IsWellFormedUriString(keycloakAuthServerUrl, UriKind.Absolute))
+        {
+            return false;
+        }
+
+        keycloakOptions = configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>();
+        return keycloakOptions is not null &&
+               !string.IsNullOrWhiteSpace(keycloakOptions.KeycloakUrlRealm) &&
+               Uri.IsWellFormedUriString(keycloakOptions.KeycloakUrlRealm, UriKind.Absolute);
+    }
+
+    private static void ValidateInputs(WebApplicationBuilder builder, Assembly applicationAssembly)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(applicationAssembly);
+    }
+
+    private sealed record CatalogConnectionSettings
+    {
+        public string RabbitConnectionString { get; init; } = string.Empty;
+
+        public string WriteConnectionString { get; init; } = string.Empty;
+
+        public string ReadConnectionString { get; init; } = string.Empty;
+
+        public DatabaseProvider DatabaseProvider { get; init; } = default!;
     }
 }

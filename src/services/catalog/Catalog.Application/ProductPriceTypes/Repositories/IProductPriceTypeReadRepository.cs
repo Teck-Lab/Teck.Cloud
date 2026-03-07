@@ -1,3 +1,7 @@
+// <copyright file="IProductPriceTypeReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.ProductPriceTypes.ReadModels;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Pagination;
@@ -14,7 +18,7 @@ public interface IProductPriceTypeReadRepository : IGenericReadRepository<Produc
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of product price type read models.</returns>
-    Task<IReadOnlyList<ProductPriceTypeReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProductPriceTypeReadModel>> GetAllAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets a product price type by ID.
@@ -22,7 +26,7 @@ public interface IProductPriceTypeReadRepository : IGenericReadRepository<Produc
     /// <param name="id">The product price type ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The product price type read model if found, otherwise null.</returns>
-    Task<ProductPriceTypeReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<ProductPriceTypeReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
     /// Get paged product price types.
@@ -32,5 +36,5 @@ public interface IProductPriceTypeReadRepository : IGenericReadRepository<Produc
     /// <param name="keyword">The search keyword.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paged list of product price type read models.</returns>
-    Task<PagedList<ProductPriceTypeReadModel>> GetPagedProductPriceTypesAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default);
+    Task<PagedList<ProductPriceTypeReadModel>> GetPagedProductPriceTypesAsync(int page, int size, string? keyword, CancellationToken cancellationToken);
 }

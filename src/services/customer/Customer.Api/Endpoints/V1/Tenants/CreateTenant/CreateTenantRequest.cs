@@ -1,20 +1,32 @@
-using SharedKernel.Core.Models;
+// <copyright file="CreateTenantRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+#pragma warning disable CA1515
 
 namespace Customer.Api.Endpoints.V1.Tenants.CreateTenant;
 
 /// <summary>
 /// Request to create a new tenant.
 /// </summary>
-/// <param name="Identifier">The unique identifier for the tenant.</param>
-/// <param name="Name">The tenant name.</param>
-/// <param name="Plan">The subscription plan.</param>
-/// <param name="DatabaseStrategy">The database strategy (Shared, Dedicated, External).</param>
-/// <param name="DatabaseProvider">The database provider (PostgreSQL, SqlServer, MySQL).</param>
-/// <param name="CustomCredentials">Optional custom credentials for External strategy.</param>
-internal record CreateTenantRequest(
-    string Identifier,
-    string Name,
-    string Plan,
-    string DatabaseStrategy,
-    string DatabaseProvider,
-    DatabaseCredentials? CustomCredentials);
+public sealed record CreateTenantRequest
+{
+    /// <summary>
+    /// Gets the unique identifier for the tenant.
+    /// </summary>
+    public string Identifier { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the tenant name.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the subscription plan.
+    /// </summary>
+    public string Plan { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the database strategy.
+    /// </summary>
+    public string DatabaseStrategy { get; init; } = string.Empty;
+}

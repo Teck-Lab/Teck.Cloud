@@ -1,6 +1,9 @@
+// <copyright file="Supplier.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.SupplierAggregate.Errors;
 using ErrorOr;
-using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.SupplierAggregate
@@ -8,7 +11,6 @@ namespace Catalog.Domain.Entities.SupplierAggregate
     /// <summary>
     /// The supplier.
     /// </summary>
-    [MultiTenant]
     public class Supplier : BaseEntity, IAggregateRoot
     {
         /// <summary>
@@ -27,12 +29,40 @@ namespace Catalog.Domain.Entities.SupplierAggregate
         public string? Website { get; private set; }
 
         /// <summary>
-        /// Update a brand.
+        /// Creates a supplier.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="website"></param>
-        /// <returns></returns>
+        /// <param name="name">The supplier name.</param>
+        /// <param name="description">The optional supplier description.</param>
+        /// <param name="website">The supplier website.</param>
+        /// <returns>The created supplier, or validation errors.</returns>
+        public static ErrorOr<Supplier> Create(
+            string name,
+            string? description,
+            string? website)
+        {
+            var errors = new List<Error>();
+
+            ValidateNameForCreate(name, errors);
+            ValidateDescriptionForCreate(description, errors);
+            ValidateWebsiteForCreate(website, errors);
+
+            return errors.Count != 0
+                ? errors
+                : new Supplier
+                {
+                    Name = name,
+                    Description = description,
+                    Website = website,
+                };
+        }
+
+        /// <summary>
+        /// Updates a supplier.
+        /// </summary>
+        /// <param name="name">The updated supplier name.</param>
+        /// <param name="description">The updated supplier description.</param>
+        /// <param name="website">The updated supplier website.</param>
+        /// <returns>An updated result, or validation errors.</returns>
         public ErrorOr<Updated> Update(
             string? name,
             string? description,
@@ -40,46 +70,9 @@ namespace Catalog.Domain.Entities.SupplierAggregate
         {
             var errors = new List<Error>();
 
-            if (name is not null)
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    errors.Add(SupplierErrors.EmptyName);
-                }
-                else if (!string.Equals(Name, name, StringComparison.Ordinal))
-                {
-                    Name = name;
-                }
-            }
-
-            if (description is not null)
-            {
-                if (string.IsNullOrWhiteSpace(description))
-                {
-                    errors.Add(SupplierErrors.EmptyDescription);
-                }
-                else if (!string.Equals(Description, description, StringComparison.Ordinal))
-                {
-                    Description = description;
-                }
-            }
-
-            if (website is not null)
-            {
-                if (string.IsNullOrWhiteSpace(website))
-                {
-                    errors.Add(SupplierErrors.EmptyWebsite);
-                }
-                else if (!Uri.IsWellFormedUriString(website, UriKind.Absolute)
-                    || !(website.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || website.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
-                {
-                    errors.Add(SupplierErrors.InvalidWebsite);
-                }
-                else if (!string.Equals(Website, website, StringComparison.Ordinal))
-                {
-                    Website = website;
-                }
-            }
+            this.UpdateName(name, errors);
+            this.UpdateDescription(description, errors);
+            this.UpdateWebsite(website, errors);
 
             if (errors.Count != 0)
             {
@@ -89,51 +82,98 @@ namespace Catalog.Domain.Entities.SupplierAggregate
             return Result.Updated;
         }
 
-        /// <summary>
-        /// Create a brand.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="website"></param>
-        /// <returns></returns>
-        public static ErrorOr<Supplier> Create(
-            string name, string? description, string? website)
+        private static void ValidateNameForCreate(string name, List<Error> errors)
         {
-            var errors = new List<Error>();
-
             if (string.IsNullOrWhiteSpace(name))
             {
                 errors.Add(SupplierErrors.EmptyName);
             }
+        }
 
+        private static void ValidateDescriptionForCreate(string? description, List<Error> errors)
+        {
             if (description is not null && string.IsNullOrWhiteSpace(description))
             {
                 errors.Add(SupplierErrors.EmptyDescription);
             }
+        }
 
+        private static void ValidateWebsiteForCreate(string? website, List<Error> errors)
+        {
+            ValidateWebsite(website, errors);
+        }
+
+        private static void ValidateWebsite(string? website, List<Error> errors)
+        {
             if (string.IsNullOrWhiteSpace(website))
             {
                 errors.Add(SupplierErrors.EmptyWebsite);
+                return;
             }
-            else if (!Uri.IsWellFormedUriString(website, UriKind.Absolute)
-                || !(website.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || website.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+
+            if (!Uri.IsWellFormedUriString(website, UriKind.Absolute)
+                || !(website.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                || website.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
             {
                 errors.Add(SupplierErrors.InvalidWebsite);
             }
+        }
 
-            if (errors.Count != 0)
+        private void UpdateName(string? name, List<Error> errors)
+        {
+            if (name is null)
             {
-                return errors;
+                return;
             }
 
-            Supplier supplier = new()
+            if (string.IsNullOrWhiteSpace(name))
             {
-                Name = name,
-                Description = description,
-                Website = website
-            };
+                errors.Add(SupplierErrors.EmptyName);
+                return;
+            }
 
-            return supplier;
+            if (!string.Equals(this.Name, name, StringComparison.Ordinal))
+            {
+                this.Name = name;
+            }
+        }
+
+        private void UpdateDescription(string? description, List<Error> errors)
+        {
+            if (description is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                errors.Add(SupplierErrors.EmptyDescription);
+                return;
+            }
+
+            if (!string.Equals(this.Description, description, StringComparison.Ordinal))
+            {
+                this.Description = description;
+            }
+        }
+
+        private void UpdateWebsite(string? website, List<Error> errors)
+        {
+            if (website is null)
+            {
+                return;
+            }
+
+            ValidateWebsite(website, errors);
+            if (errors.Count != 0)
+            {
+                return;
+            }
+
+            if (!string.Equals(this.Website, website, StringComparison.Ordinal))
+            {
+                this.Website = website;
+            }
         }
     }
 }

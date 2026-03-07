@@ -1,3 +1,7 @@
+// <copyright file="ISupplierReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Suppliers.ReadModels;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Pagination;
@@ -14,7 +18,7 @@ public interface ISupplierReadRepository : IGenericReadRepository<SupplierReadMo
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of supplier read models.</returns>
-    Task<IReadOnlyList<SupplierReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SupplierReadModel>> GetAllAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets a supplier by ID.
@@ -22,7 +26,7 @@ public interface ISupplierReadRepository : IGenericReadRepository<SupplierReadMo
     /// <param name="id">The supplier ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The supplier read model if found, otherwise null.</returns>
-    Task<SupplierReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<SupplierReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
     /// Get paged suppliers.
@@ -32,5 +36,5 @@ public interface ISupplierReadRepository : IGenericReadRepository<SupplierReadMo
     /// <param name="keyword">The search keyword.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paged list of supplier read models.</returns>
-    Task<PagedList<SupplierReadModel>> GetPagedSuppliersAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default);
+    Task<PagedList<SupplierReadModel>> GetPagedSuppliersAsync(int page, int size, string? keyword, CancellationToken cancellationToken);
 }

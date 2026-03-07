@@ -50,11 +50,12 @@ public class TenantWriteRepositoryTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "test-tenant",
+                "Test Tenant",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -87,11 +88,12 @@ public class TenantWriteRepositoryTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "unique-tenant",
-            "Unique Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "unique-tenant",
+                "Unique Tenant",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -121,11 +123,12 @@ public class TenantWriteRepositoryTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "existing-tenant",
-            "Existing Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "existing-tenant",
+                "Existing Tenant",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -153,11 +156,12 @@ public class TenantWriteRepositoryTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "new-tenant",
-            "New Tenant",
-            "Starter",
-            DatabaseStrategy.Shared,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "new-tenant",
+                "New Tenant",
+                "Starter",
+                DatabaseStrategy.Shared,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
 
@@ -176,11 +180,12 @@ public class TenantWriteRepositoryTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "update-test",
-            "Original Name",
-            "Starter",
-            DatabaseStrategy.Shared,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "update-test",
+                "Original Name",
+                "Starter",
+                DatabaseStrategy.Shared,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -208,11 +213,12 @@ public class TenantWriteRepositoryTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "delete-test",
-            "To Be Deleted",
-            "Starter",
-            DatabaseStrategy.Shared,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "delete-test",
+                "To Be Deleted",
+                "Starter",
+                DatabaseStrategy.Shared,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -232,18 +238,19 @@ public class TenantWriteRepositoryTests : IDisposable
     {
         // Arrange
         var tenantResult = Tenant.Create(
-            "with-metadata",
-            "Tenant With Metadata",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL);
+            CreateArgs(
+                "with-metadata",
+                "Tenant With Metadata",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
-        tenant.AddDatabaseMetadata(
+        tenant.AddDatabaseMetadata(CreateMetadataArgs(
             "catalog",
             "database/tenants/guid/catalog/write",
             "database/tenants/guid/catalog/read",
-            true);
+            true));
 
         // Act
         await _repository.AddAsync(tenant, TestContext.Current.CancellationToken);
@@ -260,9 +267,90 @@ public class TenantWriteRepositoryTests : IDisposable
         saved.Databases[0].ServiceName.ShouldBe("catalog");
     }
 
+    [Fact]
+    public async Task Repository_ShouldRoundTrip_ReadDatabaseMode_AndComputedSeparateReadFlag()
+    {
+        // Arrange
+        var tenantResult = Tenant.Create(
+            CreateArgs(
+                "mode-roundtrip",
+                "Mode Roundtrip",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL));
+
+        var tenant = tenantResult.Value;
+        tenant.AddDatabaseMetadata(CreateMetadataArgs(
+            "catalog",
+            "database/tenants/guid/catalog/write",
+            "database/tenants/guid/catalog/read",
+            true));
+        tenant.AddDatabaseMetadata(CreateMetadataArgs(
+            "customer",
+            "database/tenants/guid/customer/write",
+            null,
+            false));
+
+        // Act
+        await _repository.AddAsync(tenant, TestContext.Current.CancellationToken);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _dbContext.ChangeTracker.Clear();
+
+        // Assert
+        var saved = await _dbContext.Tenants
+            .Include(t => t.Databases)
+            .FirstOrDefaultAsync(t => t.Id == tenant.Id, TestContext.Current.CancellationToken);
+
+        saved.ShouldNotBeNull();
+        saved.Databases.Count.ShouldBe(2);
+
+        var catalogDatabase = saved.Databases.Single(d => d.ServiceName == "catalog");
+        catalogDatabase.ReadDatabaseMode.ShouldBe(ReadDatabaseMode.SeparateRead);
+        catalogDatabase.HasSeparateReadDatabase.ShouldBeTrue();
+
+        var customerDatabase = saved.Databases.Single(d => d.ServiceName == "customer");
+        customerDatabase.ReadDatabaseMode.ShouldBe(ReadDatabaseMode.SharedWrite);
+        customerDatabase.HasSeparateReadDatabase.ShouldBeFalse();
+    }
+
 
     public void Dispose()
     {
         _dbContext?.Dispose();
+    }
+
+    private static TenantCreateArgs CreateArgs(
+        string identifier,
+        string name,
+        string plan,
+        DatabaseStrategy strategy,
+        DatabaseProvider provider)
+    {
+        return new TenantCreateArgs
+        {
+            Identifier = identifier,
+            Name = name,
+            Plan = plan,
+            Database = new TenantCreateDatabaseSettings
+            {
+                DatabaseStrategy = strategy,
+                DatabaseProvider = provider,
+            },
+        };
+    }
+
+    private static TenantDatabaseMetadataArgs CreateMetadataArgs(
+        string serviceName,
+        string writeKey,
+        string? readKey,
+        bool hasSeparateReadDatabase)
+    {
+        return new TenantDatabaseMetadataArgs
+        {
+            ServiceName = serviceName,
+            WriteEnvVarKey = writeKey,
+            ReadEnvVarKey = readKey,
+            ReadDatabaseMode = hasSeparateReadDatabase ? ReadDatabaseMode.SeparateRead : ReadDatabaseMode.SharedWrite,
+        };
     }
 }

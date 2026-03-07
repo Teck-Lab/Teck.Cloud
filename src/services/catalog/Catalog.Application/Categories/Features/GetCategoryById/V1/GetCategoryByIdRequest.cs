@@ -1,3 +1,7 @@
+// <copyright file="GetCategoryByIdRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Categories.Features.GetCategoryById.V1;
 /// <summary>
 /// Request model for getting a category by ID.

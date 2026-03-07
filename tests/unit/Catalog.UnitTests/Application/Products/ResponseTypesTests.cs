@@ -1,4 +1,3 @@
-using Catalog.Application.Brands.Features.Responses;
 using Catalog.Application.Categories.Response;
 using Catalog.Application.Features.ProductPrices.Response;
 using Catalog.Application.Products.Responses;
@@ -31,7 +30,7 @@ namespace Catalog.UnitTests.Application.Products
         {
             var id = Guid.NewGuid();
             var brandId = Guid.NewGuid();
-            var brand = new BrandResponse { Id = brandId, Name = "Brand" };
+            var brand = new ProductBrandResponse { Id = brandId, Name = "Brand" };
             var resp = new ProductResponse
             {
                 Id = id,

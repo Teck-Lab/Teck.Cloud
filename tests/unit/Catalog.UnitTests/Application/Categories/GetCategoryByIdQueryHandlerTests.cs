@@ -15,7 +15,7 @@ public class GetCategoryByIdQueryHandlerTests
     public async Task Handle_ShouldReturnCategory_WhenCategoryExists()
     {
         // Arrange
-        var cache = Substitute.For<ICategoryCache>();
+        var categoryReadRepository = Substitute.For<ICategoryReadRepository>();
         var categoryId = Guid.NewGuid();
         var categoryReadModel = new CategoryReadModel
         {
@@ -24,10 +24,10 @@ public class GetCategoryByIdQueryHandlerTests
             Description = "Test Description"
         };
 
-        cache.GetOrSetByIdAsync(categoryId, cancellationToken: Arg.Any<CancellationToken>())
+        categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<CategoryReadModel?>(categoryReadModel));
 
-        var sut = new GetBrandByIdQueryHandler(cache);
+        var sut = new GetCategoryByIdQueryHandler(categoryReadRepository);
         var query = new GetCategoryByIdQuery(categoryId);
 
         // Act
@@ -44,13 +44,13 @@ public class GetCategoryByIdQueryHandlerTests
     public async Task Handle_ShouldReturnNotFoundError_WhenCategoryDoesNotExist()
     {
         // Arrange
-        var cache = Substitute.For<ICategoryCache>();
+        var categoryReadRepository = Substitute.For<ICategoryReadRepository>();
         var categoryId = Guid.NewGuid();
 
-        cache.GetOrSetByIdAsync(categoryId, cancellationToken: Arg.Any<CancellationToken>())
+        categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<CategoryReadModel?>(null));
 
-        var sut = new GetBrandByIdQueryHandler(cache);
+        var sut = new GetCategoryByIdQueryHandler(categoryReadRepository);
         var query = new GetCategoryByIdQuery(categoryId);
 
         // Act
@@ -62,10 +62,10 @@ public class GetCategoryByIdQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldCallCache_WhenQueryIsExecuted()
+    public async Task Handle_ShouldCallRepository_WhenQueryIsExecuted()
     {
         // Arrange
-        var cache = Substitute.For<ICategoryCache>();
+        var categoryReadRepository = Substitute.For<ICategoryReadRepository>();
         var categoryId = Guid.NewGuid();
         var categoryReadModel = new CategoryReadModel
         {
@@ -74,24 +74,24 @@ public class GetCategoryByIdQueryHandlerTests
             Description = "Test Description"
         };
 
-        cache.GetOrSetByIdAsync(categoryId, cancellationToken: Arg.Any<CancellationToken>())
+        categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<CategoryReadModel?>(categoryReadModel));
 
-        var sut = new GetBrandByIdQueryHandler(cache);
+        var sut = new GetCategoryByIdQueryHandler(categoryReadRepository);
         var query = new GetCategoryByIdQuery(categoryId);
 
         // Act
         await sut.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        await cache.Received(1).GetOrSetByIdAsync(categoryId, cancellationToken: Arg.Any<CancellationToken>());
+        await categoryReadRepository.Received(1).GetByIdAsync(categoryId, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Handle_ShouldReturnCategoryWithEmptyDescription_WhenDescriptionIsNull()
     {
         // Arrange
-        var cache = Substitute.For<ICategoryCache>();
+        var categoryReadRepository = Substitute.For<ICategoryReadRepository>();
         var categoryId = Guid.NewGuid();
         var categoryReadModel = new CategoryReadModel
         {
@@ -100,10 +100,10 @@ public class GetCategoryByIdQueryHandlerTests
             Description = null
         };
 
-        cache.GetOrSetByIdAsync(categoryId, cancellationToken: Arg.Any<CancellationToken>())
+        categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<CategoryReadModel?>(categoryReadModel));
 
-        var sut = new GetBrandByIdQueryHandler(cache);
+        var sut = new GetCategoryByIdQueryHandler(categoryReadRepository);
         var query = new GetCategoryByIdQuery(categoryId);
 
         // Act

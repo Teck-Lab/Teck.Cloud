@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
-using CorrelationId.Abstractions;
 using FastEndpoints;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
@@ -9,80 +8,96 @@ using Microsoft.Extensions.DependencyInjection;
 namespace SharedKernel.Infrastructure.Endpoints
 {
     /// <summary>
-    /// The extensions.
+    /// FastEndpoints infrastructure setup extensions.
     /// </summary>
     public static class Extensions
     {
         /// <summary>
-        /// Add fast endpoints extension.
+        /// Adds FastEndpoints and validator infrastructure.
         /// </summary>
-        /// <param name="services">The services.</param>
-        /// <param name="validatorAssembly"></param>
-        /// <param name="apiAssembly"></param>
+        /// <param name="services">The service collection.</param>
+        /// <param name="assemblies">Optional assemblies containing endpoints and validators.</param>
+        /// <returns>The service collection.</returns>
         public static IServiceCollection AddFastEndpointsInfrastructure(
             this IServiceCollection services,
-            Assembly? validatorAssembly = null,
-            Assembly? apiAssembly = null)
+            params Assembly[] assemblies)
         {
-            services.AddFastEndpoints(ep =>
+            Assembly[] resolvedAssemblies = assemblies
+                .Where(static assembly => assembly is not null)
+                .Distinct()
+                .ToArray();
+
+            services
+                .AddFastEndpoints(options =>
+                {
+                    if (resolvedAssemblies.Length > 0)
+                    {
+                        options.Assemblies = resolvedAssemblies;
+                    }
+                })
+                .AddIdempotency();
+
+            foreach (Assembly assembly in resolvedAssemblies)
             {
-                var assemblies = new List<Assembly>();
-                if (apiAssembly is not null)
-                {
-                    assemblies.Add(apiAssembly);
-                }
-                if (validatorAssembly is not null)
-                {
-                    assemblies.Add(validatorAssembly);
-                    services.AddValidatorsFromAssembly(validatorAssembly, filter: filter => filter.ValidatorType.BaseType?.GetGenericTypeDefinition() != typeof(FastEndpoints.Validator<>));
-                }
-                ep.Assemblies = assemblies.ToArray();
-            }).AddIdempotency();
+                services.AddValidatorsFromAssembly(
+                    assembly,
+                    includeInternalTypes: true,
+                    filter: filter =>
+                    {
+                        Type? baseType = filter.ValidatorType.BaseType;
+                        return baseType?.IsGenericType != true
+                            || baseType.GetGenericTypeDefinition() != typeof(FastEndpoints.Validator<>);
+                    });
+            }
 
             return services;
         }
 
         /// <summary>
-        /// Use swagger extension.
+        /// Enables FastEndpoints pipeline, swagger and Scalar API reference.
         /// </summary>
-        /// <param name="app">The app.</param>
-        public static IApplicationBuilder UseFastEndpointsInfrastructure(this IApplicationBuilder app)
+        /// <param name="app">The application builder.</param>
+        /// <param name="routePrefix">Optional service route prefix (for example: customer, catalog).</param>
+        /// <returns>The application builder.</returns>
+        public static IApplicationBuilder UseFastEndpointsInfrastructure(
+            this IApplicationBuilder app,
+            string? routePrefix = null)
         {
-            app.UseOutputCache().UseFastEndpoints(config =>
+            WebApplication webApplication = (WebApplication)app;
+
+            webApplication.UseOutputCache();
+
+            webApplication.UseFastEndpoints(config =>
             {
                 config.Errors.ResponseBuilder = (failures, context, statusCode) =>
                 {
-                    var accessor = context.RequestServices.GetService<ICorrelationContextAccessor>();
-                    var correlationId = accessor?.CorrelationContext?.CorrelationId ?? Guid.NewGuid().ToString();
-
-                    context.Response.Headers["X-Correlation-ID"] = correlationId;
-
                     var problemDetails = new Microsoft.AspNetCore.Mvc.ValidationProblemDetails(
                         failures.GroupBy(failure => failure.PropertyName)
-                                .ToDictionary(
-                                    keySelector: group => group.Key,
-                                    elementSelector: group => group.Select(failure => failure.ErrorMessage).ToArray()))
+                            .ToDictionary(
+                                keySelector: group => group.Key,
+                                elementSelector: group => group.Select(failure => failure.ErrorMessage).ToArray()))
                     {
                         Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
                         Title = "One or more validation errors occurred.",
                         Status = statusCode,
-                        Instance = context.Request.Path
+                        Instance = context.Request.Path,
                     };
 
                     problemDetails.Extensions["traceId"] = context.TraceIdentifier;
-                    problemDetails.Extensions["correlationId"] = correlationId;
 
                     return problemDetails;
                 };
 
                 config.Serializer.Options.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-                config.Endpoints.RoutePrefix = "api";
+                config.Endpoints.RoutePrefix = string.IsNullOrWhiteSpace(routePrefix)
+                    ? null
+                    : routePrefix.Trim('/');
                 config.Versioning.Prefix = "v";
                 config.Versioning.PrependToRoute = true;
                 config.Versioning.DefaultVersion = 1;
             });
 
-            return app;
+            return webApplication;
         }
     }
 }

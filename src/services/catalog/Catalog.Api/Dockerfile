@@ -54,7 +54,7 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
 
 # Generate Wolverine codegen
 ENV ASPNETCORE_ENVIRONMENT=Development \
-    ConnectionStrings__postgres-write="${POSTGRES_CONNECTION}" \
+    ConnectionStrings__db-write="${POSTGRES_CONNECTION}" \
     ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
 RUN dotnet /app/build/Catalog.Api.dll codegen write
 

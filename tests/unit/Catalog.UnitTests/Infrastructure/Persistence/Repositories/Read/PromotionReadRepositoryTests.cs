@@ -17,7 +17,7 @@ public sealed class PromotionReadRepositoryTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        _dbContext = new ApplicationReadDbContext(options);
+        _dbContext = new ApplicationReadDbContext(options, Catalog.UnitTests.Infrastructure.Persistence.TestTenantContextAccessor.Create());
         _repository = new PromotionReadRepository(_dbContext);
     }
 

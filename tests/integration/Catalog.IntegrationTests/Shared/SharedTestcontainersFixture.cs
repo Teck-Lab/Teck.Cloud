@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
 
@@ -11,19 +12,28 @@ namespace Catalog.IntegrationTests.Shared
 {
     public class SharedTestcontainersFixture : IAsyncLifetime
     {
-        public PostgreSqlContainer DbContainer { get; }
-        public RabbitMqContainer RabbitMqContainer { get; }
+        public PostgreSqlContainer? DbContainer { get; private set; }
+        public RabbitMqContainer? RabbitMqContainer { get; private set; }
+        public bool UseSqliteFallback { get; private set; }
+        public SqliteConnection? SqliteConnection { get; private set; }
         public SharedTestcontainersFixture()
         {
             TryConfigurePodmanSocketIfAvailable();
 
-            DbContainer = new PostgreSqlBuilder("postgres:latest")
-                .WithDatabase("testdb")
-                .WithUsername("postgres")
-                .WithPassword("postgres")
-                .Build();
+            try
+            {
+                DbContainer = new PostgreSqlBuilder("postgres:latest")
+                    .WithDatabase("testdb")
+                    .WithUsername("postgres")
+                    .WithPassword("postgres")
+                    .Build();
 
-            RabbitMqContainer = RabbitMqTestContainerFactory.Create();
+                RabbitMqContainer = RabbitMqTestContainerFactory.Create();
+            }
+            catch (Exception ex) when (IsDockerUnavailable(ex))
+            {
+                UseSqliteFallback = true;
+            }
         }
 
 
@@ -96,18 +106,32 @@ namespace Catalog.IntegrationTests.Shared
 
         public async ValueTask InitializeAsync()
         {
+            if (UseSqliteFallback)
+            {
+                if (SqliteConnection is null)
+                {
+                    SqliteConnection = new SqliteConnection("Data Source=:memory:");
+                    await SqliteConnection.OpenAsync();
+                }
+
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-write", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-read", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", string.Empty);
+                return;
+            }
+
             try
             {
                 // Increase retry attempts and delay to reduce flakes on slow machines/CI
-                await RetryAsync(async () => await DbContainer.StartAsync(), 5, TimeSpan.FromSeconds(3));
-                var postgresConn = DbContainer.GetConnectionString();
+                await RetryAsync(async () => await DbContainer!.StartAsync(), 5, TimeSpan.FromSeconds(3));
+                var postgresConn = DbContainer!.GetConnectionString();
                 Console.WriteLine($"[Testcontainers] Postgres started: {postgresConn}");
                 // Expose postgres connection strings to the test host via environment variables
-                Environment.SetEnvironmentVariable("ConnectionStrings__postgres-write", postgresConn);
-                Environment.SetEnvironmentVariable("ConnectionStrings__postgres-read", postgresConn);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-write", postgresConn);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-read", postgresConn);
 
-                await RetryAsync(async () => await RabbitMqContainer.StartAsync(), 5, TimeSpan.FromSeconds(3));
-                var rabbitConnRaw = RabbitMqContainer.GetConnectionString() ?? string.Empty;
+                await RetryAsync(async () => await RabbitMqContainer!.StartAsync(), 5, TimeSpan.FromSeconds(3));
+                var rabbitConnRaw = RabbitMqContainer!.GetConnectionString() ?? string.Empty;
                 // Normalize rabbitmq:// / rabbitmqs:// to amqp(s):// for RabbitMQ.Client compatibility
                 var rabbitConn = rabbitConnRaw;
                 if (rabbitConnRaw.StartsWith("rabbitmqs://", StringComparison.OrdinalIgnoreCase))
@@ -121,6 +145,19 @@ namespace Catalog.IntegrationTests.Shared
                 Console.WriteLine($"[Testcontainers] RabbitMQ started: {rabbitConn}");
                 Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", rabbitConn);
 
+            }
+            catch (Exception ex) when (IsDockerUnavailable(ex))
+            {
+                UseSqliteFallback = true;
+                if (SqliteConnection is null)
+                {
+                    SqliteConnection = new SqliteConnection("Data Source=:memory:");
+                    await SqliteConnection.OpenAsync();
+                }
+
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-write", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-read", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", string.Empty);
             }
             catch (Exception ex)
             {
@@ -140,8 +177,21 @@ namespace Catalog.IntegrationTests.Shared
 
         public async ValueTask DisposeAsync()
         {
-            try { await RabbitMqContainer.DisposeAsync(); } catch { }
-            try { await DbContainer.DisposeAsync(); } catch { }
+            if (UseSqliteFallback && SqliteConnection is not null)
+            {
+                try { await SqliteConnection.DisposeAsync(); } catch { }
+                return;
+            }
+
+            if (RabbitMqContainer is not null)
+            {
+                try { await RabbitMqContainer.DisposeAsync(); } catch { }
+            }
+
+            if (DbContainer is not null)
+            {
+                try { await DbContainer.DisposeAsync(); } catch { }
+            }
         }
 
         private static async Task RetryAsync(Func<Task> action, int maxAttempts, TimeSpan delay)
@@ -161,6 +211,18 @@ namespace Catalog.IntegrationTests.Shared
                     await Task.Delay(delay);
                 }
             }
+        }
+
+        private static bool IsDockerUnavailable(Exception ex)
+        {
+            if (ex.Message.Contains("Docker is either not running or misconfigured", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("Failed to connect to Docker endpoint", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("docker_engine", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return ex.InnerException is not null && IsDockerUnavailable(ex.InnerException);
         }
     }
 }

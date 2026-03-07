@@ -1,4 +1,7 @@
-using Catalog.Application.Brands.Repositories;
+// <copyright file="DeleteBrand.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.BrandAggregate.Errors;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
@@ -21,24 +24,18 @@ namespace Catalog.Application.Brands.Features.DeleteBrand.V1
     /// Initializes a new instance of the <see cref="DeleteBrandCommandHandler"/> class.
     /// </remarks>
     /// <param name="unitOfWork">The unit of work.</param>
-    /// <param name="cache">The cache.</param>
     /// <param name="brandRepository">The brand repository.</param>
-    internal sealed class DeleteBrandCommandHandler(IUnitOfWork unitOfWork, IBrandCache cache, IBrandWriteRepository brandRepository) : ICommandHandler<DeleteBrandCommand, ErrorOr<Deleted>>
+    internal sealed class DeleteBrandCommandHandler(IUnitOfWork unitOfWork, IBrandWriteRepository brandRepository) : ICommandHandler<DeleteBrandCommand, ErrorOr<Deleted>>
     {
         /// <summary>
         /// The unit of work.
         /// </summary>
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+        private readonly IUnitOfWork unitOfWork = unitOfWork;
 
         /// <summary>
         /// The brand repository.
         /// </summary>
-        private readonly IBrandWriteRepository _brandRepository = brandRepository;
-
-        /// <summary>
-        /// The cache.
-        /// </summary>
-        private readonly IBrandCache _cache = cache;
+        private readonly IBrandWriteRepository brandRepository = brandRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -49,16 +46,15 @@ namespace Catalog.Application.Brands.Features.DeleteBrand.V1
         public async ValueTask<ErrorOr<Deleted>> Handle(DeleteBrandCommand request, CancellationToken cancellationToken)
         {
             var brandSpec = new BrandByIdSpecification(request.Id);
-            Brand? brandToDelete = await _brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken);
+            Brand? brandToDelete = await this.brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken).ConfigureAwait(false);
 
             if (brandToDelete is null)
             {
                 return BrandErrors.NotFound;
             }
 
-            _brandRepository.Delete(brandToDelete);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await _cache.RemoveAsync(request.Id, cancellationToken);
+            this.brandRepository.Delete(brandToDelete);
+            await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return Result.Deleted;
         }

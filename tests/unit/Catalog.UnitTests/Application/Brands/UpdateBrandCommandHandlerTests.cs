@@ -1,6 +1,5 @@
 using AutoFixture;
 using AutoFixture.AutoNSubstitute;
-using Catalog.Application.Brands.Features.Responses;
 using Catalog.Application.Brands.Features.UpdateBrand.V1;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
 using Catalog.Domain.Entities.BrandAggregate.Specifications;
@@ -35,7 +34,7 @@ namespace Catalog.UnitTests.Application.Brands
             UpdateBrandCommand command = new(request.Id, request.Name, request.Description, request.Website);
 
             //Act
-            ErrorOr<BrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
+            ErrorOr<UpdateBrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
 
             //Assert
             result.IsError.ShouldBeFalse();
@@ -52,7 +51,7 @@ namespace Catalog.UnitTests.Application.Brands
             autoFaker.Config.Overrides = [new UpdateBrandRequestOverride()];
 
 
-            var expected = autoFaker.Generate<BrandResponse>();
+            var expected = autoFaker.Generate<UpdateBrandResponse>();
 
             var brandByIdSpec = new BrandByIdSpecification(expected.Id);
 
@@ -65,7 +64,7 @@ namespace Catalog.UnitTests.Application.Brands
             UpdateBrandCommand command = new(request.Id, request.Name, request.Description, request.Website);
 
             //Act
-            ErrorOr<BrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
+            ErrorOr<UpdateBrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
 
             //Assert
             result.IsError.ShouldBeTrue();

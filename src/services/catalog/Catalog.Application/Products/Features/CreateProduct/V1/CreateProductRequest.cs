@@ -1,3 +1,7 @@
+// <copyright file="CreateProductRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Products.Features.CreateProduct.V1
 {
     /// <summary>
@@ -10,7 +14,7 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
         /// </summary>
         public CreateProductRequest()
         {
-            CategoryIds = new List<Guid>();
+            this.CategoryIds = new List<Guid>();
         }
 
         /// <summary>

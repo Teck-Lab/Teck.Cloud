@@ -1,3 +1,7 @@
+// <copyright file="CatalogDesignTimeDbContextFactory.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -27,33 +31,52 @@ public class CatalogDesignTimeDbContextFactory : IDesignTimeDbContextFactory<App
         {
             // Try to infer from connection string
             if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) || connectionString.Contains("Username=", StringComparison.OrdinalIgnoreCase))
+            {
                 serverType = "postgres";
+            }
             else if (connectionString.Contains("Trusted_Connection", StringComparison.OrdinalIgnoreCase) || connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase) || connectionString.Contains("Initial Catalog=", StringComparison.OrdinalIgnoreCase))
+            {
                 serverType = "sqlserver";
+            }
             else if (connectionString.Contains("mariadb", StringComparison.OrdinalIgnoreCase))
+            {
                 serverType = "mariadb";
+            }
             else
+            {
                 serverType = "mysql";
+            }
         }
 
         switch (serverType)
         {
             case "sqlserver":
             case "mssql":
+            {
                 optionsBuilder.UseSqlServer(connectionString);
                 break;
+            }
+
             case "postgres":
             case "pgsql":
             case "npgsql":
+            {
                 optionsBuilder.UseNpgsql(connectionString);
                 break;
+            }
+
             case "mariadb":
+            {
                 optionsBuilder.UseMySQL(connectionString);
                 break;
+            }
+
             default:
+            {
                 // default to MySQL
                 optionsBuilder.UseMySQL(connectionString);
                 break;
+            }
         }
 
         return new ApplicationWriteDbContext(optionsBuilder.Options);

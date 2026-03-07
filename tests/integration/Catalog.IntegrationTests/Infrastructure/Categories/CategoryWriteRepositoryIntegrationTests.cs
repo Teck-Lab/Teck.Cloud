@@ -23,9 +23,11 @@ namespace Catalog.IntegrationTests.Infrastructure.Categories
         {
         }
 
-        protected override ApplicationWriteDbContext CreateWriteDbContext(DbContextOptions<ApplicationWriteDbContext> options)
+        protected override ApplicationWriteDbContext CreateWriteDbContext(
+            DbContextOptions<ApplicationWriteDbContext> options,
+            Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<SharedKernel.Infrastructure.MultiTenant.TenantDetails> tenantAccessor)
         {
-            return new ApplicationWriteDbContext(options);
+            return new ApplicationWriteDbContext(options, tenantAccessor);
         }
 
         protected override IUnitOfWork CreateUnitOfWork(ApplicationWriteDbContext context)

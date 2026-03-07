@@ -1,4 +1,9 @@
+// <copyright file="BrandWriteConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.BrandAggregate;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class BrandWriteConfig : IEntityTypeConfiguration<Brand>
     /// <param name="builder">The builder to be used to configure the Brand entity.</param>
     public void Configure(EntityTypeBuilder<Brand> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("Brands");
 
         builder.HasKey(brand => brand.Id);
@@ -41,5 +48,7 @@ public class BrandWriteConfig : IEntityTypeConfiguration<Brand>
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

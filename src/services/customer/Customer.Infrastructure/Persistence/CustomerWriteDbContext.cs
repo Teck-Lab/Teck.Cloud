@@ -1,3 +1,7 @@
+// <copyright file="CustomerWriteDbContext.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Customer.Domain.Entities.TenantAggregate;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Persistence.Database.EFCore;
@@ -29,10 +33,12 @@ public class CustomerWriteDbContext : BaseDbContext
     /// <param name="modelBuilder">The model builder.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
+        ArgumentNullException.ThrowIfNull(modelBuilder);
 
         // Apply entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CustomerWriteDbContext).Assembly, WriteConfigFilter);
+
+        base.OnModelCreating(modelBuilder);
     }
 
     private static bool WriteConfigFilter(Type type) =>

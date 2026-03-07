@@ -20,7 +20,7 @@ public sealed class ProductPriceTypeWriteRepositoryTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        _dbContext = new ApplicationWriteDbContext(options);
+        _dbContext = new ApplicationWriteDbContext(options, Catalog.UnitTests.Infrastructure.Persistence.TestTenantContextAccessor.Create());
         _httpContextAccessor = Substitute.For<IHttpContextAccessor>();
         _repository = new ProductPriceTypeWriteRepository(_dbContext, _httpContextAccessor);
     }

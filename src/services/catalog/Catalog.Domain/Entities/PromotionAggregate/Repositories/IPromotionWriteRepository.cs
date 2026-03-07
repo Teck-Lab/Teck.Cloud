@@ -1,3 +1,7 @@
+// <copyright file="IPromotionWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Database;
 
 namespace Catalog.Domain.Entities.PromotionAggregate.Repositories;
@@ -13,12 +17,12 @@ public interface IPromotionWriteRepository : IGenericWriteRepository<Promotion, 
     /// <param name="name">The name of the promotion.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The promotion if found, otherwise null.</returns>
-    Task<Promotion?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<Promotion?> GetByNameAsync(string name, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets active promotions.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of active promotions.</returns>
-    Task<IReadOnlyList<Promotion>> GetActivePromotionsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Promotion>> GetActivePromotionsAsync(CancellationToken cancellationToken);
 }

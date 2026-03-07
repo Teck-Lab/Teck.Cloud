@@ -54,10 +54,47 @@ public class ProductTests
         product.DomainEvents.ShouldContain(e => e is ProductCreatedDomainEvent);
     }
 
+    [Fact]
+    public void Create_Should_AddProductCreatedDomainEvent_WithExpectedPayload()
+    {
+        // Arrange
+        var name = "Event Product";
+        var description = _fixture.Create<string>();
+        var sku = _fixture.Create<string>();
+        var gtin = _fixture.Create<string>();
+        var categories = _fixture.CreateMany<Category>().ToList();
+
+        // Act
+        var result = Product.Create(name, description, sku, gtin, categories, true);
+
+        // Assert
+        result.IsError.ShouldBeFalse();
+        var product = result.Value;
+        var createdEvent = product.DomainEvents.OfType<ProductCreatedDomainEvent>().Single();
+        createdEvent.ProductId.ShouldBe(product.Id);
+        createdEvent.Name.ShouldBe(name);
+    }
+
+    [Fact]
+    public void Create_Should_DefaultCategoriesToEmpty_WhenCategoriesIsNull()
+    {
+        // Arrange
+        var name = "Null Categories";
+        var description = _fixture.Create<string>();
+        var sku = _fixture.Create<string>();
+
+        // Act
+        var result = Product.Create(name, description, sku, gtin: null, categories: null!, isActive: true);
+
+        // Assert
+        result.IsError.ShouldBeFalse();
+        result.Value.Categories.ShouldNotBeNull();
+        result.Value.Categories.ShouldBeEmpty();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    [InlineData(null)]
     public void Create_Should_ReturnError_When_NameIsInvalid(string? invalidName)
     {
         // Arrange
@@ -80,6 +117,27 @@ public class ProductTests
         // Assert
         result.IsError.ShouldBeTrue();
         result.FirstError.Description.ShouldContain("cannot be empty");
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_NameIsNull()
+    {
+        // Arrange
+        string? name = null;
+        var description = _fixture.Create<string>();
+        var sku = _fixture.Create<string>();
+        var gtin = _fixture.Create<string>();
+        var categories = _fixture.CreateMany<Category>().ToList();
+        var brand = _fixture.Create<Brand>();
+
+        // Act
+        void Action()
+        {
+            _ = Product.Create(name!, description, sku, gtin, categories, isActive: true, brand.Id);
+        }
+
+        // Assert
+        Should.Throw<ArgumentNullException>(Action);
     }
 
     [Theory]
@@ -308,7 +366,7 @@ public class ProductTests
     [InlineData("  ", "")]
     public void GetProductSlug_Should_ProduceExpectedSlug(string input, string expected)
     {
-        var method = typeof(Product).GetMethod("GetProductSlug", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var method = typeof(Product).GetMethod("BuildSlug", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         method.ShouldNotBeNull();
         var slug = method.Invoke(null, new object[] { input }) as string;
         slug.ShouldNotBeNull();
@@ -370,14 +428,14 @@ public class ProductTests
     public void Create_Should_ReturnMultipleErrors_When_MultipleFieldsInvalid()
     {
         // Arrange
-        string? name = null;
+        string name = string.Empty;
         string? description = null;
-        string? sku = null;
+        string sku = string.Empty;
         string? gtin = null;
-        List<Category>? categories = null;
+        List<Category> categories = [];
 
         // Act
-        var result = Product.Create(name!, description, sku, gtin, categories!, true);
+        var result = Product.Create(name, description, sku, gtin, categories, true);
 
         // Assert
         result.IsError.ShouldBeTrue();

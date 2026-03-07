@@ -1,4 +1,8 @@
-using Catalog.Application.Brands.Mappings;
+// <copyright file="GetById.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using Catalog.Application.Categories.Mappings;
 using Catalog.Application.Categories.ReadModels;
 using Catalog.Application.Categories.Repositories;
 using Catalog.Application.Categories.Response;
@@ -19,13 +23,13 @@ public sealed record GetCategoryByIdQuery(Guid Id) : IQuery<ErrorOr<CategoryResp
 /// <remarks>
 /// Initializes a new instance of the <see cref="GetCategoryByIdQueryHandler"/> class.
 /// </remarks>
-/// <param name="cache">The cache.</param>
-internal sealed class GetCategoryByIdQueryHandler(ICategoryCache cache) : IQueryHandler<GetCategoryByIdQuery, ErrorOr<CategoryResponse>>
+/// <param name="categoryReadRepository">The category read repository.</param>
+internal sealed class GetCategoryByIdQueryHandler(ICategoryReadRepository categoryReadRepository) : IQueryHandler<GetCategoryByIdQuery, ErrorOr<CategoryResponse>>
 {
     /// <summary>
-    /// The cache.
+    /// The category read repository.
     /// </summary>
-    private readonly ICategoryCache _cache = cache;
+    private readonly ICategoryReadRepository categoryReadRepository = categoryReadRepository;
 
     /// <summary>
     /// Handle and return a task of type erroror.
@@ -35,7 +39,7 @@ internal sealed class GetCategoryByIdQueryHandler(ICategoryCache cache) : IQuery
     /// <returns><![CDATA[Task<ErrorOr<CategoryResponse>>]]></returns>
     public async ValueTask<ErrorOr<CategoryResponse>> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
-        CategoryReadModel? category = await _cache.GetOrSetByIdAsync(request.Id, cancellationToken: cancellationToken);
+        CategoryReadModel? category = await this.categoryReadRepository.GetByIdAsync(request.Id, cancellationToken).ConfigureAwait(false);
 
         return category == null ? (ErrorOr<CategoryResponse>)CategoryErrors.NotFound : (ErrorOr<CategoryResponse>)CategoryMapper.CategoryReadModelToCategoryResponse(category);
     }

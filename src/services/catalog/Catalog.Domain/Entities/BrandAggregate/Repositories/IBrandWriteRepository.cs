@@ -1,3 +1,7 @@
+// <copyright file="IBrandWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Database;
 
 namespace Catalog.Domain.Entities.BrandAggregate.Repositories;
@@ -13,7 +17,7 @@ public interface IBrandWriteRepository : IGenericWriteRepository<Brand, Guid>
     /// <param name="name">The brand name to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if a brand with the name exists; otherwise, false.</returns>
-    Task<bool> ExistsWithNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<bool> ExistsWithNameAsync(string name, CancellationToken cancellationToken);
 
     /// <summary>
     /// Finds a brand by its name.
@@ -21,5 +25,5 @@ public interface IBrandWriteRepository : IGenericWriteRepository<Brand, Guid>
     /// <param name="name">The brand name to find.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The brand if found; otherwise, null.</returns>
-    Task<Brand?> FindByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<Brand?> FindByNameAsync(string name, CancellationToken cancellationToken);
 }

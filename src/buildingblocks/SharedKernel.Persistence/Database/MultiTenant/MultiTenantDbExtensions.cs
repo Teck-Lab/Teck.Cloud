@@ -2,9 +2,13 @@ using System.Reflection;
 using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
+using SharedKernel.Core.Caching;
 using SharedKernel.Core.Pricing;
+using SharedKernel.Infrastructure.HealthChecks;
 using SharedKernel.Infrastructure.MultiTenant;
+using SharedKernel.Persistence.Caching;
 using SharedKernel.Persistence.Database.EFCore;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
 
@@ -40,13 +44,14 @@ public static class MultiTenantDbExtensions
         where TWriteContext : BaseDbContext
         where TReadContext : BaseDbContext
     {
-        defaultProvider ??= DatabaseProvider.PostgreSQL;
+        DatabaseProvider effectiveProvider = defaultProvider ?? DatabaseProvider.PostgreSQL;
+
+        builder.Services.AddScoped(typeof(IGenericCacheService<,>), typeof(GenericCacheService<,>));
 
         // Register the tenant database resolver service
         builder.Services.AddScoped<ITenantDbConnectionResolver>(sp =>
         {
-            var provider = DatabaseProvider.PostgreSQL;
-            return new TenantDbConnectionResolver(sp, defaultWriteConnectionString, defaultReadConnectionString, provider);
+            return new TenantDbConnectionResolver(sp, defaultWriteConnectionString, defaultReadConnectionString, effectiveProvider);
         });
         builder.Services.AddScoped<AuditingInterceptor>();
         builder.Services.AddScoped<SoftDeleteInterceptor>();
@@ -78,7 +83,7 @@ public static class MultiTenantDbExtensions
                 serviceProvider,
                 defaultWriteConnectionString,
                 migrationsAssembly,
-                defaultProvider,
+                effectiveProvider,
                 DatabaseStrategy.Shared,
                 false);
         });
@@ -90,8 +95,8 @@ public static class MultiTenantDbExtensions
                 options,
                 serviceProvider,
                 defaultReadConnectionString,
-                migrationsAssembly,
-                defaultProvider,
+                migrationsAssembly: null,
+                effectiveProvider,
                 DatabaseStrategy.Shared,
                 true);
         });
@@ -105,7 +110,7 @@ public static class MultiTenantDbExtensions
                 null,
                 defaultWriteConnectionString,
                 migrationsAssembly,
-                defaultProvider,
+                effectiveProvider,
                 DatabaseStrategy.Shared,
                 isReadOnly: false);
         });
@@ -123,17 +128,19 @@ public static class MultiTenantDbExtensions
             }
             else
             {
-                resolved = (defaultWriteConnectionString, defaultReadConnectionString, DatabaseProvider.FromValue((int)defaultProvider), DatabaseStrategy.Shared);
+                resolved = (defaultWriteConnectionString, defaultReadConnectionString, effectiveProvider, DatabaseStrategy.Shared);
             }
 
             var optionsBuilder = new DbContextOptionsBuilder<TWriteContext>();
+            DatabaseProvider effectiveResolvedProvider = resolved.Provider ?? effectiveProvider;
+            DatabaseStrategy effectiveResolvedStrategy = resolved.Strategy ?? DatabaseStrategy.Shared;
             ConfigureTenantDbContext(
                 optionsBuilder,
                 sp,
                 resolved.WriteConnectionString,
                 migrationsAssembly,
-                resolved.Provider,
-                resolved.Strategy,
+                effectiveResolvedProvider,
+                effectiveResolvedStrategy,
                 isReadOnly: false);
 
             // Use single constructor - tenant info is embedded in the options
@@ -153,17 +160,19 @@ public static class MultiTenantDbExtensions
             }
             else
             {
-                resolved = (defaultWriteConnectionString, defaultReadConnectionString, DatabaseProvider.FromValue((int)defaultProvider), DatabaseStrategy.Shared);
+                resolved = (defaultWriteConnectionString, defaultReadConnectionString, effectiveProvider, DatabaseStrategy.Shared);
             }
 
             var optionsBuilder = new DbContextOptionsBuilder<TReadContext>();
+            DatabaseProvider effectiveResolvedProvider = resolved.Provider ?? effectiveProvider;
+            DatabaseStrategy effectiveResolvedStrategy = resolved.Strategy ?? DatabaseStrategy.Shared;
             ConfigureTenantDbContext(
                 optionsBuilder,
                 sp,
                 resolved.ReadConnectionString ?? resolved.WriteConnectionString,
-                null, // No migrations for read context
-                resolved.Provider,
-                resolved.Strategy,
+                migrationsAssembly: null,
+                effectiveResolvedProvider,
+                effectiveResolvedStrategy,
                 isReadOnly: true);
 
             // Use single constructor - tenant info is embedded in the options
@@ -173,7 +182,8 @@ public static class MultiTenantDbExtensions
         // Do NOT register TWriteContext or TReadContext directly for DI to avoid accidental direct injection and constructor errors
         // Only register the factories and context interfaces as needed
 
-        // Add health checks
+        // Add provider-specific read/write database health checks for readiness
+        builder.AddReadWriteHealthChecks(effectiveProvider, defaultWriteConnectionString, defaultReadConnectionString);
     }
 
     /// <summary>
@@ -188,6 +198,9 @@ public static class MultiTenantDbExtensions
         DatabaseStrategy strategy,
         bool isReadOnly)
     {
+        provider ??= DatabaseProvider.PostgreSQL;
+        strategy ??= DatabaseStrategy.Shared;
+
         // Configure provider-specific options using SmartEnum Name
         if (provider.Name == DatabaseProvider.PostgreSQL.Name)
         {
@@ -230,6 +243,11 @@ public static class MultiTenantDbExtensions
         else
         {
             throw new ArgumentException($"Unsupported database provider: {provider}");
+        }
+
+        if (migrationsAssembly != null)
+        {
+            options.ReplaceService<IMigrationsAssembly, ProviderFilteredMigrationsAssembly>();
         }
 
         // Add required interceptors only when we have a valid service provider

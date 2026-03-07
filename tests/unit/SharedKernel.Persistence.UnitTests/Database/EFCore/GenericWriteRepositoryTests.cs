@@ -28,7 +28,7 @@ public sealed class GenericWriteRepositoryTests : IAsyncLifetime
         await _fixture.InitializeAsync();
         
         _dbContext = new TestDbContext(_fixture.CreateDbContextOptions());
-        await _dbContext.Database.EnsureCreatedAsync();
+        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         
         _repository = new TestWriteRepository(_dbContext, _httpContextAccessor);
     }

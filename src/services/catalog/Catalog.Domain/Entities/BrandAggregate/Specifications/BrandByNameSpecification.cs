@@ -1,3 +1,7 @@
+// <copyright file="BrandByNameSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.BrandAggregate.Specifications
@@ -16,12 +20,11 @@ namespace Catalog.Domain.Entities.BrandAggregate.Specifications
         {
             if (useExactMatch)
             {
-                Query.Where(brand => brand.Name == name);
+                this.Query.Where(brand => brand.Name == name);
             }
             else
             {
-                // Case-insensitive contains
-                Query.Where(brand => brand.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+                this.Query.Where(brand => brand.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
             }
         }
     }

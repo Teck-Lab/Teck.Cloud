@@ -1,7 +1,16 @@
+// <copyright file="ServiceReadinessResponse.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Customer.Api.Endpoints.V1.Tenants.CheckServiceReadiness;
 
 /// <summary>
 /// Response for service readiness check.
 /// </summary>
-/// <param name="IsReady">Whether the service is ready.</param>
-internal record ServiceReadinessResponse(bool IsReady);
+internal sealed record ServiceReadinessResponse
+{
+    /// <summary>
+    /// Gets a value indicating whether the service is ready.
+    /// </summary>
+    public bool Ready { get; init; }
+}

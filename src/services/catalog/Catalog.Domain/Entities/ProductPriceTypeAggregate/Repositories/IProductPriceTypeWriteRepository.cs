@@ -1,3 +1,7 @@
+// <copyright file="IProductPriceTypeWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Database;
 
 namespace Catalog.Domain.Entities.ProductPriceTypeAggregate.Repositories;
@@ -13,5 +17,5 @@ public interface IProductPriceTypeWriteRepository : IGenericWriteRepository<Prod
     /// <param name="name">The name of the product price type.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The product price type if found, otherwise null.</returns>
-    Task<ProductPriceType?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<ProductPriceType?> GetByNameAsync(string name, CancellationToken cancellationToken);
 }

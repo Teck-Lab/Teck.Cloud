@@ -20,7 +20,7 @@ public sealed class GenericReadRepositoryTests : IAsyncLifetime
         await _fixture.InitializeAsync();
         
         _dbContext = new TestReadDbContext(_fixture.CreateDbContextOptions());
-        await _dbContext.Database.EnsureCreatedAsync();
+        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         
         _repository = new TestReadRepository(_dbContext);
     }

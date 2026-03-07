@@ -21,14 +21,15 @@
     <File Path="src/buildingblocks/Directory.Build.props" />
     <Project Path="src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj" />
+    <Project Path="src/buildingblocks/SharedKernel.Grpc.Contracts/SharedKernel.Grpc.Contracts.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
 
     <Project Path="src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
 
   </Folder>
   <Folder Name="/src/gateways/">
-    <Project Path="src/gateways/Web.BFF/Web.BFF.csproj" />
     <Project Path="src/gateways/Web.Edge/Web.Edge.csproj" />
+    <Project Path="src/gateways/Web.Aggregate.Gateway/Web.Aggregate.Gateway.csproj" />
   </Folder>
   <Folder Name="/src/services/">
     <File Path="src/services/Directory.Build.props" />
@@ -39,6 +40,9 @@
     <Project Path="src/services/catalog/Catalog.Application/Catalog.Application.csproj" />
     <Project Path="src/services/catalog/Catalog.Domain/Catalog.Domain.csproj" />
     <Project Path="src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
+    <Project Path="src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL/Catalog.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <Project Path="src/services/catalog/Catalog.Infrastructure.Migrations.SqlServer/Catalog.Infrastructure.Migrations.SqlServer.csproj" />
+    <Project Path="src/services/catalog/Catalog.Infrastructure.Migrations.MySql/Catalog.Infrastructure.Migrations.MySql.csproj" />
 
   </Folder>
   <Folder Name="/src/services/customer/">
@@ -47,6 +51,9 @@
     <Project Path="src/services/customer/Customer.Application/Customer.Application.csproj" />
     <Project Path="src/services/customer/Customer.Domain/Customer.Domain.csproj" />
     <Project Path="src/services/customer/Customer.Infrastructure/Customer.Infrastructure.csproj" />
+    <Project Path="src/services/customer/Customer.Infrastructure.Migrations.PostgreSQL/Customer.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <Project Path="src/services/customer/Customer.Infrastructure.Migrations.SqlServer/Customer.Infrastructure.Migrations.SqlServer.csproj" />
+    <Project Path="src/services/customer/Customer.Infrastructure.Migrations.MySql/Customer.Infrastructure.Migrations.MySql.csproj" />
 
   </Folder>
   <Folder Name="/tests/">
@@ -59,18 +66,22 @@
   <Folder Name="/tests/architecture/shared/">
     <Project Path="tests/architecture/shared/Teck.Cloud.Arch.Tests/Teck.Cloud.Arch.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/e2e/">
+    <Project Path="tests/e2e/Teck.Cloud.E2ETests/Teck.Cloud.E2ETests.csproj" />
+  </Folder>
   <Folder Name="/tests/functional/" />
   <Folder Name="/tests/functional/catalog/" />
   <Folder Name="/tests/integration/">
     <Project Path="tests/integration/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Web.Edge.IntegrationTests/Web.Edge.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/">
     <Project Path="tests/unit/Catalog.UnitTests/Catalog.UnitTests.csproj" />
     <Project Path="tests/unit/Customer.UnitTests/Customer.UnitTests.csproj" />
     <Project Path="tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj" />
+    <Project Path="tests/unit/Web.Edge.UnitTests/Web.Edge.UnitTests.csproj" />
 
     <Project Path="tests/unit/SharedKernel.Persistence.UnitTests/SharedKernel.Persistence.UnitTests.csproj" />
-    <Project Path="tests/unit/Web.Edge.UnitTests/Web.Edge.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/" />
 </Solution>

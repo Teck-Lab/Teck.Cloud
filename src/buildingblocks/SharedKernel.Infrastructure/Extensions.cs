@@ -1,12 +1,9 @@
 using System.Text.Json.Serialization;
-using CorrelationId;
-using CorrelationId.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
-using SharedKernel.Infrastructure.Logging;
 using SharedKernel.Infrastructure.Middlewares;
 using SharedKernel.Infrastructure.Options;
 
@@ -31,7 +28,7 @@ namespace SharedKernel.Infrastructure
             this WebApplicationBuilder builder,
             AppOptions appOptions)
         {
-            builder.ConfigureSerilog(appOptions.Name);
+            _ = appOptions;
 
             // 1. Core services
             builder.Services.Configure<JsonOptions>(options =>
@@ -40,16 +37,6 @@ namespace SharedKernel.Infrastructure
             });
 
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddDefaultCorrelationId(options =>
-            {
-                options.RequestHeader = "X-Correlation-ID";
-                options.ResponseHeader = "X-Correlation-ID";
-                options.IncludeInResponse = true;
-                options.AddToLoggingScope = true;
-                options.UpdateTraceIdentifier = false;
-
-                options.CorrelationIdGenerator = () => Guid.NewGuid().ToString();
-            });
 
             builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
@@ -78,8 +65,6 @@ namespace SharedKernel.Infrastructure
         public static void UseBaseInfrastructure(
             this WebApplication app)
         {
-            app.UseCorrelationId();
-
             // Add global exception handler middleware here
             app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 

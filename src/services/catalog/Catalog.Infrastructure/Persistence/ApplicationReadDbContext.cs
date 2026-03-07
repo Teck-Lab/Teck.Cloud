@@ -1,10 +1,16 @@
+// <copyright file="ApplicationReadDbContext.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Brands.ReadModels;
 using Catalog.Application.Categories.ReadModels;
 using Catalog.Application.ProductPriceTypes.ReadModels;
 using Catalog.Application.Products.ReadModels;
 using Catalog.Application.Promotions.ReadModels;
 using Catalog.Application.Suppliers.ReadModels;
+using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.EFCore;
 
 namespace Catalog.Infrastructure.Persistence;
@@ -18,19 +24,12 @@ public sealed class ApplicationReadDbContext : BaseDbContext
     /// Initializes a new instance of the <see cref="ApplicationReadDbContext"/> class.
     /// </summary>
     /// <param name="options">The options to be used by a <see cref="DbContext"/>.</param>
-    public ApplicationReadDbContext(DbContextOptions<ApplicationReadDbContext> options)
-        : base(options)
-    { }
-
-    /// <summary>
-    /// On model creating.
-    /// </summary>
-    /// <param name="modelBuilder">The model builder.</param>
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    /// <param name="tenantAccessor">The tenant context accessor used for resolving the current tenant.</param>
+    public ApplicationReadDbContext(
+        DbContextOptions<ApplicationReadDbContext> options,
+        IMultiTenantContextAccessor<TenantDetails>? tenantAccessor = null)
+        : base(options, tenantAccessor: tenantAccessor)
     {
-        base.OnModelCreating(modelBuilder);
-
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationReadDbContext).Assembly, ReadConfigFilter);
     }
 
     /// <summary>
@@ -67,6 +66,18 @@ public sealed class ApplicationReadDbContext : BaseDbContext
     /// Gets or sets the product prices.
     /// </summary>
     public DbSet<ProductPriceReadModel> ProductPrices { get; set; } = null!;
+
+    /// <summary>
+    /// On model creating.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(modelBuilder);
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationReadDbContext).Assembly, ReadConfigFilter);
+    }
 
     private static bool ReadConfigFilter(Type type) =>
         type.FullName?.Contains("Config.Read") ?? false;

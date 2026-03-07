@@ -1,58 +1,57 @@
-using Customer.Application.Tenants.Commands.CreateTenant;
-using Customer.Application.Tenants.DTOs;
+// <copyright file="CreateTenantEndpoint.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+using Customer.Application.Tenants.Features.CreateTenant.V1;
+using Customer.Application.Tenants.Responses;
 using ErrorOr;
 using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
 using Mediator;
+using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Persistence.Database;
 
 namespace Customer.Api.Endpoints.V1.Tenants.CreateTenant;
 
-/// <summary>
-/// The create tenant endpoint.
-/// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="CreateTenantEndpoint"/> class.
-/// </remarks>
-/// <param name="mediator">The mediator.</param>
-internal class CreateTenantEndpoint(ISender mediator) : Endpoint<CreateTenantRequest, TenantDto>
+public sealed class CreateTenantEndpoint(ISender sender, IConfiguration configuration) : Endpoint<CreateTenantRequest, TenantResponse>
 {
-    /// <summary>
-    /// The mediator.
-    /// </summary>
-    private readonly ISender _mediator = mediator;
+    private readonly ISender sender = sender;
+    private readonly IConfiguration configuration = configuration;
 
-    /// <summary>
-    /// Configure the endpoint.
-    /// </summary>
     public override void Configure()
     {
         Post("/Tenants");
-        Options(ep => ep.RequireProtectedResource("tenant", "create"));
-        Validator<CreateTenantValidator>();
         Version(1);
+        Options(endpoint => endpoint.RequireProtectedResource("tenant", "create"));
     }
 
-    /// <summary>
-    /// Handle the request.
-    /// </summary>
-    /// <param name="req">The request.</param>
-    /// <param name="ct">The cancellation token.</param>
-    /// <returns>A task.</returns>
-    public override async Task HandleAsync(CreateTenantRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CreateTenantRequest request, CancellationToken ct)
     {
-        CreateTenantCommand command = new(
-            req.Identifier,
-            req.Name,
-            req.Plan,
-            SharedKernel.Core.Pricing.DatabaseStrategy.FromName(req.DatabaseStrategy),
-            SharedKernel.Core.Pricing.DatabaseProvider.FromName(req.DatabaseProvider),
-            req.CustomCredentials);
+        CreateTenantCommand command = BuildCreateTenantCommand(request);
+        ErrorOr<TenantResponse> commandResponse = await sender.Send(command, ct).ConfigureAwait(false);
 
-        ErrorOr<TenantDto> commandResponse = await _mediator.Send(command, ct);
-        await this.SendCreatedAtAsync<Customer.Api.Endpoints.V1.Tenants.GetTenantById.GetTenantByIdEndpoint, ErrorOr<TenantDto>>(
-            routeValues: new { commandResponse.Value?.Id },
-            commandResponse,
-            cancellation: ct);
+        await this
+            .SendCreatedAsync(commandResponse, value => $"/customer/v1/Tenants/{value.Id}", ct)
+            .ConfigureAwait(false);
+    }
+
+    private CreateTenantCommand BuildCreateTenantCommand(CreateTenantRequest request)
+    {
+        DatabaseStrategy databaseStrategy = DatabaseStrategy.FromName(request.DatabaseStrategy);
+        DatabaseProvider databaseProvider = configuration.GetDatabaseProvider();
+        TenantDatabaseSelection databaseSelection = new()
+        {
+            DatabaseStrategy = databaseStrategy,
+            DatabaseProvider = databaseProvider,
+        };
+
+        TenantProfile tenantProfile = new()
+        {
+            Name = request.Name,
+            Plan = request.Plan,
+        };
+
+        return new CreateTenantCommand(request.Identifier, tenantProfile, databaseSelection);
     }
 }

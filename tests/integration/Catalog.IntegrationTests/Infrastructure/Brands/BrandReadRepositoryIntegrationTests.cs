@@ -3,7 +3,7 @@ using System.Globalization;
 using Ardalis.Specification;
 using Catalog.Application.Brands.ReadModels;
 using Catalog.Application.Brands.Repositories;
-using Catalog.Application.Brands.Specifications;
+using Catalog.Application.Brands.Features.GetPaginatedBrands.V1;
 using Catalog.Infrastructure.Persistence;
 using Catalog.Infrastructure.Persistence.Repositories.Read;
 using Catalog.IntegrationTests.Shared;
@@ -22,9 +22,11 @@ namespace Catalog.IntegrationTests.Infrastructure.Brands
         {
         }
 
-        protected override ApplicationReadDbContext CreateReadDbContext(DbContextOptions<ApplicationReadDbContext> options)
+        protected override ApplicationReadDbContext CreateReadDbContext(
+            DbContextOptions<ApplicationReadDbContext> options,
+            Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<SharedKernel.Infrastructure.MultiTenant.TenantDetails> tenantAccessor)
         {
-            return new ApplicationReadDbContext(options);
+            return new ApplicationReadDbContext(options, tenantAccessor);
         }
 
         public override async ValueTask InitializeAsync()
@@ -168,7 +170,7 @@ namespace Catalog.IntegrationTests.Infrastructure.Brands
 
             // Act - Get page 2 with page size 5, filter by a unique prefix so only our inserted rows are considered
             var keyword = "UniquePagedBrand";
-            var spec = new BrandPaginationSpecification(2, 5, keyword);
+            var spec = new GetPaginatedBrandsSpecification(2, 5, keyword);
             var result = await _readRepository.ListAsync(spec, CancellationToken.None);
 
             // Assert - make deterministic by computing expected names from the inserted set

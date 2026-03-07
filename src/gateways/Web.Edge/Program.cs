@@ -1,187 +1,126 @@
-using System.Security.Claims;
-using System.Text.RegularExpressions;
-using System.Text.Json;
 using Keycloak.AuthServices.Authentication;
-using Scalar.AspNetCore;
+using Keycloak.AuthServices.Common;
+using FastEndpoints;
+using Microsoft.AspNetCore.Authentication;
+using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Auth;
+using SharedKernel.Infrastructure.MultiTenant;
+using SharedKernel.Infrastructure.Options;
 using Web.Edge.Middleware;
-using Web.Edge.Security;
+using Web.Edge.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-var keycloakSection = builder.Configuration.GetSection("Keycloak");
-var keycloakOptions = new KeycloakAuthenticationOptions();
-keycloakSection.Bind(keycloakOptions);
+var appOptions = new AppOptions();
+builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 
-builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
-builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
-    .AddServiceDiscoveryDestinationResolver();
-builder.Services.AddSingleton<IInternalIdentityTokenService, InternalIdentityTokenService>();
+builder.AddBaseInfrastructure(appOptions);
 
-builder.Services.AddAuthentication();
-builder.Services.AddAuthorization(options =>
+bool useMockAuthentication = builder.Configuration.GetValue<bool>("Testing:UseMockAuthentication")
+    || (bool.TryParse(Environment.GetEnvironmentVariable("TECK_TEST_MOCK_AUTH"), out bool parsedUseMockAuthentication)
+        && parsedUseMockAuthentication);
+
+if (useMockAuthentication)
 {
-    options.AddPolicy("RealmAdminOnly", policy =>
-        policy.RequireAssertion(context => IsRealmAdmin(context.User)));
-});
-
-var app = builder.Build();
-
-app.MapGet("/health", () => Results.Ok("ok"));
-
-app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.UseMiddleware<EdgeRequestSanitizationMiddleware>();
-
-app.MapScalarApiReference("/docs", options =>
-{
-    options.WithTitle("Teck Web API");
-
-    var docs = GetScalarDocuments(builder.Configuration, includeAdminRoutes: false);
-    var isFirst = true;
-    foreach (var doc in docs)
-    {
-        options.AddDocument(doc.DocumentName, doc.DisplayName, doc.OpenApiPath, isDefault: isFirst);
-        isFirst = false;
-    }
-
-    options
-        .AddPreferredSecuritySchemes("oAuth2")
-        .AddAuthorizationCodeFlow("oAuth2", flow =>
+    builder.Services
+        .AddAuthentication(options =>
         {
-            flow.ClientId = builder.Configuration["Keycloak:ScalarClientId"] ?? "scalar-ui";
-            flow.Pkce = Pkce.Sha256;
+            options.DefaultAuthenticateScheme = "Bearer";
+            options.DefaultChallengeScheme = "Bearer";
+            options.DefaultScheme = "Bearer";
+        })
+        .AddScheme<AuthenticationSchemeOptions, MockBearerAuthenticationHandler>("Bearer", _ =>
+        {
         });
-});
 
-app.MapScalarApiReference("/docs/admin", options =>
+    builder.Services.AddAuthorization();
+}
+else
 {
-    options.WithTitle("Teck Internal APIs");
+    KeycloakAuthenticationOptions keycloakOptions = builder.Configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>()
+        ?? throw new InvalidOperationException("Keycloak configuration section is missing or invalid.");
 
-    var docs = GetScalarDocuments(builder.Configuration, includeAdminRoutes: true);
-    var isFirst = true;
-    foreach (var doc in docs)
-    {
-        options.AddDocument(doc.DocumentName, doc.DisplayName, doc.OpenApiPath, isDefault: isFirst);
-        isFirst = false;
-    }
-
-    options
-        .AddPreferredSecuritySchemes("oAuth2")
-        .AddAuthorizationCodeFlow("oAuth2", flow =>
-        {
-            flow.ClientId = builder.Configuration["Keycloak:ScalarClientId"] ?? "scalar-ui";
-            flow.Pkce = Pkce.Sha256;
-        });
-});
-
-app.MapReverseProxy();
-
-app.Run();
-
-static List<(string DocumentName, string DisplayName, string OpenApiPath)> GetScalarDocuments(IConfiguration configuration, bool includeAdminRoutes)
-{
-    var docs = new List<(string DocumentName, string DisplayName, string OpenApiPath)>();
-    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-    foreach (var cluster in configuration.GetSection("ReverseProxy:Clusters").GetChildren())
-    {
-        var clusterName = cluster.Key;
-        foreach (var destination in cluster.GetSection("Destinations").GetChildren())
-        {
-            foreach (var swagger in destination.GetSection("Swaggers").GetChildren())
-            {
-                var prefixPath = swagger["PrefixPath"];
-                var serviceName = !string.IsNullOrWhiteSpace(prefixPath)
-                    ? prefixPath.Trim('/').ToLowerInvariant()
-                    : clusterName.ToLowerInvariant();
-
-                foreach (var pathItem in swagger.GetSection("Paths").GetChildren())
-                {
-                    var openApiPath = pathItem.Value;
-                    if (string.IsNullOrWhiteSpace(openApiPath))
-                    {
-                        continue;
-                    }
-
-                    var isAdminDoc = openApiPath.Contains("/openapi/admin/", StringComparison.OrdinalIgnoreCase);
-                    if (!includeAdminRoutes && isAdminDoc)
-                    {
-                        continue;
-                    }
-
-                    var versionMatch = Regex.Match(openApiPath, @"v\d+", RegexOptions.IgnoreCase);
-                    var version = versionMatch.Success ? versionMatch.Value.ToLowerInvariant() : "v1";
-                    var documentName = $"{serviceName}-{version}";
-
-                    var displayServiceName = Regex.Replace(serviceName, "[-_]+", " ");
-                    if (!string.IsNullOrEmpty(displayServiceName))
-                    {
-                        displayServiceName = char.ToUpperInvariant(displayServiceName[0]) + displayServiceName[1..];
-                    }
-
-                    var displayName = $"{displayServiceName} {version}";
-                    if (seen.Add(documentName))
-                    {
-                        docs.Add((documentName, displayName, openApiPath));
-                    }
-                }
-            }
-        }
-    }
-
-    if (docs.Count == 0)
-    {
-        docs.Add(("bff-v1", "Bff v1", "/openapi/bff/v1/openapi.json"));
-    }
-
-    return docs;
+    builder.Services.AddKeycloak(builder.Configuration, builder.Environment, keycloakOptions);
 }
 
-static bool IsRealmAdmin(ClaimsPrincipal user)
+builder.Services.AddFusionCache();
+builder.Services.AddSingleton<IServiceTokenExchangeService, ServiceTokenExchangeService>();
+builder.Services.AddSingleton<ITenantTokenContextResolver, TenantTokenContextResolver>();
+builder.Services.AddSingleton<ITenantDatabaseStrategyResolver, RemoteTenantDatabaseStrategyResolver>();
+builder.Services.AddHttpClient("KeycloakTokenClient", client =>
 {
-    if (user.IsInRole("realm-admin"))
+});
+
+EdgeTenantOptions edgeTenantOptions = builder.Configuration.GetEdgeTenantOptions();
+builder.Services.AddSingleton(edgeTenantOptions);
+EdgeRouteSecurityOptions edgeRouteSecurityOptions = builder.Configuration.GetEdgeRouteSecurityOptions();
+builder.Services.AddSingleton(edgeRouteSecurityOptions);
+
+IConfigurationSection reverseProxyConfiguration = builder.Configuration.GetSection("ReverseProxy");
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(reverseProxyConfiguration)
+    .AddServiceDiscoveryDestinationResolver()
+    .AddEdgeGatewayTransforms(edgeTenantOptions);
+
+builder.Services.AddOpenApi();
+
+WebApplication app = builder.Build();
+
+app.MapRemote(ResolveRemoteAddress(
+    builder.Configuration,
+    "Services:CustomerApi:Url"),
+    c =>
     {
-        return true;
+        c.Register<SharedKernel.Grpc.Contracts.Remote.V1.Tenants.GetTenantDatabaseInfoCommand, SharedKernel.Grpc.Contracts.Remote.V1.Tenants.TenantDatabaseInfoRpcResult>();
+    });
+
+app.UseRouting();
+
+app.UseBaseInfrastructure();
+app.UseMiddleware<AdminRouteAuthorizationMiddleware>();
+app.UseMiddleware<TenantEnforcementMiddleware>();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
+app.MapOpenApi();
+app.MapEdgeScalarApiReference(builder.Configuration);
+app.MapReverseProxy();
+
+await app.RunAsync();
+
+static string ResolveRemoteAddress(IConfiguration configuration, string key)
+{
+    string? value = configuration[key];
+    if (TryBuildAbsoluteUri(value, out Uri uri))
+    {
+        return uri.ToString();
     }
 
-    foreach (var claim in user.Claims)
-    {
-        if ((string.Equals(claim.Type, "roles", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(claim.Type, "role", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(claim.Type, "realm_access.roles", StringComparison.OrdinalIgnoreCase)) &&
-            string.Equals(claim.Value, "realm-admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
+    throw new InvalidOperationException($"Missing valid remote address. Configure '{key}'.");
+}
 
-        if (string.Equals(claim.Type, "realm_access", StringComparison.OrdinalIgnoreCase) &&
-            !string.IsNullOrWhiteSpace(claim.Value) &&
-            claim.Value.TrimStart().StartsWith('{'))
-        {
-            try
-            {
-                using var jsonDocument = JsonDocument.Parse(claim.Value);
-                if (jsonDocument.RootElement.TryGetProperty("roles", out var rolesElement) &&
-                    rolesElement.ValueKind == JsonValueKind.Array &&
-                    rolesElement.EnumerateArray().Any(role =>
-                        role.ValueKind == JsonValueKind.String &&
-                        string.Equals(role.GetString(), "realm-admin", StringComparison.OrdinalIgnoreCase)))
-                {
-                    return true;
-                }
-            }
-            catch
-            {
-                // Ignore malformed claim payloads and continue evaluating remaining claims.
-            }
-        }
+static bool TryBuildAbsoluteUri(string? value, out Uri uri)
+{
+    uri = default!;
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        return false;
+    }
+
+    string normalized = value.Trim();
+    if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? parsed) && parsed is not null)
+    {
+        uri = parsed;
+        return true;
     }
 
     return false;
 }
+

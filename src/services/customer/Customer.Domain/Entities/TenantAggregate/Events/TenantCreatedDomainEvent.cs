@@ -1,3 +1,7 @@
+// <copyright file="TenantCreatedDomainEvent.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Events;
 
 namespace Customer.Domain.Entities.TenantAggregate.Events;
@@ -7,6 +11,21 @@ namespace Customer.Domain.Entities.TenantAggregate.Events;
 /// </summary>
 public sealed class TenantCreatedDomainEvent : DomainEvent
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TenantCreatedDomainEvent"/> class.
+    /// </summary>
+    /// <param name="details">Tenant creation event details.</param>
+    public TenantCreatedDomainEvent(TenantCreatedEventDetails details)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+
+        this.TenantId = details.TenantId;
+        this.Identifier = details.Identifier;
+        this.Name = details.Name;
+        this.DatabaseStrategy = details.DatabaseStrategy;
+        this.DatabaseProvider = details.DatabaseProvider;
+    }
+
     /// <summary>
     /// Gets the tenant ID.
     /// </summary>
@@ -31,26 +50,4 @@ public sealed class TenantCreatedDomainEvent : DomainEvent
     /// Gets the database provider.
     /// </summary>
     public string DatabaseProvider { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TenantCreatedDomainEvent"/> class.
-    /// </summary>
-    /// <param name="tenantId">The tenant ID.</param>
-    /// <param name="identifier">The tenant identifier.</param>
-    /// <param name="name">The tenant name.</param>
-    /// <param name="databaseStrategy">The database strategy.</param>
-    /// <param name="databaseProvider">The database provider.</param>
-    public TenantCreatedDomainEvent(
-        Guid tenantId,
-        string identifier,
-        string name,
-        string databaseStrategy,
-        string databaseProvider)
-    {
-        TenantId = tenantId;
-        Identifier = identifier;
-        Name = name;
-        DatabaseStrategy = databaseStrategy;
-        DatabaseProvider = databaseProvider;
-    }
 }

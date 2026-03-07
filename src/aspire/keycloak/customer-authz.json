@@ -1,0 +1,170 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "user",
+      "ownerManagedAccess": false,
+      "displayName": "user",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        },
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "system",
+      "ownerManagedAccess": false,
+      "displayName": "System",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "Is Realm Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Realm User",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"user\",\"required\":false},{\"id\":\"admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is customer reader",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-customer/writer\",\"required\":false},{\"id\":\"teck-customer/reader\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is customer writer",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[]"
+      }
+    },
+    {
+      "name": "Create user",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"user\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is customer writer\",\"Is Realm Admin\"]"
+      }
+    },
+    {
+      "name": "List users",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"user\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is customer reader\",\"Is Realm User\"]"
+      }
+    },
+    {
+      "name": "Update user",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"user\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"Is customer writer\",\"Is Realm Admin\"]"
+      }
+    },
+    {
+      "name": "Delete user",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"user\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Is customer writer\",\"Is Realm Admin\"]"
+      }
+    },
+    {
+      "name": "List ssytem details",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "resources": "[\"system\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is customer reader\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "create",
+      "iconUri": "",
+      "displayName": "Create"
+    },
+    {
+      "name": "list",
+      "iconUri": "",
+      "displayName": "List"
+    },
+    {
+      "name": "update",
+      "iconUri": "",
+      "displayName": "Update"
+    },
+    {
+      "name": "delete",
+      "iconUri": "",
+      "displayName": "Delete"
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}

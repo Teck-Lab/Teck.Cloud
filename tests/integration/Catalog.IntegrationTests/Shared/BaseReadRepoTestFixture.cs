@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Finbuckle.MultiTenant.Abstractions;
+using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
 
 namespace Catalog.IntegrationTests.Shared
@@ -33,11 +35,22 @@ namespace Catalog.IntegrationTests.Shared
             SoftDeleteInterceptor = new SoftDeleteInterceptor(httpContextAccessor);
             AuditingInterceptor = new AuditingInterceptor(httpContextAccessor);
 
-            var options = new DbContextOptionsBuilder<TContext>()
-                .UseNpgsql(SharedFixture.DbContainer.GetConnectionString())
-                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor)
-                .Options;
-            ReadDbContext = CreateReadDbContext(options);
+            var optionsBuilder = new DbContextOptionsBuilder<TContext>()
+                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor);
+
+            if (SharedFixture.UseSqliteFallback)
+            {
+                optionsBuilder.UseSqlite(SharedFixture.SqliteConnection!);
+            }
+            else
+            {
+                optionsBuilder.UseNpgsql(SharedFixture.DbContainer!.GetConnectionString());
+            }
+
+            var options = optionsBuilder.Options;
+            var tenantAccessor = new FixedTenantContextAccessor();
+            ReadDbContext = CreateReadDbContext(options, tenantAccessor);
+
             await ReadDbContext.Database.EnsureCreatedAsync();
             await SeedAsync();
         }
@@ -47,7 +60,7 @@ namespace Catalog.IntegrationTests.Shared
             // Do NOT dispose containers here; handled by shared fixture
         }
 
-        protected abstract TContext CreateReadDbContext(DbContextOptions<TContext> options);
+        protected abstract TContext CreateReadDbContext(DbContextOptions<TContext> options, IMultiTenantContextAccessor<TenantDetails> tenantAccessor);
 
         /// <summary>
         /// Optional: Override to seed data before each test.

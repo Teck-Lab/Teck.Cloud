@@ -1,7 +1,10 @@
+// <copyright file="CreateProductValidator.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Brands.Repositories;
 using Catalog.Application.Categories.Repositories;
 using Catalog.Application.Products.Repositories;
-using FastEndpoints;
 using FluentValidation;
 
 namespace Catalog.Application.Products.Features.CreateProduct.V1
@@ -9,50 +12,60 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
     /// <summary>
     /// The create product validator.
     /// </summary>
-    public sealed class CreateProductValidator : Validator<CreateProductRequest>
+    public sealed class CreateProductValidator : AbstractValidator<CreateProductRequest>
     {
+        private readonly IProductReadRepository productReadRepository;
+        private readonly ICategoryReadRepository categoryReadRepository;
+        private readonly IBrandReadRepository brandReadRepository;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CreateProductValidator"/> class.
         /// </summary>
-        public CreateProductValidator()
+        /// <param name="productReadRepository">The product read repository.</param>
+        /// <param name="categoryReadRepository">The category read repository.</param>
+        /// <param name="brandReadRepository">The brand read repository.</param>
+        public CreateProductValidator(
+            IProductReadRepository productReadRepository,
+            ICategoryReadRepository categoryReadRepository,
+            IBrandReadRepository brandReadRepository)
         {
-            RuleFor(product => product.Name)
+            this.productReadRepository = productReadRepository;
+            this.categoryReadRepository = categoryReadRepository;
+            this.brandReadRepository = brandReadRepository;
+
+            this.RuleFor(product => product.Name)
                 .NotEmpty()
                 .MaximumLength(100)
                 .WithName("Name");
 
-            RuleFor(product => product.ProductSku)
+            this.RuleFor(product => product.ProductSku)
                 .NotEmpty()
                 .MaximumLength(50)
                 .WithName("ProductSku")
                 .MustAsync(async (sku, ct) =>
                 {
-                    var repo = Resolve<IProductReadRepository>();
-                    return !await repo.ExistsAsync(product => product.Sku.Equals(sku), cancellationToken: ct);
+                    return !await this.productReadRepository.ExistsAsync(product => product.Sku.Equals(sku), false, ct).ConfigureAwait(false);
                 })
                 .WithMessage((_, productSku) => $"Product with SKU '{productSku}' already exists.");
 
-            RuleFor(product => product.GTIN)
+            this.RuleFor(product => product.GTIN)
                 .MaximumLength(50)
                 .WithName("GTIN");
 
-            RuleFor(product => product.CategoryIds)
+            this.RuleFor(product => product.CategoryIds)
                 .NotEmpty()
                 .MustAsync(async (ids, ct) =>
                 {
-                    var repo = Resolve<ICategoryReadRepository>();
-
-                    return await repo.ExistsByIdAsync(ids, cancellationToken: ct);
+                    return await this.categoryReadRepository.ExistsByIdAsync(ids, ct).ConfigureAwait(false);
                 })
                 .WithMessage((_, ids) => "Some category IDs were not found.");
 
-            RuleFor(product => product.BrandId)
+            this.RuleFor(product => product.BrandId)
                 .NotEmpty()
                 .WithMessage("Brand ID is required.")
                 .MustAsync(async (brandId, ct) =>
                 {
-                    var repo = Resolve<IBrandReadRepository>();
-                    return !await repo.ExistsAsync(brand => brand.Id.Equals(brandId), cancellationToken: ct);
+                    return await this.brandReadRepository.ExistsAsync(brand => brand.Id.Equals(brandId), false, ct).ConfigureAwait(false);
                 })
                 .WithMessage((_, brandId) => $"Brand with ID '{brandId}' does not exist.");
         }

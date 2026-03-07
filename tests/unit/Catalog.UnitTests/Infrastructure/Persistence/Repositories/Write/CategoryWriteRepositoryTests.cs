@@ -20,7 +20,7 @@ public sealed class CategoryWriteRepositoryTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        _dbContext = new ApplicationWriteDbContext(options);
+        _dbContext = new ApplicationWriteDbContext(options, Catalog.UnitTests.Infrastructure.Persistence.TestTenantContextAccessor.Create());
         _httpContextAccessor = Substitute.For<IHttpContextAccessor>();
         _repository = new CategoryWriteRepository(_dbContext, _httpContextAccessor);
     }

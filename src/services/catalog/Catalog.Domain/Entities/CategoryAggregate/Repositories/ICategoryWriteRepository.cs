@@ -1,3 +1,7 @@
+// <copyright file="ICategoryWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Database;
 
 namespace Catalog.Domain.Entities.CategoryAggregate.Repositories;
@@ -13,7 +17,7 @@ public interface ICategoryWriteRepository : IGenericWriteRepository<Category, Gu
     /// <param name="name">The name of the category.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The category if found, otherwise null.</returns>
-    Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets categories by parent ID.
@@ -21,5 +25,5 @@ public interface ICategoryWriteRepository : IGenericWriteRepository<Category, Gu
     /// <param name="parentId">The parent category ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of categories.</returns>
-    Task<IReadOnlyList<Category>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Category>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken);
 }

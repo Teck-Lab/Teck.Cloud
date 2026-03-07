@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Finbuckle.MultiTenant.Abstractions;
+using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Core.Database;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
 using Wolverine;
@@ -36,17 +38,31 @@ namespace Catalog.IntegrationTests.Shared
             services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
             services.AddWolverine(x =>
             {
-                x.UseRabbitMq(SharedFixture.RabbitMqContainer.GetConnectionString());
+                if (!SharedFixture.UseSqliteFallback)
+                {
+                    x.UseRabbitMq(SharedFixture.RabbitMqContainer!.GetConnectionString());
+                }
             });
             ServiceProvider = services.BuildServiceProvider();
             SoftDeleteInterceptor = new SoftDeleteInterceptor(httpContextAccessor);
             AuditingInterceptor = new AuditingInterceptor(httpContextAccessor);
 
-            var options = new DbContextOptionsBuilder<TContext>()
-                .UseNpgsql(SharedFixture.DbContainer.GetConnectionString())
-                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor)
-                .Options;
-            WriteDbContext = CreateWriteDbContext(options);
+            var optionsBuilder = new DbContextOptionsBuilder<TContext>()
+                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor);
+
+            if (SharedFixture.UseSqliteFallback)
+            {
+                optionsBuilder.UseSqlite(SharedFixture.SqliteConnection!);
+            }
+            else
+            {
+                optionsBuilder.UseNpgsql(SharedFixture.DbContainer!.GetConnectionString());
+            }
+
+            var options = optionsBuilder.Options;
+            var tenantAccessor = new FixedTenantContextAccessor();
+            WriteDbContext = CreateWriteDbContext(options, tenantAccessor);
+
             UnitOfWork = CreateUnitOfWork(WriteDbContext);
 
             // For ephemeral testcontainers we recreate the database so schema matches the current model.
@@ -87,7 +103,7 @@ namespace Catalog.IntegrationTests.Shared
             GC.SuppressFinalize(this);
         }
 
-        protected abstract TContext CreateWriteDbContext(DbContextOptions<TContext> options);
+        protected abstract TContext CreateWriteDbContext(DbContextOptions<TContext> options, IMultiTenantContextAccessor<TenantDetails> tenantAccessor);
 
         protected abstract TUnitOfWork CreateUnitOfWork(TContext context);
 

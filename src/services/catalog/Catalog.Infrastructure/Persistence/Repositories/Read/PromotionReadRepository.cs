@@ -1,3 +1,7 @@
+// <copyright file="PromotionReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Promotions.ReadModels;
 using Catalog.Application.Promotions.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +15,7 @@ namespace Catalog.Infrastructure.Persistence.Repositories.Read;
 /// </summary>
 public sealed class PromotionReadRepository : GenericReadRepository<PromotionReadModel, Guid, ApplicationReadDbContext>, IPromotionReadRepository
 {
-    private readonly DbSet<PromotionReadModel> _promotions;
+    private readonly DbSet<PromotionReadModel> promotions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PromotionReadRepository"/> class.
@@ -20,47 +24,49 @@ public sealed class PromotionReadRepository : GenericReadRepository<PromotionRea
     public PromotionReadRepository(ApplicationReadDbContext readDbContext)
         : base(readDbContext)
     {
-        _promotions = DbContext.Promotions;
+        this.promotions = this.DbContext.Promotions;
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<PromotionReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PromotionReadModel>> GetAllAsync(CancellationToken cancellationToken)
     {
-        return await GetAllAsync(enableTracking: false, cancellationToken: cancellationToken);
+        return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<PromotionReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<PromotionReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await FindByIdAsync(id, cancellationToken: cancellationToken);
+        return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<PromotionReadModel>> GetActivePromotionsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PromotionReadModel>> GetActivePromotionsAsync(CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
-        return await _promotions
+        return await this.promotions
             .AsNoTracking()
             .Where(promotion => promotion.StartDate <= now && promotion.EndDate >= now)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<PromotionReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PromotionReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken)
     {
         // Since the promotion read model doesn't have a direct CategoryId property,
         // this would need to be implemented with a join or custom query in a real implementation
         // This is a placeholder implementation
-        return await _promotions
+        return await this.promotions
             .AsNoTracking()
             .Where(promotion => promotion.IsActive)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<PromotionReadModel>> GetPagedPromotionsAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
+    public async Task<PagedList<PromotionReadModel>> GetPagedPromotionsAsync(int page, int size, string? keyword, CancellationToken cancellationToken)
     {
-        var query = _promotions.AsQueryable();
+        var query = this.promotions.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -68,11 +74,12 @@ public sealed class PromotionReadRepository : GenericReadRepository<PromotionRea
                                    (promotion.Description != null && promotion.Description.Contains(keyword)));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await query.OrderBy(promotion => promotion.StartDate)
                              .Skip((page - 1) * size)
                              .Take(size)
-                             .ToListAsync(cancellationToken);
+                     .ToListAsync(cancellationToken)
+                     .ConfigureAwait(false);
 
         return new PagedList<PromotionReadModel>(items, totalCount, page, size);
     }

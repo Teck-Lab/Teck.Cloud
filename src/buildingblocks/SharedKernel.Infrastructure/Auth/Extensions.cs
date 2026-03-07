@@ -44,7 +44,6 @@ namespace SharedKernel.Infrastructure.Auth
                 options.Audience = keycloakOptions.Resource;
                 options.RequireHttpsMetadata = isProduction;
                 options.SaveToken = true;
-
                 // Customize token validation
                 options.TokenValidationParameters = new()
                 {
@@ -64,8 +63,6 @@ namespace SharedKernel.Infrastructure.Auth
                             .CreateLogger("JwtBearerEvents");
 
                         var traceId = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
-                        var correlationId = context.HttpContext.Request.Headers["X-Correlation-ID"].FirstOrDefault()
-                                           ?? context.HttpContext.TraceIdentifier;
                         var userId = context.HttpContext.User?.Identity?.Name ?? "anonymous";
 
                         var details = new[]
@@ -86,8 +83,7 @@ namespace SharedKernel.Infrastructure.Auth
                             Extensions =
                             {
                 ["traceId"] = traceId,
-                ["correlationId"] = correlationId,
-                ["details"] = details
+                ["errors"] = details
                             }
                         };
 
@@ -111,8 +107,6 @@ namespace SharedKernel.Infrastructure.Auth
                             .CreateLogger("JwtBearerEvents");
 
                         var traceId = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
-                        var correlationId = context.HttpContext.Request.Headers["X-Correlation-ID"].FirstOrDefault()
-                                           ?? context.HttpContext.TraceIdentifier;
                         var userId = context.HttpContext.User?.Identity?.Name ?? "anonymous";
 
                         var details = new[]
@@ -133,8 +127,7 @@ namespace SharedKernel.Infrastructure.Auth
                             Extensions =
                             {
                 ["traceId"] = traceId,
-                ["correlationId"] = correlationId,
-                ["details"] = details
+                ["errors"] = details
                             }
                         };
 
@@ -188,7 +181,8 @@ namespace SharedKernel.Infrastructure.Auth
                 {
                     services.AddHealthChecks().AddOpenIdConnectServer(
                         openIdUri,
-                        tags: ["openId", "identity", "keycloak"],
+                        name: "keycloak-openid",
+                        tags: ["identity", "keycloak", "openid", "ready"],
                         failureStatus: HealthStatus.Degraded);
                 }
             }

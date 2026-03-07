@@ -1,3 +1,7 @@
+// <copyright file="BrandReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Brands.ReadModels;
 using Catalog.Application.Brands.Repositories;
 using SharedKernel.Persistence.Database.EFCore;
@@ -19,8 +23,8 @@ public sealed class BrandReadRepository : GenericReadRepository<BrandReadModel, 
     }
 
     /// <inheritdoc/>
-    public async Task<BrandReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<BrandReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await FindByIdAsync(id, cancellationToken: cancellationToken);
+        return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 }

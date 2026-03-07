@@ -9,9 +9,11 @@
 </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FastEndpoints" />
+    <PackageReference Include="FastEndpoints.Swagger" />
+    <PackageReference Include="FastEndpoints.Messaging.Remote" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
-    <PackageReference Include="CorrelationId" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -26,9 +28,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\aspire\Teck.Cloud.ServiceDefaults\Teck.Cloud.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Core\SharedKernel.Core.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Grpc.Contracts\SharedKernel.Grpc.Contracts.csproj" />
     <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
     <ProjectReference Include="..\Catalog.Application\Catalog.Application.csproj" />
     <ProjectReference Include="..\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\Catalog.Infrastructure.Migrations.PostgreSQL\Catalog.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <ProjectReference Include="..\Catalog.Infrastructure.Migrations.SqlServer\Catalog.Infrastructure.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\Catalog.Infrastructure.Migrations.MySql\Catalog.Infrastructure.Migrations.MySql.csproj" />
   </ItemGroup>
 
   <ItemGroup>

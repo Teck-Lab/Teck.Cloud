@@ -1,4 +1,9 @@
+// <copyright file="ProductPriceTypeReadConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.ProductPriceTypes.ReadModels;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class ProductPriceTypeReadConfig : IEntityTypeConfiguration<ProductPriceT
     /// <param name="builder">The builder to be used to configure the ProductPriceTypeReadModel entity.</param>
     public void Configure(EntityTypeBuilder<ProductPriceTypeReadModel> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("ProductPriceTypes");
 
         builder.HasKey(productPriceType => productPriceType.Id);
@@ -32,5 +39,7 @@ public class ProductPriceTypeReadConfig : IEntityTypeConfiguration<ProductPriceT
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

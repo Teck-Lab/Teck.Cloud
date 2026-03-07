@@ -1,8 +1,11 @@
+// <copyright file="Category.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.CategoryAggregate.Errors;
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.PromotionAggregate;
 using ErrorOr;
-using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.CategoryAggregate
@@ -10,7 +13,6 @@ namespace Catalog.Domain.Entities.CategoryAggregate
     /// <summary>
     /// The category.
     /// </summary>
-    [MultiTenant]
     public class Category : BaseEntity, IAggregateRoot
     {
         /// <summary>
@@ -34,68 +36,17 @@ namespace Catalog.Domain.Entities.CategoryAggregate
         public ICollection<Promotion> Promotions { get; private set; } = [];
 
         /// <summary>
-        /// Update category.
+        /// Creates a new category.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <returns></returns>
-        public ErrorOr<Updated> Update(
-            string? name,
-            string? description)
-        {
-            var errors = new List<Error>();
-
-            if (name is not null)
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    errors.Add(CategoryErrors.EmptyName);
-                }
-                else if (!string.Equals(Name, name, StringComparison.Ordinal))
-                {
-                    Name = name;
-                }
-            }
-
-            if (description is not null)
-            {
-                if (string.IsNullOrWhiteSpace(description))
-                {
-                    errors.Add(CategoryErrors.EmptyDescription);
-                }
-                else if (!string.Equals(Description, description, StringComparison.Ordinal))
-                {
-                    Description = description;
-                }
-            }
-
-            if (errors.Count != 0)
-            {
-                return errors;
-            }
-
-            return Result.Updated;
-        }
-
-        /// <summary>
-        /// Create category.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <returns></returns>
+        /// <param name="name">The category name.</param>
+        /// <param name="description">The category description.</param>
+        /// <returns>The created category, or validation errors.</returns>
         public static ErrorOr<Category> Create(string name, string? description)
         {
             var errors = new List<Error>();
 
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                errors.Add(CategoryErrors.EmptyName);
-            }
-
-            if (string.IsNullOrWhiteSpace(description))
-            {
-                errors.Add(CategoryErrors.EmptyDescription);
-            }
+            ValidateNameForCreate(name, errors);
+            ValidateDescriptionForCreate(description, errors);
 
             if (errors.Count != 0)
             {
@@ -105,10 +56,85 @@ namespace Catalog.Domain.Entities.CategoryAggregate
             var category = new Category
             {
                 Name = name,
-                Description = description
+                Description = description,
             };
 
             return category;
+        }
+
+        /// <summary>
+        /// Updates category values.
+        /// </summary>
+        /// <param name="name">The category name.</param>
+        /// <param name="description">The category description.</param>
+        /// <returns>An updated result, or validation errors.</returns>
+        public ErrorOr<Updated> Update(string? name, string? description)
+        {
+            var errors = new List<Error>();
+
+            this.UpdateName(name, errors);
+            this.UpdateDescription(description, errors);
+
+            if (errors.Count != 0)
+            {
+                return errors;
+            }
+
+            return Result.Updated;
+        }
+
+        private static void ValidateNameForCreate(string name, List<Error> errors)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(CategoryErrors.EmptyName);
+            }
+        }
+
+        private static void ValidateDescriptionForCreate(string? description, List<Error> errors)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                errors.Add(CategoryErrors.EmptyDescription);
+            }
+        }
+
+        private void UpdateName(string? name, List<Error> errors)
+        {
+            if (name is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(CategoryErrors.EmptyName);
+                return;
+            }
+
+            if (!string.Equals(this.Name, name, StringComparison.Ordinal))
+            {
+                this.Name = name;
+            }
+        }
+
+        private void UpdateDescription(string? description, List<Error> errors)
+        {
+            if (description is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                errors.Add(CategoryErrors.EmptyDescription);
+                return;
+            }
+
+            if (!string.Equals(this.Description, description, StringComparison.Ordinal))
+            {
+                this.Description = description;
+            }
         }
     }
 }

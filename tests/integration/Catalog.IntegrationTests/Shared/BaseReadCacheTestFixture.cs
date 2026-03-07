@@ -35,17 +35,29 @@ namespace Catalog.IntegrationTests.Shared
             services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
             services.AddWolverine(x =>
             {
-                x.UseRabbitMq(SharedFixture.RabbitMqContainer.GetConnectionString());
+                if (!SharedFixture.UseSqliteFallback)
+                {
+                    x.UseRabbitMq(SharedFixture.RabbitMqContainer!.GetConnectionString());
+                }
             });
             ServiceProvider = services.BuildServiceProvider();
 
             SoftDeleteInterceptor = new SoftDeleteInterceptor(httpContextAccessor);
             AuditingInterceptor = new AuditingInterceptor(httpContextAccessor);
 
-            var options = new DbContextOptionsBuilder<TContext>()
-                .UseNpgsql(SharedFixture.DbContainer.GetConnectionString())
-                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor)
-                .Options;
+            var optionsBuilder = new DbContextOptionsBuilder<TContext>()
+                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor);
+
+            if (SharedFixture.UseSqliteFallback)
+            {
+                optionsBuilder.UseSqlite(SharedFixture.SqliteConnection!);
+            }
+            else
+            {
+                optionsBuilder.UseNpgsql(SharedFixture.DbContainer!.GetConnectionString());
+            }
+
+            var options = optionsBuilder.Options;
             ReadDbContext = CreateReadDbContext(options);
             await ReadDbContext.Database.EnsureCreatedAsync();
             await SeedAsync();

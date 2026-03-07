@@ -1,4 +1,4 @@
-using Customer.Application.Tenants.EventHandlers;
+using Customer.Application.Tenants.EventHandlers.DomainEvents;
 using Customer.Domain.Entities.TenantAggregate.Events;
 using NSubstitute;
 using SharedKernel.Events;
@@ -10,12 +10,12 @@ namespace Customer.UnitTests.Application.EventHandlers;
 public class TenantCreatedDomainEventHandlerTests
 {
     private readonly IMessageBus _messageBus;
-    private readonly TenantCreatedHandler _sut;
+    private readonly TenantCreatedDomainHandler _sut;
 
     public TenantCreatedDomainEventHandlerTests()
     {
         _messageBus = Substitute.For<IMessageBus>();
-        _sut = new TenantCreatedHandler(_messageBus);
+        _sut = new TenantCreatedDomainHandler(_messageBus);
     }
 
     [Fact]
@@ -23,12 +23,7 @@ public class TenantCreatedDomainEventHandlerTests
     {
         // Arrange
         var tenantId = Guid.NewGuid();
-        var domainEvent = new TenantCreatedDomainEvent(
-            tenantId,
-            "test-tenant",
-            "Test Tenant",
-            "Shared",
-            "PostgreSQL");
+        var domainEvent = CreateDomainEvent(tenantId, "test-tenant", "Test Tenant", "Shared", "PostgreSQL");
 
         // Act
         await _sut.Handle(domainEvent);
@@ -45,12 +40,7 @@ public class TenantCreatedDomainEventHandlerTests
     {
         // Arrange
         var tenantId = Guid.NewGuid();
-        var domainEvent = new TenantCreatedDomainEvent(
-            tenantId,
-            "test-tenant",
-            "Test Tenant",
-            "Dedicated",
-            "PostgreSQL");
+        var domainEvent = CreateDomainEvent(tenantId, "test-tenant", "Test Tenant", "Dedicated", "PostgreSQL");
 
         // Act
         await _sut.Handle(domainEvent);
@@ -65,12 +55,7 @@ public class TenantCreatedDomainEventHandlerTests
     {
         // Arrange
         var tenantId = Guid.NewGuid();
-        var domainEvent = new TenantCreatedDomainEvent(
-            tenantId,
-            "test-tenant",
-            "Test Tenant",
-            "Shared",
-            "SqlServer");
+        var domainEvent = CreateDomainEvent(tenantId, "test-tenant", "Test Tenant", "Shared", "SqlServer");
 
         // Act
         await _sut.Handle(domainEvent);
@@ -85,12 +70,7 @@ public class TenantCreatedDomainEventHandlerTests
     {
         // Arrange
         var tenantId = Guid.NewGuid();
-        var domainEvent = new TenantCreatedDomainEvent(
-            tenantId,
-            "my-tenant",
-            "My Tenant Name",
-            "External",
-            "MySQL");
+        var domainEvent = CreateDomainEvent(tenantId, "my-tenant", "My Tenant Name", "External", "MySQL");
 
         TenantCreatedIntegrationEvent? capturedEvent = null;
         await _messageBus.PublishAsync(Arg.Do<TenantCreatedIntegrationEvent>(e => capturedEvent = e));
@@ -105,5 +85,22 @@ public class TenantCreatedDomainEventHandlerTests
         capturedEvent.Name.ShouldBe("My Tenant Name");
         capturedEvent.DatabaseStrategy.ShouldBe("External");
         capturedEvent.DatabaseProvider.ShouldBe("MySQL");
+    }
+
+    private static TenantCreatedDomainEvent CreateDomainEvent(
+        Guid tenantId,
+        string identifier,
+        string name,
+        string databaseStrategy,
+        string databaseProvider)
+    {
+        return new TenantCreatedDomainEvent(new TenantCreatedEventDetails
+        {
+            TenantId = tenantId,
+            Identifier = identifier,
+            Name = name,
+            DatabaseStrategy = databaseStrategy,
+            DatabaseProvider = databaseProvider,
+        });
     }
 }

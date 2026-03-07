@@ -1,4 +1,7 @@
-using Catalog.Application.Brands.Features.Responses;
+// <copyright file="ProductResponse.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Categories.Response;
 using Catalog.Application.Features.ProductPrices.Response;
 using Catalog.Application.Promotions.Response;
@@ -54,7 +57,7 @@ namespace Catalog.Application.Products.Responses
         /// <summary>
         /// Gets or sets the brand.
         /// </summary>
-        public BrandResponse? Brand { get; set; }
+        public ProductBrandResponse? Brand { get; set; }
 
         /// <summary>
         /// Gets the categories.

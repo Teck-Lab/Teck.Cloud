@@ -1,3 +1,8 @@
+// <copyright file="BrandReadModel.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using MemoryPack;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Application.Brands.ReadModels;
@@ -5,7 +10,8 @@ namespace Catalog.Application.Brands.ReadModels;
 /// <summary>
 /// Read model for Brand entities, optimized for queries.
 /// </summary>
-public class BrandReadModel : ReadModelBase<Guid>
+[MemoryPackable]
+public partial class BrandReadModel : ReadModelBase<Guid>
 {
     /// <summary>
     /// Gets or sets the name of the brand.

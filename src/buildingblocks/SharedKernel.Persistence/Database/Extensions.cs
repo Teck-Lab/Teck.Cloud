@@ -1,10 +1,13 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SharedKernel.Core.Caching;
 using SharedKernel.Core.Pricing;
+using SharedKernel.Persistence.Caching;
 using SharedKernel.Persistence.Database.EFCore;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
 
@@ -38,6 +41,8 @@ namespace SharedKernel.Persistence.Database
             where TWriteContext : BaseDbContext
             where TReadContext : BaseDbContext
         {
+            builder.Services.AddScoped(typeof(IGenericCacheService<,>), typeof(GenericCacheService<,>));
+
             // Defensive: Prevent accidental registration of multi-tenant contexts
             var forbidden = new[] { "ApplicationWriteDbContext", "ApplicationReadDbContext" };
             if (forbidden.Contains(typeof(TWriteContext).Name) || forbidden.Contains(typeof(TReadContext).Name))
@@ -102,7 +107,7 @@ namespace SharedKernel.Persistence.Database
 
             builder.Services.AddDbContext<TContext>((sp, options) =>
             {
-                ConfigureDbContextOptions(options, connectionString, null, provider);
+                ConfigureDbContextOptions(options, connectionString, migrationsAssembly: null, provider);
 
                 options.AddInterceptors(
                     sp.GetRequiredService<AuditingInterceptor>());
@@ -169,6 +174,11 @@ namespace SharedKernel.Persistence.Database
             {
                 throw new ArgumentException($"Unsupported database provider: {provider}");
             }
+
+            if (migrationsAssembly != null)
+            {
+                options.ReplaceService<IMigrationsAssembly, ProviderFilteredMigrationsAssembly>();
+            }
         }
 
         /// <summary>
@@ -209,81 +219,44 @@ namespace SharedKernel.Persistence.Database
         {
             var healthChecks = builder.Services.AddHealthChecks();
 
-            // If read and write connection strings are the same, only add one health check (for write)
-            if (defaultWriteConnectionString == defaultReadConnectionString)
+            AddProviderDbHealthCheck(healthChecks, defaultWriteConnectionString, provider, role: "write");
+
+            if (!string.Equals(defaultWriteConnectionString, defaultReadConnectionString, StringComparison.OrdinalIgnoreCase))
             {
-                if (provider == DatabaseProvider.PostgreSQL)
-                {
-                    healthChecks.AddNpgSql(
-                        connectionString: defaultWriteConnectionString,
-                        tags: ["db", "sql", "postgres", "write"]);
-                }
-                else if (provider == DatabaseProvider.MySQL)
-                {
-                    healthChecks.AddMySql(
-                        connectionString: defaultWriteConnectionString,
-                        tags: ["db", "sql", "mysql", "write"]);
-                }
-                else if (provider == DatabaseProvider.SqlServer)
-                {
-                    healthChecks.AddSqlServer(
-                        connectionString: defaultWriteConnectionString,
-                        tags: ["db", "sql", "sqlserver", "write"]);
-                }
-                else
-                {
-                    throw new ArgumentException($"Unsupported database provider: {provider}");
-                }
+                AddProviderDbHealthCheck(healthChecks, defaultReadConnectionString, provider, role: "read");
+            }
+        }
+
+        private static void AddProviderDbHealthCheck(
+            IHealthChecksBuilder healthChecks,
+            string connectionString,
+            DatabaseProvider provider,
+            string role)
+        {
+            if (provider == DatabaseProvider.PostgreSQL)
+            {
+                healthChecks.AddNpgSql(
+                    connectionString: connectionString,
+                    name: $"postgres-{role}",
+                    tags: ["database", "postgres", role, "ready"]);
+            }
+            else if (provider == DatabaseProvider.MySQL)
+            {
+                healthChecks.AddMySql(
+                    connectionString: connectionString,
+                    name: $"mysql-{role}",
+                    tags: ["database", "mysql", role, "ready"]);
+            }
+            else if (provider == DatabaseProvider.SqlServer)
+            {
+                healthChecks.AddSqlServer(
+                    connectionString: connectionString,
+                    name: $"sqlserver-{role}",
+                    tags: ["database", "sqlserver", role, "ready"]);
             }
             else
             {
-                // Add health check for write database
-                if (provider == DatabaseProvider.PostgreSQL)
-                {
-                    healthChecks.AddNpgSql(
-                        connectionString: defaultWriteConnectionString,
-                        tags: ["db", "sql", "postgres", "write"]);
-                }
-                else if (provider == DatabaseProvider.MySQL)
-                {
-                    healthChecks.AddMySql(
-                        connectionString: defaultWriteConnectionString,
-                        tags: ["db", "sql", "mysql", "write"]);
-                }
-                else if (provider == DatabaseProvider.SqlServer)
-                {
-                    healthChecks.AddSqlServer(
-                        connectionString: defaultWriteConnectionString,
-                        tags: ["db", "sql", "sqlserver", "write"]);
-                }
-                else
-                {
-                    throw new ArgumentException($"Unsupported database provider: {provider}");
-                }
-
-                // Add health check for read database
-                if (provider == DatabaseProvider.PostgreSQL)
-                {
-                    healthChecks.AddNpgSql(
-                        connectionString: defaultReadConnectionString,
-                        tags: ["db", "sql", "postgres", "read"]);
-                }
-                else if (provider == DatabaseProvider.MySQL)
-                {
-                    healthChecks.AddMySql(
-                        connectionString: defaultReadConnectionString,
-                        tags: ["db", "sql", "mysql", "read"]);
-                }
-                else if (provider == DatabaseProvider.SqlServer)
-                {
-                    healthChecks.AddSqlServer(
-                        connectionString: defaultReadConnectionString,
-                        tags: ["db", "sql", "sqlserver", "read"]);
-                }
-                else
-                {
-                    throw new ArgumentException($"Unsupported database provider: {provider}");
-                }
+                throw new ArgumentException($"Unsupported database provider: {provider}");
             }
         }
 
@@ -291,18 +264,18 @@ namespace SharedKernel.Persistence.Database
         /// Gets the database provider from configuration.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        /// <param name="connectionName">The connection string name (defaults to "defaultdb").</param>
         /// <returns>The database provider.</returns>
-        public static DatabaseProvider GetDatabaseProvider(this IConfiguration configuration, string connectionName = "defaultdb")
+        public static DatabaseProvider GetDatabaseProvider(this IConfiguration configuration)
         {
-            var providerName = configuration.GetConnectionString($"{connectionName}:DbProvider")
-                ?? configuration[$"ConnectionStrings:{connectionName}:DbProvider"]
+            var providerName = configuration["Database:Provider"]
+                ?? configuration["Database__Provider"]
                 ?? "PostgreSQL";
 
-            return providerName.ToLowerInvariant() switch
+            return providerName.Trim().ToLowerInvariant() switch
             {
-                "sqlserver" => DatabaseProvider.SqlServer,
-                "mysql" => DatabaseProvider.MySQL,
+                "postgres" or "postgresql" => DatabaseProvider.PostgreSQL,
+                "sqlserver" or "mssql" => DatabaseProvider.SqlServer,
+                "mysql" or "mariadb" => DatabaseProvider.MySQL,
                 _ => DatabaseProvider.PostgreSQL // Default to PostgreSQL
             };
         }

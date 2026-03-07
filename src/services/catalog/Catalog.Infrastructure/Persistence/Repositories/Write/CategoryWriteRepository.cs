@@ -1,3 +1,7 @@
+// <copyright file="CategoryWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.CategoryAggregate.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -24,18 +28,20 @@ public sealed class CategoryWriteRepository : GenericWriteRepository<Category, G
     }
 
     /// <inheritdoc/>
-    public async Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken)
     {
-        return await DbContext.Categories
-            .FirstOrDefaultAsync(category => category.Name == name, cancellationToken);
+        return await this.DbContext.Categories
+            .FirstOrDefaultAsync(category => category.Name == name, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Category>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Category>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken)
     {
-        return await DbContext.Categories
+        return await this.DbContext.Categories
             .Where(category => EF.Property<Guid?>(category, "ParentId") == parentId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // Use the base implementation of FirstOrDefaultAsync; when tracked entity is required,

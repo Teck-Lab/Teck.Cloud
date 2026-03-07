@@ -1,3 +1,7 @@
+// <copyright file="BrandCreatedDomainEvent.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Events;
 
 namespace Catalog.Domain.Entities.BrandAggregate.Events

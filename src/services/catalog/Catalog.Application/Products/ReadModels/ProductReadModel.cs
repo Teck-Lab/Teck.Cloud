@@ -1,3 +1,8 @@
+// <copyright file="ProductReadModel.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using MemoryPack;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Application.Products.ReadModels;
@@ -5,7 +10,8 @@ namespace Catalog.Application.Products.ReadModels;
 /// <summary>
 /// Read model for Product entities, optimized for queries.
 /// </summary>
-public class ProductReadModel : ReadModelBase<Guid>
+[MemoryPackable]
+public partial class ProductReadModel : ReadModelBase<Guid>
 {
     /// <summary>
     /// Gets or sets the name of the product.

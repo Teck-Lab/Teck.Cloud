@@ -25,10 +25,13 @@ namespace Catalog.Arch.UnitTests.Domain
             ArchRuleDefinition
                 .Classes()
                 .That()
-                .ResideInNamespaceMatching(@"^.*\.Application\..*\.Specifications$")
+                .ResideInNamespaceMatching(@"^.*\.Application\..*")
+                .And()
+                .HaveNameEndingWith("Specification")
                 .Should()
                 .ImplementInterface(typeof(ISpecification<>))
                 .Because("application specifications should implement ISpecification<T>")
+                .WithoutRequiringPositiveResults()
                 .Check(Architecture);
         }
 

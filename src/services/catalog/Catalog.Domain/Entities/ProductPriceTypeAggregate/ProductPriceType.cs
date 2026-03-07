@@ -1,7 +1,10 @@
+// <copyright file="ProductPriceType.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.ProductPriceTypeAggregate.Errors;
 using ErrorOr;
-using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.ProductPriceTypeAggregate
@@ -9,7 +12,6 @@ namespace Catalog.Domain.Entities.ProductPriceTypeAggregate
     /// <summary>
     /// The product price type.
     /// </summary>
-    [MultiTenant]
     public class ProductPriceType : BaseEntity, IAggregateRoot
     {
         /// <summary>
@@ -28,53 +30,11 @@ namespace Catalog.Domain.Entities.ProductPriceTypeAggregate
         public int Priority { get; private set; } = default!;
 
         /// <summary>
-        /// Update Product Price Type.
+        /// Creates a product price type.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="priority"></param>
-        /// <returns></returns>
-        public ErrorOr<Updated> Update(string? name, int? priority)
-        {
-            var errors = new List<Error>();
-
-            if (name is not null)
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    errors.Add(ProductPriceTypeErrors.EmptyName);
-                }
-                else if (!Name.Equals(name, StringComparison.Ordinal))
-                {
-                    Name = name;
-                }
-            }
-
-            if (priority.HasValue)
-            {
-                if (priority.Value < 0)
-                {
-                    errors.Add(ProductPriceTypeErrors.NegativePriority);
-                }
-                else if (!Priority.Equals(priority.Value))
-                {
-                    Priority = priority.Value;
-                }
-            }
-
-            if (errors.Count != 0)
-            {
-                return errors;
-            }
-
-            return Result.Updated;
-        }
-
-        /// <summary>
-        /// Create Product Price Type.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="priority"></param>
-        /// <returns></returns>
+        /// <param name="name">The price type name.</param>
+        /// <param name="priority">The priority.</param>
+        /// <returns>The created product price type, or validation errors.</returns>
         public static ErrorOr<ProductPriceType> Create(string name, int priority)
         {
             var validationResult = ValidateCreation(name, priority);
@@ -86,9 +46,30 @@ namespace Catalog.Domain.Entities.ProductPriceTypeAggregate
             ProductPriceType productPriceType = new()
             {
                 Name = name,
-                Priority = priority
+                Priority = priority,
             };
             return productPriceType;
+        }
+
+        /// <summary>
+        /// Updates product price type values.
+        /// </summary>
+        /// <param name="name">The price type name.</param>
+        /// <param name="priority">The priority.</param>
+        /// <returns>An updated result, or validation errors.</returns>
+        public ErrorOr<Updated> Update(string? name, int? priority)
+        {
+            var errors = new List<Error>();
+
+            this.UpdateName(name, errors);
+            this.UpdatePriority(priority, errors);
+
+            if (errors.Count != 0)
+            {
+                return errors;
+            }
+
+            return Result.Updated;
         }
 
         private static ErrorOr<Success> ValidateCreation(string name, int priority)
@@ -106,6 +87,44 @@ namespace Catalog.Domain.Entities.ProductPriceTypeAggregate
             }
 
             return errors.Count != 0 ? errors : Result.Success;
+        }
+
+        private void UpdateName(string? name, List<Error> errors)
+        {
+            if (name is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(ProductPriceTypeErrors.EmptyName);
+                return;
+            }
+
+            if (!this.Name.Equals(name, StringComparison.Ordinal))
+            {
+                this.Name = name;
+            }
+        }
+
+        private void UpdatePriority(int? priority, List<Error> errors)
+        {
+            if (priority is not int priorityValue)
+            {
+                return;
+            }
+
+            if (priorityValue < 0)
+            {
+                errors.Add(ProductPriceTypeErrors.NegativePriority);
+                return;
+            }
+
+            if (!this.Priority.Equals(priorityValue))
+            {
+                this.Priority = priorityValue;
+            }
         }
     }
 }

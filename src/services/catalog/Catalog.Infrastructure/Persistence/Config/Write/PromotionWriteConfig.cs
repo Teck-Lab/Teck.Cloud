@@ -1,4 +1,9 @@
+// <copyright file="PromotionWriteConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.PromotionAggregate;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class PromotionWriteConfig : IEntityTypeConfiguration<Promotion>
     /// <param name="builder">The builder to be used to configure the Promotion entity.</param>
     public void Configure(EntityTypeBuilder<Promotion> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("Promotions");
 
         builder.HasKey(promotion => promotion.Id);
@@ -49,5 +56,7 @@ public class PromotionWriteConfig : IEntityTypeConfiguration<Promotion>
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

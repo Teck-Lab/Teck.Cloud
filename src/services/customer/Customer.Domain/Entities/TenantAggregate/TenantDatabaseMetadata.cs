@@ -1,3 +1,7 @@
+// <copyright file="TenantDatabaseMetadata.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Domain;
 
 namespace Customer.Domain.Entities.TenantAggregate;
@@ -8,6 +12,13 @@ namespace Customer.Domain.Entities.TenantAggregate;
 /// </summary>
 public class TenantDatabaseMetadata : BaseEntity
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TenantDatabaseMetadata"/> class.
+    /// </summary>
+    internal TenantDatabaseMetadata()
+    {
+    }
+
     /// <summary>
     /// Gets the tenant ID.
     /// </summary>
@@ -30,14 +41,17 @@ public class TenantDatabaseMetadata : BaseEntity
     public string? ReadEnvVarKey { get; internal set; }
 
     /// <summary>
+    /// Gets the tenant read database mode.
+    /// </summary>
+    public ReadDatabaseMode ReadDatabaseMode { get; internal set; }
+
+    /// <summary>
     /// Gets a value indicating whether this tenant has a separate read database.
     /// </summary>
-    public bool HasSeparateReadDatabase { get; internal set; }
+    public bool HasSeparateReadDatabase => this.ReadDatabaseMode == ReadDatabaseMode.SeparateRead;
 
     /// <summary>
     /// Gets the navigation property to tenant.
     /// </summary>
     public Tenant Tenant { get; private set; } = default!;
-
-    internal TenantDatabaseMetadata() { } // Internal constructor for aggregate control
 }

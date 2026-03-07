@@ -1,3 +1,7 @@
+// <copyright file="CreateCategoryRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Categories.Features.CreateCategory.V1;
 
 /// <summary>

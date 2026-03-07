@@ -1,3 +1,7 @@
+// <copyright file="PromotionErrors.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using ErrorOr;
 
 namespace Catalog.Domain.Entities.PromotionAggregate.Errors;
@@ -11,27 +15,27 @@ public static class PromotionErrors
     /// Gets the error indicating that the promotion name cannot be empty.
     /// </summary>
     public static Error EmptyName => Error.Validation(
-        code: "Promotion.EmptyName",
-        description: "Promotion name cannot be empty.");
+        "Promotion.EmptyName",
+        "Promotion name cannot be empty.");
 
     /// <summary>
     /// Gets the error indicating that the promotion discount must be greater than zero.
     /// </summary>
     public static Error InvalidDiscount => Error.Validation(
-        code: "Promotion.InvalidDiscount",
-        description: "Promotion discount must be greater than zero.");
+        "Promotion.InvalidDiscount",
+        "Promotion discount must be greater than zero.");
 
     /// <summary>
     /// Gets the error indicating that the promotion end date must be after the start date.
     /// </summary>
     public static Error InvalidDateRange => Error.Validation(
-        code: "Promotion.InvalidDateRange",
-        description: "Promotion date range is invalid: start date must be before end date.");
+        "Promotion.InvalidDateRange",
+        "Promotion date range is invalid: start date must be before end date.");
 
     /// <summary>
     /// Gets the error indicating that a promotion must have at least one product.
     /// </summary>
     public static Error NoProducts => Error.Validation(
-                    code: "Promotion.NoProducts",
-                    description: "Promotion must have at least one product.");
+        "Promotion.NoProducts",
+        "Promotion must have at least one product.");
 }

@@ -1,3 +1,7 @@
+// <copyright file="CreateBrandRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Brands.Features.CreateBrand.V1
 {
     /// <summary>

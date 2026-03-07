@@ -1,3 +1,7 @@
+// <copyright file="GetPaginatedBrandsRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Pagination;
 
 namespace Catalog.Application.Brands.Features.GetPaginatedBrands.V1

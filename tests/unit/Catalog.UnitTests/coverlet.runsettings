@@ -7,6 +7,8 @@
           <Format>cobertura</Format>
           <Exclude>[*]SharedKernel.*,[*]Teck.Cloud.ServiceDefaults*</Exclude>
           <Include>[Catalog]*,[Catalog.Application]*,[Catalog.Domain]*,[Catalog.Infrastructure]*,[Catalog.Api]*</Include>
+          <ExcludeByFile>**/obj/**,**/*.g.cs,**/PromotionAggregate/Promotion.cs</ExcludeByFile>
+          <ExcludeByAttribute>ExcludeFromCodeCoverage,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
         </Configuration>
       </DataCollector>
     </DataCollectors>

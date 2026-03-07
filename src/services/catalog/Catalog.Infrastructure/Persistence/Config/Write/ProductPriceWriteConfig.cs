@@ -1,4 +1,9 @@
+// <copyright file="ProductPriceWriteConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.ProductAggregate;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class ProductPriceWriteConfig : IEntityTypeConfiguration<ProductPrice>
     /// <param name="builder">The builder to be used to configure the ProductPrice entity.</param>
     public void Configure(EntityTypeBuilder<ProductPrice> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("ProductPrices");
 
         builder.HasKey(productPrice => productPrice.Id);
@@ -40,5 +47,7 @@ public class ProductPriceWriteConfig : IEntityTypeConfiguration<ProductPrice>
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

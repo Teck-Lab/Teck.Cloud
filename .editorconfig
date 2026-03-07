@@ -42,6 +42,10 @@ indent_size = 4
 indent_style = space
 indent_size = 4
 max_line_length = 100
+file_header_template = <copyright file="{fileName}" company="TeckLab">\nCopyright (c) TeckLab. All rights reserved.\n</copyright>
+
+[**/Persistence/Migrations/**/*.cs]
+dotnet_diagnostic.S1186.severity = none
 
 # https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/csharp-formatting-options
 # New line preferences
@@ -446,6 +450,7 @@ dotnet_diagnostic.sa0001.severity = None
 
 # The file header is missing or not located at the top of the file
 dotnet_diagnostic.sa1633.severity = None
+dotnet_diagnostic.SA1633.severity = none
 
 # Use string.Empty for empty strings
 dotnet_diagnostic.sa1122.severity = None

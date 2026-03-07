@@ -1,3 +1,7 @@
+// <copyright file="ProductPriceTypeWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.ProductPriceTypeAggregate;
 using Catalog.Domain.Entities.ProductPriceTypeAggregate.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -24,10 +28,11 @@ public sealed class ProductPriceTypeWriteRepository : GenericWriteRepository<Pro
     }
 
     /// <inheritdoc/>
-    public async Task<ProductPriceType?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<ProductPriceType?> GetByNameAsync(string name, CancellationToken cancellationToken)
     {
-        return await DbContext.ProductPriceTypes
-            .FirstOrDefaultAsync(productPriceType => productPriceType.Name == name, cancellationToken);
+        return await this.DbContext.ProductPriceTypes
+            .FirstOrDefaultAsync(productPriceType => productPriceType.Name == name, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // Use the base implementation of FirstOrDefaultAsync; when tracked entity is required,

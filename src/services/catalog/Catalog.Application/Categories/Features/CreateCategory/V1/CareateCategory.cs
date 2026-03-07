@@ -1,4 +1,8 @@
-using Catalog.Application.Brands.Mappings;
+// <copyright file="CareateCategory.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using Catalog.Application.Categories.Mappings;
 using Catalog.Application.Categories.Response;
 using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.CategoryAggregate.Repositories;
@@ -15,14 +19,19 @@ namespace Catalog.Application.Categories.Features.CreateCategory.V1;
 /// <param name="Description">The description of the category (optional).</param>
 public sealed record CreateCategoryCommand(string Name, string? Description) : ICommand<ErrorOr<CategoryResponse>>;
 
+/// <summary>
+/// Handles create category commands.
+/// </summary>
+/// <param name="unitOfWork">The unit of work.</param>
+/// <param name="categoryWriteRepository">The category write repository.</param>
 internal sealed class CreateCategoryCommandHandler(IUnitOfWork unitOfWork, ICategoryWriteRepository categoryWriteRepository) : ICommandHandler<CreateCategoryCommand, ErrorOr<CategoryResponse>>
 {
     /// <summary>
     /// The unit of work.
     /// </summary>
-    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IUnitOfWork unitOfWork = unitOfWork;
 
-    private readonly ICategoryWriteRepository _categoryWriteRepository = categoryWriteRepository;
+    private readonly ICategoryWriteRepository categoryWriteRepository = categoryWriteRepository;
 
     /// <summary>
     /// Handle and return a task of type erroror.
@@ -40,9 +49,9 @@ internal sealed class CreateCategoryCommandHandler(IUnitOfWork unitOfWork, ICate
             return categoryToAdd.Errors;
         }
 
-        await _categoryWriteRepository.AddAsync(categoryToAdd.Value, cancellationToken);
+        await this.categoryWriteRepository.AddAsync(categoryToAdd.Value, cancellationToken).ConfigureAwait(false);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return CategoryMapper.CategoryToCategoryResponse(categoryToAdd.Value);
     }
 }

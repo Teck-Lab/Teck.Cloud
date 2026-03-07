@@ -1,3 +1,7 @@
+// <copyright file="CreateProduct.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Products.Mappings;
 using Catalog.Application.Products.Responses;
 using Catalog.Domain.Entities.CategoryAggregate.Repositories;
@@ -30,7 +34,7 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
     /// </remarks>
     /// <param name="unitOfWork">The unit of work.</param>
     /// <param name="productWriteRepository">The product repository.</param>
-    /// <param name="categoryWriteRepository"></param>
+    /// <param name="categoryWriteRepository">The category repository.</param>
     internal sealed class CreateProductCommandHandler(
         IUnitOfWork unitOfWork,
         IProductWriteRepository productWriteRepository,
@@ -39,13 +43,13 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
         /// <summary>
         /// The unit of work.
         /// </summary>
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+        private readonly IUnitOfWork unitOfWork = unitOfWork;
 
         /// <summary>
         /// The product repository.
         /// </summary>
-        private readonly IProductWriteRepository _productWriteRepository = productWriteRepository;
-        private readonly ICategoryWriteRepository _categoryWriteRepository = categoryWriteRepository;
+        private readonly IProductWriteRepository productWriteRepository = productWriteRepository;
+        private readonly ICategoryWriteRepository categoryWriteRepository = categoryWriteRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -57,14 +61,15 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
         {
             CategoriesByIdsSpecification spec = new CategoriesByIdsSpecification(request.CategoryIds);
 
-            var categories = await _categoryWriteRepository.ListAsync(spec, true, cancellationToken);
+            var categories = await this.categoryWriteRepository.ListAsync(spec, true, cancellationToken).ConfigureAwait(false);
+            List<Domain.Entities.CategoryAggregate.Category> categoryList = categories.ToList();
 
             ErrorOr<Product> productToAdd = Product.Create(
                 request.Name,
                 request.Description,
                 request.ProductSku,
                 request.GTIN,
-                categories.ToList(),
+                categoryList,
                 request.IsActive,
                 request.BrandId); // Brand will be handled by domain logic or mapping
 
@@ -73,9 +78,9 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
                 return productToAdd.Errors;
             }
 
-            await _productWriteRepository.AddAsync(productToAdd.Value, cancellationToken);
+            await this.productWriteRepository.AddAsync(productToAdd.Value, cancellationToken).ConfigureAwait(false);
 
-            var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var result = await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             if (result == 0)
             {
                 return Domain.Entities.ProductAggregate.Errors.ProductErrors.NotCreated;

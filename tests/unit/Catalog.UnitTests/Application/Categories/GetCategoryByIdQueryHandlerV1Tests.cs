@@ -10,13 +10,13 @@ namespace Catalog.UnitTests.Application.Categories;
 
 public class GetCategoryByIdQueryHandlerV1Tests
 {
-    private readonly ICategoryCache _cache;
+    private readonly ICategoryReadRepository _categoryReadRepository;
     private readonly GetCategoryByIdQueryHandler _sut;
 
     public GetCategoryByIdQueryHandlerV1Tests()
     {
-        _cache = Substitute.For<ICategoryCache>();
-        _sut = new GetCategoryByIdQueryHandler(_cache);
+        _categoryReadRepository = Substitute.For<ICategoryReadRepository>();
+        _sut = new GetCategoryByIdQueryHandler(_categoryReadRepository);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class GetCategoryByIdQueryHandlerV1Tests
             Description = "Test Description"
         };
 
-        _cache.GetOrSetByIdAsync(categoryId, false, Arg.Any<CancellationToken>())
+        _categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(categoryReadModel);
 
         var query = new GetCategoryByIdQuery(categoryId);
@@ -51,7 +51,7 @@ public class GetCategoryByIdQueryHandlerV1Tests
         // Arrange
         var categoryId = Guid.NewGuid();
         
-        _cache.GetOrSetByIdAsync(categoryId, false, Arg.Any<CancellationToken>())
+        _categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns((CategoryReadModel?)null);
 
         var query = new GetCategoryByIdQuery(categoryId);
@@ -76,7 +76,7 @@ public class GetCategoryByIdQueryHandlerV1Tests
             Description = null
         };
 
-        _cache.GetOrSetByIdAsync(categoryId, false, Arg.Any<CancellationToken>())
+        _categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(categoryReadModel);
 
         var query = new GetCategoryByIdQuery(categoryId);
@@ -90,7 +90,7 @@ public class GetCategoryByIdQueryHandlerV1Tests
     }
 
     [Fact]
-    public async Task Handle_ShouldCallCacheWithCorrectId()
+    public async Task Handle_ShouldCallRepositoryWithCorrectId()
     {
         // Arrange
         var categoryId = Guid.NewGuid();
@@ -101,7 +101,7 @@ public class GetCategoryByIdQueryHandlerV1Tests
             Description = null
         };
 
-        _cache.GetOrSetByIdAsync(categoryId, false, Arg.Any<CancellationToken>())
+        _categoryReadRepository.GetByIdAsync(categoryId, Arg.Any<CancellationToken>())
             .Returns(categoryReadModel);
 
         var query = new GetCategoryByIdQuery(categoryId);
@@ -110,6 +110,6 @@ public class GetCategoryByIdQueryHandlerV1Tests
         await _sut.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        await _cache.Received(1).GetOrSetByIdAsync(categoryId, false, Arg.Any<CancellationToken>());
+        await _categoryReadRepository.Received(1).GetByIdAsync(categoryId, Arg.Any<CancellationToken>());
     }
 }

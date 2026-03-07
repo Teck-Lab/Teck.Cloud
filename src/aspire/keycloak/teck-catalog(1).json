@@ -29,11 +29,14 @@
   "protocol": "openid-connect",
   "attributes": {
     "realm_client": "false",
+    "logout.confirmation.enabled": "false",
     "oidc.ciba.grant.enabled": "false",
     "client.secret.creation.time": "1770837490",
     "backchannel.logout.session.required": "true",
     "standard.token.exchange.enabled": "true",
+    "frontchannel.logout.session.required": "true",
     "oauth2.device.authorization.grant.enabled": "false",
+    "display.on.consent.screen": "false",
     "use.jwks.url": "false",
     "backchannel.logout.revoke.offline.tokens": "false",
     "dpop.bound.access.tokens": "false"
@@ -53,8 +56,8 @@
   "optionalClientScopes": [
     "address",
     "phone",
-    "offline_access",
     "organization",
+    "offline_access",
     "microprofile-jwt"
   ],
   "access": {

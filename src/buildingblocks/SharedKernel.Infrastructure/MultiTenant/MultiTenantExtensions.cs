@@ -61,10 +61,11 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 services.AddScoped<IMultiTenantStore<TenantDetails>, CustomerApiTenantStore>();
                 builder.WithStore<CustomerApiTenantStore>(ServiceLifetime.Scoped);
             }
-            else if (options.UseDistributedCacheStore)
+            else
             {
-                // Use distributed cache store
-                builder.WithDistributedCacheStore();
+                services.AddHttpContextAccessor();
+                services.AddScoped<IMultiTenantStore<TenantDetails>, HeaderTenantStore>();
+                builder.WithStore<HeaderTenantStore>(ServiceLifetime.Scoped);
             }
 
             return services;
@@ -236,8 +237,24 @@ namespace SharedKernel.Infrastructure.MultiTenant
             var options = httpContext.RequestServices.GetService<IOptions<TeckCloudMultiTenancyOptions>>()?.Value
                 ?? new TeckCloudMultiTenancyOptions();
 
+            var logger = httpContext.RequestServices.GetService<ILogger<IMultiTenantContext>>();
+
             if (httpContext.Request.Headers.TryGetValue(options.TenantIdHeaderName, out var tenantId))
+            {
+                logger?.LogInformation(
+                    "Delegate header strategy resolved tenant header. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
+                    options.TenantIdHeaderName,
+                    tenantId.ToString(),
+                    httpContext.Request.Path,
+                    httpContext.TraceIdentifier);
                 return Task.FromResult<string?>(tenantId.ToString());
+            }
+
+            logger?.LogWarning(
+                "Delegate header strategy missing tenant header. HeaderName={HeaderName}; HeaderValue=<missing>; Path={Path}; TraceId={TraceId}",
+                options.TenantIdHeaderName,
+                httpContext.Request.Path,
+                httpContext.TraceIdentifier);
 
             return Task.FromResult<string?>(null);
         }
@@ -330,7 +347,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <summary>
         /// Gets or sets the strategy to use when multiple tenant IDs are available (default: Primary).
         /// </summary>
-        public MultiTenantResolutionStrategy MultiTenantResolutionStrategy { get; set; } = MultiTenantResolutionStrategy.Primary;
+        public MultiTenantResolutionStrategy MultiTenantResolutionStrategy { get; set; } = MultiTenantResolutionStrategy.FromRequest;
 
         /// <summary>
         /// Gets or sets customer API tenant details options.

@@ -1,3 +1,7 @@
+// <copyright file="IAssemblyMarker.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Customer.Api;
 
 /// <summary>

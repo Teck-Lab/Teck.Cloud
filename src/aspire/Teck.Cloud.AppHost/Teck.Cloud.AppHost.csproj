@@ -16,15 +16,13 @@
     <PackageReference Include="Aspire.Hosting.Redis" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
-    <PackageReference Include="Aspire.Hosting.Keycloak" />
-    <PackageReference Include="Keycloak.AuthServices.Aspire.Hosting" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\services\catalog\Catalog.Api\Catalog.Api.csproj" />
     <ProjectReference Include="..\..\services\customer\Customer.Api\Customer.Api.csproj" />
-    <ProjectReference Include="..\..\gateways\Web.BFF\Web.BFF.csproj" />
     <ProjectReference Include="..\..\gateways\Web.Edge\Web.Edge.csproj" />
+    <ProjectReference Include="..\..\gateways\Web.Aggregate.Gateway\Web.Aggregate.Gateway.csproj" />
   </ItemGroup>
 
 </Project>

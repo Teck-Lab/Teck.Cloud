@@ -3,8 +3,6 @@ using Catalog.Application.Categories.Repositories;
 using Catalog.Application.Features.Products.GetProductById.V1;
 using Catalog.Application.Products.Features.CreateProduct.V1;
 using Catalog.Application.Products.Repositories;
-using FastEndpoints;
-using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Shouldly;
 
@@ -18,12 +16,7 @@ namespace Catalog.UnitTests.Application.Products
             var repo = Substitute.For<IProductReadRepository>();
             var categoryRepo = Substitute.For<ICategoryReadRepository>();
             var brandRepo = Substitute.For<IBrandReadRepository>();
-            var validator = Factory.CreateValidator<CreateProductValidator>(s =>
-            {
-                s.AddSingleton(repo);
-                s.AddSingleton(categoryRepo);
-                s.AddSingleton(brandRepo);
-            });
+            var validator = new CreateProductValidator(repo, categoryRepo, brandRepo);
             var req = new CreateProductRequest { ProductSku = "" };
             var result = await validator.ValidateAsync(req, TestContext.Current.CancellationToken);
             result.IsValid.ShouldBeFalse();
@@ -67,12 +60,7 @@ namespace Catalog.UnitTests.Application.Products
                 Arg.Any<bool>(),
                 Arg.Any<System.Threading.CancellationToken>())
                 .Returns(true);
-            var validator = Factory.CreateValidator<CreateProductValidator>(s =>
-            {
-                s.AddSingleton(repo);
-                s.AddSingleton(categoryRepo);
-                s.AddSingleton(brandRepo);
-            });
+            var validator = new CreateProductValidator(repo, categoryRepo, brandRepo);
             var req = new CreateProductRequest { ProductSku = "DUPLICATE-SKU" };
             var result = await validator.ValidateAsync(req, TestContext.Current.CancellationToken);
             result.IsValid.ShouldBeFalse();

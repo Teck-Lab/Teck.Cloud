@@ -25,9 +25,11 @@ namespace Catalog.IntegrationTests.Infrastructure.Products
             _repository = new ProductReadRepository(ReadDbContext);
         }
 
-        protected override ApplicationReadDbContext CreateReadDbContext(DbContextOptions<ApplicationReadDbContext> options)
+        protected override ApplicationReadDbContext CreateReadDbContext(
+            DbContextOptions<ApplicationReadDbContext> options,
+            Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<SharedKernel.Infrastructure.MultiTenant.TenantDetails> tenantAccessor)
         {
-            return new ApplicationReadDbContext(options);
+            return new ApplicationReadDbContext(options, tenantAccessor);
         }
 
         public override async ValueTask DisposeAsync()

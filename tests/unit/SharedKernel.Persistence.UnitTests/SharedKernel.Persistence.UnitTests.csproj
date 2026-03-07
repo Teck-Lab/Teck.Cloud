@@ -28,6 +28,7 @@
     <PackageReference Include="Bogus" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Testcontainers" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="coverlet.collector">

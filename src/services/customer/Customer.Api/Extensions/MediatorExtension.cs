@@ -1,3 +1,7 @@
+// <copyright file="MediatorExtension.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using System.Reflection;
 using Customer.Application;
 using SharedKernel.Infrastructure.Behaviors;
