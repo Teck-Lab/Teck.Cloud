@@ -20,6 +20,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
         {
             _unitOfWork = Substitute.For<IUnitOfWork>();
             _logger = Substitute.For<ILogger<TransactionalBehavior<TestTransactionalCommand, TestTransactionalResponse>>>();
+            _logger.IsEnabled(LogLevel.Information).Returns(true);
             _transaction = Substitute.For<IDbTransaction>();
             _sut = new TransactionalBehavior<TestTransactionalCommand, TestTransactionalResponse>(_unitOfWork, _logger);
         }
