@@ -311,7 +311,13 @@ jobs:
 
       - name: Test non-E2E projects
         run: |
-          dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --filter "FullyQualifiedName!~Teck.Cloud.E2ETests" --blame --blame-hang-timeout 15m
+          mapfile -t TEST_PROJECTS < <(find tests -name "*.csproj" ! -path "tests/e2e/*" | sort)
+          echo "Running ${#TEST_PROJECTS[@]} non-E2E test projects"
+
+          for project in "${TEST_PROJECTS[@]}"; do
+            echo "Executing tests for ${project}"
+            dotnet test "${project}" -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame --blame-hang-timeout 15m
+          done
 
       - name: Combine Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@5.5.1
@@ -573,6 +579,7 @@ jobs:
         with:
           image: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
           format: cyclonedx-json
+          upload-artifact: false
           output-file: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
 
       - name: Upload CycloneDX SBOM to Dependency-Track
