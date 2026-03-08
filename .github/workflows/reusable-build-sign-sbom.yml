@@ -289,6 +289,7 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.github-token }}
         with:
+          version: 'v0.69.3'
           image-ref: ${{ steps.set-image.outputs.ref }}
           format: 'sarif'
           output: 'trivy-results.sarif'
@@ -297,7 +298,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy results to Security tab
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
           sarif_file: 'trivy-results.sarif'
@@ -310,6 +311,7 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.github-token }}
         with:
+          version: 'v0.69.3'
           image-ref: ${{ steps.set-image.outputs.ref }}
           format: 'json'
           output: 'trivy-results.json'
@@ -317,7 +319,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy JSON report
-        if: always()
+        if: always() && hashFiles('trivy-results.json') != ''
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: trivy-scan-${{ inputs.service-name }}
@@ -507,14 +509,16 @@ jobs:
 
       - name: Resolve CycloneDX SBOM path
         id: cyclonedx
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
         run: |
-          SBOM_FILE="artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.cyclonedx.json"
+          SBOM_FILE="artifacts/sbom-cyclonedx-signed-${SERVICE_NAME}/sbom-${SERVICE_NAME}.cyclonedx.json"
           if [[ ! -f "$SBOM_FILE" ]]; then
             echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
             exit 1
           fi
 
-          echo "file=$SBOM_FILE" >> $GITHUB_OUTPUT
+          echo "file=$SBOM_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Upload CycloneDX SBOM to Dependency-Track
         uses: DependencyTrack/gh-upload-sbom@48feab3080ff9e8f51f4d21861d9fc914eb744f5 # v3
@@ -539,12 +543,15 @@ jobs:
           so_origin_service: ${{ inputs.service-name }}
 
       - name: Create external SBOM upload summary
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          SERVICE_VERSION: ${{ inputs.version }}
         run: |
-          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
-          ### External SBOM Publication
-          - ✅ Dependency-Track project `${{ inputs.service-name }}` version `${{ inputs.version }}`
-          - ✅ SecObserve product `${{ inputs.service-name }}` branch `${{ inputs.version }}` service `${{ inputs.service-name }}`
-          EOF
+          {
+            echo "### External SBOM Publication"
+            echo "- ✅ Dependency-Track project \`${SERVICE_NAME}\` version \`${SERVICE_VERSION}\`"
+            echo "- ✅ SecObserve product \`${SERVICE_NAME}\` branch \`${SERVICE_VERSION}\` service \`${SERVICE_NAME}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   generate-vex:
     name: Generate VEX for ${{ inputs.service-name }}

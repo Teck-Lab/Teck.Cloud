@@ -160,10 +160,27 @@ jobs:
             --framework github_actions,secrets \
             --quiet \
             --soft-fail \
-            -o sarif > checkov-workflows.sarif || true
+            -o sarif \
+            --output-file-path checkov-workflows.sarif || true
+
+      - name: Validate Checkov workflow SARIF
+        id: checkov_workflows_sarif
+        if: always()
+        run: |
+          if [[ ! -s checkov-workflows.sarif ]]; then
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if jq empty checkov-workflows.sarif >/dev/null 2>&1; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Checkov workflow SARIF is invalid JSON. Skipping upload."
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload Checkov workflow SARIF
-        if: always() && hashFiles('checkov-workflows.sarif') != ''
+        if: always() && steps.checkov_workflows_sarif.outputs.valid == 'true'
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: checkov-workflows.sarif
@@ -192,10 +209,27 @@ jobs:
             --framework terraform,kubernetes,dockerfile,secrets \
             --quiet \
             --soft-fail \
-            -o sarif > checkov-deployment.sarif || true
+            -o sarif \
+            --output-file-path checkov-deployment.sarif || true
+
+      - name: Validate Checkov deployment SARIF
+        id: checkov_deployment_sarif
+        if: always()
+        run: |
+          if [[ ! -s checkov-deployment.sarif ]]; then
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if jq empty checkov-deployment.sarif >/dev/null 2>&1; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Checkov deployment SARIF is invalid JSON. Skipping upload."
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload Checkov deployment SARIF
-        if: always() && hashFiles('checkov-deployment.sarif') != ''
+        if: always() && steps.checkov_deployment_sarif.outputs.valid == 'true'
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: checkov-deployment.sarif

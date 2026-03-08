@@ -287,6 +287,7 @@ jobs:
   test-all:
     runs-on: ubuntu-latest
     name: Test all projects
+    timeout-minutes: 45
     needs: [check-label, build-affected]
     if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') }}
     steps:
@@ -308,7 +309,7 @@ jobs:
         run: dotnet build -c Release --no-restore
 
       - name: Test all projects
-        run: dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
+        run: dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame --blame-hang-timeout 5m
 
       - name: Combine Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@5.5.1
@@ -369,6 +370,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.33.1
         continue-on-error: true
         with:
+          version: 'v0.69.3'
           scan-type: 'fs'
           scan-ref: .
           format: sarif
@@ -501,6 +503,7 @@ jobs:
       - name: Run Trivy vulnerability scanner on Docker image
         uses: aquasecurity/trivy-action@0.33.1
         with:
+          version: 'v0.69.3'
           image-ref: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
           format: 'sarif'
           output: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
@@ -509,7 +512,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to Security tab
-        if: always()
+        if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', env.SERVICE_NAME, env.PLATFORM_PAIR)) != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
