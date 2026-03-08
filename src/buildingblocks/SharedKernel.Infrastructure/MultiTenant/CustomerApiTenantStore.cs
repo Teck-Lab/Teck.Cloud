@@ -206,7 +206,10 @@ namespace SharedKernel.Infrastructure.MultiTenant
                     }
                     else
                     {
-                        _logger.LogWarning("Error retrieving tenant {Identifier}: {StatusCode}", identifier, response.StatusCode);
+                        if (_logger.IsEnabled(LogLevel.Warning))
+                        {
+                            _logger.LogWarning("Error retrieving tenant {Identifier}: {StatusCode}", identifier, response.StatusCode);
+                        }
                     }
 
                     await _fusionCache.RemoveAsync(cacheKey);
@@ -290,7 +293,10 @@ namespace SharedKernel.Infrastructure.MultiTenant
                     }
                     else
                     {
-                        _logger.LogWarning("Error retrieving tenant with ID {Id}: {StatusCode}", id, response.StatusCode);
+                        if (_logger.IsEnabled(LogLevel.Warning))
+                        {
+                            _logger.LogWarning("Error retrieving tenant with ID {Id}: {StatusCode}", id, response.StatusCode);
+                        }
                     }
 
                     await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);

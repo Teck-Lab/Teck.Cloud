@@ -287,8 +287,8 @@ jobs:
   test-all:
     runs-on: ubuntu-latest
     name: Test all projects
-    needs: [check-label]
-    if: ${{ needs.check-label.outputs.status == 'success' }}
+    needs: [check-label, build-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -391,8 +391,8 @@ jobs:
   docker-affected:
     runs-on: ${{ matrix.builder.runner-image }}
     name: Build Docker image
-    needs: [check-label, detect-affected]
-    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
+    needs: [check-label, detect-affected, build-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
     
     # Service containers for Docker build (needed for Wolverine codegen)
     services:
@@ -536,15 +536,76 @@ jobs:
           bomfilename: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
           autocreate: true
 
-      - name: Upload CycloneDX SBOM to SecObserve
+      - name: Upload amd64 CycloneDX SBOM artifact
         if: github.event.pull_request.head.repo.full_name == github.repository && matrix.builder.platform == 'linux/amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-pr-${{ env.SERVICE_PROJECT }}
+          path: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
+          retention-days: 1
+
+      - name: Skip external SBOM uploads for fork PRs
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
+          ### External SBOM uploads skipped
+          - Pull request source is a fork repository, so repository secrets are not available.
+          - Dependency-Track and SecObserve uploads are enforced only for internal PRs.
+          EOF
+
+  upload-secobserve-sbom:
+    name: Upload SecObserve SBOM
+    runs-on: ubuntu-latest
+    needs: [check-label, detect-affected, docker-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
+    strategy:
+      matrix:
+        paths: ${{ fromJson(needs.detect-affected.outputs.dockerfiles) }}
+      fail-fast: false
+    steps:
+      - name: Extract service name from Dockerfile path
+        run: |
+          DOCKERFILE_PATH="${{ matrix.paths }}"
+          SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
+          SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
+          SERVICE_PROJECT=$(echo "$DOCKERFILE_PATH" | sed -n 's|^src/services/\([^/]*\)/.*|\1|p')
+          if [ -z "$SERVICE_PROJECT" ]; then
+            SERVICE_PROJECT="$SERVICE_NAME"
+          fi
+
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+
+          echo "SERVICE_PROJECT=$SERVICE_PROJECT" >> $GITHUB_ENV
+          echo "PR_VERSION=pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
+
+      - name: Download amd64 CycloneDX SBOM artifact
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-pr-${{ env.SERVICE_PROJECT }}
+          path: sbom
+
+      - name: Resolve amd64 CycloneDX SBOM path
+        id: sbom
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          SBOM_FILE="sbom/sbom-${{ env.SERVICE_PROJECT }}-linux-amd64.cyclonedx.json"
+          if [[ ! -f "$SBOM_FILE" ]]; then
+            echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
+            exit 1
+          fi
+
+          echo "file=$SBOM_FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload CycloneDX SBOM to SecObserve
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: SecObserve/secobserve_actions_templates/actions/upload_sbom@37be432587303bc7567871a5a73ca02f6148e760 # v2026_02
         with:
           so_api_base_url: ${{ vars.SO_API_BASE_URL }}
           so_api_token: ${{ secrets.SO_API_TOKEN }}
           so_product_name: ${{ env.SERVICE_PROJECT }}
           so_branch_name: ${{ env.PR_VERSION }}
-          so_file_name: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
+          so_file_name: ${{ steps.sbom.outputs.file }}
           so_origin_service: ${{ env.SERVICE_PROJECT }}
 
       - name: Skip external SBOM uploads for fork PRs
@@ -560,7 +621,7 @@ jobs:
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
-    needs: [build-affected, test-all, docker-affected, detect-affected, check-label]
+    needs: [build-affected, test-all, docker-affected, upload-secobserve-sbom, detect-affected, check-label]
     if: always()
     steps:
       - name: Check if build-affected was successful or skipped
@@ -590,6 +651,16 @@ jobs:
             exit 0
           else
             echo "❌ Docker build job failed"
+            exit 1
+          fi
+
+      - name: Check if upload-secobserve-sbom was successful or skipped
+        run: |
+          if [[ "${{ needs.upload-secobserve-sbom.result }}" == "success" ]] || [[ "${{ needs.upload-secobserve-sbom.result }}" == "skipped" ]]; then
+            echo "✅ SecObserve upload job passed or was skipped - OK"
+            exit 0
+          else
+            echo "❌ SecObserve upload job failed"
             exit 1
           fi
       

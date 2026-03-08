@@ -241,13 +241,15 @@ namespace SharedKernel.Infrastructure.MultiTenant
 
             if (httpContext.Request.Headers.TryGetValue(options.TenantIdHeaderName, out var tenantId))
             {
+                string tenantIdValue = tenantId.ToString();
+
                 logger?.LogInformation(
                     "Delegate header strategy resolved tenant header. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
                     options.TenantIdHeaderName,
-                    tenantId.ToString(),
+                    tenantIdValue,
                     httpContext.Request.Path,
                     httpContext.TraceIdentifier);
-                return Task.FromResult<string?>(tenantId.ToString());
+                return Task.FromResult<string?>(tenantIdValue);
             }
 
             logger?.LogWarning(
