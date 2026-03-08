@@ -243,20 +243,27 @@ namespace SharedKernel.Infrastructure.MultiTenant
             {
                 string tenantIdValue = tenantId.ToString();
 
-                logger?.LogInformation(
-                    "Delegate header strategy resolved tenant header. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
-                    options.TenantIdHeaderName,
-                    tenantIdValue,
-                    httpContext.Request.Path,
-                    httpContext.TraceIdentifier);
+                if (logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    logger.LogInformation(
+                        "Delegate header strategy resolved tenant header. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
+                        options.TenantIdHeaderName,
+                        tenantIdValue,
+                        httpContext.Request.Path,
+                        httpContext.TraceIdentifier);
+                }
+
                 return Task.FromResult<string?>(tenantIdValue);
             }
 
-            logger?.LogWarning(
-                "Delegate header strategy missing tenant header. HeaderName={HeaderName}; HeaderValue=<missing>; Path={Path}; TraceId={TraceId}",
-                options.TenantIdHeaderName,
-                httpContext.Request.Path,
-                httpContext.TraceIdentifier);
+            if (logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                logger.LogWarning(
+                    "Delegate header strategy missing tenant header. HeaderName={HeaderName}; HeaderValue=<missing>; Path={Path}; TraceId={TraceId}",
+                    options.TenantIdHeaderName,
+                    httpContext.Request.Path,
+                    httpContext.TraceIdentifier);
+            }
 
             return Task.FromResult<string?>(null);
         }

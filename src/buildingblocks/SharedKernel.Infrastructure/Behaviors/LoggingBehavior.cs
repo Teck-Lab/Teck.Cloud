@@ -42,11 +42,14 @@ namespace SharedKernel.Infrastructure.Behaviors
             string requestName = typeof(TMessage).Name;
             string responseName = typeof(TResponse).Name;
 
-            _logger.LogInformation(
-                "[START] Handle request={Request} - Response={Response} - RequestData={RequestData}",
-                requestName,
-                responseName,
-                message);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "[START] Handle request={Request} - Response={Response} - RequestData={RequestData}",
+                    requestName,
+                    responseName,
+                    message);
+            }
 
             Stopwatch timer = new();
             timer.Start();
@@ -63,11 +66,14 @@ namespace SharedKernel.Infrastructure.Behaviors
                     timeTaken.TotalSeconds);
             }
 
-            _logger.LogInformation(
-                "[END] Handled {Request} with {Response} in {TimeTaken} seconds.",
-                requestName,
-                responseName,
-                timeTaken.TotalSeconds);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "[END] Handled {Request} with {Response} in {TimeTaken} seconds.",
+                    requestName,
+                    responseName,
+                    timeTaken.TotalSeconds);
+            }
 
             return response;
         }

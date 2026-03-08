@@ -32,13 +32,19 @@ namespace SharedKernel.Infrastructure.Behaviors
             CancellationToken cancellationToken)
         {
             string requestName = typeof(TRequest).Name;
-            logger.LogInformation("Beginning transaction for {RequestName}", requestName);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Beginning transaction for {RequestName}", requestName);
+            }
 
             using IDbTransaction transaction = await unitOfWork.BeginTransactionAsync(cancellationToken: cancellationToken);
             TResponse response = await next(message, cancellationToken);
             transaction.Commit();
 
-            logger.LogInformation("Committed transaction for {RequestName}", requestName);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Committed transaction for {RequestName}", requestName);
+            }
 
             return response;
         }

@@ -202,7 +202,10 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 {
                     if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        _logger.LogInformation("Tenant with identifier {Identifier} not found", identifier);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                        {
+                            _logger.LogInformation("Tenant with identifier {Identifier} not found", identifier);
+                        }
                     }
                     else
                     {
@@ -289,7 +292,10 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 {
                     if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        _logger.LogInformation("Tenant with ID {Id} not found", id);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                        {
+                            _logger.LogInformation("Tenant with ID {Id} not found", id);
+                        }
                     }
                     else
                     {
