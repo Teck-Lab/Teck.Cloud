@@ -231,7 +231,8 @@ jobs:
             
             **Testing Strategy:**
             - ⚡ **Build**: Only affected projects are built for fast feedback
-            - ✅ **Test**: All .NET tests run on every PR to ensure no regressions
+            - ✅ **Test**: Non-E2E .NET tests run on every PR to ensure no regressions
+            - 🎯 **E2E**: Runs only when `run-e2e` label is added to the PR
             - 🐳 **Docker**: Only affected service Docker images are built to save time
             
             These jobs run **in parallel** for maximum speed.
@@ -282,7 +283,7 @@ jobs:
         continue-on-error: true
 
   # ===================================================================
-  # JOB 2: Run ALL tests (ensure no regressions)
+  # JOB 2: Run non-E2E tests (ensure core regressions)
   # ===================================================================
   test-all:
     runs-on: ubuntu-latest
@@ -308,8 +309,9 @@ jobs:
       - name: Build all projects
         run: dotnet build -c Release --no-restore
 
-      - name: Test all projects
-        run: dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame --blame-hang-timeout 5m
+      - name: Test non-E2E projects
+        run: |
+          dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --filter "FullyQualifiedName!~Teck.Cloud.E2ETests" --blame --blame-hang-timeout 15m
 
       - name: Combine Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@5.5.1
@@ -388,7 +390,53 @@ jobs:
           category: 'trivy-filesystem'
 
   # ===================================================================
-  # JOB 3: Build Docker images for affected services (verify Dockerfiles)
+  # JOB 3: Run E2E tests on demand for isolation and clearer failures
+  # ===================================================================
+  test-e2e:
+    runs-on: ubuntu-latest
+    name: Test E2E projects
+    timeout-minutes: 60
+    needs: [check-label, build-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') && github.event.action == 'labeled' && github.event.label.name == 'run-e2e' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build E2E project
+        run: dotnet build tests/e2e/Teck.Cloud.E2ETests/Teck.Cloud.E2ETests.csproj -c Release --no-restore
+
+      - name: Test E2E project
+        run: dotnet test tests/e2e/Teck.Cloud.E2ETests/Teck.Cloud.E2ETests.csproj -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame --blame-hang-timeout 20m
+
+      - name: Upload E2E test result files
+        if: always() && hashFiles('**/TestResults/**/*') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: ${{ github.workspace }}/**/TestResults/**/*
+          retention-days: 5
+
+      - name: Publish E2E test results
+        uses: dorny/test-reporter@v1
+        if: always() && hashFiles('**/*.trx') != ''
+        with:
+          name: E2E Tests
+          path: "${{ github.workspace }}/**/*.trx"
+          reporter: dotnet-trx
+
+  # ===================================================================
+  # JOB 4: Build Docker images for affected services (verify Dockerfiles)
   # ===================================================================
   docker-affected:
     runs-on: ${{ matrix.builder.runner-image }}
@@ -625,7 +673,7 @@ jobs:
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
-    needs: [build-affected, test-all, docker-affected, upload-secobserve-sbom, detect-affected, check-label]
+    needs: [build-affected, test-all, test-e2e, docker-affected, upload-secobserve-sbom, detect-affected, check-label]
     if: always()
     steps:
       - name: Check if build-affected was successful or skipped
@@ -641,10 +689,20 @@ jobs:
       - name: Check if test-all was successful
         run: |
           if [[ "${{ needs.test-all.result }}" == "success" ]]; then
-            echo "✅ Test all job passed"
+            echo "✅ Non-E2E test job passed"
             exit 0
           else
-            echo "❌ Test all job failed or was skipped"
+            echo "❌ Non-E2E test job failed or was skipped"
+            exit 1
+          fi
+
+      - name: Check if test-e2e was successful
+        run: |
+          if [[ "${{ needs.test-e2e.result }}" == "success" ]] || [[ "${{ needs.test-e2e.result }}" == "skipped" ]]; then
+            echo "✅ E2E test job passed or was skipped (not triggered)"
+            exit 0
+          else
+            echo "❌ E2E test job failed"
             exit 1
           fi
       

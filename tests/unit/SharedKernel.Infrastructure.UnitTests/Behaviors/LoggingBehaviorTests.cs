@@ -14,6 +14,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
         public LoggingBehaviorTests()
         {
             _logger = Substitute.For<ILogger<LoggingBehavior<TestMessage, TestResponse>>>();
+            _logger.IsEnabled(LogLevel.Information).Returns(true);
             _sut = new LoggingBehavior<TestMessage, TestResponse>(_logger);
         }
 
