@@ -29,12 +29,12 @@ namespace Catalog.Application.Brands.Features.CreateBrand.V1
         /// <summary>
         /// The unit of work.
         /// </summary>
-        private readonly IUnitOfWork unitOfWork = unitOfWork;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         /// <summary>
         /// The brand repository.
         /// </summary>
-        private readonly IBrandWriteRepository brandWriteRepository = brandWriteRepository;
+        private readonly IBrandWriteRepository _brandWriteRepository = brandWriteRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -52,9 +52,9 @@ namespace Catalog.Application.Brands.Features.CreateBrand.V1
                 return brandToAdd.Errors;
             }
 
-            await this.brandWriteRepository.AddAsync(brandToAdd.Value, cancellationToken).ConfigureAwait(false);
+            await this._brandWriteRepository.AddAsync(brandToAdd.Value, cancellationToken).ConfigureAwait(false);
 
-            await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await this._unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return BrandMapper.BrandToCreateBrandResponse(brandToAdd.Value);
         }

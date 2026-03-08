@@ -28,19 +28,19 @@ public sealed class SupplierReadRepository : GenericReadRepository<SupplierReadM
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<SupplierReadModel>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SupplierReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<SupplierReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<SupplierReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<SupplierReadModel>> GetPagedSuppliersAsync(int page, int size, string? keyword, CancellationToken cancellationToken)
+    public async Task<PagedList<SupplierReadModel>> GetPagedSuppliersAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
         var query = this.suppliers.AsQueryable();
 

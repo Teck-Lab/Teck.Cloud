@@ -1,3 +1,7 @@
+// <copyright file="ReverseProxyTransformExtensions.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Microsoft.AspNetCore.Authentication;
 using Yarp.ReverseProxy.Transforms;
 
@@ -11,12 +15,6 @@ internal static class ReverseProxyTransformExtensions
     {
         return reverseProxyBuilder.AddTransforms(builderContext =>
         {
-            string? clusterId = builderContext.Route?.ClusterId;
-            string? routeId = builderContext.Route?.RouteId;
-            bool isPublicRoute = EdgeGatewayHelpers.IsAnonymousRoute(builderContext.Route);
-            bool isOpenApiRoute = routeId?.Contains("openapi", StringComparison.OrdinalIgnoreCase) == true;
-            bool shouldExchangeForRoute = !isOpenApiRoute && !isPublicRoute && !string.IsNullOrWhiteSpace(clusterId);
-
             builderContext.AddRequestTransform(async transformContext =>
             {
                 HttpContext httpContext = transformContext.HttpContext;
@@ -47,16 +45,8 @@ internal static class ReverseProxyTransformExtensions
                 string? token = EdgeGatewayHelpers.ExtractBearerToken(httpContext.Request.Headers.Authorization.ToString())
                     ?? await httpContext.GetTokenAsync("access_token");
 
-                string? exchangeAudience = shouldExchangeForRoute ? clusterId : null;
-
                 if (string.IsNullOrWhiteSpace(token))
                 {
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(exchangeAudience))
-                {
-                    transformContext.ProxyRequest.Headers.Authorization = new("Bearer", token);
                     return;
                 }
 

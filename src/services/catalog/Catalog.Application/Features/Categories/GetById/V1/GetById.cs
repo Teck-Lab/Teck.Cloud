@@ -29,7 +29,7 @@ internal sealed class GetCategoryByIdQueryHandler(ICategoryReadRepository catego
     /// <summary>
     /// The category read repository.
     /// </summary>
-    private readonly ICategoryReadRepository categoryReadRepository = categoryReadRepository;
+    private readonly ICategoryReadRepository _categoryReadRepository = categoryReadRepository;
 
     /// <summary>
     /// Handle and return a task of type erroror.
@@ -39,7 +39,7 @@ internal sealed class GetCategoryByIdQueryHandler(ICategoryReadRepository catego
     /// <returns><![CDATA[Task<ErrorOr<CategoryResponse>>]]></returns>
     public async ValueTask<ErrorOr<CategoryResponse>> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
-        CategoryReadModel? category = await this.categoryReadRepository.GetByIdAsync(request.Id, cancellationToken).ConfigureAwait(false);
+        CategoryReadModel? category = await this._categoryReadRepository.GetByIdAsync(request.Id, cancellationToken).ConfigureAwait(false);
 
         return category == null ? (ErrorOr<CategoryResponse>)CategoryErrors.NotFound : (ErrorOr<CategoryResponse>)CategoryMapper.CategoryReadModelToCategoryResponse(category);
     }

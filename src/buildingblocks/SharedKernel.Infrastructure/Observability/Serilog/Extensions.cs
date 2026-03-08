@@ -22,7 +22,7 @@ internal static class Extensions
 
         builder.Services.AddSerilog((_, loggerConfiguration) =>
         {
-            if (serilogOptions.EnableErichers)
+            if (serilogOptions.EnableEnrichers)
             {
                 ConfigureEnrichers(loggerConfiguration, appName);
             }
@@ -30,9 +30,9 @@ internal static class Extensions
             ConfigureConsoleLogging(loggerConfiguration, serilogOptions.StructuredConsoleLogging);
             ConfigureWriteToFile(loggerConfiguration, serilogOptions.WriteToFile, serilogOptions.RetentionFileCount, appName);
             SetMinimumLogLevel(loggerConfiguration, serilogOptions.MinimumLogLevel);
-            if (serilogOptions.OverideMinimumLogLevel)
+            if (serilogOptions.OverrideMinimumLogLevel)
             {
-                OverideMinimumLogLevel(loggerConfiguration);
+                OverrideMinimumLogLevel(loggerConfiguration);
             }
 
             string? otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
@@ -116,7 +116,7 @@ internal static class Extensions
         serilogConfig.MinimumLevel.ControlledBy(loggingLevelSwitch);
     }
 
-    private static void OverideMinimumLogLevel(LoggerConfiguration serilogConfig)
+    private static void OverrideMinimumLogLevel(LoggerConfiguration serilogConfig)
     {
         serilogConfig
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)

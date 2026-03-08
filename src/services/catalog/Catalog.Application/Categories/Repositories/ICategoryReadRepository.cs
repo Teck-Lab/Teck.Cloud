@@ -18,7 +18,7 @@ public interface ICategoryReadRepository : IGenericReadRepository<CategoryReadMo
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of category read models.</returns>
-    Task<IReadOnlyList<CategoryReadModel>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<CategoryReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a category by ID.
@@ -26,7 +26,7 @@ public interface ICategoryReadRepository : IGenericReadRepository<CategoryReadMo
     /// <param name="id">The category ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The category read model if found, otherwise null.</returns>
-    Task<CategoryReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<CategoryReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets categories by parent category ID.
@@ -34,7 +34,7 @@ public interface ICategoryReadRepository : IGenericReadRepository<CategoryReadMo
     /// <param name="parentId">The parent category ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of category read models.</returns>
-    Task<IReadOnlyList<CategoryReadModel>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<CategoryReadModel>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get paged categories.
@@ -44,7 +44,7 @@ public interface ICategoryReadRepository : IGenericReadRepository<CategoryReadMo
     /// <param name="keyword">The search keyword.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paged list of category read models.</returns>
-    Task<PagedList<CategoryReadModel>> GetPagedCategoriesAsync(int page, int size, string? keyword, CancellationToken cancellationToken);
+    Task<PagedList<CategoryReadModel>> GetPagedCategoriesAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks if categories exist by their IDs.
@@ -52,5 +52,5 @@ public interface ICategoryReadRepository : IGenericReadRepository<CategoryReadMo
     /// <param name="ids">The collection of category IDs to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if all specified categories exist; otherwise, false.</returns>
-    Task<bool> ExistsByIdAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken);
+    Task<bool> ExistsByIdAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
 }

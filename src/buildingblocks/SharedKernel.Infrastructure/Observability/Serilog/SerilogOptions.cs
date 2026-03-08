@@ -33,12 +33,12 @@ public class SerilogOptions : IOptionsRoot
     public string MinimumLogLevel { get; set; } = "Information";
 
     /// <summary>
-    /// Gets or sets  a value indicating whether to enable erichers.
+    /// Gets or sets a value indicating whether to enable enrichers.
     /// </summary>
-    public bool EnableErichers { get; set; } = true;
+    public bool EnableEnrichers { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets  a value indicating whether to overide minimum log level.
+    /// Gets or sets a value indicating whether to override minimum log level.
     /// </summary>
-    public bool OverideMinimumLogLevel { get; set; } = true;
+    public bool OverrideMinimumLogLevel { get; set; } = true;
 }

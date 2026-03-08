@@ -25,19 +25,19 @@ public sealed class ProductPriceTypeReadRepository : GenericReadRepository<Produ
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<ProductPriceTypeReadModel>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProductPriceTypeReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<ProductPriceTypeReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<ProductPriceTypeReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<ProductPriceTypeReadModel>> GetPagedProductPriceTypesAsync(int page, int size, string? keyword, CancellationToken cancellationToken)
+    public async Task<PagedList<ProductPriceTypeReadModel>> GetPagedProductPriceTypesAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
         var query = this.DbContext.ProductPriceTypes.AsQueryable();
 

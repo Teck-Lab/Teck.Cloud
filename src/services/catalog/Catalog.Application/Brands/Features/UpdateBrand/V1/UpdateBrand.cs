@@ -31,12 +31,12 @@ namespace Catalog.Application.Brands.Features.UpdateBrand.V1
         /// <summary>
         /// The unit of work.
         /// </summary>
-        private readonly IUnitOfWork unitOfWork = unitOfWork;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         /// <summary>
         /// The brand repository.
         /// </summary>
-        private readonly IBrandWriteRepository brandRepository = brandRepository;
+        private readonly IBrandWriteRepository _brandRepository = brandRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -47,7 +47,7 @@ namespace Catalog.Application.Brands.Features.UpdateBrand.V1
         public async ValueTask<ErrorOr<UpdateBrandResponse>> Handle(UpdateBrandCommand request, CancellationToken cancellationToken)
         {
             var brandSpec = new BrandByIdSpecification(request.Id);
-            Brand? brandToBeUpdated = await this.brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken).ConfigureAwait(false);
+            Brand? brandToBeUpdated = await this._brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken).ConfigureAwait(false);
 
             if (brandToBeUpdated == null)
             {
@@ -62,8 +62,8 @@ namespace Catalog.Application.Brands.Features.UpdateBrand.V1
                 return updateOutcome.Errors;
             }
 
-            this.brandRepository.Update(brandToBeUpdated);
-            await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            this._brandRepository.Update(brandToBeUpdated);
+            await this._unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return BrandMapper.BrandToUpdateBrandResponse(brandToBeUpdated);
         }

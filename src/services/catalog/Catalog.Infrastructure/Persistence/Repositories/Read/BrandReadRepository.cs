@@ -23,7 +23,7 @@ public sealed class BrandReadRepository : GenericReadRepository<BrandReadModel, 
     }
 
     /// <inheritdoc/>
-    public async Task<BrandReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<BrandReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }

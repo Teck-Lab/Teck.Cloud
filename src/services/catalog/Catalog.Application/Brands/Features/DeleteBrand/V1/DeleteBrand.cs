@@ -30,12 +30,12 @@ namespace Catalog.Application.Brands.Features.DeleteBrand.V1
         /// <summary>
         /// The unit of work.
         /// </summary>
-        private readonly IUnitOfWork unitOfWork = unitOfWork;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         /// <summary>
         /// The brand repository.
         /// </summary>
-        private readonly IBrandWriteRepository brandRepository = brandRepository;
+        private readonly IBrandWriteRepository _brandRepository = brandRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -46,15 +46,15 @@ namespace Catalog.Application.Brands.Features.DeleteBrand.V1
         public async ValueTask<ErrorOr<Deleted>> Handle(DeleteBrandCommand request, CancellationToken cancellationToken)
         {
             var brandSpec = new BrandByIdSpecification(request.Id);
-            Brand? brandToDelete = await this.brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken).ConfigureAwait(false);
+            Brand? brandToDelete = await this._brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken).ConfigureAwait(false);
 
             if (brandToDelete is null)
             {
                 return BrandErrors.NotFound;
             }
 
-            this.brandRepository.Delete(brandToDelete);
-            await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            this._brandRepository.Delete(brandToDelete);
+            await this._unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return Result.Deleted;
         }

@@ -18,7 +18,7 @@ public interface ISupplierReadRepository : IGenericReadRepository<SupplierReadMo
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of supplier read models.</returns>
-    Task<IReadOnlyList<SupplierReadModel>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<SupplierReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a supplier by ID.
@@ -26,7 +26,7 @@ public interface ISupplierReadRepository : IGenericReadRepository<SupplierReadMo
     /// <param name="id">The supplier ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The supplier read model if found, otherwise null.</returns>
-    Task<SupplierReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<SupplierReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get paged suppliers.
@@ -36,5 +36,5 @@ public interface ISupplierReadRepository : IGenericReadRepository<SupplierReadMo
     /// <param name="keyword">The search keyword.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paged list of supplier read models.</returns>
-    Task<PagedList<SupplierReadModel>> GetPagedSuppliersAsync(int page, int size, string? keyword, CancellationToken cancellationToken);
+    Task<PagedList<SupplierReadModel>> GetPagedSuppliersAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default);
 }

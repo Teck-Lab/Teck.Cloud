@@ -29,7 +29,7 @@ namespace Catalog.Application.Products.Features.GetProductById.V1
         /// <summary>
         /// The product read repository.
         /// </summary>
-        private readonly IProductReadRepository productReadRepository = productReadRepository;
+        private readonly IProductReadRepository _productReadRepository = productReadRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -39,7 +39,7 @@ namespace Catalog.Application.Products.Features.GetProductById.V1
         /// <returns><![CDATA[Task<ErrorOr<ProductResponse>>]]></returns>
         public async ValueTask<ErrorOr<ProductResponse>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
         {
-            ProductReadModel? product = await this.productReadRepository.GetByIdAsync(request.Id, cancellationToken).ConfigureAwait(false);
+            ProductReadModel? product = await this._productReadRepository.GetByIdAsync(request.Id, cancellationToken).ConfigureAwait(false);
 
             return product == null ? (ErrorOr<ProductResponse>)ProductErrors.NotFound : (ErrorOr<ProductResponse>)ProductMappings.ProductReadModelToProductResponse(product);
         }

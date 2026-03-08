@@ -28,7 +28,7 @@ namespace Catalog.Application.Brands.Features.GetBrandById.V1
         /// <summary>
         /// The brand cache service.
         /// </summary>
-        private readonly IGenericCacheService<BrandReadModel, Guid> brandCacheService = brandCacheService;
+        private readonly IGenericCacheService<BrandReadModel, Guid> _brandCacheService = brandCacheService;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -38,7 +38,7 @@ namespace Catalog.Application.Brands.Features.GetBrandById.V1
         /// <returns><![CDATA[Task<ErrorOr<GetByIdBrandResponse>>]]></returns>
         public async ValueTask<ErrorOr<GetByIdBrandResponse>> Handle(GetBrandByIdQuery request, CancellationToken cancellationToken)
         {
-            BrandReadModel? brand = await this.brandCacheService.GetOrSetByIdAsync(request.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
+            BrandReadModel? brand = await this._brandCacheService.GetOrSetByIdAsync(request.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             return brand == null ? (ErrorOr<GetByIdBrandResponse>)BrandErrors.NotFound : (ErrorOr<GetByIdBrandResponse>)BrandMapper.BrandReadModelToGetByIdBrandResponse(brand);
         }

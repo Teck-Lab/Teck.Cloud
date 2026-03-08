@@ -28,19 +28,19 @@ public sealed class ProductReadRepository : GenericReadRepository<ProductReadMod
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<ProductReadModel>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProductReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<ProductReadModel>> GetByBrandIdAsync(Guid brandId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProductReadModel>> GetByBrandIdAsync(Guid brandId, CancellationToken cancellationToken = default)
     {
         return await this.products
             .AsNoTracking()
@@ -50,7 +50,7 @@ public sealed class ProductReadRepository : GenericReadRepository<ProductReadMod
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<ProductReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProductReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
     {
         return await this.products
             .AsNoTracking()
@@ -60,7 +60,7 @@ public sealed class ProductReadRepository : GenericReadRepository<ProductReadMod
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<ProductReadModel>> GetPagedProductsAsync(int page, int size, string? keyword, CancellationToken cancellationToken)
+    public async Task<PagedList<ProductReadModel>> GetPagedProductsAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
         var query = this.products.AsQueryable();
 
@@ -82,7 +82,7 @@ public sealed class ProductReadRepository : GenericReadRepository<ProductReadMod
     }
 
     /// <inheritdoc/>
-    public async Task<ProductReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken)
+    public async Task<ProductReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default)
     {
         return await this.products
             .AsNoTracking()

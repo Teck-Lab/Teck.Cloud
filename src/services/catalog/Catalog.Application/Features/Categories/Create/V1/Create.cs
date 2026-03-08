@@ -29,9 +29,9 @@ internal sealed class CreateCategoryCommandHandler(IUnitOfWork unitOfWork, ICate
     /// <summary>
     /// The unit of work.
     /// </summary>
-    private readonly IUnitOfWork unitOfWork = unitOfWork;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    private readonly ICategoryWriteRepository categoryWriteRepository = categoryWriteRepository;
+    private readonly ICategoryWriteRepository _categoryWriteRepository = categoryWriteRepository;
 
     /// <summary>
     /// Handle and return a task of type erroror.
@@ -49,9 +49,9 @@ internal sealed class CreateCategoryCommandHandler(IUnitOfWork unitOfWork, ICate
             return categoryToAdd.Errors;
         }
 
-        await this.categoryWriteRepository.AddAsync(categoryToAdd.Value, cancellationToken).ConfigureAwait(false);
+        await this._categoryWriteRepository.AddAsync(categoryToAdd.Value, cancellationToken).ConfigureAwait(false);
 
-        await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await this._unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return CategoryMapper.CategoryToCategoryResponse(categoryToAdd.Value);
     }
 }

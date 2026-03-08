@@ -28,7 +28,7 @@ public sealed class SupplierWriteRepository : GenericWriteRepository<Supplier, G
     }
 
     /// <inheritdoc/>
-    public async Task<Supplier?> GetByNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<Supplier?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await this.DbContext.Suppliers
             .FirstOrDefaultAsync(supplier => supplier.Name == name, cancellationToken)

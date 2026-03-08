@@ -43,13 +43,13 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
         /// <summary>
         /// The unit of work.
         /// </summary>
-        private readonly IUnitOfWork unitOfWork = unitOfWork;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         /// <summary>
         /// The product repository.
         /// </summary>
-        private readonly IProductWriteRepository productWriteRepository = productWriteRepository;
-        private readonly ICategoryWriteRepository categoryWriteRepository = categoryWriteRepository;
+        private readonly IProductWriteRepository _productWriteRepository = productWriteRepository;
+        private readonly ICategoryWriteRepository _categoryWriteRepository = categoryWriteRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -61,7 +61,7 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
         {
             CategoriesByIdsSpecification spec = new CategoriesByIdsSpecification(request.CategoryIds);
 
-            var categories = await this.categoryWriteRepository.ListAsync(spec, true, cancellationToken).ConfigureAwait(false);
+            var categories = await this._categoryWriteRepository.ListAsync(spec, true, cancellationToken).ConfigureAwait(false);
             List<Domain.Entities.CategoryAggregate.Category> categoryList = categories.ToList();
 
             ErrorOr<Product> productToAdd = Product.Create(
@@ -78,9 +78,9 @@ namespace Catalog.Application.Products.Features.CreateProduct.V1
                 return productToAdd.Errors;
             }
 
-            await this.productWriteRepository.AddAsync(productToAdd.Value, cancellationToken).ConfigureAwait(false);
+            await this._productWriteRepository.AddAsync(productToAdd.Value, cancellationToken).ConfigureAwait(false);
 
-            var result = await this.unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            var result = await this._unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             if (result == 0)
             {
                 return Domain.Entities.ProductAggregate.Errors.ProductErrors.NotCreated;

@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using System.Reflection;
 using ErrorOr;
 using FluentValidation;
 using FluentValidation.Results;
@@ -17,6 +19,8 @@ namespace SharedKernel.Infrastructure.Behaviors
         where TRequest : IRequest<TResponse>
         where TResponse : IErrorOr
     {
+        private static readonly Func<List<Error>, TResponse> ErrorResponseFactory = CreateErrorResponseFactory();
+
         /// <summary>
         /// Executes all registered validators for the request and short-circuits the pipeline
         /// when validation fails, returning validation errors as ErrorOr.
@@ -54,7 +58,30 @@ namespace SharedKernel.Infrastructure.Behaviors
                 return await next(message, cancellationToken);
             }
 
-            return (dynamic)errors;
+            return ErrorResponseFactory(errors);
+        }
+
+        private static Func<List<Error>, TResponse> CreateErrorResponseFactory()
+        {
+            Type responseType = typeof(TResponse);
+            MethodInfo? fromMethod = responseType.GetMethod(
+                nameof(ErrorOr<object>.From),
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                types: [typeof(List<Error>)],
+                modifiers: null);
+
+            if (fromMethod is null)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(ValidationBehavior<TRequest, TResponse>)} requires {responseType.FullName} to be an ErrorOr<T> response type.");
+            }
+
+            ParameterExpression errorsParameter = Expression.Parameter(typeof(List<Error>), "errors");
+            MethodCallExpression fromCall = Expression.Call(fromMethod, errorsParameter);
+            UnaryExpression castResponse = Expression.Convert(fromCall, typeof(TResponse));
+
+            return Expression.Lambda<Func<List<Error>, TResponse>>(castResponse, errorsParameter).Compile();
         }
     }
 }

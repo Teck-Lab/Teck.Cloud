@@ -18,7 +18,7 @@ public interface IProductReadRepository : IGenericReadRepository<ProductReadMode
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of product read models.</returns>
-    Task<IReadOnlyList<ProductReadModel>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<ProductReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a product by ID.
@@ -26,7 +26,7 @@ public interface IProductReadRepository : IGenericReadRepository<ProductReadMode
     /// <param name="id">The product ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The product read model if found, otherwise null.</returns>
-    Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets products by brand ID.
@@ -34,7 +34,7 @@ public interface IProductReadRepository : IGenericReadRepository<ProductReadMode
     /// <param name="brandId">The brand ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of product read models.</returns>
-    Task<IReadOnlyList<ProductReadModel>> GetByBrandIdAsync(Guid brandId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ProductReadModel>> GetByBrandIdAsync(Guid brandId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets products by category ID.
@@ -42,7 +42,7 @@ public interface IProductReadRepository : IGenericReadRepository<ProductReadMode
     /// <param name="categoryId">The category ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of product read models.</returns>
-    Task<IReadOnlyList<ProductReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ProductReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get paged products.
@@ -52,7 +52,7 @@ public interface IProductReadRepository : IGenericReadRepository<ProductReadMode
     /// <param name="keyword">The search keyword.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paged list of product read models.</returns>
-    Task<PagedList<ProductReadModel>> GetPagedProductsAsync(int page, int size, string? keyword, CancellationToken cancellationToken);
+    Task<PagedList<ProductReadModel>> GetPagedProductsAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a product by SKU.
@@ -60,5 +60,5 @@ public interface IProductReadRepository : IGenericReadRepository<ProductReadMode
     /// <param name="sku">The product SKU.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The product read model if found, otherwise null.</returns>
-    Task<ProductReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken);
+    Task<ProductReadModel?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default);
 }

@@ -45,27 +45,6 @@ jobs:
             echo "has_python=false" >> "$GITHUB_OUTPUT"
           fi
 
-  codeql:
-    name: CodeQL SAST
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: csharp
-          queries: security-and-quality
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-
-      - name: Analyze
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: '/language:csharp'
-
   gitleaks:
     name: Gitleaks Secret Detection
     runs-on: ubuntu-latest

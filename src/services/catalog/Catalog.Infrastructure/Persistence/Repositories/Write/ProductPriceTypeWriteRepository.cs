@@ -28,7 +28,7 @@ public sealed class ProductPriceTypeWriteRepository : GenericWriteRepository<Pro
     }
 
     /// <inheritdoc/>
-    public async Task<ProductPriceType?> GetByNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<ProductPriceType?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await this.DbContext.ProductPriceTypes
             .FirstOrDefaultAsync(productPriceType => productPriceType.Name == name, cancellationToken)

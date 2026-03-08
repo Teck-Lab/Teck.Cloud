@@ -30,7 +30,7 @@ public sealed class CategoryReadRepository : GenericReadRepository<CategoryReadM
     /// <param name="ids">The collection of category IDs to check.</param>
     /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
     /// <returns>True if all IDs exist; otherwise, false.</returns>
-    public async Task<bool> ExistsByIdAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)
+    public async Task<bool> ExistsByIdAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
     {
         if (ids == null)
         {
@@ -57,19 +57,19 @@ public sealed class CategoryReadRepository : GenericReadRepository<CategoryReadM
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<CategoryReadModel>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CategoryReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<CategoryReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<CategoryReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<CategoryReadModel>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CategoryReadModel>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default)
     {
         return await this.DbContext.Categories
             .AsNoTracking()
@@ -79,7 +79,7 @@ public sealed class CategoryReadRepository : GenericReadRepository<CategoryReadM
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<CategoryReadModel>> GetPagedCategoriesAsync(int page, int size, string? keyword, CancellationToken cancellationToken)
+    public async Task<PagedList<CategoryReadModel>> GetPagedCategoriesAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
         var query = this.DbContext.Categories.AsQueryable();
 

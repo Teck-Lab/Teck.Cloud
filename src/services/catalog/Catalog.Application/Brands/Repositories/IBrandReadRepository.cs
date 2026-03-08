@@ -18,5 +18,5 @@ public interface IBrandReadRepository : IGenericReadRepository<BrandReadModel, G
     /// <param name="id">The brand ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The brand read model if found, otherwise null.</returns>
-    Task<BrandReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<BrandReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 }

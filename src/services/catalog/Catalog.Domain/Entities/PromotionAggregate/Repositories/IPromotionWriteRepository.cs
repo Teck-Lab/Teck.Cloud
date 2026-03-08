@@ -17,12 +17,12 @@ public interface IPromotionWriteRepository : IGenericWriteRepository<Promotion, 
     /// <param name="name">The name of the promotion.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The promotion if found, otherwise null.</returns>
-    Task<Promotion?> GetByNameAsync(string name, CancellationToken cancellationToken);
+    Task<Promotion?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets active promotions.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of active promotions.</returns>
-    Task<IReadOnlyList<Promotion>> GetActivePromotionsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<Promotion>> GetActivePromotionsAsync(CancellationToken cancellationToken = default);
 }

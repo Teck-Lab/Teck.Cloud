@@ -25,7 +25,7 @@ namespace Catalog.Application.Brands.Features.DeleteBrands.V1
         /// <summary>
         /// The brand repository.
         /// </summary>
-        private readonly IBrandWriteRepository brandRepository = brandRepository;
+        private readonly IBrandWriteRepository _brandRepository = brandRepository;
 
         /// <summary>
         /// Handle and return a task of type erroror.
@@ -35,7 +35,7 @@ namespace Catalog.Application.Brands.Features.DeleteBrands.V1
         /// <returns><![CDATA[Task<ErrorOr<Deleted>>]]></returns>
         public async ValueTask<ErrorOr<Deleted>> Handle(DeleteBrandsCommand request, CancellationToken cancellationToken)
         {
-            await this.brandRepository.ExcecutSoftDeleteAsync(request.BrandIds, cancellationToken).ConfigureAwait(false);
+            await this._brandRepository.ExcecutSoftDeleteAsync(request.BrandIds, cancellationToken).ConfigureAwait(false);
 
             return Result.Deleted;
         }

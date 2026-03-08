@@ -17,7 +17,7 @@ public interface IBrandWriteRepository : IGenericWriteRepository<Brand, Guid>
     /// <param name="name">The brand name to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if a brand with the name exists; otherwise, false.</returns>
-    Task<bool> ExistsWithNameAsync(string name, CancellationToken cancellationToken);
+    Task<bool> ExistsWithNameAsync(string name, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Finds a brand by its name.
@@ -25,5 +25,5 @@ public interface IBrandWriteRepository : IGenericWriteRepository<Brand, Guid>
     /// <param name="name">The brand name to find.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The brand if found; otherwise, null.</returns>
-    Task<Brand?> FindByNameAsync(string name, CancellationToken cancellationToken);
+    Task<Brand?> FindByNameAsync(string name, CancellationToken cancellationToken = default);
 }

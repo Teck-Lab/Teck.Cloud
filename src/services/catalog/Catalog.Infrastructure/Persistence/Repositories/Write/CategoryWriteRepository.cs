@@ -28,7 +28,7 @@ public sealed class CategoryWriteRepository : GenericWriteRepository<Category, G
     }
 
     /// <inheritdoc/>
-    public async Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await this.DbContext.Categories
             .FirstOrDefaultAsync(category => category.Name == name, cancellationToken)
@@ -36,7 +36,7 @@ public sealed class CategoryWriteRepository : GenericWriteRepository<Category, G
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Category>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Category>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default)
     {
         return await this.DbContext.Categories
             .Where(category => EF.Property<Guid?>(category, "ParentId") == parentId)

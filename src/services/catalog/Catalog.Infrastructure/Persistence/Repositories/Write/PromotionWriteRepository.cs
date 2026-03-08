@@ -28,7 +28,7 @@ public sealed class PromotionWriteRepository : GenericWriteRepository<Promotion,
     }
 
     /// <inheritdoc/>
-    public async Task<Promotion?> GetByNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<Promotion?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await this.DbContext.Promotions
             .FirstOrDefaultAsync(promotion => promotion.Name == name, cancellationToken)
@@ -36,7 +36,7 @@ public sealed class PromotionWriteRepository : GenericWriteRepository<Promotion,
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<Promotion>> GetActivePromotionsAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Promotion>> GetActivePromotionsAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTimeOffset.UtcNow;
 

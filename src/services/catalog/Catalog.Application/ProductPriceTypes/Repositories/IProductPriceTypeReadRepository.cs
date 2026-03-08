@@ -18,7 +18,7 @@ public interface IProductPriceTypeReadRepository : IGenericReadRepository<Produc
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of product price type read models.</returns>
-    Task<IReadOnlyList<ProductPriceTypeReadModel>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<ProductPriceTypeReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a product price type by ID.
@@ -26,7 +26,7 @@ public interface IProductPriceTypeReadRepository : IGenericReadRepository<Produc
     /// <param name="id">The product price type ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The product price type read model if found, otherwise null.</returns>
-    Task<ProductPriceTypeReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<ProductPriceTypeReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get paged product price types.
@@ -36,5 +36,5 @@ public interface IProductPriceTypeReadRepository : IGenericReadRepository<Produc
     /// <param name="keyword">The search keyword.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paged list of product price type read models.</returns>
-    Task<PagedList<ProductPriceTypeReadModel>> GetPagedProductPriceTypesAsync(int page, int size, string? keyword, CancellationToken cancellationToken);
+    Task<PagedList<ProductPriceTypeReadModel>> GetPagedProductPriceTypesAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default);
 }

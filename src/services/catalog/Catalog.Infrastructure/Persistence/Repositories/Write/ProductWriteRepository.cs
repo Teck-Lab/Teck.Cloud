@@ -28,7 +28,7 @@ public sealed class ProductWriteRepository : GenericWriteRepository<Product, Gui
     }
 
     /// <inheritdoc/>
-    public async Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken)
+    public async Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default)
     {
         return await this.DbContext.Products
             .FirstOrDefaultAsync(product => product.ProductSKU == sku, cancellationToken)

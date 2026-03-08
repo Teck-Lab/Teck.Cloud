@@ -36,7 +36,7 @@ public sealed class BrandWriteRepository : GenericWriteRepository<Brand, Guid, A
     /// <param name="name">The brand name to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if a brand with the name exists; otherwise, false.</returns>
-    public async Task<bool> ExistsWithNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<bool> ExistsWithNameAsync(string name, CancellationToken cancellationToken = default)
     {
         BrandByNameSpecification specification = new BrandByNameSpecification(name);
         return await this.FirstOrDefaultAsync(specification, cancellationToken).ConfigureAwait(false) != null;
@@ -48,7 +48,7 @@ public sealed class BrandWriteRepository : GenericWriteRepository<Brand, Guid, A
     /// <param name="name">The brand name to find.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The brand if found; otherwise, null.</returns>
-    public async Task<Brand?> FindByNameAsync(string name, CancellationToken cancellationToken)
+    public async Task<Brand?> FindByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         BrandByNameSpecification specification = new BrandByNameSpecification(name);
         return await this.FirstOrDefaultAsync(specification, cancellationToken).ConfigureAwait(false);

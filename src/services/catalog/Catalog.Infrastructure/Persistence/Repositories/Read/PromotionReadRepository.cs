@@ -28,19 +28,19 @@ public sealed class PromotionReadRepository : GenericReadRepository<PromotionRea
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<PromotionReadModel>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PromotionReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<PromotionReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<PromotionReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<PromotionReadModel>> GetActivePromotionsAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PromotionReadModel>> GetActivePromotionsAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTimeOffset.UtcNow;
         return await this.promotions
@@ -51,7 +51,7 @@ public sealed class PromotionReadRepository : GenericReadRepository<PromotionRea
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<PromotionReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PromotionReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default)
     {
         // Since the promotion read model doesn't have a direct CategoryId property,
         // this would need to be implemented with a join or custom query in a real implementation
@@ -64,7 +64,7 @@ public sealed class PromotionReadRepository : GenericReadRepository<PromotionRea
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<PromotionReadModel>> GetPagedPromotionsAsync(int page, int size, string? keyword, CancellationToken cancellationToken)
+    public async Task<PagedList<PromotionReadModel>> GetPagedPromotionsAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
         var query = this.promotions.AsQueryable();
 

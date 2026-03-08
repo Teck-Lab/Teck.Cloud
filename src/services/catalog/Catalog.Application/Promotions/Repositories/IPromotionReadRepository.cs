@@ -18,7 +18,7 @@ public interface IPromotionReadRepository : IGenericReadRepository<PromotionRead
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of promotion read models.</returns>
-    Task<IReadOnlyList<PromotionReadModel>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<PromotionReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a promotion by ID.
@@ -26,14 +26,14 @@ public interface IPromotionReadRepository : IGenericReadRepository<PromotionRead
     /// <param name="id">The promotion ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The promotion read model if found, otherwise null.</returns>
-    Task<PromotionReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<PromotionReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets active promotions.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of active promotion read models.</returns>
-    Task<IReadOnlyList<PromotionReadModel>> GetActivePromotionsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<PromotionReadModel>> GetActivePromotionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets promotions by category ID.
@@ -41,7 +41,7 @@ public interface IPromotionReadRepository : IGenericReadRepository<PromotionRead
     /// <param name="categoryId">The category ID.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of promotion read models.</returns>
-    Task<IReadOnlyList<PromotionReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PromotionReadModel>> GetByCategoryIdAsync(Guid categoryId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get paged promotions.
@@ -51,5 +51,5 @@ public interface IPromotionReadRepository : IGenericReadRepository<PromotionRead
     /// <param name="keyword">The search keyword.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A paged list of promotion read models.</returns>
-    Task<PagedList<PromotionReadModel>> GetPagedPromotionsAsync(int page, int size, string? keyword, CancellationToken cancellationToken);
+    Task<PagedList<PromotionReadModel>> GetPagedPromotionsAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default);
 }
