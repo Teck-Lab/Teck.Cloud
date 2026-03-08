@@ -5,9 +5,8 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <Exclude>[*]SharedKernel.*,[*]Teck.Cloud.ServiceDefaults*,[*.Infrastructure.Migrations.*]*,[*Migration.Infrastructure*]*</Exclude>
-          <Include>[Catalog]*,[Catalog.Application]*,[Catalog.Domain]*,[Catalog.Infrastructure]*,[Catalog.Api]*</Include>
-          <ExcludeByFile>**/obj/**,**/*.g.cs,**/PromotionAggregate/Promotion.cs</ExcludeByFile>
+          <Exclude>[*.Infrastructure.Migrations.*]*,[*Migration.Infrastructure*]*</Exclude>
+          <ExcludeByFile>**/obj/**,**/*.g.cs,**/*.generated.cs</ExcludeByFile>
           <ExcludeByAttribute>ExcludeFromCodeCoverage,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
         </Configuration>
       </DataCollector>
@@ -15,7 +14,7 @@
         <Configuration>
           <Format>Cobertura</Format>
           <IncludeTestAssembly>False</IncludeTestAssembly>
-          <ExcludeAssembliesWithoutSources>MissingAll</ExcludeAssembliesWithoutSources>
+            <ExcludeAssembliesWithoutSources>MissingAll</ExcludeAssembliesWithoutSources>
           <CodeCoverage>
             <ModulePaths>
               <Exclude>
@@ -24,15 +23,18 @@
                 <ModulePath>.*[\\/]System\..*\.dll$</ModulePath>
                 <ModulePath>.*[\\/].*Tests?\.dll$</ModulePath>
                 <ModulePath>.*[\\/]xunit\..*\.dll$</ModulePath>
-                <ModulePath>.*[\\/]obj[\\/].*\.dll$</ModulePath>
-                <ModulePath>.*[\\/]ref[\\/].*\.dll$</ModulePath>
-                <ModulePath>.*[\\/]refint[\\/].*\.dll$</ModulePath>
+                  <ModulePath>.*[\\/]obj[\\/].*\.dll$</ModulePath>
+                  <ModulePath>.*[\\/]ref[\\/].*\.dll$</ModulePath>
+                  <ModulePath>.*[\\/]refint[\\/].*\.dll$</ModulePath>
                 <ModulePath>.*[\\/]Catalog\.Infrastructure\.Migrations\..*\.dll$</ModulePath>
                 <ModulePath>.*[\\/]Customer\.Infrastructure\.Migrations\..*\.dll$</ModulePath>
                 <ModulePath>.*[\\/]Migration\.Infrastructure\..*\.dll$</ModulePath>
               </Exclude>
             </ModulePaths>
             <Sources>
+              <Include>
+                <Source>.*[\\/]Teck\.Cloud[\\/].*</Source>
+              </Include>
               <Exclude>
                 <Source>.*[\\/]obj[\\/].*</Source>
                 <Source>.*[\\/]bin[\\/].*</Source>

@@ -192,13 +192,16 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         }
         catch (DbUpdateException saveException)
         {
-            await this.RollbackIdentityAsync(organizationId, saveException, cancellationToken).ConfigureAwait(false);
+            await this.RollbackIdentityAsync(organizationId, cancellationToken).ConfigureAwait(false);
+
+            throw new InvalidOperationException(
+                "Tenant persistence failed after identity organization provisioning.",
+                saveException);
         }
     }
 
     private async Task RollbackIdentityAsync(
         string organizationId,
-        DbUpdateException saveException,
         CancellationToken cancellationToken)
     {
         try
@@ -213,10 +216,6 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
                 $"Tenant persistence failed and identity rollback also failed: {deleteException.Message}",
                 deleteException);
         }
-
-        throw new InvalidOperationException(
-            "Tenant persistence failed after identity organization provisioning.",
-            saveException);
     }
 
     private async Task<ErrorOr<Success>> ValidatePreconditionsAsync(

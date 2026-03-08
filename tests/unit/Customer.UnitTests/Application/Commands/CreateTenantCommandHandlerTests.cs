@@ -190,6 +190,36 @@ public class CreateTenantCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnValidationError_WhenStrategyIsUnsupported()
+    {
+        // Arrange
+        var command = CreateCommand(
+            "invalid-strategy-tenant",
+            "Invalid Strategy Tenant",
+            "Enterprise",
+            DatabaseStrategy.None,
+            DatabaseProvider.PostgreSQL);
+
+        _tenantRepository.ExistsByIdentifierAsync(command.Identifier, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        ErrorOr<TenantResponse> result = await _sut.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsError.ShouldBeTrue();
+        result.FirstError.Type.ShouldBe(ErrorType.Validation);
+        result.FirstError.Code.ShouldBe("Tenant.InvalidStrategy");
+
+        await _tenantIdentityProvisioningService.DidNotReceive()
+            .CreateOrganizationAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _tenantRepository.DidNotReceive().AddAsync(
+            Arg.Any<Customer.Domain.Entities.TenantAggregate.Tenant>(),
+            Arg.Any<CancellationToken>());
+        await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Handle_ShouldThrowInvalidOperationException_WhenPersistenceFailsAfterProvisioning()
     {
         // Arrange

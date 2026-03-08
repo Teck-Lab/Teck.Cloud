@@ -1,10 +1,13 @@
 using AutoFixture;
 using AutoFixture.AutoNSubstitute;
 using Catalog.Application.Brands.Features.UpdateBrand.V1;
+using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
 using Catalog.Domain.Entities.BrandAggregate.Specifications;
 using ErrorOr;
+using NSubstitute;
 using NSubstitute.ReturnsExtensions;
+using SharedKernel.Core.Database;
 using Shouldly;
 using Soenneker.Utils.AutoBogus;
 using Soenneker.Utils.AutoBogus.Config;
@@ -68,6 +71,36 @@ namespace Catalog.UnitTests.Application.Brands
 
             //Assert
             result.IsError.ShouldBeTrue();
+        }
+
+        [Fact]
+        public async Task Handle_Should_ReturnValidationError_WhenBrandUpdateFails_Async()
+        {
+            // Arrange
+            var unitOfWork = Substitute.For<IUnitOfWork>();
+            var brandWriteRepository = Substitute.For<IBrandWriteRepository>();
+            var brandResult = Brand.Create("Existing Brand", "Existing description", "https://existing.example.com");
+            brandResult.IsError.ShouldBeFalse();
+
+            var existingBrand = brandResult.Value;
+            brandWriteRepository
+                .FirstOrDefaultAsync(Arg.Any<BrandByIdSpecification>(), Arg.Any<CancellationToken>())
+                .Returns(existingBrand);
+
+            var sut = new UpdateBrandCommandHandler(unitOfWork, brandWriteRepository);
+            var command = new UpdateBrandCommand(
+                existingBrand.Id,
+                " ",
+                "Updated description",
+                "https://updated.example.com");
+
+            // Act
+            ErrorOr<UpdateBrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
+
+            // Assert
+            result.IsError.ShouldBeTrue();
+            brandWriteRepository.DidNotReceive().Update(Arg.Any<Brand>());
+            _ = unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
         }
     }
 

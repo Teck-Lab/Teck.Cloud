@@ -79,5 +79,27 @@ namespace Catalog.UnitTests.Application.Products
             Assert.Empty(resp.ProductPrices);
             Assert.Empty(resp.Promotions);
         }
+
+        [Fact]
+        public void ProductBrandResponse_CanSet_All_Properties()
+        {
+            var id = Guid.NewGuid();
+            var logoUrl = new Uri("https://brand.example.com/logo.png");
+            var websiteUrl = new Uri("https://brand.example.com");
+            var response = new ProductBrandResponse
+            {
+                Id = id,
+                Name = "Brand",
+                Description = "Brand Description",
+                LogoUrl = logoUrl,
+                WebsiteUrl = websiteUrl,
+            };
+
+            Assert.Equal(id, response.Id);
+            Assert.Equal("Brand", response.Name);
+            Assert.Equal("Brand Description", response.Description);
+            Assert.Equal(logoUrl, response.LogoUrl);
+            Assert.Equal(websiteUrl, response.WebsiteUrl);
+        }
     }
 }

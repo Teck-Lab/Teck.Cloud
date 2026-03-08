@@ -59,6 +59,7 @@ public sealed class PromotionReadRepositoryTests : IDisposable
         { 
             Id = Guid.NewGuid(), 
             Name = "Test Promotion",
+            DiscountPercentage = 15m,
             StartDate = DateTimeOffset.UtcNow,
             EndDate = DateTimeOffset.UtcNow.AddDays(7)
         };
@@ -72,6 +73,7 @@ public sealed class PromotionReadRepositoryTests : IDisposable
         result.ShouldNotBeNull();
         result.Id.ShouldBe(promotion.Id);
         result.Name.ShouldBe("Test Promotion");
+        result.DiscountPercentage.ShouldBe(15m);
     }
 
     [Fact]
