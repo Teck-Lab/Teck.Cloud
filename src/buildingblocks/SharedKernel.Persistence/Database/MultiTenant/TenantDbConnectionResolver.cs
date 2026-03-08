@@ -200,28 +200,22 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             bool hasValidProvider = DatabaseProvider.TryFromName(tenantDetails.DatabaseProvider, true, out var provider);
             provider ??= _defaultProvider;
 
-            if (!hasValidStrategy)
+            if (!hasValidStrategy && _logger.IsEnabled(LogLevel.Debug))
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogDebug(
-                        "Invalid or missing tenant database strategy '{DatabaseStrategy}' for tenant {TenantId}. Falling back to strategy '{FallbackStrategy}'.",
-                        tenantDetails.DatabaseStrategy,
-                        tenantDetails.Id,
-                        strategy.Name);
-                }
+                _logger.LogDebug(
+                    "Invalid or missing tenant database strategy '{DatabaseStrategy}' for tenant {TenantId}. Falling back to strategy '{FallbackStrategy}'.",
+                    tenantDetails.DatabaseStrategy,
+                    tenantDetails.Id,
+                    strategy.Name);
             }
 
-            if (!hasValidProvider)
+            if (!hasValidProvider && _logger.IsEnabled(LogLevel.Debug))
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogDebug(
-                        "Invalid or missing tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
-                        tenantDetails.DatabaseProvider,
-                        tenantDetails.Id,
-                        provider.Name);
-                }
+                _logger.LogDebug(
+                    "Invalid or missing tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
+                    tenantDetails.DatabaseProvider,
+                    tenantDetails.Id,
+                    provider.Name);
             }
 
             string? localReadConnection = ResolveLocalTenantConnectionString(tenantDetails, readOnly: true);
@@ -378,16 +372,13 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             bool hasValidSharedProvider = DatabaseProvider.TryFromName(tenantDetails.DatabaseProvider, true, out var sharedProvider);
             sharedProvider ??= _defaultProvider;
 
-            if (!hasValidSharedProvider)
+            if (!hasValidSharedProvider && _logger.IsEnabled(LogLevel.Debug))
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogDebug(
-                        "Invalid or missing shared tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
-                        tenantDetails.DatabaseProvider,
-                        tenantDetails.Id,
-                        sharedProvider.Name);
-                }
+                _logger.LogDebug(
+                    "Invalid or missing shared tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
+                    tenantDetails.DatabaseProvider,
+                    tenantDetails.Id,
+                    sharedProvider.Name);
             }
 
             string writeConnectionString = _defaultWriteConnectionString;

@@ -179,12 +179,15 @@ internal sealed class TenantEnforcementMiddleware
         context.Request.Headers.Remove(EdgeGatewayHelpers.TenantDbStrategyHeaderName);
         context.Items[EdgeGatewayHelpers.ResolvedTenantIdItemKey] = resolvedTenantId;
 
-        _logger.LogInformation(
-            "Tenant header applied in Edge. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
-            _tenantOptions.TenantIdHeaderName,
-            resolvedTenantId,
-            context.Request.Path,
-            context.TraceIdentifier);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Tenant header applied in Edge. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
+                _tenantOptions.TenantIdHeaderName,
+                resolvedTenantId,
+                context.Request.Path,
+                context.TraceIdentifier);
+        }
 
         (bool lookupSuccess, string? dbStrategy, int? lookupStatusCode, string? errorCode, string? errorDetail) = await ResolveTenantDatabaseStrategyAsync(
             resolvedTenantId,
@@ -205,12 +208,15 @@ internal sealed class TenantEnforcementMiddleware
 
         context.Request.Headers[EdgeGatewayHelpers.TenantDbStrategyHeaderName] = dbStrategy;
 
-        _logger.LogInformation(
-            "Tenant DB strategy header applied in Edge. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
-            EdgeGatewayHelpers.TenantDbStrategyHeaderName,
-            dbStrategy,
-            context.Request.Path,
-            context.TraceIdentifier);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Tenant DB strategy header applied in Edge. HeaderName={HeaderName}; HeaderValue={HeaderValue}; Path={Path}; TraceId={TraceId}",
+                EdgeGatewayHelpers.TenantDbStrategyHeaderName,
+                dbStrategy,
+                context.Request.Path,
+                context.TraceIdentifier);
+        }
 
         bool exchangeSucceeded = await ExchangeTokenForRouteAsync(context, routeConfig, resolvedTenantId);
         if (!exchangeSucceeded)
