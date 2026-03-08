@@ -63,7 +63,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dotnet tools
-        run: dotnet tool restore
+        run: dotnet tool restore --tool-manifest .config/dotnet-tools.json
 
       - name: Run dotnet-affected
         id: affected
@@ -350,6 +350,7 @@ jobs:
           path: code-coverage-results.md
 
       - name: Upload Test Result Files
+        if: always() && hashFiles('**/TestResults/**/*') != ''
         uses: actions/upload-artifact@v4
         with:
           name: test-results
@@ -358,7 +359,7 @@ jobs:
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
-        if: success() || failure()
+        if: always() && hashFiles('**/*.trx') != ''
         with:
           name: Tests
           path: "${{ github.workspace }}/**/*.trx"
@@ -378,7 +379,7 @@ jobs:
           scanners: 'vuln,secret,misconfig'
 
       - name: Upload Trivy filesystem scan results to Security tab
-        if: always()
+        if: always() && hashFiles('trivy-fs-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-fs-results.sarif
