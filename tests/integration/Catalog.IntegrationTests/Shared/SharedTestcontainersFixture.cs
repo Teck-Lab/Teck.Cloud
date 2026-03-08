@@ -51,6 +51,13 @@ namespace Catalog.IntegrationTests.Shared
                 // If already overridden, respect it
                 if (!string.IsNullOrEmpty(currentOverride))
                 {
+                    var normalizedOverride = NormalizeDockerSocketPath(currentOverride);
+                    if (!string.Equals(currentOverride, normalizedOverride, StringComparison.Ordinal))
+                    {
+                        Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", normalizedOverride);
+                        Console.WriteLine($"[Testcontainers] Normalized TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE to {normalizedOverride}");
+                    }
+
                     Console.WriteLine("[Testcontainers] Using existing TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE.");
                     return;
                 }
@@ -69,7 +76,7 @@ namespace Catalog.IntegrationTests.Shared
                         Console.WriteLine($"[Testcontainers] Checking socket: {path}");
                         if (File.Exists(path))
                         {
-                            var overrideValue = $"unix://{path}";
+                            var overrideValue = NormalizeDockerSocketPath(path);
                             Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", overrideValue);
                             Console.WriteLine($"[Testcontainers] Found socket at {path}; set TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE={overrideValue}");
                             return;
@@ -83,8 +90,9 @@ namespace Catalog.IntegrationTests.Shared
                 // Forward unix socket if provided
                 if (dockerHost.StartsWith("unix://", StringComparison.OrdinalIgnoreCase) || dockerHost.EndsWith(".sock", StringComparison.OrdinalIgnoreCase))
                 {
-                    Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", dockerHost);
-                    Console.WriteLine($"[Testcontainers] Forwarding DOCKER_HOST unix socket to TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: {dockerHost}");
+                    var overrideValue = NormalizeDockerSocketPath(dockerHost);
+                    Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", overrideValue);
+                    Console.WriteLine($"[Testcontainers] Forwarding DOCKER_HOST unix socket to TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: {overrideValue}");
                     return;
                 }
 
@@ -92,7 +100,7 @@ namespace Catalog.IntegrationTests.Shared
                 if (dockerHost.StartsWith("npipe:", StringComparison.OrdinalIgnoreCase) || dockerHost.Contains("podman_engine", StringComparison.OrdinalIgnoreCase) || dockerHost.Contains("podman", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine("[Testcontainers] Detected DOCKER_HOST using a Podman named pipe or Podman reference which Docker.DotNet may not support.");
-                    Console.WriteLine("[Testcontainers] For Podman Desktop follow: https://podman-desktop.io/tutorial/testcontainers-with-podman to enable a unix socket and set TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE accordingly.");
+                    Console.WriteLine("[Testcontainers] For Podman Desktop follow: https://podman-desktop.io/tutorial/testcontainers-with-podman to enable a unix socket and set TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE to an absolute socket path.");
                     return;
                 }
 
@@ -102,6 +110,27 @@ namespace Catalog.IntegrationTests.Shared
             {
                 Console.WriteLine($"[Testcontainers] Podman detection failed: {ex.Message}");
             }
+        }
+
+        private static string NormalizeDockerSocketPath(string value)
+        {
+            var normalized = value.Trim();
+            if (!normalized.StartsWith("unix://", StringComparison.OrdinalIgnoreCase))
+            {
+                return normalized;
+            }
+
+            if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? parsed) &&
+                string.Equals(parsed.Scheme, "unix", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(parsed.AbsolutePath))
+            {
+                return parsed.AbsolutePath;
+            }
+
+            var withoutScheme = normalized.Substring("unix://".Length);
+            return withoutScheme.StartsWith('/')
+                ? withoutScheme
+                : "/" + withoutScheme.TrimStart('/');
         }
 
         public async ValueTask InitializeAsync()
@@ -166,7 +195,7 @@ namespace Catalog.IntegrationTests.Shared
                 {
                     throw new InvalidOperationException(
                         "Testcontainers failed to start containers because the Docker endpoint appears to be a Podman named pipe which is unsupported by Docker.DotNet. " +
-                        "Please configure Podman to expose a Docker-compatible unix socket (e.g. /run/podman/podman.sock) and set the environment variable TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=unix:///run/podman/podman.sock, or use Docker Desktop.\n" +
+                        "Please configure Podman to expose a Docker-compatible unix socket (e.g. /run/podman/podman.sock) and set the environment variable TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/podman/podman.sock, or use Docker Desktop.\n" +
                         "Original error: " + ex.Message,
                         ex);
                 }

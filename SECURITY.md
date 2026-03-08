@@ -258,6 +258,29 @@ Grype provides reachability analysis for VEX generation:
 - **Output**: OpenVEX format with exploitability status
 - **Use case**: Prioritize remediation based on actual risk
 
+### Extended Security Gap Scans
+
+The workflow `.github/workflows/security-gap-scans.yml` adds additional scanner coverage for categories not fully covered by release/PR container scanning:
+
+- **CodeQL (SAST)**: Semantic code analysis for C#
+- **Gitleaks**: Secret detection and SARIF upload to GitHub Security
+- **Semgrep**: Multi-language static analysis (OpenGrep-style rule coverage)
+- **Checkov (IaC/GitOps)**:
+   - `.github/workflows/**` for GitHub Actions security posture
+   - `deployment/**` when present (Terraform/Kubernetes/Dockerfile/secrets)
+- **Bandit**: Python security scanning when Python files exist
+- **ClamAV**: Scheduled/manual malware scanning
+- **OWASP ZAP baseline**: Optional DAST scan for a configured URL
+
+**Execution model:**
+- Push/PR: CodeQL, Gitleaks, Semgrep, Checkov, Bandit (if applicable)
+- Schedule (`0 2 * * 1`): Same as above, plus ClamAV
+- Manual (`workflow_dispatch`): Optional ClamAV and ZAP runs
+
+**DAST configuration requirement:**
+- ZAP baseline runs only when repository variable `DAST_TARGET_URL` is set.
+- If `DAST_TARGET_URL` is empty or missing, the `zap-baseline` job is skipped (disabled), including manual runs.
+
 ---
 
 ## Security Configuration

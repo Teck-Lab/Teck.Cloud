@@ -1,0 +1,290 @@
+name: Security Gap Scans
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      run_malware_scan:
+        description: 'Run ClamAV malware scan'
+        required: false
+        default: false
+        type: boolean
+      run_dast_scan:
+        description: 'Run OWASP ZAP baseline DAST scan'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: security-gap-scans-${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  scan-context:
+    name: Scan Context
+    runs-on: ubuntu-latest
+    outputs:
+      has_deployment: ${{ steps.detect.outputs.has_deployment }}
+      has_python: ${{ steps.detect.outputs.has_python }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect scan targets
+        id: detect
+        run: |
+          if [ -d "deployment" ]; then
+            echo "has_deployment=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_deployment=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if git ls-files "*.py" | grep -q .; then
+            echo "has_python=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_python=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  codeql:
+    name: CodeQL SAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: csharp
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:csharp'
+
+  gitleaks:
+    name: Gitleaks Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        run: |
+          GITLEAKS_VERSION="8.24.2"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+
+      - name: Run Gitleaks (non-blocking)
+        run: |
+          gitleaks detect \
+            --source . \
+            --redact \
+            --report-format sarif \
+            --report-path gitleaks.sarif \
+            || true
+
+      - name: Upload Gitleaks SARIF
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
+
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: python -m pip install --upgrade semgrep
+
+      - name: Run Semgrep (non-blocking)
+        run: |
+          semgrep scan \
+            --config auto \
+            --sarif \
+            --output semgrep.sarif \
+            || true
+
+      - name: Upload Semgrep SARIF
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  checkov-workflows:
+    name: Checkov IaC (GitHub Workflows)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Checkov
+        run: python -m pip install --upgrade checkov
+
+      - name: Run Checkov on workflow definitions (non-blocking)
+        run: |
+          checkov -d .github/workflows \
+            --framework github_actions,secrets \
+            --quiet \
+            --soft-fail \
+            -o sarif > checkov-workflows.sarif || true
+
+      - name: Upload Checkov workflow SARIF
+        if: always() && hashFiles('checkov-workflows.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: checkov-workflows.sarif
+          category: checkov-workflows
+
+  checkov-deployment:
+    name: Checkov IaC (Deployment Folder)
+    runs-on: ubuntu-latest
+    needs: [scan-context]
+    if: ${{ needs.scan-context.outputs.has_deployment == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Checkov
+        run: python -m pip install --upgrade checkov
+
+      - name: Run Checkov on deployment folder (non-blocking)
+        run: |
+          checkov -d deployment \
+            --framework terraform,kubernetes,dockerfile,secrets \
+            --quiet \
+            --soft-fail \
+            -o sarif > checkov-deployment.sarif || true
+
+      - name: Upload Checkov deployment SARIF
+        if: always() && hashFiles('checkov-deployment.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: checkov-deployment.sarif
+          category: checkov-deployment
+
+  bandit:
+    name: Bandit (Python Security)
+    runs-on: ubuntu-latest
+    needs: [scan-context]
+    if: ${{ needs.scan-context.outputs.has_python == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Bandit
+        run: python -m pip install --upgrade bandit
+
+      - name: Run Bandit (non-blocking)
+        run: |
+          bandit -r . \
+            -f json \
+            -o bandit.json \
+            -x .git,node_modules,bin,obj,.tmp \
+            || true
+
+      - name: Upload Bandit report
+        if: always() && hashFiles('bandit.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit.json
+          retention-days: 14
+
+  clamav:
+    name: ClamAV Malware Scan
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_malware_scan) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ClamAV
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clamav
+
+      - name: Update virus definitions
+        run: sudo freshclam || true
+
+      - name: Run ClamAV scan
+        run: |
+          set +e
+          clamscan -r --infected --exclude-dir=.git --exclude-dir=bin --exclude-dir=obj --exclude-dir=.tmp . | tee clamav-report.txt
+          CLAMAV_EXIT=${PIPESTATUS[0]}
+          if [ "$CLAMAV_EXIT" -eq 1 ]; then
+            echo "::error::ClamAV found suspicious files."
+            exit 1
+          fi
+          if [ "$CLAMAV_EXIT" -gt 1 ]; then
+            echo "::warning::ClamAV exited with code $CLAMAV_EXIT."
+          fi
+
+      - name: Upload ClamAV report
+        if: always() && hashFiles('clamav-report.txt') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: clamav-report
+          path: clamav-report.txt
+          retention-days: 14
+
+  zap-baseline:
+    name: OWASP ZAP Baseline (Opt-in)
+    runs-on: ubuntu-latest
+    if: ${{ vars.DAST_TARGET_URL != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_dast_scan)) }}
+    steps:
+      - name: Resolve target URL
+        id: target
+        run: |
+          TARGET="${{ vars.DAST_TARGET_URL }}"
+
+          echo "url=$TARGET" >> "$GITHUB_OUTPUT"
+
+      - name: Run ZAP baseline scan (non-blocking)
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ steps.target.outputs.url }}
+          fail_action: false
