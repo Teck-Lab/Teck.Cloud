@@ -275,7 +275,7 @@ The workflow `.github/workflows/security-gap-scans.yml` adds additional scanner 
 **Execution model:**
 - Push/PR: CodeQL, Gitleaks, Semgrep, Checkov, Bandit (if applicable)
 - Schedule (`0 2 * * 1`): Same as above, plus ClamAV
-- Manual (`workflow_dispatch`): Optional ClamAV and ZAP runs
+- Manual (`workflow_dispatch`): Includes ClamAV; includes ZAP when `DAST_TARGET_URL` is set
 
 **DAST configuration requirement:**
 - ZAP baseline runs only when repository variable `DAST_TARGET_URL` is set.

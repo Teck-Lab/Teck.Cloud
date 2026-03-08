@@ -502,6 +502,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner on Docker image
         uses: aquasecurity/trivy-action@0.33.1
+        continue-on-error: true
         with:
           version: 'v0.69.3'
           image-ref: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}

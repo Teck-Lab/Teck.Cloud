@@ -8,17 +8,6 @@ on:
   schedule:
     - cron: '0 2 * * 1'
   workflow_dispatch:
-    inputs:
-      run_malware_scan:
-        description: 'Run ClamAV malware scan'
-        required: false
-        default: false
-        type: boolean
-      run_dast_scan:
-        description: 'Run OWASP ZAP baseline DAST scan'
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -159,9 +148,11 @@ jobs:
           checkov -d .github/workflows \
             --framework github_actions,secrets \
             --quiet \
+            --compact \
             --soft-fail \
+            -o cli \
             -o sarif \
-            --output-file-path checkov-workflows.sarif || true
+            --output-file-path console,checkov-workflows.sarif || true
 
       - name: Validate Checkov workflow SARIF
         id: checkov_workflows_sarif
@@ -208,9 +199,11 @@ jobs:
           checkov -d deployment \
             --framework terraform,kubernetes,dockerfile,secrets \
             --quiet \
+            --compact \
             --soft-fail \
+            -o cli \
             -o sarif \
-            --output-file-path checkov-deployment.sarif || true
+            --output-file-path console,checkov-deployment.sarif || true
 
       - name: Validate Checkov deployment SARIF
         id: checkov_deployment_sarif
@@ -271,7 +264,7 @@ jobs:
   clamav:
     name: ClamAV Malware Scan
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_malware_scan) }}
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -308,7 +301,7 @@ jobs:
   zap-baseline:
     name: OWASP ZAP Baseline (Opt-in)
     runs-on: ubuntu-latest
-    if: ${{ vars.DAST_TARGET_URL != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_dast_scan)) }}
+    if: ${{ vars.DAST_TARGET_URL != '' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     steps:
       - name: Resolve target URL
         id: target

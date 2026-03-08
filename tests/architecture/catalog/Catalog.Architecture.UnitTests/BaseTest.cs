@@ -19,6 +19,11 @@ namespace Catalog.Arch.UnitTests
 
     public abstract class ArchUnitBaseTest : BaseTest
     {
+        private const string DomainNamespacePattern = @"^Catalog\.Domain(?:\..*)?$";
+        private const string ApplicationNamespacePattern = @"^Catalog\.Application(?:\..*)?$";
+        private const string InfrastructureNamespacePattern = @"^Catalog\.Infrastructure(?:\..*)?$";
+        private const string PresentationNamespacePattern = @"^Catalog\.Api(?:\..*)?$";
+
         protected static readonly Architecture Architecture = new ArchLoader().LoadAssemblies(
             DomainAssembly,
             ApplicationAssembly,
@@ -27,12 +32,12 @@ namespace Catalog.Arch.UnitTests
         ).Build();
 
         protected static readonly IObjectProvider<IType> DomainLayer =
-            ArchRuleDefinition.Types().That().ResideInAssembly(DomainAssembly).As("Domain Layer");
+            ArchRuleDefinition.Types().That().ResideInNamespaceMatching(DomainNamespacePattern).As("Domain Layer");
         protected static readonly IObjectProvider<IType> ApplicationLayer =
-            ArchRuleDefinition.Types().That().ResideInAssembly(ApplicationAssembly).As("Application Layer");
+            ArchRuleDefinition.Types().That().ResideInNamespaceMatching(ApplicationNamespacePattern).As("Application Layer");
         protected static readonly IObjectProvider<IType> InfrastructureLayer =
-            ArchRuleDefinition.Types().That().ResideInAssembly(InfrastructureAssembly).As("Infrastructure Layer");
+            ArchRuleDefinition.Types().That().ResideInNamespaceMatching(InfrastructureNamespacePattern).As("Infrastructure Layer");
         protected static readonly IObjectProvider<IType> PresentationLayer =
-            ArchRuleDefinition.Types().That().ResideInAssembly(PresentationAssembly).As("Presentation Layer");
+            ArchRuleDefinition.Types().That().ResideInNamespaceMatching(PresentationNamespacePattern).As("Presentation Layer");
     }
 }
