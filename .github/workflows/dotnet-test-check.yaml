@@ -446,7 +446,16 @@ jobs:
           DOCKERFILE_PATH="${{ matrix.paths }}"
           SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
           SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
+          SERVICE_PROJECT=$(echo "$DOCKERFILE_PATH" | sed -n 's|^src/services/\([^/]*\)/.*|\1|p')
+          if [ -z "$SERVICE_PROJECT" ]; then
+            SERVICE_PROJECT="$SERVICE_NAME"
+          fi
+
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+
           echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
+          echo "SERVICE_PROJECT=$SERVICE_PROJECT" >> $GITHUB_ENV
+          echo "PR_VERSION=pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
 
       - name: Docker meta
         id: meta
@@ -504,6 +513,47 @@ jobs:
         with:
           sarif_file: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
           category: 'trivy-image-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}'
+
+      - name: Generate CycloneDX SBOM for PR image
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+        with:
+          image: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
+          format: cyclonedx-json
+          output-file: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
+
+      - name: Upload CycloneDX SBOM to Dependency-Track
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: DependencyTrack/gh-upload-sbom@48feab3080ff9e8f51f4d21861d9fc914eb744f5 # v3
+        with:
+          protocol: ${{ vars.DEPENDENCYTRACK_PROTOCOL || 'https' }}
+          serverhostname: ${{ vars.DEPENDENCYTRACK_HOSTNAME }}
+          port: ${{ vars.DEPENDENCYTRACK_PORT || '443' }}
+          apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
+          projectname: ${{ env.SERVICE_PROJECT }}
+          projectversion: ${{ env.PR_VERSION }}
+          bomfilename: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
+          autocreate: true
+
+      - name: Upload CycloneDX SBOM to SecObserve
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: SecObserve/secobserve_actions_templates/actions/upload_sbom@37be432587303bc7567871a5a73ca02f6148e760 # v2026_02
+        with:
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ env.SERVICE_PROJECT }}
+          so_branch_name: ${{ env.PR_VERSION }}
+          so_file_name: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
+          so_origin_service: ${{ env.SERVICE_PROJECT }}
+
+      - name: Skip external SBOM uploads for fork PRs
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
+          ### External SBOM uploads skipped
+          - Pull request source is a fork repository, so repository secrets are not available.
+          - Dependency-Track and SecObserve uploads are enforced only for internal PRs.
+          EOF
   
   # This job ensures that the required status check always passes, even when other jobs are skipped
   status-check:
