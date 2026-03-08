@@ -109,15 +109,29 @@ public static class Extensions
                 .OrderBy(name => name)
                 .ToArray();
 
-            logger.LogInformation(
-                "Registered readiness health checks ({Count}): {Checks}",
-                readinessChecks.Length,
-                readinessChecks.Length == 0 ? "none" : string.Join(", ", readinessChecks));
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                string readinessChecksText = readinessChecks.Length == 0
+                    ? "none"
+                    : string.Join(", ", readinessChecks);
 
-            logger.LogDebug(
-                "Registered liveness health checks ({Count}): {Checks}",
-                livenessChecks.Length,
-                livenessChecks.Length == 0 ? "none" : string.Join(", ", livenessChecks));
+                logger.LogInformation(
+                    "Registered readiness health checks ({Count}): {Checks}",
+                    readinessChecks.Length,
+                    readinessChecksText);
+            }
+
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                string livenessChecksText = livenessChecks.Length == 0
+                    ? "none"
+                    : string.Join(", ", livenessChecks);
+
+                logger.LogDebug(
+                    "Registered liveness health checks ({Count}): {Checks}",
+                    livenessChecks.Length,
+                    livenessChecksText);
+            }
         });
 
         return app;

@@ -202,20 +202,26 @@ namespace SharedKernel.Persistence.Database.MultiTenant
 
             if (!hasValidStrategy)
             {
-                _logger.LogDebug(
-                    "Invalid or missing tenant database strategy '{DatabaseStrategy}' for tenant {TenantId}. Falling back to strategy '{FallbackStrategy}'.",
-                    tenantDetails.DatabaseStrategy,
-                    tenantDetails.Id,
-                    strategy.Name);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        "Invalid or missing tenant database strategy '{DatabaseStrategy}' for tenant {TenantId}. Falling back to strategy '{FallbackStrategy}'.",
+                        tenantDetails.DatabaseStrategy,
+                        tenantDetails.Id,
+                        strategy.Name);
+                }
             }
 
             if (!hasValidProvider)
             {
-                _logger.LogDebug(
-                    "Invalid or missing tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
-                    tenantDetails.DatabaseProvider,
-                    tenantDetails.Id,
-                    provider.Name);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        "Invalid or missing tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
+                        tenantDetails.DatabaseProvider,
+                        tenantDetails.Id,
+                        provider.Name);
+                }
             }
 
             string? localReadConnection = ResolveLocalTenantConnectionString(tenantDetails, readOnly: true);
@@ -319,7 +325,10 @@ namespace SharedKernel.Persistence.Database.MultiTenant
                 }
                 catch (Exception exception)
                 {
-                    _logger.LogDebug(exception, "Failed reading tenant connection secret file in directory {Directory}", directory);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug(exception, "Failed reading tenant connection secret file in directory {Directory}", directory);
+                    }
                 }
             }
 
@@ -371,11 +380,14 @@ namespace SharedKernel.Persistence.Database.MultiTenant
 
             if (!hasValidSharedProvider)
             {
-                _logger.LogDebug(
-                    "Invalid or missing shared tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
-                    tenantDetails.DatabaseProvider,
-                    tenantDetails.Id,
-                    sharedProvider.Name);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        "Invalid or missing shared tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
+                        tenantDetails.DatabaseProvider,
+                        tenantDetails.Id,
+                        sharedProvider.Name);
+                }
             }
 
             string writeConnectionString = _defaultWriteConnectionString;
