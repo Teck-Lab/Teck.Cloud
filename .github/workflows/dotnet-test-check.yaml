@@ -537,7 +537,7 @@ jobs:
           autocreate: true
 
       - name: Upload CycloneDX SBOM to SecObserve
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository && matrix.builder.platform == 'linux/amd64'
         uses: SecObserve/secobserve_actions_templates/actions/upload_sbom@37be432587303bc7567871a5a73ca02f6148e760 # v2026_02
         with:
           so_api_base_url: ${{ vars.SO_API_BASE_URL }}
