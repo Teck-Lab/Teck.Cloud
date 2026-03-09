@@ -708,11 +708,34 @@ jobs:
             echo "::warning::SecObserve SBOM contains zero components. Upload will be skipped."
           fi
 
+      - name: Normalize SecObserve API base URL
+        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
+        shell: bash
+        run: |
+          RAW_URL="${{ vars.SO_API_BASE_URL }}"
+
+          if [[ -z "$RAW_URL" ]]; then
+            echo "::error::SO_API_BASE_URL repository variable is not set."
+            exit 1
+          fi
+
+          if [[ "$RAW_URL" =~ ^https?:// ]]; then
+            NORMALIZED_URL="$RAW_URL"
+          else
+            NORMALIZED_URL="https://$RAW_URL"
+          fi
+
+          # Avoid accidental double slashes in downstream API path concatenation.
+          NORMALIZED_URL="${NORMALIZED_URL%/}"
+
+          echo "SO_API_BASE_URL_NORMALIZED=$NORMALIZED_URL" >> "$GITHUB_ENV"
+          echo "Using SecObserve API base URL: $NORMALIZED_URL"
+
       - name: Upload CycloneDX SBOM to SecObserve
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
         uses: SecObserve/secobserve_actions_templates/actions/upload_sbom@37be432587303bc7567871a5a73ca02f6148e760 # v2026_02
         with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_base_url: ${{ env.SO_API_BASE_URL_NORMALIZED }}
           so_api_token: ${{ secrets.SO_API_TOKEN }}
           so_product_name: ${{ env.SERVICE_PROJECT }}
           so_branch_name: ${{ env.SO_BRANCH_NAME }}
