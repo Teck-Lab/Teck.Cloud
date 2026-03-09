@@ -509,12 +509,10 @@ jobs:
             SERVICE_PROJECT="$SERVICE_NAME"
           fi
 
-          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
-
           echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
           echo "SERVICE_PROJECT=$SERVICE_PROJECT" >> $GITHUB_ENV
           echo "DT_PROJECT_VERSION=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
-          echo "SO_BRANCH_NAME=pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
+          echo "SO_BRANCH_NAME=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
 
       - name: Docker meta
         id: meta
@@ -652,11 +650,13 @@ jobs:
     needs: [check-label, detect-affected, docker-affected]
     if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
     strategy:
+      max-parallel: 1
       matrix:
         paths: ${{ fromJson(needs.detect-affected.outputs.dockerfiles) }}
       fail-fast: false
     steps:
       - name: Extract service name from Dockerfile path
+        id: service-info
         run: |
           DOCKERFILE_PATH="${{ matrix.paths }}"
           NORMALIZED_DOCKERFILE_PATH=$(echo "$DOCKERFILE_PATH" | sed -E 's|^\./||')
@@ -667,24 +667,23 @@ jobs:
             SERVICE_PROJECT="$SERVICE_NAME"
           fi
 
-          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          SO_BRANCH_NAME="pr-${{ github.event.pull_request.number }}"
 
-          echo "SERVICE_PROJECT=$SERVICE_PROJECT" >> $GITHUB_ENV
-          echo "DT_PROJECT_VERSION=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
-          echo "SO_BRANCH_NAME=pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
+          echo "service_project=$SERVICE_PROJECT" >> "$GITHUB_OUTPUT"
+          echo "so_branch_name=$SO_BRANCH_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Download amd64 CycloneDX SBOM artifact
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/download-artifact@v4
         with:
-          name: sbom-pr-${{ env.SERVICE_PROJECT }}
+          name: sbom-pr-${{ steps.service-info.outputs.service_project }}
           path: sbom
 
       - name: Resolve amd64 CycloneDX SBOM path
         id: sbom
         if: github.event.pull_request.head.repo.full_name == github.repository
         run: |
-          SBOM_FILE="sbom/sbom-${{ env.SERVICE_PROJECT }}-linux-amd64.cyclonedx.json"
+          SBOM_FILE="sbom/sbom-${{ steps.service-info.outputs.service_project }}-linux-amd64.cyclonedx.json"
           if [[ ! -f "$SBOM_FILE" ]]; then
             echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
             exit 1
@@ -708,85 +707,47 @@ jobs:
             echo "::warning::SecObserve SBOM contains zero components. Upload will be skipped."
           fi
 
-      - name: Normalize SecObserve API base URL
+      - name: Validate SecObserve configuration
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
         shell: bash
         run: |
-          RAW_URL="${{ vars.SO_API_BASE_URL }}"
-
-          if [[ -z "$RAW_URL" ]]; then
+          if [[ -z "${{ vars.SO_API_BASE_URL }}" ]]; then
             echo "::error::SO_API_BASE_URL repository variable is not set."
             exit 1
           fi
 
-          if [[ "$RAW_URL" =~ ^https?:// ]]; then
-            NORMALIZED_URL="$RAW_URL"
-          else
-            NORMALIZED_URL="https://$RAW_URL"
+          if [[ -z "${{ secrets.SO_API_TOKEN }}" ]]; then
+            echo "::error::SO_API_TOKEN repository secret is not set."
+            exit 1
           fi
 
-          # Avoid accidental double slashes in downstream API path concatenation.
-          NORMALIZED_URL="${NORMALIZED_URL%/}"
-
-          echo "SO_API_BASE_URL_NORMALIZED=$NORMALIZED_URL" >> "$GITHUB_ENV"
-          echo "Using SecObserve API base URL: $NORMALIZED_URL"
-
       - name: Upload CycloneDX SBOM to SecObserve
+        id: secobserve-upload
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
-        shell: bash
+        continue-on-error: true
+        uses: docker://ghcr.io/secobserve/secobserve-scanners:2026_02
+        with:
+          entrypoint: /entrypoints/entrypoint_upload_sbom.sh
+        env:
+          SO_API_BASE_URL: ${{ vars.SO_API_BASE_URL }}
+          SO_API_TOKEN: ${{ secrets.SO_API_TOKEN }}
+          SO_PRODUCT_NAME: ${{ steps.service-info.outputs.service_project }}
+          SO_BRANCH_NAME: ${{ steps.service-info.outputs.so_branch_name }}
+          SO_FILE_NAME: ${{ steps.sbom.outputs.file }}
+          SO_ORIGIN_SERVICE: ${{ steps.service-info.outputs.service_project }}
+
+      - name: Summarize SecObserve upload warning
+        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true' && steps.secobserve-upload.outcome == 'failure'
         run: |
-          API_URL="${SO_API_BASE_URL_NORMALIZED}/api/import/file_upload_sbom_by_name/"
-          SBOM_FILE="${{ steps.sbom.outputs.file }}"
-          RESPONSE_FILE="$(mktemp)"
-          ATTEMPTS=3
-          RETRY_DELAY_SECONDS=10
+          echo "::warning::SecObserve SBOM upload failed. Continuing because SecObserve is treated as a best-effort external integration."
 
-          for attempt in $(seq 1 "$ATTEMPTS"); do
-            CURL_EXIT=0
-            HTTP_CODE=$(curl \
-              --silent \
-              --show-error \
-              --location \
-              --output "$RESPONSE_FILE" \
-              --write-out "%{http_code}" \
-              --request POST \
-              --header "accept: application/json" \
-              --header "Authorization: APIToken ${{ secrets.SO_API_TOKEN }}" \
-              --form "product_name=${SERVICE_PROJECT}" \
-              --form "branch_name=${SO_BRANCH_NAME}" \
-              --form "service=${SERVICE_PROJECT}" \
-              --form "file=@${SBOM_FILE};type=application/json" \
-              "$API_URL") || CURL_EXIT=$?
-
-            if [[ "$CURL_EXIT" -eq 0 && "$HTTP_CODE" =~ ^2[0-9][0-9]$ ]]; then
-              echo "SecObserve SBOM upload succeeded with HTTP $HTTP_CODE"
-
-              if jq -e . "$RESPONSE_FILE" >/dev/null 2>&1; then
-                jq . "$RESPONSE_FILE"
-              else
-                cat "$RESPONSE_FILE"
-              fi
-
-              rm -f "$RESPONSE_FILE"
-              exit 0
-            fi
-
-            echo "SecObserve SBOM upload attempt $attempt/$ATTEMPTS failed (curl_exit=$CURL_EXIT, http_code=${HTTP_CODE:-n/a})."
-
-            if [[ -s "$RESPONSE_FILE" ]]; then
-              cat "$RESPONSE_FILE"
-            fi
-
-            if [[ "$attempt" -lt "$ATTEMPTS" && ( "$CURL_EXIT" -ne 0 || "$HTTP_CODE" =~ ^5[0-9][0-9]$ ) ]]; then
-              echo "Retrying in ${RETRY_DELAY_SECONDS}s after transient SecObserve failure..."
-              sleep "$RETRY_DELAY_SECONDS"
-              continue
-            fi
-
-            echo "::error::SecObserve SBOM upload failed (curl_exit=$CURL_EXIT, http_code=${HTTP_CODE:-n/a})."
-            rm -f "$RESPONSE_FILE"
-            exit 1
-          done
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### SecObserve upload warning
+          - Service: ${{ steps.service-info.outputs.service_project }}
+          - Branch: ${{ steps.service-info.outputs.so_branch_name }}
+          - Flow: official SecObserve scanner image with /entrypoints/entrypoint_upload_sbom.sh
+          - Behavior: workflow continued because SecObserve is treated as a best-effort external integration for PRs
+          EOF
 
       - name: Explain skipped SecObserve upload
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components != 'true'
