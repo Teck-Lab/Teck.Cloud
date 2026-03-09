@@ -721,6 +721,14 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout local SecObserve action
+        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/actions/secobserve-upload-sbom
+          sparse-checkout-cone-mode: false
+
       - name: Upload CycloneDX SBOM to SecObserve
         id: secobserve-upload
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
