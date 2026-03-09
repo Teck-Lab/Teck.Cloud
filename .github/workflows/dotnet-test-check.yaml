@@ -725,16 +725,14 @@ jobs:
         id: secobserve-upload
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
         continue-on-error: true
-        uses: docker://ghcr.io/secobserve/secobserve-scanners:2026_02
+        uses: ./.github/actions/secobserve-upload-sbom
         with:
-          entrypoint: /entrypoints/entrypoint_upload_sbom.sh
-        env:
-          SO_API_BASE_URL: ${{ vars.SO_API_BASE_URL }}
-          SO_API_TOKEN: ${{ secrets.SO_API_TOKEN }}
-          SO_PRODUCT_NAME: ${{ steps.service-info.outputs.service_project }}
-          SO_BRANCH_NAME: ${{ steps.service-info.outputs.so_branch_name }}
-          SO_FILE_NAME: ${{ steps.sbom.outputs.file }}
-          SO_ORIGIN_SERVICE: ${{ steps.service-info.outputs.service_project }}
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ steps.service-info.outputs.service_project }}
+          so_branch_name: ${{ steps.service-info.outputs.so_branch_name }}
+          so_file_name: ${{ steps.sbom.outputs.file }}
+          so_origin_service: ${{ steps.service-info.outputs.service_project }}
 
       - name: Summarize SecObserve upload warning
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true' && steps.secobserve-upload.outcome == 'failure'
@@ -745,7 +743,7 @@ jobs:
           ### SecObserve upload warning
           - Service: ${{ steps.service-info.outputs.service_project }}
           - Branch: ${{ steps.service-info.outputs.so_branch_name }}
-          - Flow: official SecObserve scanner image with /entrypoints/entrypoint_upload_sbom.sh
+          - Flow: local GitHub action wrapper around the official SecObserve SBOM entrypoint
           - Behavior: workflow continued because SecObserve is treated as a best-effort external integration for PRs
           EOF
 
