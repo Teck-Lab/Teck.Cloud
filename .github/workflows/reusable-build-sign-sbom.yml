@@ -533,7 +533,7 @@ jobs:
           autocreate: true
 
       - name: Upload CycloneDX SBOM to SecObserve
-        uses: SecObserve/secobserve_actions_templates/actions/upload_sbom@37be432587303bc7567871a5a73ca02f6148e760 # v2026_02
+        uses: ./.github/actions/secobserve-upload-sbom
         with:
           so_api_base_url: ${{ inputs.secobserve-api-base-url }}
           so_api_token: ${{ secrets.secobserve-api-token }}
