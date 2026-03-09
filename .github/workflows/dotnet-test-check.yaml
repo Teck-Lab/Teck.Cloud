@@ -504,7 +504,7 @@ jobs:
           NORMALIZED_DOCKERFILE_PATH=$(echo "$DOCKERFILE_PATH" | sed -E 's|^\./||')
           SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
           SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
-          SERVICE_PROJECT=$(echo "$NORMALIZED_DOCKERFILE_PATH" | sed -n 's|^src/services/\([^/]*\)/.*|\1|p')
+          SERVICE_PROJECT=$(echo "$NORMALIZED_DOCKERFILE_PATH" | awk -F/ '{for(i=1;i<=NF;i++){if($i=="services" && (i+1)<=NF){print $(i+1); exit}}}')
           if [ -z "$SERVICE_PROJECT" ]; then
             SERVICE_PROJECT="$SERVICE_NAME"
           fi
@@ -662,7 +662,7 @@ jobs:
           NORMALIZED_DOCKERFILE_PATH=$(echo "$DOCKERFILE_PATH" | sed -E 's|^\./||')
           SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
           SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
-          SERVICE_PROJECT=$(echo "$NORMALIZED_DOCKERFILE_PATH" | sed -n 's|^src/services/\([^/]*\)/.*|\1|p')
+          SERVICE_PROJECT=$(echo "$NORMALIZED_DOCKERFILE_PATH" | awk -F/ '{for(i=1;i<=NF;i++){if($i=="services" && (i+1)<=NF){print $(i+1); exit}}}')
           if [ -z "$SERVICE_PROJECT" ]; then
             SERVICE_PROJECT="$SERVICE_NAME"
           fi
