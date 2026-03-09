@@ -733,14 +733,60 @@ jobs:
 
       - name: Upload CycloneDX SBOM to SecObserve
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
-        uses: SecObserve/secobserve_actions_templates/actions/upload_sbom@37be432587303bc7567871a5a73ca02f6148e760 # v2026_02
-        with:
-          so_api_base_url: ${{ env.SO_API_BASE_URL_NORMALIZED }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ env.SERVICE_PROJECT }}
-          so_branch_name: ${{ env.SO_BRANCH_NAME }}
-          so_file_name: ${{ steps.sbom.outputs.file }}
-          so_origin_service: ${{ env.SERVICE_PROJECT }}
+        shell: bash
+        run: |
+          API_URL="${SO_API_BASE_URL_NORMALIZED}/api/import/file_upload_sbom_by_name/"
+          SBOM_FILE="${{ steps.sbom.outputs.file }}"
+          RESPONSE_FILE="$(mktemp)"
+          ATTEMPTS=3
+          RETRY_DELAY_SECONDS=10
+
+          for attempt in $(seq 1 "$ATTEMPTS"); do
+            CURL_EXIT=0
+            HTTP_CODE=$(curl \
+              --silent \
+              --show-error \
+              --location \
+              --output "$RESPONSE_FILE" \
+              --write-out "%{http_code}" \
+              --request POST \
+              --header "accept: application/json" \
+              --header "Authorization: APIToken ${{ secrets.SO_API_TOKEN }}" \
+              --form "product_name=${SERVICE_PROJECT}" \
+              --form "branch_name=${SO_BRANCH_NAME}" \
+              --form "service=${SERVICE_PROJECT}" \
+              --form "file=@${SBOM_FILE};type=application/json" \
+              "$API_URL") || CURL_EXIT=$?
+
+            if [[ "$CURL_EXIT" -eq 0 && "$HTTP_CODE" =~ ^2[0-9][0-9]$ ]]; then
+              echo "SecObserve SBOM upload succeeded with HTTP $HTTP_CODE"
+
+              if jq -e . "$RESPONSE_FILE" >/dev/null 2>&1; then
+                jq . "$RESPONSE_FILE"
+              else
+                cat "$RESPONSE_FILE"
+              fi
+
+              rm -f "$RESPONSE_FILE"
+              exit 0
+            fi
+
+            echo "SecObserve SBOM upload attempt $attempt/$ATTEMPTS failed (curl_exit=$CURL_EXIT, http_code=${HTTP_CODE:-n/a})."
+
+            if [[ -s "$RESPONSE_FILE" ]]; then
+              cat "$RESPONSE_FILE"
+            fi
+
+            if [[ "$attempt" -lt "$ATTEMPTS" && ( "$CURL_EXIT" -ne 0 || "$HTTP_CODE" =~ ^5[0-9][0-9]$ ) ]]; then
+              echo "Retrying in ${RETRY_DELAY_SECONDS}s after transient SecObserve failure..."
+              sleep "$RETRY_DELAY_SECONDS"
+              continue
+            fi
+
+            echo "::error::SecObserve SBOM upload failed (curl_exit=$CURL_EXIT, http_code=${HTTP_CODE:-n/a})."
+            rm -f "$RESPONSE_FILE"
+            exit 1
+          done
 
       - name: Explain skipped SecObserve upload
         if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components != 'true'
