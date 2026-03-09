@@ -672,6 +672,14 @@ jobs:
           echo "service_project=$SERVICE_PROJECT" >> "$GITHUB_OUTPUT"
           echo "so_branch_name=$SO_BRANCH_NAME" >> "$GITHUB_OUTPUT"
 
+      - name: Checkout local SecObserve action
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/actions/secobserve-upload-sbom
+          sparse-checkout-cone-mode: false
+
       - name: Download amd64 CycloneDX SBOM artifact
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/download-artifact@v4
@@ -720,14 +728,6 @@ jobs:
             echo "::error::SO_API_TOKEN repository secret is not set."
             exit 1
           fi
-
-      - name: Checkout local SecObserve action
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate.outputs.has_components == 'true'
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            .github/actions/secobserve-upload-sbom
-          sparse-checkout-cone-mode: false
 
       - name: Upload CycloneDX SBOM to SecObserve
         id: secobserve-upload
