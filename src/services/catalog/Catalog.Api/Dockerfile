@@ -11,6 +11,7 @@ ARG VERSION=1.0.0
 WORKDIR /src
 
 # Copy only project files and props for restore layer (maximizes cache)
+COPY ["global.json", "."]
 COPY ["Directory.Packages.props", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["src/services/Directory.Build.props", "src/services/"]
