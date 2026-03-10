@@ -77,6 +77,16 @@ jobs:
           sarif_file: gitleaks.sarif
           category: gitleaks
 
+      - name: Upload Gitleaks results to SecObserve
+        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('gitleaks.sarif') != ''
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
+          so_file_name: gitleaks.sarif
+          so_parser_name: SARIF
+
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
@@ -106,6 +116,16 @@ jobs:
         with:
           sarif_file: semgrep.sarif
           category: semgrep
+
+      - name: Upload Semgrep results to SecObserve
+        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('semgrep.sarif') != ''
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
+          so_file_name: semgrep.sarif
+          so_parser_name: SARIF
 
   checkov-workflows:
     name: Checkov IaC (GitHub Workflows)
@@ -155,6 +175,16 @@ jobs:
         with:
           sarif_file: checkov-workflows.sarif
           category: checkov-workflows
+
+      - name: Upload Checkov workflow results to SecObserve
+        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && steps.checkov_workflows_sarif.outputs.valid == 'true'
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
+          so_file_name: checkov-workflows.sarif
+          so_parser_name: SARIF
 
   checkov-deployment:
     name: Checkov IaC (Deployment Folder)
@@ -207,6 +237,16 @@ jobs:
           sarif_file: checkov-deployment.sarif
           category: checkov-deployment
 
+      - name: Upload Checkov deployment results to SecObserve
+        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && steps.checkov_deployment_sarif.outputs.valid == 'true'
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
+          so_file_name: checkov-deployment.sarif
+          so_parser_name: SARIF
+
   bandit:
     name: Bandit (Python Security)
     runs-on: ubuntu-latest
@@ -227,18 +267,27 @@ jobs:
       - name: Run Bandit (non-blocking)
         run: |
           bandit -r . \
-            -f json \
-            -o bandit.json \
+            -f sarif \
+            -o bandit.sarif \
             -x .git,node_modules,bin,obj,.tmp \
             || true
 
-      - name: Upload Bandit report
-        if: always() && hashFiles('bandit.json') != ''
-        uses: actions/upload-artifact@v4
+      - name: Upload Bandit SARIF
+        if: always() && hashFiles('bandit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          name: bandit-report
-          path: bandit.json
-          retention-days: 14
+          sarif_file: bandit.sarif
+          category: bandit
+
+      - name: Upload Bandit results to SecObserve
+        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('bandit.sarif') != ''
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
+          so_file_name: bandit.sarif
+          so_parser_name: SARIF
 
   clamav:
     name: ClamAV Malware Scan

@@ -274,6 +274,13 @@ jobs:
           IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "Image reference: $IMAGE_REF"
+
+      - name: Checkout local SecObserve action
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          sparse-checkout: |
+            .github/actions/secobserve-upload-observations
+          sparse-checkout-cone-mode: false
           
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
@@ -303,6 +310,19 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy-image-${{ inputs.service-name }}'
+
+      - name: Upload Trivy results to SecObserve
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ inputs.secobserve-api-base-url }}
+          so_api_token: ${{ secrets.secobserve-api-token }}
+          so_product_name: ${{ inputs.service-name }}
+          so_branch_name: ${{ inputs.version }}
+          so_file_name: trivy-results.sarif
+          so_parser_name: SARIF
+          so_origin_service: ${{ inputs.service-name }}
+          so_origin_docker_image_name_tag: ${{ steps.set-image.outputs.ref }}
 
       - name: Run Trivy vulnerability scanner (JSON)
         if: always()
@@ -591,6 +611,28 @@ jobs:
           grype sbom:sbom-${{ inputs.service-name }}.spdx.json \
             -o json \
             --file grype-results.json
+
+      - name: Run Grype scan for SecObserve import
+        run: |
+          grype sbom:sbom-${{ inputs.service-name }}.spdx.json \
+            --by-cve \
+            --quiet \
+            --output cyclonedx-json \
+            --file grype-results.cyclonedx.json
+
+      - name: Upload Grype results to SecObserve
+        if: always() && hashFiles('grype-results.cyclonedx.json') != ''
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ inputs.secobserve-api-base-url }}
+          so_api_token: ${{ secrets.secobserve-api-token }}
+          so_product_name: ${{ inputs.service-name }}
+          so_branch_name: ${{ inputs.version }}
+          so_file_name: grype-results.cyclonedx.json
+          so_parser_name: CycloneDX
+          so_origin_service: ${{ inputs.service-name }}
+          so_origin_docker_image_name_tag: ${{ steps.set-image.outputs.ref }}
+          so_suppress_licenses: 'true'
 
       - name: Generate OpenVEX document
         run: |
