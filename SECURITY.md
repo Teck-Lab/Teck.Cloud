@@ -57,12 +57,12 @@ cosign verify-blob sbom-catalog.spdx.json \
 **Service model**: One Dependency-Track project per service (for example `catalog`, `customer`, `auth`)
 **Version model**:
 - Releases: `<release-version>` (for example `1.2.3`)
-- Internal PRs: `pr-<number>-<shortsha>` (for example `pr-842-a1b2c3d`)
+- Internal PRs: `pr-<number>-linux-amd64` and `pr-<number>-linux-arm64` (for example `pr-842-linux-amd64`, `pr-842-linux-arm64`)
 
 **SecObserve mapping**:
 - Product: Service/app specific product (for example `catalog`, `customer`, `gateway`, `web`, `mobile`, `admin`)
 - Product Group: `Teck.Cloud` (configured in SecObserve)
-- Branch/version: Same value as Dependency-Track version
+- Branch/version: Releases use the release version, while internal PRs use the stable branch `pr-<number>`
 - Service origin: `SO_ORIGIN_SERVICE=<service>`
 
 #### 3. Harbor Registry (Operational)
