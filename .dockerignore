@@ -9,7 +9,6 @@
 **/.editorconfig
 **/.gitignore
 **/.gitattributes
-**/nuget.config
 **/*.DotSettings
 **/*.DotSettings.user
 **/.idea
