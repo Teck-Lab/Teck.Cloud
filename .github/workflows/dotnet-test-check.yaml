@@ -1,4 +1,4 @@
-name: Build and test dotnet
+name: PR Validation
 
 on:
   pull_request:
@@ -17,6 +17,7 @@ env:
   DOTNET_VERSION: "10.0.*"
   REGISTRY: ghcr.io
   REPOSITORY: ${{ github.repository }}
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -53,14 +54,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Required for dotnet-affected to compare commits
-          ref: ${{ github.event.pull_request.head.sha }}  # Checkout the actual PR head commit
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Restore dotnet tools
         run: dotnet tool restore --tool-manifest .config/dotnet-tools.json
@@ -262,12 +262,14 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Install .NET Aspire workload
         run: dotnet workload install aspire
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore --locked-mode
 
       - name: Download affected.proj
         uses: actions/download-artifact@v4
@@ -289,8 +291,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Test all projects
     timeout-minutes: 45
-    needs: [check-label, build-affected]
-    if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') }}
+    needs: [check-label]
+    if: ${{ needs.check-label.outputs.status == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -299,12 +301,14 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Install .NET Aspire workload
         run: dotnet workload install aspire
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore --locked-mode
 
       - name: Build all projects
         run: dotnet build -c Release --no-restore
@@ -374,37 +378,6 @@ jobs:
           path: "${{ github.workspace }}/**/*.trx"
           reporter: dotnet-trx
 
-      - name: Security scan with Trivy (Filesystem - Dependencies)
-        uses: aquasecurity/trivy-action@0.33.1
-        continue-on-error: true
-        with:
-          version: 'v0.69.3'
-          scan-type: 'fs'
-          scan-ref: .
-          format: sarif
-          output: trivy-fs-results.sarif
-          severity: 'CRITICAL,HIGH'
-          exit-code: 0
-          ignore-unfixed: true
-          scanners: 'vuln,secret,misconfig'
-
-      - name: Upload Trivy filesystem scan results to Security tab
-        if: always() && hashFiles('trivy-fs-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-fs-results.sarif
-          category: 'trivy-filesystem'
-
-      - name: Upload Trivy filesystem results to SecObserve
-        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('trivy-fs-results.sarif') != ''
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
-          so_file_name: trivy-fs-results.sarif
-          so_parser_name: SARIF
-
   # ===================================================================
   # JOB 3: Run E2E tests on demand for isolation and clearer failures
   # ===================================================================
@@ -412,8 +385,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Test E2E projects
     timeout-minutes: 60
-    needs: [check-label, build-affected]
-    if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') && github.event.action == 'labeled' && github.event.label.name == 'run-e2e' }}
+    needs: [check-label]
+    if: ${{ needs.check-label.outputs.status == 'success' && github.event.action == 'labeled' && github.event.label.name == 'run-e2e' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -422,12 +395,14 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Install .NET Aspire workload
         run: dotnet workload install aspire
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore --locked-mode
 
       - name: Build E2E project
         run: dotnet build tests/e2e/Teck.Cloud.E2ETests/Teck.Cloud.E2ETests.csproj -c Release --no-restore
@@ -501,14 +476,23 @@ jobs:
     
     steps:
       - name: Prepare
+        id: build-vars
         run: |
-          echo "REPO_LOWER=$(echo '${{ env.REPOSITORY }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
+          PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')
+          REPO_LOWER=$(echo '${{ env.REPOSITORY }}' | tr '[:upper:]' '[:lower:]')
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+
+          echo "REPO_LOWER=$REPO_LOWER" >> $GITHUB_ENV
+          echo "REPO_OWNER_LOWER=$REPO_OWNER_LOWER" >> $GITHUB_ENV
+          echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> $GITHUB_ENV
+          echo "repo_lower=$REPO_LOWER" >> $GITHUB_OUTPUT
+          echo "platform_pair=$PLATFORM_PAIR" >> $GITHUB_OUTPUT
 
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Extract service name from Dockerfile path
+        id: service-vars
         run: |
           DOCKERFILE_PATH="${{ matrix.paths }}"
           NORMALIZED_DOCKERFILE_PATH=$(echo "$DOCKERFILE_PATH" | sed -E 's|^\./||')
@@ -521,12 +505,15 @@ jobs:
 
           echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
           echo "SERVICE_PROJECT=$SERVICE_PROJECT" >> $GITHUB_ENV
+          echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
+          echo "service_project=$SERVICE_PROJECT" >> $GITHUB_OUTPUT
+          echo "cache_image=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_PROJECT}:buildcache-${PLATFORM_PAIR}" >> $GITHUB_OUTPUT
 
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ env.REPO_LOWER }}
+          images: ghcr.io/${{ steps.build-vars.outputs.repo_lower }}
           tags: ${{ github.sha }}
 
       - name: Set up QEMU
@@ -537,8 +524,16 @@ jobs:
         with:
           version: latest
 
-      - name: Build image (no push)
-        id: build
+      - name: Log in to GitHub Container Registry for registry cache
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image (no push, registry cache)
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -546,10 +541,35 @@ jobs:
           platforms: ${{ matrix.builder.platform }}
           push: false
           load: true
-          tags: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
+          tags: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ steps.service-vars.outputs.cache_image }}
+          cache-to: type=registry,ref=${{ steps.service-vars.outputs.cache_image }},mode=max
+          target: build
+          network: host
+          build-args: |
+            VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+            VCS_URL=${{ github.repositoryUrl }}
+            WEBSITE_URL=https://teck.dk
+            DOCS_URL=https://docs.teck.dk
+            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=catalog;Username=postgres;Password=postgres
+            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
+
+      - name: Build image (no push, scoped GHA cache fallback)
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.paths }}
+          platforms: ${{ matrix.builder.platform }}
+          push: false
+          load: true
+          tags: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=buildcache-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
+          cache-to: type=gha,mode=max,scope=buildcache-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
           target: build
           network: host
           build-args: |
@@ -567,43 +587,43 @@ jobs:
         continue-on-error: true
         with:
           version: 'v0.69.3'
-          image-ref: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
+          image-ref: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
           format: 'sarif'
-          output: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
+          output: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: 1
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to Security tab
-        if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', env.SERVICE_NAME, env.PLATFORM_PAIR)) != ''
+        if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
-          category: 'trivy-image-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}'
+          sarif_file: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
+          category: 'trivy-image-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}'
 
       - name: Upload Trivy image SARIF artifact
-        if: github.event.pull_request.head.repo.full_name == github.repository && hashFiles(format('trivy-image-results-{0}-{1}.sarif', env.SERVICE_NAME, env.PLATFORM_PAIR)) != ''
+        if: github.event.pull_request.head.repo.full_name == github.repository && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-image-pr-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}
-          path: trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif
+          name: trivy-image-pr-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
+          path: trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif
           retention-days: 1
 
       - name: Generate CycloneDX SBOM for PR image
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
         with:
-          image: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
+          image: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
           format: cyclonedx-json
           upload-artifact: false
-          output-file: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
+          output-file: sbom-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}.cyclonedx.json
 
       - name: Upload CycloneDX SBOM artifact
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-artifact@v4
         with:
-          name: sbom-pr-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}
-          path: sbom-${{ env.SERVICE_PROJECT }}-${{ env.PLATFORM_PAIR }}.cyclonedx.json
+          name: sbom-pr-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
+          path: sbom-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}.cyclonedx.json
           retention-days: 1
 
       - name: Skip external SBOM uploads for fork PRs

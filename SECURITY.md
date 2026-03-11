@@ -239,16 +239,28 @@ We provide a comprehensive verification script that checks all security artifact
 
 ### Trivy Scans
 
-All images are scanned with [Trivy](https://github.com/aquasecurity/trivy):
+Trivy runs in two modes in this repository:
+
+- **PR/release image scanning**: Built container images are scanned during PR validation and release publishing.
+- **Repository filesystem scanning**: The `.github/workflows/security-gap-scans.yml` workflow scans the checked-out repository for dependencies, secrets, and misconfigurations.
+
+Container image scans cover the published runtime artifact:
 
 - **Scan types**: OS packages, language dependencies, configuration issues
 - **Severities**: CRITICAL, HIGH, MEDIUM, LOW
 - **Output**: SARIF (uploaded to GitHub Security) + JSON (in releases)
-- **Trigger**: Automatic on every release
+- **Trigger**: Automatic on internal PR builds and every release
 
 **View scan results:**
 - **GitHub Security tab**: `https://github.com/Teck/Teck.Cloud/security/code-scanning`
 - **Download JSON**: `gh release download v1.0.0 --pattern "trivy-scan-*.json"`
+
+Repository filesystem scans cover source-level dependency, secret, and misconfiguration findings:
+
+- **Scan types**: Vulnerabilities, secrets, misconfigurations
+- **Severities**: CRITICAL, HIGH
+- **Output**: SARIF (uploaded to GitHub Security and SecObserve)
+- **Trigger**: Pull requests, pushes to `main`, weekly schedule, and manual runs
 
 ### Grype Scans (for VEX)
 
@@ -262,6 +274,7 @@ Grype provides reachability analysis for VEX generation:
 
 The workflow `.github/workflows/security-gap-scans.yml` adds additional scanner coverage for categories not fully covered by release/PR container scanning:
 
+- **Trivy filesystem**: Repository-level vulnerability, secret, and misconfiguration scanning
 - **CodeQL (SAST)**: Managed by GitHub Security CodeQL default setup (repository Security settings), not this workflow
 - **Gitleaks**: Secret detection and SARIF upload to GitHub Security
 - **Semgrep**: Multi-language static analysis (OpenGrep-style rule coverage)
@@ -273,9 +286,9 @@ The workflow `.github/workflows/security-gap-scans.yml` adds additional scanner 
 - **OWASP ZAP baseline**: Optional DAST scan for a configured URL
 
 **Execution model:**
-- Push/PR: Gitleaks, Semgrep, Checkov, Bandit (if applicable)
+- Push/PR: Trivy filesystem, Gitleaks, Semgrep, Checkov, Bandit (if applicable)
 - Schedule (`0 2 * * 1`): Same as above, plus ClamAV
-- Manual (`workflow_dispatch`): Includes ClamAV; includes ZAP when `DAST_TARGET_URL` is set
+- Manual (`workflow_dispatch`): Includes Trivy filesystem, ClamAV; includes ZAP when `DAST_TARGET_URL` is set
 
 **DAST configuration requirement:**
 - ZAP baseline runs only when repository variable `DAST_TARGET_URL` is set.

@@ -45,6 +45,44 @@ jobs:
             echo "has_python=false" >> "$GITHUB_OUTPUT"
           fi
 
+  trivy-filesystem:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan (non-blocking)
+        uses: aquasecurity/trivy-action@0.33.1
+        continue-on-error: true
+        with:
+          version: 'v0.69.3'
+          scan-type: 'fs'
+          scan-ref: .
+          format: sarif
+          output: trivy-fs-results.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: 0
+          ignore-unfixed: true
+          scanners: 'vuln,secret,misconfig'
+
+      - name: Upload Trivy filesystem SARIF
+        if: always() && hashFiles('trivy-fs-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-fs-results.sarif
+          category: trivy-filesystem
+
+      - name: Upload Trivy filesystem results to SecObserve
+        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('trivy-fs-results.sarif') != ''
+        uses: ./.github/actions/secobserve-upload-observations
+        with:
+          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
+          so_api_token: ${{ secrets.SO_API_TOKEN }}
+          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
+          so_file_name: trivy-fs-results.sarif
+          so_parser_name: SARIF
+
   gitleaks:
     name: Gitleaks Secret Detection
     runs-on: ubuntu-latest

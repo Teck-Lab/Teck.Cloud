@@ -121,11 +121,17 @@ jobs:
           ref: refs/tags/v${{ inputs.version }}
 
       - name: Prepare environment variables
+        id: image-vars
         run: |
-          echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
+          PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')
+          echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> $GITHUB_ENV
           # Lowercase repository owner for Docker image name (Docker requires lowercase)
           REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          echo "IMAGE_NAME=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_ENV
+          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}"
+          CACHE_IMAGE="${IMAGE_NAME}:buildcache-${PLATFORM_PAIR}"
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "CACHE_IMAGE=$CACHE_IMAGE" >> $GITHUB_ENV
+          echo "cache_image=$CACHE_IMAGE" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
@@ -168,8 +174,8 @@ jobs:
           platforms: ${{ matrix.builder.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ inputs.service-name }}-${{ matrix.builder.platform }}
-          cache-to: type=gha,mode=max,scope=${{ inputs.service-name }}-${{ matrix.builder.platform }}
+          cache-from: type=registry,ref=${{ steps.image-vars.outputs.cache_image }}
+          cache-to: type=registry,ref=${{ steps.image-vars.outputs.cache_image }},mode=max
           network: host
           build-args: |
             VERSION=${{ inputs.version }}
