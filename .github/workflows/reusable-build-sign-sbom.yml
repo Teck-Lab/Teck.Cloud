@@ -122,16 +122,18 @@ jobs:
 
       - name: Prepare environment variables
         id: image-vars
+        env:
+          MATRIX_PLATFORM: ${{ matrix.builder.platform }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ inputs.service-name }}
         run: |
-          PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')
-          echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> $GITHUB_ENV
-          # Lowercase repository owner for Docker image name (Docker requires lowercase)
-          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}"
+          PLATFORM_PAIR=$(echo "$MATRIX_PLATFORM" | sed 's/\//-/')
+          REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
           CACHE_IMAGE="${IMAGE_NAME}:buildcache-${PLATFORM_PAIR}"
-          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
-          echo "CACHE_IMAGE=$CACHE_IMAGE" >> $GITHUB_ENV
-          echo "cache_image=$CACHE_IMAGE" >> $GITHUB_OUTPUT
+          echo "platform_pair=$PLATFORM_PAIR" >> "$GITHUB_OUTPUT"
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "cache_image=$CACHE_IMAGE" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
@@ -150,7 +152,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ steps.image-vars.outputs.image_name }}
           tags: |
             type=semver,pattern={{version}},value=${{ inputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
@@ -173,7 +175,7 @@ jobs:
           file: ${{ inputs.dockerfile-path }}
           platforms: ${{ matrix.builder.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ steps.image-vars.outputs.image_name }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=registry,ref=${{ steps.image-vars.outputs.cache_image }}
           cache-to: type=registry,ref=${{ steps.image-vars.outputs.cache_image }},mode=max
           network: host
@@ -184,16 +186,29 @@ jobs:
 
       - name: Export digest
         id: export-digest
+        env:
+          MATRIX_PLATFORM: ${{ matrix.builder.platform }}
+          SERVICE_NAME: ${{ inputs.service-name }}
+          BUILD_DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          mkdir -p /tmp/digests/${{ inputs.service-name }}
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${{ inputs.service-name }}/${digest#sha256:}"
-          echo "digest-${{ env.PLATFORM_PAIR }}=$digest" >> $GITHUB_OUTPUT
+          PLATFORM_SUFFIX=""
+          case "$MATRIX_PLATFORM" in
+            "linux/amd64") PLATFORM_SUFFIX="amd64" ;;
+            "linux/arm64") PLATFORM_SUFFIX="arm64" ;;
+            *)
+              echo "::error::Unsupported platform: $MATRIX_PLATFORM"
+              exit 1
+              ;;
+          esac
+
+          mkdir -p "/tmp/digests/${SERVICE_NAME}"
+          touch "/tmp/digests/${SERVICE_NAME}/${BUILD_DIGEST#sha256:}"
+          echo "digest-${PLATFORM_SUFFIX}=$BUILD_DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Upload digest
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
-          name: digests-${{ inputs.service-name }}-${{ env.PLATFORM_PAIR }}
+          name: digests-${{ inputs.service-name }}-${{ steps.image-vars.outputs.platform_pair }}
           path: /tmp/digests/${{ inputs.service-name }}/*
           if-no-files-found: error
           retention-days: 1
@@ -215,10 +230,14 @@ jobs:
           merge-multiple: true
 
       - name: Prepare environment variables
+        id: image-vars
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ inputs.service-name }}
         run: |
-          # Lowercase repository owner for Docker image name (Docker requires lowercase)
-          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          echo "IMAGE_NAME=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_ENV
+          REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
@@ -234,7 +253,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ steps.image-vars.outputs.image_name }}
           tags: |
             type=semver,pattern={{version}},value=${{ inputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
@@ -246,26 +265,34 @@ jobs:
         working-directory: /tmp/digests
         env:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
+          IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
+          SERVICE_VERSION: ${{ inputs.version }}
         run: |
           # Create the manifest and capture the digest
           # Deduplicate tags to avoid "412 Precondition Failed" errors
           TAGS=$(jq -cr '.tags | unique | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
           docker buildx imagetools create $TAGS \
-            $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
+            $(printf '%s@sha256:%s ' "$IMAGE_NAME" *)
           
           # Inspect the image to get the digest
-          DIGEST=$(docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ inputs.version }} --raw | sha256sum | awk '{print "sha256:"$1}')
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE_NAME}:${SERVICE_VERSION}" --raw | sha256sum | awk '{print "sha256:"$1}')
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
           echo "Image digest: $DIGEST"
 
       - name: Set image reference
         id: image-ref
+        env:
+          IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
+          IMAGE_DIGEST: ${{ steps.merge.outputs.digest }}
         run: |
-          echo "ref=${{ env.IMAGE_NAME }}@${{ steps.merge.outputs.digest }}" >> $GITHUB_OUTPUT
+          echo "ref=${IMAGE_NAME}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Inspect image
+        env:
+          IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
+          SERVICE_VERSION: ${{ inputs.version }}
         run: |
-          docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ inputs.version }}
+          docker buildx imagetools inspect "${IMAGE_NAME}:${SERVICE_VERSION}"
 
   scan-vulnerabilities:
     name: Scan ${{ inputs.service-name }} vulnerabilities
@@ -590,13 +617,20 @@ jobs:
     name: Generate VEX for ${{ inputs.service-name }}
     runs-on: ubuntu-latest
     needs: [merge-manifests, generate-sboms, scan-vulnerabilities]
+    env:
+      SERVICE_NAME: ${{ inputs.service-name }}
+      SERVICE_VERSION: ${{ inputs.version }}
+      REPOSITORY_NAME: ${{ github.repository }}
+      REPOSITORY_OWNER: ${{ github.repository_owner }}
+      IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
     
     steps:
       - name: Set image reference
         id: set-image
         run: |
-          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
-          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           
       - name: Download SPDX SBOM
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -614,13 +648,15 @@ jobs:
 
       - name: Run Grype scan with reachability analysis
         run: |
-          grype sbom:sbom-${{ inputs.service-name }}.spdx.json \
+          SBOM_SOURCE="sbom:sbom-${SERVICE_NAME}.spdx.json"
+          grype "$SBOM_SOURCE" \
             -o json \
             --file grype-results.json
 
       - name: Run Grype scan for SecObserve import
         run: |
-          grype sbom:sbom-${{ inputs.service-name }}.spdx.json \
+          SBOM_SOURCE="sbom:sbom-${SERVICE_NAME}.spdx.json"
+          grype "$SBOM_SOURCE" \
             --by-cve \
             --quiet \
             --output cyclonedx-json \
@@ -641,12 +677,15 @@ jobs:
           so_suppress_licenses: 'true'
 
       - name: Generate OpenVEX document
+        env:
+          IMAGE_REF: ${{ steps.set-image.outputs.ref }}
+          VEX_FILE: vex-${{ inputs.service-name }}.openvex.json
         run: |
           # Create VEX document structure
-          cat > vex-${{ inputs.service-name }}.openvex.json <<'EOF'
+          cat > "$VEX_FILE" <<EOF
           {
             "@context": "https://openvex.dev/ns/v0.2.0",
-            "@id": "https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/vex-${{ inputs.service-name }}.openvex.json",
+          "@id": "https://github.com/${REPOSITORY_NAME}/releases/download/v${SERVICE_VERSION}/${VEX_FILE}",
             "author": "Teck Build System",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "version": "1",
@@ -658,81 +697,88 @@ jobs:
           # Parse Grype results and add VEX statements
           # For each vulnerability, determine exploitability status
           if [ -f grype-results.json ]; then
-            python3 -c '
+          python3 - <<'PY'
           import json
-          import sys
-          
-          with open("grype-results.json") as f:
-              grype = json.load(f)
-          
-          with open("vex-${{ inputs.service-name }}.openvex.json") as f:
-              vex = json.load(f)
-          
+          import os
+
+          vex_file = os.environ["VEX_FILE"]
+          image_ref = os.environ["IMAGE_REF"]
+
+          with open("grype-results.json", encoding="utf-8") as file:
+            grype = json.load(file)
+
+          with open(vex_file, encoding="utf-8") as file:
+            vex = json.load(file)
+
           statements = []
           for match in grype.get("matches", []):
-              vuln = match.get("vulnerability", {})
-              vuln_id = vuln.get("id", "")
-              
-              # Determine status based on fix availability and severity
-              severity = vuln.get("severity", "Unknown")
-              fix_versions = match.get("vulnerability", {}).get("fix", {}).get("versions", [])
-              
-              status = "affected"
-              justification = None
-              
-              # If no fix available, mark as under_investigation
-              if not fix_versions:
-                  status = "under_investigation"
-              
-              # Add VEX statement
-              statement = {
-                  "vulnerability": {"name": vuln_id},
-                  "timestamp": vex["timestamp"],
-                  "products": [{
-                      "component": {
-                          "id": "${{ steps.set-image.outputs.ref }}"
-                      }
-                  }],
-                  "status": status
-              }
-              
-              if justification:
-                  statement["justification"] = justification
-              
-              if fix_versions:
-                  statement["action_statement"] = f"Update to version {fix_versions[0]} or later"
-              
-              statements.append(statement)
-          
+            vuln = match.get("vulnerability", {})
+            vuln_id = vuln.get("id", "")
+
+            fix_versions = vuln.get("fix", {}).get("versions", [])
+
+            status = "affected"
+            justification = None
+
+            if not fix_versions:
+              status = "under_investigation"
+
+            statement = {
+              "vulnerability": {"name": vuln_id},
+              "timestamp": vex["timestamp"],
+              "products": [{
+                "component": {
+                  "id": image_ref
+                }
+              }],
+              "status": status
+            }
+
+            if justification:
+              statement["justification"] = justification
+
+            if fix_versions:
+              statement["action_statement"] = f"Update to version {fix_versions[0]} or later"
+
+            statements.append(statement)
+
           vex["statements"] = statements
-          
-          with open("vex-${{ inputs.service-name }}.openvex.json", "w") as f:
-              json.dump(vex, f, indent=2)
-          '
+
+          with open(vex_file, "w", encoding="utf-8") as file:
+            json.dump(vex, file, indent=2)
+          PY
           fi
           
-          echo "VEX document generated with $(cat vex-${{ inputs.service-name }}.openvex.json | jq '.statements | length') statements"
+          echo "VEX document generated with $(jq '.statements | length' "$VEX_FILE") statements"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
       - name: Sign VEX document
+        env:
+          VEX_FILE: vex-${{ inputs.service-name }}.openvex.json
         run: |
+          BUNDLE_FILE="${VEX_FILE}.bundle"
+          SIGNATURE_FILE="${VEX_FILE}.sig"
+          CERTIFICATE_FILE="${VEX_FILE}.cert"
+
           cosign sign-blob --yes \
-            --bundle vex-${{ inputs.service-name }}.openvex.json.bundle \
-            vex-${{ inputs.service-name }}.openvex.json
+            --bundle "$BUNDLE_FILE" \
+            "$VEX_FILE"
           
           # Extract signature and certificate (Cosign bundle v0.3 format)
-          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.messageSignature.signature' | base64 -d > vex-${{ inputs.service-name }}.openvex.json.sig
-          cat vex-${{ inputs.service-name }}.openvex.json.bundle | jq -r '.verificationMaterial.certificate.rawBytes' | base64 -d > vex-${{ inputs.service-name }}.openvex.json.cert
+          jq -r '.messageSignature.signature' "$BUNDLE_FILE" | base64 -d > "$SIGNATURE_FILE"
+          jq -r '.verificationMaterial.certificate.rawBytes' "$BUNDLE_FILE" | base64 -d > "$CERTIFICATE_FILE"
 
       - name: Verify VEX signature
+        env:
+          VEX_FILE: vex-${{ inputs.service-name }}.openvex.json
         run: |
           cosign verify-blob \
-            --bundle vex-${{ inputs.service-name }}.openvex.json.bundle \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --bundle "${VEX_FILE}.bundle" \
+            --certificate-identity-regexp="^https://github.com/${REPOSITORY_NAME}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            vex-${{ inputs.service-name }}.openvex.json
+            "$VEX_FILE"
 
       - name: Upload VEX artifacts
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
