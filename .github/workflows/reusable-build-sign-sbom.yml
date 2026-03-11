@@ -120,6 +120,11 @@ jobs:
         with:
           ref: refs/tags/v${{ inputs.version }}
 
+      - name: Read .NET SDK version
+        id: dotnet-version
+        run: |
+          echo "value=$(jq -r '.sdk.version' global.json)" >> "$GITHUB_OUTPUT"
+
       - name: Prepare environment variables
         id: image-vars
         env:
@@ -180,6 +185,7 @@ jobs:
           cache-to: type=registry,ref=${{ steps.image-vars.outputs.cache_image }},mode=max
           network: host
           build-args: |
+            DOTNET_VERSION=${{ steps.dotnet-version.outputs.value }}
             VERSION=${{ inputs.version }}
             POSTGRES_CONNECTION=${{ inputs.postgres-connection }}
             RABBITMQ_CONNECTION=${{ inputs.rabbitmq-connection }}

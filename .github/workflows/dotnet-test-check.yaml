@@ -14,7 +14,7 @@ permissions:
   security-events: write
 
 env:
-  DOTNET_VERSION: "10.0.*"
+  DOTNET_VERSION: "10.0.103"
   REGISTRY: ghcr.io
   REPOSITORY: ${{ github.repository }}
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
@@ -58,6 +58,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v5
         with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
           cache: true
           cache-dependency-path: "**/packages.lock.json"
@@ -261,6 +262,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v5
         with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
           cache: true
           cache-dependency-path: "**/packages.lock.json"
@@ -300,6 +302,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v5
         with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
           cache: true
           cache-dependency-path: "**/packages.lock.json"
@@ -394,6 +397,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v5
         with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
           cache: true
           cache-dependency-path: "**/packages.lock.json"
@@ -491,6 +495,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Read .NET SDK version
+        id: dotnet-version
+        run: |
+          echo "value=$(jq -r '.sdk.version' global.json)" >> "$GITHUB_OUTPUT"
+
       - name: Extract service name from Dockerfile path
         id: service-vars
         run: |
@@ -548,6 +557,7 @@ jobs:
           target: build
           network: host
           build-args: |
+            DOTNET_VERSION=${{ steps.dotnet-version.outputs.value }}
             VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VCS_REF=${{ github.sha }}
@@ -573,6 +583,7 @@ jobs:
           target: build
           network: host
           build-args: |
+            DOTNET_VERSION=${{ steps.dotnet-version.outputs.value }}
             VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VCS_REF=${{ github.sha }}

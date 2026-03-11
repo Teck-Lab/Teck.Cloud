@@ -2,7 +2,7 @@
 # Optimized for multi-platform, Docker cache, and best practices
 
 # Build arguments for .NET version support
-ARG DOTNET_VERSION=10.0
+ARG DOTNET_VERSION=10.0.103
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine AS build
