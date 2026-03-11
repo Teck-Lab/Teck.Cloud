@@ -2,6 +2,12 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "Aspire.Dashboard.Sdk.linux-x64": {
+        "type": "Direct",
+        "requested": "[13.1.1, )",
+        "resolved": "13.1.1",
+        "contentHash": "WJshmggECTTDg0pm2b60IcfDD5SpEJg8B6DuDRoEHTj+DD4Xnfm+LjAL6x1eajbEtCHIWt5E3v84apJOIPJhiw=="
+      },
       "Aspire.Dashboard.Sdk.win-x64": {
         "type": "Direct",
         "requested": "[13.1.1, )",
@@ -40,6 +46,12 @@
           "StreamJsonRpc": "2.22.23",
           "System.IO.Hashing": "9.0.10"
         }
+      },
+      "Aspire.Hosting.Orchestration.linux-x64": {
+        "type": "Direct",
+        "requested": "[13.1.1, )",
+        "resolved": "13.1.1",
+        "contentHash": "ilLiV6GuiIWpokfZErdgLKLUb2OvJaymtG7zqvXGW/XTS8zClQcUpOHPOqX5y9OsE2uniM2n0jkq5CKa8FCLFg=="
       },
       "Aspire.Hosting.Orchestration.win-x64": {
         "type": "Direct",

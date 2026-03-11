@@ -124,11 +124,6 @@
           "xunit.v3.mtp-v1": "[3.2.2]"
         }
       },
-      "Aspire.Dashboard.Sdk.win-x64": {
-        "type": "Transitive",
-        "resolved": "13.1.1",
-        "contentHash": "RjyMhLt6TsDu0z+wS+Efq3u7Ooeo50/JEm4RnXKBz4hLHpacgIoSFp2cPPwd29tPzk1TcQjrCsEjG+9IzoxrfQ=="
-      },
       "Aspire.Hosting": {
         "type": "Transitive",
         "resolved": "13.1.1",
@@ -159,11 +154,6 @@
           "StreamJsonRpc": "2.22.23",
           "System.IO.Hashing": "9.0.10"
         }
-      },
-      "Aspire.Hosting.Orchestration.win-x64": {
-        "type": "Transitive",
-        "resolved": "13.1.1",
-        "contentHash": "Bssb6AdH5TsJpFGlMgoKZt6uUTGHirp9Z9LrvP4zyMvzVgCyDvfUOOd/XcdUnAbtQGQOn3PrOiCxnP9JM3cSfA=="
       },
       "DiffEngine": {
         "type": "Transitive",
@@ -769,14 +759,40 @@
       "teck.cloud.apphost": {
         "type": "Project",
         "dependencies": {
+          "Aspire.Dashboard.Sdk.linux-x64": "[13.1.1, )",
           "Aspire.Dashboard.Sdk.win-x64": "[13.1.1, )",
           "Aspire.Hosting.AppHost": "[13.1.1, )",
+          "Aspire.Hosting.Orchestration.linux-x64": "[13.1.1, )",
           "Aspire.Hosting.Orchestration.win-x64": "[13.1.1, )",
           "Aspire.Hosting.PostgreSQL": "[13.1.1, )",
           "Aspire.Hosting.RabbitMQ": "[13.1.1, )",
           "Aspire.Hosting.Redis": "[13.1.1, )",
           "AsyncAwaitBestPractices": "[10.0.0, )"
         }
+      },
+      "Aspire.Dashboard.Sdk.linux-x64": {
+        "type": "CentralTransitive",
+        "requested": "[13.1.1, )",
+        "resolved": "13.1.1",
+        "contentHash": "WJshmggECTTDg0pm2b60IcfDD5SpEJg8B6DuDRoEHTj+DD4Xnfm+LjAL6x1eajbEtCHIWt5E3v84apJOIPJhiw=="
+      },
+      "Aspire.Dashboard.Sdk.win-x64": {
+        "type": "CentralTransitive",
+        "requested": "[13.1.1, )",
+        "resolved": "13.1.1",
+        "contentHash": "RjyMhLt6TsDu0z+wS+Efq3u7Ooeo50/JEm4RnXKBz4hLHpacgIoSFp2cPPwd29tPzk1TcQjrCsEjG+9IzoxrfQ=="
+      },
+      "Aspire.Hosting.Orchestration.linux-x64": {
+        "type": "CentralTransitive",
+        "requested": "[13.1.1, )",
+        "resolved": "13.1.1",
+        "contentHash": "ilLiV6GuiIWpokfZErdgLKLUb2OvJaymtG7zqvXGW/XTS8zClQcUpOHPOqX5y9OsE2uniM2n0jkq5CKa8FCLFg=="
+      },
+      "Aspire.Hosting.Orchestration.win-x64": {
+        "type": "CentralTransitive",
+        "requested": "[13.1.1, )",
+        "resolved": "13.1.1",
+        "contentHash": "Bssb6AdH5TsJpFGlMgoKZt6uUTGHirp9Z9LrvP4zyMvzVgCyDvfUOOd/XcdUnAbtQGQOn3PrOiCxnP9JM3cSfA=="
       },
       "Aspire.Hosting.PostgreSQL": {
         "type": "CentralTransitive",
