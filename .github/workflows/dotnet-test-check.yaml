@@ -495,10 +495,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Read .NET SDK version
+      - name: Read .NET container versions
         id: dotnet-version
+        env:
+          DOTNET_ALPINE_VERSION: "3.23"
         run: |
-          echo "value=$(jq -r '.sdk.version' global.json)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          SDK_VERSION="$(jq -r '.sdk.version' global.json)"
+          CHANNEL_VERSION="$(jq -r '.sdk.version | split(".")[0:2] | join(".")' global.json)"
+          RELEASES_URL="https://builds.dotnet.microsoft.com/dotnet/release-metadata/${CHANNEL_VERSION}/releases.json"
+          RUNTIME_VERSION="$(curl -fsSL "$RELEASES_URL" | jq -r --arg sdk "$SDK_VERSION" '.releases[] | select(.sdk.version == $sdk) | .sdk["runtime-version"]' | head -n 1)"
+
+          if [ -z "$RUNTIME_VERSION" ] || [ "$RUNTIME_VERSION" = "null" ]; then
+            echo "::error::Unable to resolve .NET runtime version for SDK ${SDK_VERSION} from ${RELEASES_URL}"
+            exit 1
+          fi
+
+          echo "value=$SDK_VERSION" >> "$GITHUB_OUTPUT"
+          echo "runtime=$RUNTIME_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine=$DOTNET_ALPINE_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Extract service name from Dockerfile path
         id: service-vars
@@ -557,7 +573,9 @@ jobs:
           target: build
           network: host
           build-args: |
-            DOTNET_VERSION=${{ steps.dotnet-version.outputs.value }}
+            DOTNET_SDK_VERSION=${{ steps.dotnet-version.outputs.value }}
+            DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
+            DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
             VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VCS_REF=${{ github.sha }}
@@ -583,7 +601,9 @@ jobs:
           target: build
           network: host
           build-args: |
-            DOTNET_VERSION=${{ steps.dotnet-version.outputs.value }}
+            DOTNET_SDK_VERSION=${{ steps.dotnet-version.outputs.value }}
+            DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
+            DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
             VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VCS_REF=${{ github.sha }}

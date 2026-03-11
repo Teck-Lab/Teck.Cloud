@@ -1,11 +1,13 @@
 # Multi-stage Dockerfile for Web.Edge
 # Optimized for multi-platform, Docker cache, and best practices
 
-# Build arguments for .NET version support
-ARG DOTNET_VERSION=10.0.103
+# Build arguments for .NET image version support
+ARG DOTNET_SDK_VERSION=10.0.103
+ARG DOTNET_RUNTIME_VERSION=10.0.3
+ARG DOTNET_ALPINE_VERSION=3.23
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK_VERSION}-alpine${DOTNET_ALPINE_VERSION} AS build
 ARG BUILD_CONFIGURATION=Release
 ARG VERSION=1.0.0
 WORKDIR /src
@@ -61,8 +63,10 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
         /p:EnforceCodeStyleInBuild=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-ARG DOTNET_VERSION
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine-composite AS final
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_ALPINE_VERSION}-composite AS final
+ARG DOTNET_SDK_VERSION
+ARG DOTNET_RUNTIME_VERSION
+ARG DOTNET_ALPINE_VERSION
 
 # Build arguments for metadata
 ARG VERSION=1.0.0
@@ -75,13 +79,14 @@ LABEL org.opencontainers.image.title="Web Edge Gateway" \
       org.opencontainers.image.authors="Teck Team" \
       org.opencontainers.image.vendor="Teck" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.base.name="mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine-composite"
+    org.opencontainers.image.base.name="mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_ALPINE_VERSION}-composite"
 
 # Additional custom labels
 LABEL com.teck.service.name="web-edge" \
       com.teck.service.type="gateway" \
       com.teck.service.tier="edge" \
-      com.teck.dotnet.version="${DOTNET_VERSION}" \
+    com.teck.dotnet.version="${DOTNET_RUNTIME_VERSION}" \
+    com.teck.dotnet.sdk.version="${DOTNET_SDK_VERSION}" \
       com.teck.build.configuration="Release"
 
 # Environment variables for .NET running in container
