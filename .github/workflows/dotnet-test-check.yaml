@@ -14,7 +14,7 @@ permissions:
   security-events: write
 
 env:
-  DOTNET_VERSION: "10.0.103"
+  DOTNET_VERSION: "10.0.104"
   REGISTRY: ghcr.io
   REPOSITORY: ${{ github.repository }}
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
