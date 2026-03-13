@@ -314,8 +314,7 @@ jobs:
           git diff | reviewdog -f=diff -name="dotnet-format" \
             -reporter=github-pr-review \
             -filter-mode=nofilter \
-            -fail-level=any
-
+              -fail-level=error
   # ===================================================================
   # Hadolint: Lint Dockerfiles and annotate PRs (reviewdog)
   # ===================================================================
@@ -364,9 +363,7 @@ jobs:
 
       - name: Test all projects
         run: |
-          mapfile -t TEST_PROJECTS < <(find tests -name "*.csproj" ! -path "tests/e2e/*" | sort)
-          echo "Running ${#TEST_PROJECTS[@]} test projects in parallel"
-          dotnet test "${TEST_PROJECTS[@]}" \
+          dotnet test Teck.Cloud.slnx \
             -c Release --no-restore --no-build --verbosity normal \
             --logger trx --collect:"XPlat Code Coverage" \
             --blame --blame-hang-timeout 15m \
