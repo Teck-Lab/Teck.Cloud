@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload Trivy filesystem SARIF
         if: always() && hashFiles('trivy-fs-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
           sarif_file: trivy-fs-results.sarif
           category: trivy-filesystem
@@ -115,7 +115,7 @@ jobs:
 
       - name: Upload Semgrep SARIF
         if: always() && hashFiles('semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload Checkov workflow SARIF
         if: always() && steps.checkov_workflows_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
           sarif_file: checkov-workflows.sarif
           category: checkov-workflows
@@ -215,7 +215,7 @@ jobs:
 
       - name: Upload Checkov deployment SARIF
         if: always() && steps.checkov_deployment_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
           sarif_file: checkov-deployment.sarif
           category: checkov-deployment
@@ -247,7 +247,7 @@ jobs:
 
       - name: Upload Bandit SARIF
         if: always() && hashFiles('bandit.sarif') != ''
-        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
           sarif_file: bandit.sarif
           category: bandit

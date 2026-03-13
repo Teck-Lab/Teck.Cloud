@@ -1,4 +1,4 @@
-﻿name: PR Validation
+name: PR Validation
 
 on:
   pull_request:
@@ -620,7 +620,7 @@ jobs:
 
       - name: Upload Trivy scan results to Security tab
         if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
-        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
           sarif_file: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
           category: 'trivy-image-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}'
