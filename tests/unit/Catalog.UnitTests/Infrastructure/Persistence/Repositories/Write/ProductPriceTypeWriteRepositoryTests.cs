@@ -79,7 +79,7 @@ public sealed class ProductPriceTypeWriteRepositoryTests : IDisposable
 
         // Assert
         var result = await _dbContext.ProductPriceTypes.FirstOrDefaultAsync(
-            p => p.Name == "Member", 
+            p => p.Name == "Member",
             TestContext.Current.CancellationToken);
         result.ShouldNotBeNull();
         result.Priority.ShouldBe(3);

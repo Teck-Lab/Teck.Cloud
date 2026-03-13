@@ -366,8 +366,7 @@ jobs:
           dotnet test Teck.Cloud.slnx \
             -c Release --no-restore --no-build --verbosity normal \
             --logger trx --collect:"XPlat Code Coverage" \
-            --blame --blame-hang-timeout 15m \
-            --max-parallel-test-assemblies 4
+            --blame --blame-hang-timeout 15m
 
       - name: Combine Coverage Reports
         uses: danielpalme/ReportGenerator-GitHub-Action@ee0ae774f6d3afedcbd1683c1ab21b83670bdf8e # 5.5.1

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Web.Edge.Services;
 
 internal sealed record EdgeRouteSecurityOptions(
@@ -7,6 +9,7 @@ internal sealed record EdgeRouteSecurityOptions(
 
 internal static class EdgeRouteSecurityOptionsExtensions
 {
+    [RequiresUnreferencedCode("Calls Microsoft.Extensions.Configuration.ConfigurationBinder.GetValue<T>(String)")]
     public static EdgeRouteSecurityOptions GetEdgeRouteSecurityOptions(this IConfiguration configuration)
     {
         return new EdgeRouteSecurityOptions(

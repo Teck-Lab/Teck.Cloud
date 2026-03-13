@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Shouldly;
 using SharedKernel.Persistence.UnitTests.TestHelpers;
+using Shouldly;
 
 namespace SharedKernel.Persistence.UnitTests.Database.EFCore;
 
@@ -18,10 +18,10 @@ public sealed class GenericReadRepositoryTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         await _fixture.InitializeAsync();
-        
+
         _dbContext = new TestReadDbContext(_fixture.CreateDbContextOptions());
         await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-        
+
         _repository = new TestReadRepository(_dbContext);
     }
 
@@ -31,7 +31,7 @@ public sealed class GenericReadRepositoryTests : IAsyncLifetime
         {
             await _dbContext.DisposeAsync();
         }
-        
+
         await _fixture.DisposeAsync();
     }
 

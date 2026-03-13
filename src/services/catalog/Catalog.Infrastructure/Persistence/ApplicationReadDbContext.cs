@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using Catalog.Application.Brands.ReadModels;
 using Catalog.Application.Categories.ReadModels;
 using Catalog.Application.ProductPriceTypes.ReadModels;
@@ -71,6 +72,7 @@ public sealed class ApplicationReadDbContext : BaseDbContext
     /// On model creating.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
+    [RequiresUnreferencedCode()]
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

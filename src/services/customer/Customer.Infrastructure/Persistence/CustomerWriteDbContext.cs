@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using Customer.Domain.Entities.TenantAggregate;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Persistence.Database.EFCore;
@@ -31,6 +32,7 @@ public class CustomerWriteDbContext : BaseDbContext
     /// On model creating.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
+    [RequiresUnreferencedCode()]
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

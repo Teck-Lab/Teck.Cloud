@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shouldly;
 using SharedKernel.Infrastructure.Auth;
 using SharedKernel.Infrastructure.MultiTenant;
+using Shouldly;
 using Web.Edge.Services;
 using Yarp.ReverseProxy.Configuration;
 

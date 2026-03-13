@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using Customer.Application.Tenants.ReadModels;
 using Customer.Infrastructure.Persistence.ReadModels;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,7 @@ public sealed class CustomerReadDbContext : BaseDbContext
     /// On model creating.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
+    [RequiresUnreferencedCode()]
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

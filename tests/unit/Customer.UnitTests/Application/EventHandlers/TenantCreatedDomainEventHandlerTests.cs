@@ -2,8 +2,8 @@ using Customer.Application.Tenants.EventHandlers.DomainEvents;
 using Customer.Domain.Entities.TenantAggregate.Events;
 using NSubstitute;
 using SharedKernel.Events;
-using Wolverine;
 using Shouldly;
+using Wolverine;
 
 namespace Customer.UnitTests.Application.EventHandlers;
 

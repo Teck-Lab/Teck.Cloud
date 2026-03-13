@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.ProductAggregate;
@@ -71,6 +72,7 @@ public class ApplicationWriteDbContext : BaseDbContext
     /// On model creating.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
+    [RequiresUnreferencedCode()]
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

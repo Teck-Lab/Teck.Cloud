@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ErrorOr;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -102,6 +103,7 @@ namespace SharedKernel.Infrastructure.Endpoints
             return CreateErrorResult(result, httpContext);
         }
 
+        [RequiresDynamicCode("Calls Microsoft.AspNetCore.Http.Results.Json<TValue>(TValue, JsonSerializerOptions, String, Int32?)")]
         private static IResult CreateErrorResult(IErrorOr response, HttpContext http)
         {
             string traceId = http.TraceIdentifier;

@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -80,6 +81,7 @@ public static class LocalDatabaseMigrationExtensions
         return app;
     }
 
+    [RequiresDynamicCode("Calls Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GetMigrations()")]
     private static void ApplyMigrationsIfNeeded(DbContext dbContext, string? connectionStringOverride)
     {
         string? effectiveConnectionString = connectionStringOverride;

@@ -208,18 +208,24 @@ namespace Catalog.IntegrationTests.Shared
         {
             if (UseSqliteFallback && SqliteConnection is not null)
             {
-                try { await SqliteConnection.DisposeAsync(); } catch { }
+                try
+                { await SqliteConnection.DisposeAsync(); }
+                catch { }
                 return;
             }
 
             if (RabbitMqContainer is not null)
             {
-                try { await RabbitMqContainer.DisposeAsync(); } catch { }
+                try
+                { await RabbitMqContainer.DisposeAsync(); }
+                catch { }
             }
 
             if (DbContainer is not null)
             {
-                try { await DbContainer.DisposeAsync(); } catch { }
+                try
+                { await DbContainer.DisposeAsync(); }
+                catch { }
             }
         }
 

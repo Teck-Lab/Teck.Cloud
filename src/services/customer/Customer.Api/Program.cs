@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Customer.Api.Extensions;
 using Customer.Api.Grpc.V1;
@@ -41,6 +42,8 @@ internal static class Program
         return builder;
     }
 
+    [RequiresDynamicCode("Calls Microsoft.Extensions.Configuration.ConfigurationBinder.Bind(Object)")]
+    [RequiresUnreferencedCode("Calls Microsoft.Extensions.Configuration.ConfigurationBinder.Bind(Object)")]
     private static AppOptions BuildAppOptions(WebApplicationBuilder builder)
     {
         AppOptions appOptions = new();

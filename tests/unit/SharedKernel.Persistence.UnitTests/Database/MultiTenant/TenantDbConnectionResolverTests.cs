@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using Shouldly;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.MultiTenant;
+using Shouldly;
 using ZiggyCreatures.Caching.Fusion;
 #pragma warning disable CA2000
 

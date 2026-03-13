@@ -52,6 +52,7 @@ namespace SharedKernel.Infrastructure.Options
         /// </summary>
         /// <typeparam name="T"/>
         /// <param name="services">The services.</param>
+        [RequiresDynamicCode()]
         public static void BindValidate<T>(this IServiceCollection services)
             where T : class, IOptionsRoot
         {

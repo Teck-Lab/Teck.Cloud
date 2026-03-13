@@ -52,31 +52,31 @@ public class CatalogDesignTimeDbContextFactory : IDesignTimeDbContextFactory<App
         {
             case "sqlserver":
             case "mssql":
-            {
-                optionsBuilder.UseSqlServer(connectionString);
-                break;
-            }
+                {
+                    optionsBuilder.UseSqlServer(connectionString);
+                    break;
+                }
 
             case "postgres":
             case "pgsql":
             case "npgsql":
-            {
-                optionsBuilder.UseNpgsql(connectionString);
-                break;
-            }
+                {
+                    optionsBuilder.UseNpgsql(connectionString);
+                    break;
+                }
 
             case "mariadb":
-            {
-                optionsBuilder.UseMySQL(connectionString);
-                break;
-            }
+                {
+                    optionsBuilder.UseMySQL(connectionString);
+                    break;
+                }
 
             default:
-            {
-                // default to MySQL
-                optionsBuilder.UseMySQL(connectionString);
-                break;
-            }
+                {
+                    // default to MySQL
+                    optionsBuilder.UseMySQL(connectionString);
+                    break;
+                }
         }
 
         return new ApplicationWriteDbContext(optionsBuilder.Options);

@@ -1,9 +1,9 @@
 #nullable enable
 using System.Globalization;
 using Ardalis.Specification;
+using Catalog.Application.Brands.Features.GetPaginatedBrands.V1;
 using Catalog.Application.Brands.ReadModels;
 using Catalog.Application.Brands.Repositories;
-using Catalog.Application.Brands.Features.GetPaginatedBrands.V1;
 using Catalog.Infrastructure.Persistence;
 using Catalog.Infrastructure.Persistence.Repositories.Read;
 using Catalog.IntegrationTests.Shared;

@@ -1,6 +1,6 @@
 using Customer.Application.Tenants.Features.GetTenantById.V1;
-using Customer.Application.Tenants.Repositories;
 using Customer.Application.Tenants.ReadModels;
+using Customer.Application.Tenants.Repositories;
 using Customer.Domain.Entities.TenantAggregate;
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using ErrorOr;
@@ -70,7 +70,7 @@ public sealed class GetTenantByIdQueryHandlerTests
         // Assert
         result.IsError.ShouldBeFalse();
         var dto = result.Value;
-        
+
         dto.ShouldNotBeNull();
         dto.Id.ShouldBe(tenant.Id);
         dto.Identifier.ShouldBe("test-tenant");
@@ -78,7 +78,7 @@ public sealed class GetTenantByIdQueryHandlerTests
         dto.Plan.ShouldBe("Pro");
         dto.DatabaseStrategy.ShouldBe("Shared");
         dto.IsActive.ShouldBeTrue();
-        
+
         dto.Databases.Count.ShouldBe(1);
         var database = dto.Databases.First();
         database.ServiceName.ShouldBe("CatalogService");

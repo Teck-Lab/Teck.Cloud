@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ErrorOr;
 using FluentValidation;
 using FluentValidation.Results;
@@ -12,6 +13,7 @@ namespace SharedKernel.Infrastructure.Endpoints;
 public sealed class ValidationEndpointFilter : IEndpointFilter
 {
     /// <inheritdoc />
+    [RequiresDynamicCode()]
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var errors = new List<Error>();

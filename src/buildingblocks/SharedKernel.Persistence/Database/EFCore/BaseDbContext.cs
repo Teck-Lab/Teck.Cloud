@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using EntityFramework.Exceptions.PostgreSQL;
 using Finbuckle.MultiTenant.Abstractions;
 using Finbuckle.MultiTenant.EntityFrameworkCore;
@@ -53,6 +54,7 @@ namespace SharedKernel.Persistence.Database.EFCore
         /// <param name="tenantDetails">The tenant information (optional).</param>
         /// <param name="tenantStrategy">The tenant database strategy (optional, defaults to Shared).</param>
         /// <param name="tenantAccessor">The multi-tenant context accessor (optional, for runtime tenant resolution).</param>
+        [RequiresDynamicCode()]
         protected BaseDbContext(
             DbContextOptions options,
             TenantDetails? tenantDetails = null,

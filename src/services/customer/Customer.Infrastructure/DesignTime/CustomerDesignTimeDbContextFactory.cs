@@ -48,24 +48,24 @@ public class CustomerDesignTimeDbContextFactory : IDesignTimeDbContextFactory<Cu
         {
             case "SQLSERVER":
             case "MSSQL":
-            {
-                optionsBuilder.UseSqlServer(connectionString);
-                break;
-            }
+                {
+                    optionsBuilder.UseSqlServer(connectionString);
+                    break;
+                }
 
             case "POSTGRES":
             case "PGSQL":
             case "NPGSQL":
-            {
-                optionsBuilder.UseNpgsql(connectionString);
-                break;
-            }
+                {
+                    optionsBuilder.UseNpgsql(connectionString);
+                    break;
+                }
 
             default:
-            {
-                optionsBuilder.UseMySQL(connectionString);
-                break;
-            }
+                {
+                    optionsBuilder.UseMySQL(connectionString);
+                    break;
+                }
         }
 
         return new CustomerWriteDbContext(optionsBuilder.Options);

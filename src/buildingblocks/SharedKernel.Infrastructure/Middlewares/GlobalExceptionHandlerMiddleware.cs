@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -39,6 +40,7 @@ namespace SharedKernel.Infrastructure.Middlewares
         /// </summary>
         /// <param name="context">The HTTP context.</param>
         /// <returns>A task that represents the completion of request processing.</returns>
+        [RequiresDynamicCode()]
         public async Task InvokeAsync(HttpContext context)
         {
             try

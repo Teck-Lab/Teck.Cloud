@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Core;
@@ -15,6 +16,7 @@ namespace SharedKernel.Infrastructure.Observability.Serilog;
 
 internal static class Extensions
 {
+    [RequiresDynamicCode("Calls SharedKernel.Infrastructure.Options.Extensions.BindValidateReturn<T>(IConfiguration)")]
     internal static IHostApplicationBuilder ConfigureTeckCloudSerilog(this IHostApplicationBuilder builder)
     {
         SerilogOptions serilogOptions = builder.Services.BindValidateReturn<SerilogOptions>(builder.Configuration);

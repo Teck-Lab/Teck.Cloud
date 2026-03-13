@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,7 @@ namespace SharedKernel.Persistence.Database.EFCore
     {
         private const string SoftDeleteFilterName = "SoftDeleteFilter";
 
+        [RequiresDynamicCode("Calls System.Linq.Expressions.Expression.Lambda(Expression, params ParameterExpression[])")]
         public static ModelBuilder AppendGlobalQueryFilter<TInterface>(this ModelBuilder modelBuilder, Expression<Func<TInterface, bool>> filter)
         {
             // get root, non-owned entities that implement the interface TInterface

@@ -1,8 +1,8 @@
 #nullable enable
+using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
 

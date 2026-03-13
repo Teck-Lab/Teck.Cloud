@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 #pragma warning disable SA1633,SA1101,AV2305,IDE0005,SA1402,AV1555,AV1580,CA1515,CA1062,CS1591
+using System.Diagnostics.CodeAnalysis;
 using ErrorOr;
 using FastEndpoints;
 using Grpc.Core;
@@ -26,6 +27,8 @@ public sealed class GetServiceVersionsEndpoint(
         Options(endpoint => endpoint.RequireProtectedResource("system", "list"));
     }
 
+    [RequiresDynamicCode()]
+    [RequiresUnreferencedCode()]
     public override async Task HandleAsync(CancellationToken ct)
     {
         Task<ErrorOr<ServiceVersionItem>> catalogTask = GetCatalogServiceVersionAsync(ct);

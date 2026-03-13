@@ -55,9 +55,9 @@ public sealed class PromotionReadRepositoryTests : IDisposable
     public async Task GetByIdAsync_ShouldReturnPromotion_WhenExists()
     {
         // Arrange
-        var promotion = new PromotionReadModel 
-        { 
-            Id = Guid.NewGuid(), 
+        var promotion = new PromotionReadModel
+        {
+            Id = Guid.NewGuid(),
             Name = "Test Promotion",
             DiscountPercentage = 15m,
             StartDate = DateTimeOffset.UtcNow,
@@ -156,9 +156,9 @@ public sealed class PromotionReadRepositoryTests : IDisposable
         // Arrange
         var baseDate = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var promotions = Enumerable.Range(1, 10)
-            .Select(i => new PromotionReadModel 
-            { 
-                Id = Guid.NewGuid(), 
+            .Select(i => new PromotionReadModel
+            {
+                Id = Guid.NewGuid(),
                 Name = $"Promotion {i}",
                 StartDate = baseDate.AddDays(i),
                 EndDate = baseDate.AddDays(i + 7)

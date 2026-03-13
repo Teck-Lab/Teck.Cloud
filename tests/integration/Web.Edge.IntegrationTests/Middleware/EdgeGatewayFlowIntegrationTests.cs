@@ -1,9 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -11,9 +11,9 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shouldly;
 using SharedKernel.Infrastructure.Auth;
 using SharedKernel.Infrastructure.MultiTenant;
+using Shouldly;
 using Web.Edge.Services;
 using Yarp.ReverseProxy.Configuration;
 #pragma warning disable CS0618

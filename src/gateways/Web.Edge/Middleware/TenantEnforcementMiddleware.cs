@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -368,6 +369,8 @@ internal sealed class TenantEnforcementMiddleware
         return (result.Success, result.DatabaseStrategy, result.StatusCode, result.ErrorCode, result.ErrorDetail);
     }
 
+    [RequiresDynamicCode("Calls Microsoft.AspNetCore.Http.HttpResponseJsonExtensions.WriteAsJsonAsync<TValue>(TValue, CancellationToken)")]
+    [RequiresUnreferencedCode("Calls Microsoft.AspNetCore.Http.HttpResponseJsonExtensions.WriteAsJsonAsync<TValue>(TValue, CancellationToken)")]
     private static async Task WriteTenantValidationFailureAsync(
         HttpContext context,
         int statusCode,

@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
 using Customer.Application.Common.Interfaces;
@@ -125,6 +126,8 @@ public sealed class KeycloakTenantIdentityProvisioningService : ITenantIdentityP
             null);
     }
 
+    [RequiresDynamicCode("Calls System.Net.Http.Json.JsonContent.Create<T>(T, MediaTypeHeaderValue, JsonSerializerOptions)")]
+    [RequiresUnreferencedCode("Calls System.Net.Http.Json.JsonContent.Create<T>(T, MediaTypeHeaderValue, JsonSerializerOptions)")]
     private async Task<HttpResponseMessage> CreateOrganizationCoreAsync(
         OperationContext operationContext,
         CreateOrganizationInput request,

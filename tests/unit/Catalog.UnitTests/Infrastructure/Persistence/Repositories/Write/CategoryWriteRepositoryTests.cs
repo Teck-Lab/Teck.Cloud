@@ -83,7 +83,7 @@ public sealed class CategoryWriteRepositoryTests : IDisposable
 
         // Assert
         var result = await _dbContext.Categories.FirstOrDefaultAsync(
-            c => c.Name == "Books", 
+            c => c.Name == "Books",
             TestContext.Current.CancellationToken);
         result.ShouldNotBeNull();
         result.Description.ShouldBe("Books and magazines");
@@ -218,7 +218,7 @@ public sealed class CategoryWriteRepositoryTests : IDisposable
 
         // Act
         var result = await _repository.FindAsync(
-            c => c.Name != null && c.Name.Contains("Electronics"), 
+            c => c.Name != null && c.Name.Contains("Electronics"),
             cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert

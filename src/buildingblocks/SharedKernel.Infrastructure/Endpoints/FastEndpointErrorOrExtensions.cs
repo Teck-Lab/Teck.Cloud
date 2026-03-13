@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using ErrorOr;
 using FastEndpoints;
 using Microsoft.AspNetCore.Http;
@@ -13,6 +14,7 @@ public static class FastEndpointErrorOrExtensions
     /// <summary>
     /// Sends either a successful response or problem details for an ErrorOr result.
     /// </summary>
+    [RequiresDynamicCode()]
     public static async Task SendAsync<TResponse>(
         this EndpointWithoutRequest<TResponse> endpoint,
         ErrorOr<TResponse> result,
@@ -33,6 +35,7 @@ public static class FastEndpointErrorOrExtensions
     /// <summary>
     /// Sends either a successful response or problem details for an ErrorOr result.
     /// </summary>
+    [RequiresDynamicCode()]
     public static async Task SendAsync<TRequest, TResponse>(
         this Endpoint<TRequest, TResponse> endpoint,
         ErrorOr<TResponse> result,

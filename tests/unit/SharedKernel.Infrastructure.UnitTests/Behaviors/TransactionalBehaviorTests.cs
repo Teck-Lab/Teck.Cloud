@@ -31,10 +31,10 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var command = new TestTransactionalCommand { Data = "Test" };
             var expectedResponse = new TestTransactionalResponse { Result = "Success" };
-            
+
             _unitOfWork.BeginTransactionAsync(Arg.Any<IsolationLevel>(), Arg.Any<CancellationToken>())
                 .Returns(_transaction);
-            
+
             MessageHandlerDelegate<TestTransactionalCommand, TestTransactionalResponse> next = (msg, ct) =>
                 new ValueTask<TestTransactionalResponse>(expectedResponse);
 
@@ -51,10 +51,10 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var command = new TestTransactionalCommand { Data = "Test" };
             var expectedResponse = new TestTransactionalResponse { Result = "Success" };
-            
+
             _unitOfWork.BeginTransactionAsync(Arg.Any<IsolationLevel>(), Arg.Any<CancellationToken>())
                 .Returns(_transaction);
-            
+
             MessageHandlerDelegate<TestTransactionalCommand, TestTransactionalResponse> next = (msg, ct) =>
                 new ValueTask<TestTransactionalResponse>(expectedResponse);
 
@@ -71,10 +71,10 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var command = new TestTransactionalCommand { Data = "Test" };
             var expectedResponse = new TestTransactionalResponse { Result = "Handler Result" };
-            
+
             _unitOfWork.BeginTransactionAsync(Arg.Any<IsolationLevel>(), Arg.Any<CancellationToken>())
                 .Returns(_transaction);
-            
+
             MessageHandlerDelegate<TestTransactionalCommand, TestTransactionalResponse> next = (msg, ct) =>
                 new ValueTask<TestTransactionalResponse>(expectedResponse);
 
@@ -91,10 +91,10 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var command = new TestTransactionalCommand { Data = "Test" };
             var expectedResponse = new TestTransactionalResponse { Result = "Success" };
-            
+
             _unitOfWork.BeginTransactionAsync(Arg.Any<IsolationLevel>(), Arg.Any<CancellationToken>())
                 .Returns(_transaction);
-            
+
             MessageHandlerDelegate<TestTransactionalCommand, TestTransactionalResponse> next = (msg, ct) =>
                 new ValueTask<TestTransactionalResponse>(expectedResponse);
 
@@ -113,10 +113,10 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             var command = new TestTransactionalCommand { Data = "Test" };
             var expectedResponse = new TestTransactionalResponse { Result = "Success" };
             var nextCalled = false;
-            
+
             _unitOfWork.BeginTransactionAsync(Arg.Any<IsolationLevel>(), Arg.Any<CancellationToken>())
                 .Returns(_transaction);
-            
+
             MessageHandlerDelegate<TestTransactionalCommand, TestTransactionalResponse> next = (msg, ct) =>
             {
                 nextCalled = true;
@@ -137,10 +137,10 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var command = new TestTransactionalCommand { Data = "Test" };
             var expectedResponse = new TestTransactionalResponse { Result = "Success" };
-            
+
             _unitOfWork.BeginTransactionAsync(Arg.Any<IsolationLevel>(), Arg.Any<CancellationToken>())
                 .Returns(_transaction);
-            
+
             MessageHandlerDelegate<TestTransactionalCommand, TestTransactionalResponse> next = (msg, ct) =>
                 new ValueTask<TestTransactionalResponse>(expectedResponse);
 
@@ -152,7 +152,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
         }
     }
 
-    #pragma warning disable CA1515
+#pragma warning disable CA1515
     public class TestTransactionalCommand : ITransactionalCommand<TestTransactionalResponse>
     {
         public string Data { get; set; } = string.Empty;
@@ -162,5 +162,5 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
     {
         public string Result { get; set; } = string.Empty;
     }
-    #pragma warning restore CA1515
+#pragma warning restore CA1515
 }

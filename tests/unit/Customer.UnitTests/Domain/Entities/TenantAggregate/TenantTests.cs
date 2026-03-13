@@ -50,7 +50,7 @@ public class TenantTests
         result.IsError.ShouldBeFalse();
         result.Value.DomainEvents.ShouldNotBeEmpty();
         result.Value.DomainEvents.ShouldContain(e => e is TenantCreatedDomainEvent);
-        
+
         var domainEvent = result.Value.DomainEvents.OfType<TenantCreatedDomainEvent>().First();
         domainEvent.TenantId.ShouldBe(result.Value.Id);
         domainEvent.Identifier.ShouldBe(identifier);
@@ -112,15 +112,15 @@ public class TenantTests
                 "Enterprise",
                 DatabaseStrategy.Dedicated,
                 DatabaseProvider.PostgreSQL)).Value;
-        
+
         var serviceName = "catalog";
         var writeKey = "ConnectionStrings__Tenants__tenant-id__Write";
         var readKey = "ConnectionStrings__Tenants__tenant-id__Read";
         var hasSeparateReadDatabase = true;
- 
+
         // Act
         tenant.AddDatabaseMetadata(CreateMetadataArgs(serviceName, writeKey, readKey, hasSeparateReadDatabase));
- 
+
         // Assert
         tenant.Databases.ShouldContain(db => db.ServiceName == serviceName);
         var metadata = tenant.Databases.First(db => db.ServiceName == serviceName);
@@ -141,7 +141,7 @@ public class TenantTests
                 "Enterprise",
                 DatabaseStrategy.Dedicated,
                 DatabaseProvider.PostgreSQL)).Value;
-        
+
         tenant.Deactivate();
 
         // Act
