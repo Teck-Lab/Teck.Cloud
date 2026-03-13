@@ -52,7 +52,7 @@ namespace SharedKernel.Infrastructure.Options
         /// </summary>
         /// <typeparam name="T"/>
         /// <param name="services">The services.</param>
-        [RequiresDynamicCode()]
+        [RequiresDynamicCode("Binding strongly typed objects to configuration values may require generating dynamic code at runtime.")]
         public static void BindValidate<T>(this IServiceCollection services)
             where T : class, IOptionsRoot
         {

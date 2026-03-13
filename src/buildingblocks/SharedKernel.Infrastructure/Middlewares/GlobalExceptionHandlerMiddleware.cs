@@ -40,7 +40,7 @@ namespace SharedKernel.Infrastructure.Middlewares
         /// </summary>
         /// <param name="context">The HTTP context.</param>
         /// <returns>A task that represents the completion of request processing.</returns>
-        [RequiresDynamicCode()]
+        [RequiresDynamicCode("Calls HttpResponse.WriteAsJsonAsync which may require dynamic code at runtime.")]
         public async Task InvokeAsync(HttpContext context)
         {
             try

@@ -13,7 +13,7 @@ namespace SharedKernel.Infrastructure.Endpoints;
 public sealed class ValidationEndpointFilter : IEndpointFilter
 {
     /// <inheritdoc />
-    [RequiresDynamicCode()]
+    [RequiresDynamicCode("Calls MakeGenericType to resolve IValidator<T> at runtime.")]
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var errors = new List<Error>();

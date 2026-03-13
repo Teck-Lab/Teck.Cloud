@@ -172,7 +172,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// </summary>
         /// <param name="identifier">The tenant identifier.</param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
-        [RequiresDynamicCode()]
+        [RequiresDynamicCode("Calls HttpContent.ReadFromJsonAsync which may require dynamic code at runtime.")]
         public async Task<TenantDetails?> TryGetByIdentifierAsync(string identifier)
         {
             if (string.IsNullOrEmpty(identifier))
@@ -268,7 +268,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <param name="id">The tenant ID.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
-        [RequiresDynamicCode()]
+        [RequiresDynamicCode("Calls HttpContent.ReadFromJsonAsync which may require dynamic code at runtime.")]
         public async Task<TenantDetails?> TryGetByIdAsync(string id, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(id))

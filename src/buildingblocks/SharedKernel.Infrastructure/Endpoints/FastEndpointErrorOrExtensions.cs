@@ -14,7 +14,7 @@ public static class FastEndpointErrorOrExtensions
     /// <summary>
     /// Sends either a successful response or problem details for an ErrorOr result.
     /// </summary>
-    [RequiresDynamicCode()]
+    [RequiresDynamicCode("Calls HttpResponse.WriteAsJsonAsync which may require dynamic code at runtime.")]
     public static async Task SendAsync<TResponse>(
         this EndpointWithoutRequest<TResponse> endpoint,
         ErrorOr<TResponse> result,
@@ -35,7 +35,7 @@ public static class FastEndpointErrorOrExtensions
     /// <summary>
     /// Sends either a successful response or problem details for an ErrorOr result.
     /// </summary>
-    [RequiresDynamicCode()]
+    [RequiresDynamicCode("Calls HttpResponse.WriteAsJsonAsync which may require dynamic code at runtime.")]
     public static async Task SendAsync<TRequest, TResponse>(
         this Endpoint<TRequest, TResponse> endpoint,
         ErrorOr<TResponse> result,
