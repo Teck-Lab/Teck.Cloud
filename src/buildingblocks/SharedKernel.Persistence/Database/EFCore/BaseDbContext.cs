@@ -54,7 +54,7 @@ namespace SharedKernel.Persistence.Database.EFCore
         /// <param name="tenantDetails">The tenant information (optional).</param>
         /// <param name="tenantStrategy">The tenant database strategy (optional, defaults to Shared).</param>
         /// <param name="tenantAccessor">The multi-tenant context accessor (optional, for runtime tenant resolution).</param>
-        [RequiresDynamicCode()]
+        [RequiresDynamicCode("Calls DbContext configuration which may require dynamic code at runtime.")]
         protected BaseDbContext(
             DbContextOptions options,
             TenantDetails? tenantDetails = null,

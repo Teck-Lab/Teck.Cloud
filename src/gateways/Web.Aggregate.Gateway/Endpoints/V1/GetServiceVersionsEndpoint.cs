@@ -27,8 +27,8 @@ public sealed class GetServiceVersionsEndpoint(
         Options(endpoint => endpoint.RequireProtectedResource("system", "list"));
     }
 
-    [RequiresDynamicCode()]
-    [RequiresUnreferencedCode()]
+    [RequiresDynamicCode("Calls HttpResponse.WriteAsJsonAsync which may require dynamic code at runtime.")]
+    [RequiresUnreferencedCode("Calls HttpResponse.WriteAsJsonAsync which may require unreferenced code at runtime.")]
     public override async Task HandleAsync(CancellationToken ct)
     {
         Task<ErrorOr<ServiceVersionItem>> catalogTask = GetCatalogServiceVersionAsync(ct);
