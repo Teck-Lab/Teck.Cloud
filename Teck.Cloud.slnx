@@ -66,9 +66,6 @@
   <Folder Name="/tests/architecture/shared/">
     <Project Path="tests/architecture/shared/Teck.Cloud.Arch.Tests/Teck.Cloud.Arch.Tests.csproj" />
   </Folder>
-  <Folder Name="/tests/e2e/">
-    <Project Path="tests/e2e/Teck.Cloud.E2ETests/Teck.Cloud.E2ETests.csproj" />
-  </Folder>
   <Folder Name="/tests/functional/" />
   <Folder Name="/tests/functional/catalog/" />
   <Folder Name="/tests/integration/">

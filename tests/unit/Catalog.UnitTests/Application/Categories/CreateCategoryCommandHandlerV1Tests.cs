@@ -27,7 +27,7 @@ public class CreateCategoryCommandHandlerV1Tests
     {
         // Arrange
         var command = new CreateCategoryCommand("Test Category", "Test Description");
-        
+
         _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns(1);
 
@@ -39,7 +39,7 @@ public class CreateCategoryCommandHandlerV1Tests
         result.Value.ShouldNotBeNull();
         result.Value.Name.ShouldBe("Test Category");
         result.Value.Description.ShouldBe("Test Description");
-        
+
         await _categoryRepository.Received(1).AddAsync(Arg.Any<Category>(), Arg.Any<CancellationToken>());
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
@@ -56,7 +56,7 @@ public class CreateCategoryCommandHandlerV1Tests
         // Assert
         result.IsError.ShouldBeTrue();
         result.FirstError.Code.ShouldBe("Category.EmptyDescription");
-        
+
         await _categoryRepository.DidNotReceive().AddAsync(Arg.Any<Category>(), Arg.Any<CancellationToken>());
         await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
@@ -73,7 +73,7 @@ public class CreateCategoryCommandHandlerV1Tests
         // Assert
         result.IsError.ShouldBeTrue();
         result.FirstError.Code.ShouldBe("Category.EmptyName");
-        
+
         await _categoryRepository.DidNotReceive().AddAsync(Arg.Any<Category>(), Arg.Any<CancellationToken>());
         await _unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
