@@ -2,7 +2,6 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 #pragma warning disable SA1633,SA1101,AV2305,IDE0005,AV1555,AV1580,CA1515,CA1062,CS1591
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FastEndpoints;
 
@@ -17,8 +16,6 @@ public sealed class GetServiceVersionEndpoint : EndpointWithoutRequest<CustomerS
         AllowAnonymous();
     }
 
-    [RequiresDynamicCode()]
-    [RequiresUnreferencedCode()]
     public override async Task HandleAsync(CancellationToken ct)
     {
         string version = ResolveVersion();

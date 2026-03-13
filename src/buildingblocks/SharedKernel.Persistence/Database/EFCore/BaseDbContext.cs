@@ -81,6 +81,7 @@ namespace SharedKernel.Persistence.Database.EFCore
         /// Configures the model and applies multi-tenant configuration if applicable.
         /// </summary>
         /// <param name="modelBuilder">The model builder.</param>
+        [RequiresUnreferencedCode("Calls ApplyConfigurationsFromAssembly which uses reflection and may require unreferenced code.")]
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
