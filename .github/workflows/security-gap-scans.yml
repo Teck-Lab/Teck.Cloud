@@ -28,7 +28,7 @@ jobs:
       has_python: ${{ steps.detect.outputs.has_python }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Detect scan targets
         id: detect
@@ -50,10 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Run Trivy filesystem scan (non-blocking)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
         continue-on-error: true
         with:
           version: 'v0.69.3'
@@ -68,74 +68,40 @@ jobs:
 
       - name: Upload Trivy filesystem SARIF
         if: always() && hashFiles('trivy-fs-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
           sarif_file: trivy-fs-results.sarif
           category: trivy-filesystem
-
-      - name: Upload Trivy filesystem results to SecObserve
-        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('trivy-fs-results.sarif') != ''
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
-          so_file_name: trivy-fs-results.sarif
-          so_parser_name: SARIF
 
   gitleaks:
     name: Gitleaks Secret Detection
     runs-on: ubuntu-latest
     steps:
       - name: Checkout full history
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Install Gitleaks
-        run: |
-          GITLEAKS_VERSION="8.24.2"
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
-          tar -xzf gitleaks.tar.gz gitleaks
-          sudo mv gitleaks /usr/local/bin/gitleaks
-
       - name: Run Gitleaks (non-blocking)
-        run: |
-          gitleaks detect \
-            --source . \
-            --redact \
-            --report-format sarif \
-            --report-path gitleaks.sarif \
-            || true
-
-      - name: Upload Gitleaks SARIF
-        if: always() && hashFiles('gitleaks.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: gitleaks.sarif
-          category: gitleaks
-
-      - name: Upload Gitleaks results to SecObserve
-        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('gitleaks.sarif') != ''
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
-          so_file_name: gitleaks.sarif
-          so_parser_name: SARIF
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          GITLEAKS_ENABLE_SUMMARY: false
+        continue-on-error: true
 
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
+          cache: pip
 
       - name: Install Semgrep
         run: python -m pip install --upgrade semgrep
@@ -150,32 +116,23 @@ jobs:
 
       - name: Upload Semgrep SARIF
         if: always() && hashFiles('semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
           sarif_file: semgrep.sarif
           category: semgrep
-
-      - name: Upload Semgrep results to SecObserve
-        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('semgrep.sarif') != ''
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
-          so_file_name: semgrep.sarif
-          so_parser_name: SARIF
 
   checkov-workflows:
     name: Checkov IaC (GitHub Workflows)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
+          cache: pip
 
       - name: Install Checkov
         run: python -m pip install --upgrade checkov
@@ -209,20 +166,10 @@ jobs:
 
       - name: Upload Checkov workflow SARIF
         if: always() && steps.checkov_workflows_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
           sarif_file: checkov-workflows.sarif
           category: checkov-workflows
-
-      - name: Upload Checkov workflow results to SecObserve
-        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && steps.checkov_workflows_sarif.outputs.valid == 'true'
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
-          so_file_name: checkov-workflows.sarif
-          so_parser_name: SARIF
 
   checkov-deployment:
     name: Checkov IaC (Deployment Folder)
@@ -231,12 +178,13 @@ jobs:
     if: ${{ needs.scan-context.outputs.has_deployment == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
+          cache: pip
 
       - name: Install Checkov
         run: python -m pip install --upgrade checkov
@@ -270,20 +218,10 @@ jobs:
 
       - name: Upload Checkov deployment SARIF
         if: always() && steps.checkov_deployment_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
           sarif_file: checkov-deployment.sarif
           category: checkov-deployment
-
-      - name: Upload Checkov deployment results to SecObserve
-        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && steps.checkov_deployment_sarif.outputs.valid == 'true'
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
-          so_file_name: checkov-deployment.sarif
-          so_parser_name: SARIF
 
   bandit:
     name: Bandit (Python Security)
@@ -292,12 +230,13 @@ jobs:
     if: ${{ needs.scan-context.outputs.has_python == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
+          cache: pip
 
       - name: Install Bandit
         run: python -m pip install --upgrade bandit
@@ -312,20 +251,10 @@ jobs:
 
       - name: Upload Bandit SARIF
         if: always() && hashFiles('bandit.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
           sarif_file: bandit.sarif
           category: bandit
-
-      - name: Upload Bandit results to SecObserve
-        if: always() && vars.SO_API_BASE_URL != '' && vars.SO_PRODUCT_NAME != '' && hashFiles('bandit.sarif') != ''
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ vars.SO_PRODUCT_NAME }}
-          so_file_name: bandit.sarif
-          so_parser_name: SARIF
 
   clamav:
     name: ClamAV Malware Scan
@@ -333,7 +262,7 @@ jobs:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install ClamAV
         run: |
@@ -358,7 +287,7 @@ jobs:
 
       - name: Upload ClamAV report
         if: always() && hashFiles('clamav-report.txt') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: clamav-report
           path: clamav-report.txt
@@ -377,7 +306,7 @@ jobs:
           echo "url=$TARGET" >> "$GITHUB_OUTPUT"
 
       - name: Run ZAP baseline scan (non-blocking)
-        uses: zaproxy/action-baseline@v0.14.0
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
         with:
           target: ${{ steps.target.outputs.url }}
           fail_action: false

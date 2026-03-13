@@ -30,33 +30,9 @@ on:
         required: false
         type: string
         default: 'amqp://guest:guest@localhost:5672/'
-      dependency-track-hostname:
-        description: 'Dependency-Track hostname (no protocol)'
-        required: true
-        type: string
-      dependency-track-port:
-        description: 'Dependency-Track port'
-        required: false
-        type: string
-        default: '443'
-      dependency-track-protocol:
-        description: 'Dependency-Track protocol (https or http)'
-        required: false
-        type: string
-        default: 'https'
-      secobserve-api-base-url:
-        description: 'SecObserve backend base URL'
-        required: true
-        type: string
     secrets:
       github-token:
         description: 'GitHub token for authentication and release uploads'
-        required: true
-      dependency-track-api-key:
-        description: 'Dependency-Track API key'
-        required: true
-      secobserve-api-token:
-        description: 'SecObserve API token'
         required: true
 
 permissions:
@@ -332,13 +308,6 @@ jobs:
           echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
           echo "Image reference: $IMAGE_REF"
 
-      - name: Checkout local SecObserve action
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          sparse-checkout: |
-            .github/actions/secobserve-upload-observations
-          sparse-checkout-cone-mode: false
-          
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -347,7 +316,7 @@ jobs:
           password: ${{ secrets.github-token }}
 
       - name: Run Trivy vulnerability scanner (SARIF)
-        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         continue-on-error: true
         env:
           TRIVY_USERNAME: ${{ github.actor }}
@@ -368,22 +337,9 @@ jobs:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy-image-${{ inputs.service-name }}'
 
-      - name: Upload Trivy results to SecObserve
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ inputs.secobserve-api-base-url }}
-          so_api_token: ${{ secrets.secobserve-api-token }}
-          so_product_name: ${{ inputs.service-name }}
-          so_branch_name: ${{ inputs.version }}
-          so_file_name: trivy-results.sarif
-          so_parser_name: SARIF
-          so_origin_service: ${{ inputs.service-name }}
-          so_origin_docker_image_name_tag: ${{ steps.set-image.outputs.ref }}
-
       - name: Run Trivy vulnerability scanner (JSON)
         if: always()
-        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac # 0.31.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.github-token }}
@@ -435,6 +391,7 @@ jobs:
           output-file: sbom-${{ inputs.service-name }}.spdx.json
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.github-token }}
+          dependency-snapshot: true
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
@@ -549,94 +506,6 @@ jobs:
             sbom-${{ inputs.service-name }}.cyclonedx.json.bundle
           retention-days: 90
 
-  upload-sbom-platforms:
-    name: Upload ${{ inputs.service-name }} CycloneDX SBOM
-    runs-on: ubuntu-latest
-    needs: [sign-sboms]
-
-    steps:
-      - name: Validate external integration configuration
-        env:
-          DT_HOST: ${{ inputs.dependency-track-hostname }}
-          DT_PORT: ${{ inputs.dependency-track-port }}
-          DT_PROTOCOL: ${{ inputs.dependency-track-protocol }}
-          DT_API_KEY: ${{ secrets.dependency-track-api-key }}
-          SO_API_BASE_URL: ${{ inputs.secobserve-api-base-url }}
-          SO_API_TOKEN: ${{ secrets.secobserve-api-token }}
-        run: |
-          missing=()
-
-          [[ -z "$DT_HOST" ]] && missing+=("dependency-track-hostname")
-          [[ -z "$DT_PORT" ]] && missing+=("dependency-track-port")
-          [[ -z "$DT_PROTOCOL" ]] && missing+=("dependency-track-protocol")
-          [[ -z "$DT_API_KEY" ]] && missing+=("dependency-track-api-key")
-          [[ -z "$SO_API_BASE_URL" ]] && missing+=("secobserve-api-base-url")
-          [[ -z "$SO_API_TOKEN" ]] && missing+=("secobserve-api-token")
-
-          if [[ ${#missing[@]} -gt 0 ]]; then
-            echo "::error::Missing required integration configuration: ${missing[*]}"
-            exit 1
-          fi
-
-      - name: Checkout local SecObserve action
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          sparse-checkout: |
-            .github/actions/secobserve-upload-sbom
-          sparse-checkout-cone-mode: false
-
-      - name: Download signed CycloneDX SBOM
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        with:
-          name: sbom-cyclonedx-signed-${{ inputs.service-name }}
-          path: artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}
-
-      - name: Resolve CycloneDX SBOM path
-        id: cyclonedx
-        env:
-          SERVICE_NAME: ${{ inputs.service-name }}
-        run: |
-          SBOM_FILE="artifacts/sbom-cyclonedx-signed-${SERVICE_NAME}/sbom-${SERVICE_NAME}.cyclonedx.json"
-          if [[ ! -f "$SBOM_FILE" ]]; then
-            echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
-            exit 1
-          fi
-
-          echo "file=$SBOM_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Upload CycloneDX SBOM to Dependency-Track
-        uses: DependencyTrack/gh-upload-sbom@48feab3080ff9e8f51f4d21861d9fc914eb744f5 # v3
-        with:
-          protocol: ${{ inputs.dependency-track-protocol }}
-          serverhostname: ${{ inputs.dependency-track-hostname }}
-          port: ${{ inputs.dependency-track-port }}
-          apikey: ${{ secrets.dependency-track-api-key }}
-          projectname: ${{ inputs.service-name }}
-          projectversion: ${{ inputs.version }}
-          bomfilename: ${{ steps.cyclonedx.outputs.file }}
-          autocreate: true
-
-      - name: Upload CycloneDX SBOM to SecObserve
-        uses: ./.github/actions/secobserve-upload-sbom
-        with:
-          so_api_base_url: ${{ inputs.secobserve-api-base-url }}
-          so_api_token: ${{ secrets.secobserve-api-token }}
-          so_product_name: ${{ inputs.service-name }}
-          so_branch_name: ${{ inputs.version }}
-          so_file_name: ${{ steps.cyclonedx.outputs.file }}
-          so_origin_service: ${{ inputs.service-name }}
-
-      - name: Create external SBOM upload summary
-        env:
-          SERVICE_NAME: ${{ inputs.service-name }}
-          SERVICE_VERSION: ${{ inputs.version }}
-        run: |
-          {
-            echo "### External SBOM Publication"
-            echo "- ✅ Dependency-Track project \`${SERVICE_NAME}\` version \`${SERVICE_VERSION}\`"
-            echo "- ✅ SecObserve product \`${SERVICE_NAME}\` branch \`${SERVICE_VERSION}\` service \`${SERVICE_NAME}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
   generate-vex:
     name: Generate VEX for ${{ inputs.service-name }}
     runs-on: ubuntu-latest
@@ -670,35 +539,21 @@ jobs:
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-      - name: Run Grype scan with reachability analysis
-        run: |
-          SBOM_SOURCE="sbom:sbom-${SERVICE_NAME}.spdx.json"
-          grype "$SBOM_SOURCE" \
-            -o json \
-            --file grype-results.json
-
-      - name: Run Grype scan for SecObserve import
+      - name: Run Grype scan
         run: |
           SBOM_SOURCE="sbom:sbom-${SERVICE_NAME}.spdx.json"
           grype "$SBOM_SOURCE" \
             --by-cve \
             --quiet \
-            --output cyclonedx-json \
-            --file grype-results.cyclonedx.json
+            --output "json=grype-results.json" \
+            --output "sarif=grype-results.sarif"
 
-      - name: Upload Grype results to SecObserve
-        if: always() && hashFiles('grype-results.cyclonedx.json') != ''
-        uses: ./.github/actions/secobserve-upload-observations
+      - name: Upload Grype results to GitHub Security tab
+        if: always() && hashFiles('grype-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
-          so_api_base_url: ${{ inputs.secobserve-api-base-url }}
-          so_api_token: ${{ secrets.secobserve-api-token }}
-          so_product_name: ${{ inputs.service-name }}
-          so_branch_name: ${{ inputs.version }}
-          so_file_name: grype-results.cyclonedx.json
-          so_parser_name: CycloneDX
-          so_origin_service: ${{ inputs.service-name }}
-          so_origin_docker_image_name_tag: ${{ steps.set-image.outputs.ref }}
-          so_suppress_licenses: 'true'
+          sarif_file: grype-results.sarif
+          category: grype-${{ inputs.service-name }}
 
       - name: Generate OpenVEX document
         env:
@@ -863,7 +718,7 @@ jobs:
   upload-to-release:
     name: Upload artifacts to GitHub Release
     runs-on: ubuntu-latest
-    needs: [merge-manifests, sign-sboms, upload-sbom-platforms, generate-vex, sign-image, scan-vulnerabilities]
+    needs: [merge-manifests, sign-sboms, generate-vex, sign-image, scan-vulnerabilities]
     
     steps:
       - name: Set image reference

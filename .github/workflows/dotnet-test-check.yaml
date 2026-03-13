@@ -1,4 +1,4 @@
-name: PR Validation
+﻿name: PR Validation
 
 on:
   pull_request:
@@ -53,10 +53,10 @@ jobs:
       dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload affected.proj artifact
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected/affected.proj
@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload affected projects list
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: affected-list
           path: |
@@ -219,7 +219,7 @@ jobs:
 
       - name: Comment PR with affected projects
         if: steps.affected.outputs.has-changes == 'true'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
         with:
           header: affected-projects
           message: |
@@ -257,10 +257,10 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
@@ -274,7 +274,7 @@ jobs:
         run: dotnet restore --locked-mode
 
       - name: Download affected.proj
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected
@@ -282,9 +282,55 @@ jobs:
       - name: Build affected projects
         run: dotnet build "${{ runner.temp }}/affected/affected.proj" -c Release --no-restore
 
-      - name: Check formatting
-        run: dotnet format --verify-no-changes
-        continue-on-error: true
+  # ===================================================================
+  # Format Check: Annotate PRs with dotnet format diffs (reviewdog)
+  # ===================================================================
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@d8a7baabd7f3e8544ee4dbde3ee41d0011c3a93f # v1.5.0
+        with:
+          reviewdog_version: latest
+      - name: Restore dependencies
+        run: dotnet restore --locked-mode
+      - name: Run dotnet format and annotate
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          dotnet format
+          git diff | reviewdog -f=diff -name="dotnet-format" \
+            -reporter=github-pr-review \
+            -filter-mode=nofilter \
+            -fail-level=any
+
+  # ===================================================================
+  # Hadolint: Lint Dockerfiles and annotate PRs (reviewdog)
+  # ===================================================================
+  hadolint:
+    name: Hadolint Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Run hadolint with reviewdog
+        uses: reviewdog/action-hadolint@921946a7ebaaf08ac72607bad67209f4e52b5407 # v1.50.5
+        with:
+          github_token: ${{ github.token }}
+          reporter: github-pr-review
+          fail_level: warning
 
   # ===================================================================
   # JOB 2: Run non-E2E tests (ensure core regressions)
@@ -297,10 +343,10 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
@@ -327,7 +373,7 @@ jobs:
           done
 
       - name: Combine Coverage Reports
-        uses: danielpalme/ReportGenerator-GitHub-Action@5.5.1
+        uses: danielpalme/ReportGenerator-GitHub-Action@ee0ae774f6d3afedcbd1683c1ab21b83670bdf8e # 5.5.1
         with:
           reports: "**/*.cobertura.xml"
           targetdir: "${{ github.workspace }}"
@@ -339,14 +385,14 @@ jobs:
           toolpath: "reportgeneratortool"
 
       - name: Upload Combined Coverage XML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: coverage
           path: ${{ github.workspace }}/Cobertura.xml
           retention-days: 5
 
       - name: Publish Code Coverage Report
-        uses: irongut/CodeCoverageSummary@v1.3.0
+        uses: irongut/CodeCoverageSummary@51cc3a756ddcd398d447c044c02cb6aa83fdae95 # v1.3.0
         with:
           filename: "Cobertura.xml"
           badge: true
@@ -359,7 +405,7 @@ jobs:
           thresholds: "10 30"
 
       - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
         if: github.event_name == 'pull_request'
         with:
           header: coverage
@@ -367,14 +413,14 @@ jobs:
 
       - name: Upload Test Result Files
         if: always() && hashFiles('**/TestResults/**/*') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
           retention-days: 5
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@2c87efac073270a76b2a8c81d9b1e3b082f245c8 # v1.3.1
         if: always() && hashFiles('**/*.trx') != ''
         with:
           name: Tests
@@ -392,10 +438,10 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' && github.event.action == 'labeled' && github.event.label.name == 'run-e2e' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
@@ -416,14 +462,14 @@ jobs:
 
       - name: Upload E2E test result files
         if: always() && hashFiles('**/TestResults/**/*') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: e2e-test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
           retention-days: 5
 
       - name: Publish E2E test results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@2c87efac073270a76b2a8c81d9b1e3b082f245c8 # v1.3.1
         if: always() && hashFiles('**/*.trx') != ''
         with:
           name: E2E Tests
@@ -493,7 +539,7 @@ jobs:
           echo "platform_pair=$PLATFORM_PAIR" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Read .NET container versions
         id: dotnet-version
@@ -536,22 +582,22 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
         with:
           images: ghcr.io/${{ steps.build-vars.outputs.repo_lower }}
           tags: ${{ github.sha }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
         with:
           version: latest
 
       - name: Log in to GitHub Container Registry for registry cache
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -559,7 +605,7 @@ jobs:
 
       - name: Build image (no push, registry cache)
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -587,7 +633,7 @@ jobs:
 
       - name: Build image (no push, scoped GHA cache fallback)
         if: github.event.pull_request.head.repo.full_name != github.repository
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -614,7 +660,7 @@ jobs:
             RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
       - name: Run Trivy vulnerability scanner on Docker image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
         continue-on-error: true
         with:
           version: 'v0.69.3'
@@ -627,474 +673,25 @@ jobs:
 
       - name: Upload Trivy scan results to Security tab
         if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b5ebac6f4c00c8ccddb7cdcd45fdb248329f808a # v3
         with:
           sarif_file: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
           category: 'trivy-image-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}'
 
-      - name: Upload Trivy image SARIF artifact
-        if: github.event.pull_request.head.repo.full_name == github.repository && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-image-pr-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
-          path: trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif
-          retention-days: 1
-
-      - name: Generate CycloneDX SBOM for PR image
+      - name: Generate SPDX SBOM and submit to Dependency Graph
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
         with:
           image: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
-          format: cyclonedx-json
+          format: spdx-json
+          dependency-snapshot: true
           upload-artifact: false
-          output-file: sbom-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}.cyclonedx.json
 
-      - name: Upload CycloneDX SBOM artifact
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-pr-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
-          path: sbom-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}.cyclonedx.json
-          retention-days: 1
-
-      - name: Skip external SBOM uploads for fork PRs
-        if: github.event.pull_request.head.repo.full_name != github.repository
-        run: |
-          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
-          ### External SBOM uploads skipped
-          - Pull request source is a fork repository, so repository secrets are not available.
-          - Dependency-Track and SecObserve uploads are enforced only for internal PRs.
-          EOF
-
-  upload-dependency-track-sbom:
-    name: Upload Dependency-Track SBOM
-    runs-on: ubuntu-latest
-    needs: [check-label, detect-affected, docker-affected]
-    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' && github.event.pull_request.head.repo.full_name == github.repository }}
-    strategy:
-      max-parallel: 1
-      matrix:
-        paths: ${{ fromJson(needs.detect-affected.outputs.dockerfiles) }}
-      fail-fast: false
-    steps:
-      - name: Extract service name from Dockerfile path
-        id: service-info
-        run: |
-          DOCKERFILE_PATH="${{ matrix.paths }}"
-          NORMALIZED_DOCKERFILE_PATH=$(echo "$DOCKERFILE_PATH" | sed -E 's|^\./||')
-          SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
-          SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
-          SERVICE_PROJECT=$(echo "$NORMALIZED_DOCKERFILE_PATH" | awk -F/ '{for(i=1;i<=NF;i++){if($i=="services" && (i+1)<=NF){print $(i+1); exit}}}')
-          if [ -z "$SERVICE_PROJECT" ]; then
-            SERVICE_PROJECT="$SERVICE_NAME"
-          fi
-
-          DT_PROJECT_VERSION_BASE="pr-${{ github.event.pull_request.number }}"
-
-          echo "service_name=$SERVICE_NAME" >> "$GITHUB_OUTPUT"
-          echo "service_project=$SERVICE_PROJECT" >> "$GITHUB_OUTPUT"
-          echo "dt_project_version_base=$DT_PROJECT_VERSION_BASE" >> "$GITHUB_OUTPUT"
-
-      - name: Download CycloneDX SBOM artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: sbom-pr-${{ steps.service-info.outputs.service_project }}-linux-*
-          merge-multiple: true
-          path: sbom
-
-      - name: Resolve amd64 CycloneDX SBOM path
-        id: sbom-amd64
-        run: |
-          SBOM_FILE="sbom/sbom-${{ steps.service-info.outputs.service_project }}-linux-amd64.cyclonedx.json"
-          if [[ ! -f "$SBOM_FILE" ]]; then
-            echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
-            exit 1
-          fi
-
-          echo "file=$SBOM_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve arm64 CycloneDX SBOM path
-        id: sbom-arm64
-        run: |
-          SBOM_FILE="sbom/sbom-${{ steps.service-info.outputs.service_project }}-linux-arm64.cyclonedx.json"
-          if [[ ! -f "$SBOM_FILE" ]]; then
-            echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
-            exit 1
-          fi
-
-          echo "file=$SBOM_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Validate amd64 CycloneDX SBOM for Dependency-Track
-        id: dt-sbom-validate-amd64
-        shell: bash
-        run: |
-          COMPONENT_COUNT=$(jq '.components | length // 0' "${{ steps.sbom-amd64.outputs.file }}")
-          echo "component_count=$COMPONENT_COUNT" >> "$GITHUB_OUTPUT"
-
-          if [[ "$COMPONENT_COUNT" -gt 0 ]]; then
-            echo "has_components=true" >> "$GITHUB_OUTPUT"
-            echo "Dependency-Track amd64 SBOM component count: $COMPONENT_COUNT"
-          else
-            echo "has_components=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Dependency-Track amd64 SBOM contains zero components. Upload will be skipped."
-          fi
-
-      - name: Validate arm64 CycloneDX SBOM for Dependency-Track
-        id: dt-sbom-validate-arm64
-        shell: bash
-        run: |
-          COMPONENT_COUNT=$(jq '.components | length // 0' "${{ steps.sbom-arm64.outputs.file }}")
-          echo "component_count=$COMPONENT_COUNT" >> "$GITHUB_OUTPUT"
-
-          if [[ "$COMPONENT_COUNT" -gt 0 ]]; then
-            echo "has_components=true" >> "$GITHUB_OUTPUT"
-            echo "Dependency-Track arm64 SBOM component count: $COMPONENT_COUNT"
-          else
-            echo "has_components=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Dependency-Track arm64 SBOM contains zero components. Upload will be skipped."
-          fi
-
-      - name: Validate Dependency-Track configuration
-        if: steps.dt-sbom-validate-amd64.outputs.has_components == 'true' || steps.dt-sbom-validate-arm64.outputs.has_components == 'true'
-        shell: bash
-        run: |
-          if [[ -z "${{ vars.DEPENDENCYTRACK_HOSTNAME }}" ]]; then
-            echo "::error::DEPENDENCYTRACK_HOSTNAME repository variable is not set."
-            exit 1
-          fi
-
-          if [[ -z "${{ secrets.DEPENDENCYTRACK_APIKEY }}" ]]; then
-            echo "::error::DEPENDENCYTRACK_APIKEY repository secret is not set."
-            exit 1
-          fi
-
-      - name: Upload amd64 CycloneDX SBOM to Dependency-Track
-        if: steps.dt-sbom-validate-amd64.outputs.has_components == 'true'
-        uses: DependencyTrack/gh-upload-sbom@48feab3080ff9e8f51f4d21861d9fc914eb744f5 # v3
-        with:
-          protocol: ${{ vars.DEPENDENCYTRACK_PROTOCOL || 'https' }}
-          serverhostname: ${{ vars.DEPENDENCYTRACK_HOSTNAME }}
-          port: ${{ vars.DEPENDENCYTRACK_PORT || '443' }}
-          apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
-          projectname: ${{ steps.service-info.outputs.service_project }}
-          projectversion: ${{ steps.service-info.outputs.dt_project_version_base }}-linux-amd64
-          bomfilename: ${{ steps.sbom-amd64.outputs.file }}
-          autocreate: true
-
-      - name: Upload arm64 CycloneDX SBOM to Dependency-Track
-        if: steps.dt-sbom-validate-arm64.outputs.has_components == 'true'
-        uses: DependencyTrack/gh-upload-sbom@48feab3080ff9e8f51f4d21861d9fc914eb744f5 # v3
-        with:
-          protocol: ${{ vars.DEPENDENCYTRACK_PROTOCOL || 'https' }}
-          serverhostname: ${{ vars.DEPENDENCYTRACK_HOSTNAME }}
-          port: ${{ vars.DEPENDENCYTRACK_PORT || '443' }}
-          apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
-          projectname: ${{ steps.service-info.outputs.service_project }}
-          projectversion: ${{ steps.service-info.outputs.dt_project_version_base }}-linux-arm64
-          bomfilename: ${{ steps.sbom-arm64.outputs.file }}
-          autocreate: true
-
-      - name: Explain skipped amd64 Dependency-Track upload
-        if: steps.dt-sbom-validate-amd64.outputs.has_components != 'true'
-        run: |
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### Dependency-Track amd64 upload skipped
-          - Service: ${{ steps.service-info.outputs.service_project }}
-          - Version: ${{ steps.service-info.outputs.dt_project_version_base }}-linux-amd64
-          - Generated CycloneDX SBOM has zero components.
-          EOF
-
-      - name: Explain skipped arm64 Dependency-Track upload
-        if: steps.dt-sbom-validate-arm64.outputs.has_components != 'true'
-        run: |
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### Dependency-Track arm64 upload skipped
-          - Service: ${{ steps.service-info.outputs.service_project }}
-          - Version: ${{ steps.service-info.outputs.dt_project_version_base }}-linux-arm64
-          - Generated CycloneDX SBOM has zero components.
-          EOF
-
-  upload-secobserve-sbom:
-    name: Upload SecObserve SBOM
-    runs-on: ubuntu-latest
-    needs: [check-label, detect-affected, docker-affected]
-    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
-    strategy:
-      max-parallel: 1
-      matrix:
-        paths: ${{ fromJson(needs.detect-affected.outputs.dockerfiles) }}
-      fail-fast: false
-    steps:
-      - name: Extract service name from Dockerfile path
-        id: service-info
-        run: |
-          DOCKERFILE_PATH="${{ matrix.paths }}"
-          NORMALIZED_DOCKERFILE_PATH=$(echo "$DOCKERFILE_PATH" | sed -E 's|^\./||')
-          SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
-          SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
-          SERVICE_PROJECT=$(echo "$NORMALIZED_DOCKERFILE_PATH" | awk -F/ '{for(i=1;i<=NF;i++){if($i=="services" && (i+1)<=NF){print $(i+1); exit}}}')
-          if [ -z "$SERVICE_PROJECT" ]; then
-            SERVICE_PROJECT="$SERVICE_NAME"
-          fi
-
-          SO_BRANCH_NAME="pr-${{ github.event.pull_request.number }}"
-
-          echo "service_name=$SERVICE_NAME" >> "$GITHUB_OUTPUT"
-          echo "service_project=$SERVICE_PROJECT" >> "$GITHUB_OUTPUT"
-          echo "so_branch_name=$SO_BRANCH_NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout local SecObserve action
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            .github/actions/secobserve-upload-observations
-            .github/actions/secobserve-upload-sbom
-          sparse-checkout-cone-mode: false
-
-      - name: Download CycloneDX SBOM artifacts
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/download-artifact@v4
-        with:
-          pattern: sbom-pr-${{ steps.service-info.outputs.service_project }}-linux-*
-          merge-multiple: true
-          path: sbom
-
-      - name: Download Trivy image SARIF artifacts
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/download-artifact@v4
-        with:
-          pattern: trivy-image-pr-${{ steps.service-info.outputs.service_project }}-linux-*
-          merge-multiple: true
-          path: observations
-
-      - name: Resolve amd64 CycloneDX SBOM path
-        id: sbom-amd64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          SBOM_FILE="sbom/sbom-${{ steps.service-info.outputs.service_project }}-linux-amd64.cyclonedx.json"
-          if [[ ! -f "$SBOM_FILE" ]]; then
-            echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
-            exit 1
-          fi
-
-          echo "file=$SBOM_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve arm64 CycloneDX SBOM path
-        id: sbom-arm64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          SBOM_FILE="sbom/sbom-${{ steps.service-info.outputs.service_project }}-linux-arm64.cyclonedx.json"
-          if [[ ! -f "$SBOM_FILE" ]]; then
-            echo "::error::CycloneDX SBOM not found: $SBOM_FILE"
-            exit 1
-          fi
-
-          echo "file=$SBOM_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve amd64 Trivy SARIF path
-        id: trivy-amd64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          TRIVY_FILE="observations/trivy-image-results-${{ steps.service-info.outputs.service_name }}-linux-amd64.sarif"
-          if [[ ! -f "$TRIVY_FILE" ]]; then
-            echo "::error::Trivy SARIF not found: $TRIVY_FILE"
-            exit 1
-          fi
-
-          echo "file=$TRIVY_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve arm64 Trivy SARIF path
-        id: trivy-arm64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          TRIVY_FILE="observations/trivy-image-results-${{ steps.service-info.outputs.service_name }}-linux-arm64.sarif"
-          if [[ ! -f "$TRIVY_FILE" ]]; then
-            echo "::error::Trivy SARIF not found: $TRIVY_FILE"
-            exit 1
-          fi
-
-          echo "file=$TRIVY_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Validate amd64 CycloneDX SBOM for SecObserve
-        id: secobserve-sbom-validate-amd64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        shell: bash
-        run: |
-          COMPONENT_COUNT=$(jq '.components | length // 0' "${{ steps.sbom-amd64.outputs.file }}")
-          echo "component_count=$COMPONENT_COUNT" >> "$GITHUB_OUTPUT"
-
-          if [[ "$COMPONENT_COUNT" -gt 0 ]]; then
-            echo "has_components=true" >> "$GITHUB_OUTPUT"
-            echo "SecObserve amd64 SBOM component count: $COMPONENT_COUNT"
-          else
-            echo "has_components=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::SecObserve amd64 SBOM contains zero components. Upload will be skipped."
-          fi
-
-      - name: Validate arm64 CycloneDX SBOM for SecObserve
-        id: secobserve-sbom-validate-arm64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        shell: bash
-        run: |
-          COMPONENT_COUNT=$(jq '.components | length // 0' "${{ steps.sbom-arm64.outputs.file }}")
-          echo "component_count=$COMPONENT_COUNT" >> "$GITHUB_OUTPUT"
-
-          if [[ "$COMPONENT_COUNT" -gt 0 ]]; then
-            echo "has_components=true" >> "$GITHUB_OUTPUT"
-            echo "SecObserve arm64 SBOM component count: $COMPONENT_COUNT"
-          else
-            echo "has_components=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::SecObserve arm64 SBOM contains zero components. Upload will be skipped."
-          fi
-
-      - name: Validate SecObserve configuration
-        if: github.event.pull_request.head.repo.full_name == github.repository && (steps.secobserve-sbom-validate-amd64.outputs.has_components == 'true' || steps.secobserve-sbom-validate-arm64.outputs.has_components == 'true')
-        shell: bash
-        run: |
-          if [[ -z "${{ vars.SO_API_BASE_URL }}" ]]; then
-            echo "::error::SO_API_BASE_URL repository variable is not set."
-            exit 1
-          fi
-
-          if [[ -z "${{ secrets.SO_API_TOKEN }}" ]]; then
-            echo "::error::SO_API_TOKEN repository secret is not set."
-            exit 1
-          fi
-
-      - name: Upload amd64 CycloneDX SBOM to SecObserve
-        id: secobserve-upload-amd64
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate-amd64.outputs.has_components == 'true'
-        continue-on-error: true
-        uses: ./.github/actions/secobserve-upload-sbom
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ steps.service-info.outputs.service_project }}
-          so_branch_name: ${{ steps.service-info.outputs.so_branch_name }}
-          so_file_name: ${{ steps.sbom-amd64.outputs.file }}
-          so_origin_service: ${{ steps.service-info.outputs.service_project }}
-
-      - name: Upload amd64 Trivy image results to SecObserve
-        id: secobserve-trivy-upload-amd64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ steps.service-info.outputs.service_project }}
-          so_branch_name: ${{ steps.service-info.outputs.so_branch_name }}
-          so_file_name: ${{ steps.trivy-amd64.outputs.file }}
-          so_parser_name: SARIF
-          so_origin_service: ${{ steps.service-info.outputs.service_project }}
-          so_origin_docker_image_name_tag: ${{ steps.service-info.outputs.service_name }}:test-${{ github.sha }}
-
-      - name: Upload arm64 CycloneDX SBOM to SecObserve
-        id: secobserve-upload-arm64
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate-arm64.outputs.has_components == 'true'
-        continue-on-error: true
-        uses: ./.github/actions/secobserve-upload-sbom
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ steps.service-info.outputs.service_project }}
-          so_branch_name: ${{ steps.service-info.outputs.so_branch_name }}
-          so_file_name: ${{ steps.sbom-arm64.outputs.file }}
-          so_origin_service: ${{ steps.service-info.outputs.service_project }}
-
-      - name: Upload arm64 Trivy image results to SecObserve
-        id: secobserve-trivy-upload-arm64
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        uses: ./.github/actions/secobserve-upload-observations
-        with:
-          so_api_base_url: ${{ vars.SO_API_BASE_URL }}
-          so_api_token: ${{ secrets.SO_API_TOKEN }}
-          so_product_name: ${{ steps.service-info.outputs.service_project }}
-          so_branch_name: ${{ steps.service-info.outputs.so_branch_name }}
-          so_file_name: ${{ steps.trivy-arm64.outputs.file }}
-          so_parser_name: SARIF
-          so_origin_service: ${{ steps.service-info.outputs.service_project }}
-          so_origin_docker_image_name_tag: ${{ steps.service-info.outputs.service_name }}:test-${{ github.sha }}
-
-      - name: Summarize amd64 SecObserve upload warning
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate-amd64.outputs.has_components == 'true' && steps.secobserve-upload-amd64.outcome == 'failure'
-        run: |
-          echo "::warning::SecObserve amd64 SBOM upload failed. Continuing because SecObserve is treated as a best-effort external integration."
-
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### SecObserve amd64 upload warning
-          - Service: ${{ steps.service-info.outputs.service_project }}
-          - Branch: ${{ steps.service-info.outputs.so_branch_name }}
-          - File: ${{ steps.sbom-amd64.outputs.file }}
-          - Flow: local GitHub action wrapper around the official SecObserve SBOM entrypoint
-          - Behavior: workflow continued because SecObserve is treated as a best-effort external integration for PRs
-          EOF
-
-      - name: Summarize amd64 SecObserve Trivy upload warning
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-trivy-upload-amd64.outcome == 'failure'
-        run: |
-          echo "::warning::SecObserve amd64 Trivy upload failed. Continuing because SecObserve is treated as a best-effort external integration."
-
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### SecObserve amd64 Trivy upload warning
-          - Service: ${{ steps.service-info.outputs.service_project }}
-          - Branch: ${{ steps.service-info.outputs.so_branch_name }}
-          - File: ${{ steps.trivy-amd64.outputs.file }}
-          - Behavior: workflow continued because SecObserve is treated as a best-effort external integration for PRs
-          EOF
-
-      - name: Summarize arm64 SecObserve upload warning
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate-arm64.outputs.has_components == 'true' && steps.secobserve-upload-arm64.outcome == 'failure'
-        run: |
-          echo "::warning::SecObserve arm64 SBOM upload failed. Continuing because SecObserve is treated as a best-effort external integration."
-
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### SecObserve arm64 upload warning
-          - Service: ${{ steps.service-info.outputs.service_project }}
-          - Branch: ${{ steps.service-info.outputs.so_branch_name }}
-          - File: ${{ steps.sbom-arm64.outputs.file }}
-          - Flow: local GitHub action wrapper around the official SecObserve SBOM entrypoint
-          - Behavior: workflow continued because SecObserve is treated as a best-effort external integration for PRs
-          EOF
-
-      - name: Summarize arm64 SecObserve Trivy upload warning
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-trivy-upload-arm64.outcome == 'failure'
-        run: |
-          echo "::warning::SecObserve arm64 Trivy upload failed. Continuing because SecObserve is treated as a best-effort external integration."
-
-          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### SecObserve arm64 Trivy upload warning
-          - Service: ${{ steps.service-info.outputs.service_project }}
-          - Branch: ${{ steps.service-info.outputs.so_branch_name }}
-          - File: ${{ steps.trivy-arm64.outputs.file }}
-          - Behavior: workflow continued because SecObserve is treated as a best-effort external integration for PRs
-          EOF
-
-      - name: Explain skipped SecObserve uploads
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.secobserve-sbom-validate-amd64.outputs.has_components != 'true' && steps.secobserve-sbom-validate-arm64.outputs.has_components != 'true'
-        run: |
-          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
-          ### SecObserve uploads skipped
-          - Generated CycloneDX SBOMs have zero components.
-          - Skipping upload because SecObserve requires component data for useful results.
-          EOF
-
-      - name: Skip external SBOM uploads for fork PRs
-        if: github.event.pull_request.head.repo.full_name != github.repository
-        run: |
-          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
-          ### External SBOM uploads skipped
-          - Pull request source is a fork repository, so repository secrets are not available.
-          - Dependency-Track and SecObserve uploads are enforced only for internal PRs.
-          EOF
-  
   # This job ensures that the required status check always passes, even when other jobs are skipped
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
-    needs: [build-affected, test-all, test-e2e, docker-affected, upload-dependency-track-sbom, upload-secobserve-sbom, detect-affected, check-label]
+    needs: [build-affected, test-all, test-e2e, docker-affected, detect-affected, check-label, format-check, hadolint]
     if: always()
     steps:
       - name: Check if build-affected was successful or skipped
@@ -1137,26 +734,26 @@ jobs:
             exit 1
           fi
 
-      - name: Check if upload-dependency-track-sbom was successful or skipped
+      - name: Check if format-check was successful
         run: |
-          if [[ "${{ needs.upload-dependency-track-sbom.result }}" == "success" ]] || [[ "${{ needs.upload-dependency-track-sbom.result }}" == "skipped" ]]; then
-            echo "✅ Dependency-Track upload job passed or was skipped - OK"
+          if [[ "${{ needs.format-check.result }}" == "success" ]]; then
+            echo "✅ Format check passed"
             exit 0
           else
-            echo "❌ Dependency-Track upload job failed"
+            echo "❌ Format check failed"
             exit 1
           fi
 
-      - name: Check if upload-secobserve-sbom was successful or skipped
+      - name: Check if hadolint was successful
         run: |
-          if [[ "${{ needs.upload-secobserve-sbom.result }}" == "success" ]] || [[ "${{ needs.upload-secobserve-sbom.result }}" == "skipped" ]]; then
-            echo "✅ SecObserve upload job passed or was skipped - OK"
+          if [[ "${{ needs.hadolint.result }}" == "success" ]]; then
+            echo "✅ Hadolint passed"
             exit 0
           else
-            echo "❌ SecObserve upload job failed"
+            echo "❌ Hadolint failed"
             exit 1
           fi
-      
+
       - name: All checks passed
         run: echo "✅ All required checks completed successfully or were skipped"
 

@@ -61,11 +61,5 @@ jobs:
       # Auth service doesn't need PostgreSQL/RabbitMQ (Keycloak-based)
       postgres-connection: ''
       rabbitmq-connection: ''
-      dependency-track-hostname: ${{ vars.DEPENDENCYTRACK_HOSTNAME }}
-      dependency-track-port: ${{ vars.DEPENDENCYTRACK_PORT || '443' }}
-      dependency-track-protocol: ${{ vars.DEPENDENCYTRACK_PROTOCOL || 'https' }}
-      secobserve-api-base-url: ${{ vars.SO_API_BASE_URL }}
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
-      dependency-track-api-key: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
-      secobserve-api-token: ${{ secrets.SO_API_TOKEN }}
