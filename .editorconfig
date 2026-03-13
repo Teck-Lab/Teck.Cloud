@@ -24,6 +24,15 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 dotnet_diagnostic.HLQ012.severity = none
 
+# Trimming / AOT diagnostics — suppressed project-wide because these are ASP.NET Core
+# web services not published as trimmed or AOT. The trimming analyzer fires on any
+# reflection-based API and dotnet format endlessly tries to add [RequiresDynamicCode]/
+# [RequiresUnreferencedCode] to override chains where the base doesn't have them.
+dotnet_diagnostic.IL2026.severity = none
+dotnet_diagnostic.IL2046.severity = none
+dotnet_diagnostic.IL3050.severity = none
+dotnet_diagnostic.IL3051.severity = none
+
 # Xml project files
 [*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
 indent_style = space
