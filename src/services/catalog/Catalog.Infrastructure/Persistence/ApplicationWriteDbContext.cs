@@ -72,7 +72,7 @@ public class ApplicationWriteDbContext : BaseDbContext
     /// On model creating.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
-    [RequiresUnreferencedCode()]
+    [RequiresUnreferencedCode("Calls ApplyConfigurationsFromAssembly which uses reflection and may require unreferenced code.")]
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
