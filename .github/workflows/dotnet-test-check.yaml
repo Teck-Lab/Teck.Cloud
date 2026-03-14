@@ -6,12 +6,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
-  packages: write
-  pull-requests: write
-  checks: write
-  issues: write
-  security-events: write
+  contents: read
 
 env:
   DOTNET_VERSION: "10.0.201"
@@ -27,6 +22,9 @@ jobs:
   check-label:
     name: Check label
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       status: ${{steps.label-check.outputs.label_check}}
     steps:
@@ -46,6 +44,9 @@ jobs:
   detect-affected:
     name: Detect Affected Projects
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     outputs:
       affected: ${{ steps.affected.outputs.affected }}
       affected-json: ${{ steps.affected.outputs.affected-json }}
@@ -255,6 +256,8 @@ jobs:
     name: Build affected projects
     needs: [check-label, detect-affected]
     if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' }}
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -321,6 +324,9 @@ jobs:
   hadolint:
     name: Hadolint Dockerfile Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -340,6 +346,10 @@ jobs:
     timeout-minutes: 45
     needs: [check-label]
     if: ${{ needs.check-label.outputs.status == 'success' }}
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -431,6 +441,10 @@ jobs:
     name: Build Docker image
     needs: [check-label, detect-affected, build-affected]
     if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
+    permissions:
+      contents: write
+      packages: write
+      security-events: write
     
     # Service containers for Docker build (needed for Wolverine codegen)
     services:
@@ -640,6 +654,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-affected, test-all, docker-affected, detect-affected, check-label, format-check, hadolint]
     if: always()
+    permissions:
+      contents: read
     steps:
       - name: Check if build-affected was successful or skipped
         run: |

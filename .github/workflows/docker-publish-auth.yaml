@@ -5,11 +5,7 @@ on:
     types: [published, prereleased]
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
-  security-events: write
+  contents: read
 
 jobs:
   get-version:
@@ -52,6 +48,12 @@ jobs:
     name: Build, Sign & SBOM - auth
     needs: [get-version, check-auth]
     if: needs.check-auth.outputs.exists == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
     uses: ./.github/workflows/reusable-build-sign-sbom.yml
     with:
       service-name: auth

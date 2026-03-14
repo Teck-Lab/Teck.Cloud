@@ -36,16 +36,15 @@ on:
         required: true
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
-  security-events: write
+  contents: read
 
 jobs:
   build-and-push:
     name: Build ${{ inputs.service-name }} (${{ matrix.builder.platform }})
     runs-on: ${{ matrix.builder.runner-image }}
+    permissions:
+      contents: read
+      packages: write
     
     # Service containers needed for Wolverine codegen during build
     services:
@@ -217,6 +216,9 @@ jobs:
     name: Merge ${{ inputs.service-name }} manifests
     runs-on: ubuntu-latest
     needs: [build-and-push]
+    permissions:
+      contents: read
+      packages: write
     outputs:
       digest: ${{ steps.merge.outputs.digest }}
       image-ref: ${{ steps.image-ref.outputs.ref }}
@@ -314,14 +316,22 @@ jobs:
     name: Scan ${{ inputs.service-name }} vulnerabilities
     runs-on: ubuntu-latest
     needs: [merge-manifests]
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
     
     steps:
       - name: Set image reference
         id: set-image
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ inputs.service-name }}
+          IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
-          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
-          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           echo "Image reference: $IMAGE_REF"
 
       - name: Log in to GitHub Container Registry
@@ -379,6 +389,9 @@ jobs:
     name: Generate SBOMs for ${{ inputs.service-name }}
     runs-on: ubuntu-latest
     needs: [merge-manifests]
+    permissions:
+      contents: write
+      packages: read
     outputs:
       spdx-sbom: sbom-${{ inputs.service-name }}.spdx.json
       cyclonedx-sbom: sbom-${{ inputs.service-name }}.cyclonedx.json
@@ -386,10 +399,14 @@ jobs:
     steps:
       - name: Set image reference
         id: set-image
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ inputs.service-name }}
+          IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
-          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
-          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           echo "Image reference: $IMAGE_REF"
           
       - name: Log in to GitHub Container Registry
@@ -436,13 +453,20 @@ jobs:
     name: Sign SBOMs for ${{ inputs.service-name }}
     runs-on: ubuntu-latest
     needs: [merge-manifests, generate-sboms]
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     
     steps:
       - name: Set image name
         id: set-image
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ inputs.service-name }}
         run: |
-          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          echo "name=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}" >> $GITHUB_OUTPUT
+          REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
           
       - name: Download SPDX SBOM
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -458,40 +482,64 @@ jobs:
         uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
 
       - name: Sign SPDX SBOM with Cosign
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
         run: |
+          SPDX_FILE="sbom-${SERVICE_NAME}.spdx.json"
+          BUNDLE_FILE="${SPDX_FILE}.bundle"
+          SIGNATURE_FILE="${SPDX_FILE}.sig"
+          CERTIFICATE_FILE="${SPDX_FILE}.cert"
+
           cosign sign-blob --yes \
-            --bundle sbom-${{ inputs.service-name }}.spdx.json.bundle \
-            sbom-${{ inputs.service-name }}.spdx.json
+            --bundle "$BUNDLE_FILE" \
+            "$SPDX_FILE"
           
           # Extract signature and certificate for separate storage (Cosign bundle v0.3 format)
-          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.messageSignature.signature' | base64 -d > sbom-${{ inputs.service-name }}.spdx.json.sig
-          cat sbom-${{ inputs.service-name }}.spdx.json.bundle | jq -r '.verificationMaterial.certificate.rawBytes' | base64 -d > sbom-${{ inputs.service-name }}.spdx.json.cert
+          jq -r '.messageSignature.signature' "$BUNDLE_FILE" | base64 -d > "$SIGNATURE_FILE"
+          jq -r '.verificationMaterial.certificate.rawBytes' "$BUNDLE_FILE" | base64 -d > "$CERTIFICATE_FILE"
 
       - name: Sign CycloneDX SBOM with Cosign
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
         run: |
+          CYCLONEDX_FILE="sbom-${SERVICE_NAME}.cyclonedx.json"
+          BUNDLE_FILE="${CYCLONEDX_FILE}.bundle"
+          SIGNATURE_FILE="${CYCLONEDX_FILE}.sig"
+          CERTIFICATE_FILE="${CYCLONEDX_FILE}.cert"
+
           cosign sign-blob --yes \
-            --bundle sbom-${{ inputs.service-name }}.cyclonedx.json.bundle \
-            sbom-${{ inputs.service-name }}.cyclonedx.json
+            --bundle "$BUNDLE_FILE" \
+            "$CYCLONEDX_FILE"
           
           # Extract signature and certificate (Cosign bundle v0.3 format)
-          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.messageSignature.signature' | base64 -d > sbom-${{ inputs.service-name }}.cyclonedx.json.sig
-          cat sbom-${{ inputs.service-name }}.cyclonedx.json.bundle | jq -r '.verificationMaterial.certificate.rawBytes' | base64 -d > sbom-${{ inputs.service-name }}.cyclonedx.json.cert
+          jq -r '.messageSignature.signature' "$BUNDLE_FILE" | base64 -d > "$SIGNATURE_FILE"
+          jq -r '.verificationMaterial.certificate.rawBytes' "$BUNDLE_FILE" | base64 -d > "$CERTIFICATE_FILE"
 
       - name: Verify SPDX SBOM signature
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          REPOSITORY_NAME: ${{ github.repository }}
         run: |
+          SPDX_FILE="sbom-${SERVICE_NAME}.spdx.json"
+
           cosign verify-blob \
-            --bundle sbom-${{ inputs.service-name }}.spdx.json.bundle \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --bundle "${SPDX_FILE}.bundle" \
+            --certificate-identity-regexp="^https://github.com/${REPOSITORY_NAME}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            sbom-${{ inputs.service-name }}.spdx.json
+            "$SPDX_FILE"
 
       - name: Verify CycloneDX SBOM signature
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          REPOSITORY_NAME: ${{ github.repository }}
         run: |
+          CYCLONEDX_FILE="sbom-${SERVICE_NAME}.cyclonedx.json"
+
           cosign verify-blob \
-            --bundle sbom-${{ inputs.service-name }}.cyclonedx.json.bundle \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --bundle "${CYCLONEDX_FILE}.bundle" \
+            --certificate-identity-regexp="^https://github.com/${REPOSITORY_NAME}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            sbom-${{ inputs.service-name }}.cyclonedx.json
+            "$CYCLONEDX_FILE"
 
       - name: Attest SPDX SBOM
         uses: actions/attest-sbom@07e74fc4e78d1aad915e867f9a094073a9f71527 # v4.0.0
@@ -526,6 +574,10 @@ jobs:
     name: Generate VEX for ${{ inputs.service-name }}
     runs-on: ubuntu-latest
     needs: [merge-manifests, generate-sboms, scan-vulnerabilities]
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
     env:
       SERVICE_NAME: ${{ inputs.service-name }}
       SERVICE_VERSION: ${{ inputs.version }}
@@ -691,16 +743,25 @@ jobs:
     name: Sign ${{ inputs.service-name }} image
     runs-on: ubuntu-latest
     needs: [merge-manifests, scan-vulnerabilities]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     
     steps:
       - name: Set image reference
         id: set-image
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ inputs.service-name }}
+          IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
-          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
-          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${{ inputs.service-name }}"
-          IMAGE_REF="$IMAGE_NAME@${{ needs.merge-manifests.outputs.digest }}"
-          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
-          echo "name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          IMAGE_REF="${IMAGE_NAME}@${IMAGE_DIGEST}"
+          echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+          echo "name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
           
       - name: Install Cosign
         uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
@@ -713,16 +774,21 @@ jobs:
           password: ${{ secrets.github-token }}
 
       - name: Sign container image
+        env:
+          IMAGE_REF: ${{ steps.set-image.outputs.ref }}
         run: |
           cosign sign --yes \
-            ${{ steps.set-image.outputs.ref }}
+            "$IMAGE_REF"
 
       - name: Verify image signature
+        env:
+          IMAGE_REF: ${{ steps.set-image.outputs.ref }}
+          REPOSITORY_NAME: ${{ github.repository }}
         run: |
           cosign verify \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --certificate-identity-regexp="^https://github.com/${REPOSITORY_NAME}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ steps.set-image.outputs.ref }}
+            "$IMAGE_REF"
 
       - name: Generate build provenance attestation (SLSA L3)
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
@@ -735,13 +801,19 @@ jobs:
     name: Upload artifacts to GitHub Release
     runs-on: ubuntu-latest
     needs: [merge-manifests, sign-sboms, generate-vex, sign-image, scan-vulnerabilities]
+    permissions:
+      contents: write
     
     steps:
       - name: Set image reference
         id: set-image
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ inputs.service-name }}
+          IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
-          IMAGE_REF="ghcr.io/${{ github.repository_owner }}/teck-cloud/${{ inputs.service-name }}@${{ needs.merge-manifests.outputs.digest }}"
-          echo "ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          IMAGE_REF="ghcr.io/${REPOSITORY_OWNER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           
       - name: Download signed SPDX SBOM
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -768,49 +840,64 @@ jobs:
           path: artifacts/trivy-scan-${{ inputs.service-name }}
 
       - name: Organize release artifacts
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
         run: |
           mkdir -p release-assets
+
+          SPDX_ARTIFACT_DIR="artifacts/sbom-spdx-signed-${SERVICE_NAME}"
+          CYCLONEDX_ARTIFACT_DIR="artifacts/sbom-cyclonedx-signed-${SERVICE_NAME}"
+          VEX_ARTIFACT_DIR="artifacts/vex-${SERVICE_NAME}"
+          TRIVY_ARTIFACT_DIR="artifacts/trivy-scan-${SERVICE_NAME}"
           
           # SPDX SBOM files
-          cp artifacts/sbom-spdx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.spdx.json release-assets/
-          cp artifacts/sbom-spdx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.spdx.json.sig release-assets/
-          cp artifacts/sbom-spdx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.spdx.json.cert release-assets/
+          cp "$SPDX_ARTIFACT_DIR/sbom-${SERVICE_NAME}.spdx.json" release-assets/
+          cp "$SPDX_ARTIFACT_DIR/sbom-${SERVICE_NAME}.spdx.json.sig" release-assets/
+          cp "$SPDX_ARTIFACT_DIR/sbom-${SERVICE_NAME}.spdx.json.cert" release-assets/
           
           # CycloneDX SBOM files
-          cp artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.cyclonedx.json release-assets/
-          cp artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.cyclonedx.json.sig release-assets/
-          cp artifacts/sbom-cyclonedx-signed-${{ inputs.service-name }}/sbom-${{ inputs.service-name }}.cyclonedx.json.cert release-assets/
+          cp "$CYCLONEDX_ARTIFACT_DIR/sbom-${SERVICE_NAME}.cyclonedx.json" release-assets/
+          cp "$CYCLONEDX_ARTIFACT_DIR/sbom-${SERVICE_NAME}.cyclonedx.json.sig" release-assets/
+          cp "$CYCLONEDX_ARTIFACT_DIR/sbom-${SERVICE_NAME}.cyclonedx.json.cert" release-assets/
           
           # VEX files
-          cp artifacts/vex-${{ inputs.service-name }}/vex-${{ inputs.service-name }}.openvex.json release-assets/
-          cp artifacts/vex-${{ inputs.service-name }}/vex-${{ inputs.service-name }}.openvex.json.sig release-assets/
-          cp artifacts/vex-${{ inputs.service-name }}/vex-${{ inputs.service-name }}.openvex.json.cert release-assets/
+          cp "$VEX_ARTIFACT_DIR/vex-${SERVICE_NAME}.openvex.json" release-assets/
+          cp "$VEX_ARTIFACT_DIR/vex-${SERVICE_NAME}.openvex.json.sig" release-assets/
+          cp "$VEX_ARTIFACT_DIR/vex-${SERVICE_NAME}.openvex.json.cert" release-assets/
           
           # Trivy scan results
-          cp artifacts/trivy-scan-${{ inputs.service-name }}/trivy-results.json release-assets/trivy-scan-${{ inputs.service-name }}.json
+          cp "$TRIVY_ARTIFACT_DIR/trivy-results.json" "release-assets/trivy-scan-${SERVICE_NAME}.json"
           
           ls -lah release-assets/
 
       - name: Upload to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.github-token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          REPOSITORY_NAME: ${{ github.repository }}
         run: |
           # Upload all files to the release
           cd release-assets
           for file in *; do
-            gh release upload v${{ inputs.version }} "$file" \
-              --repo ${{ github.repository }} \
+            gh release upload "v${RELEASE_VERSION}" "$file" \
+              --repo "$REPOSITORY_NAME" \
               --clobber
           done
 
       - name: Create release summary
+        env:
+          SERVICE_NAME: ${{ inputs.service-name }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          IMAGE_REF: ${{ steps.set-image.outputs.ref }}
+          REPOSITORY_NAME: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
-          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
-          ## 🎉 Build Complete: ${{ inputs.service-name }} v${{ inputs.version }}
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## 🎉 Build Complete: ${SERVICE_NAME} v${RELEASE_VERSION}
           
           ### 📦 Image Details
-          - **Image**: `${{ steps.set-image.outputs.ref }}`
-          - **Version**: `${{ inputs.version }}`
+          - **Image**: `${IMAGE_REF}`
+          - **Version**: `${RELEASE_VERSION}`
           - **Platforms**: linux/amd64, linux/arm64
           - **Signed**: ✅ Yes (Cosign keyless with Sigstore)
           
@@ -828,18 +915,18 @@ jobs:
           **Verify image signature:**
           ```bash
           cosign verify \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/.*" \
+            --certificate-identity-regexp="^https://github.com/${REPOSITORY_NAME}/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ steps.set-image.outputs.ref }}
+            ${IMAGE_REF}
           ```
           
           **Verify SBOM attestation:**
           ```bash
-          gh attestation verify oci://${{ steps.set-image.outputs.ref }} --owner ${{ github.repository_owner }}
+          gh attestation verify oci://${IMAGE_REF} --owner ${REPOSITORY_OWNER}
           ```
           
           **Download SBOMs from release:**
           ```bash
-          gh release download v${{ inputs.version }} --pattern "sbom-${{ inputs.service-name }}.*"
+          gh release download v${RELEASE_VERSION} --pattern "sbom-${SERVICE_NAME}.*"
           ```
           EOF

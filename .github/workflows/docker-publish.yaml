@@ -6,11 +6,7 @@ on:
     types: [published, prereleased]
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
-  security-events: write
+  contents: read
 
 jobs:
   find-services:
@@ -79,6 +75,12 @@ jobs:
   build-sign-sbom:
     name: Build, Sign & SBOM - ${{ matrix.target.service_name }}
     needs: [find-services, get-version]
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
     strategy:
       matrix:
         target: ${{ fromJson(needs.find-services.outputs.targets) }}

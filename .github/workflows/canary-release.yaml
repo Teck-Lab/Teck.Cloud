@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  packages: write
 
 concurrency:
   group: canary-${{ github.event.pull_request.number }}
@@ -20,6 +18,9 @@ jobs:
     name: Clean Up Canary Images
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
@@ -57,10 +58,14 @@ jobs:
     name: Compute Canary Version
     runs-on: ubuntu-latest
     if: >-
-      github.event.action != 'closed' && (
-      github.event.head_commit == null ||
-      (!contains(github.event.head_commit.message, 'ci skip') &&
-       !contains(github.event.head_commit.message, 'skip ci')))
+      github.event.action != 'closed' &&
+      !contains(github.event.pull_request.title, 'ci skip') &&
+      !contains(github.event.pull_request.title, 'skip ci') &&
+      (github.event.pull_request.body == null ||
+      (!contains(github.event.pull_request.body, 'ci skip') &&
+       !contains(github.event.pull_request.body, 'skip ci')))
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       targets: ${{ steps.find.outputs.targets }}
@@ -163,6 +168,9 @@ jobs:
     name: Build ${{ matrix.target.service_name }} (${{ matrix.target.platform }})
     needs: compute-version
     runs-on: ${{ matrix.target.runner }}
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         target: ${{ fromJson(needs.compute-version.outputs.build-matrix) }}
@@ -282,6 +290,9 @@ jobs:
     needs: [compute-version, build]
     runs-on: ubuntu-latest
     if: always() && needs.build.result == 'success'
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         target: ${{ fromJson(needs.compute-version.outputs.targets) }}
@@ -350,6 +361,8 @@ jobs:
     needs: [compute-version, merge]
     runs-on: ubuntu-latest
     if: always() && needs.merge.result == 'success'
+    permissions:
+      issues: write
 
     steps:
       - name: Comment on PR
