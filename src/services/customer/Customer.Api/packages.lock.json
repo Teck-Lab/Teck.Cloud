@@ -1369,10 +1369,10 @@
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "Keycloak.AuthServices.OpenTelemetry": "[1.0.0, )",
           "Microsoft.Extensions.Http.Resilience": "[9.6.0, )",
-          "Microsoft.Extensions.ServiceDiscovery": "[9.3.1, )",
-          "Microsoft.Extensions.ServiceDiscovery.Abstractions": "[10.2.0, )",
+          "Microsoft.Extensions.ServiceDiscovery": "[10.4.0, )",
+          "Microsoft.Extensions.ServiceDiscovery.Abstractions": "[10.4.0, )",
           "Microsoft.Extensions.ServiceDiscovery.Dns": "[9.3.1, )",
-          "Microsoft.Extensions.ServiceDiscovery.Yarp": "[9.3.1, )",
+          "Microsoft.Extensions.ServiceDiscovery.Yarp": "[10.4.0, )",
           "Npgsql.OpenTelemetry": "[10.0.1, )",
           "OpenTelemetry.Exporter.OpenTelemetryProtocol": "[1.15.0, )",
           "OpenTelemetry.Extensions.Hosting": "[1.15.0, )",
@@ -1882,18 +1882,18 @@
       },
       "Microsoft.Extensions.ServiceDiscovery": {
         "type": "CentralTransitive",
-        "requested": "[9.3.1, )",
-        "resolved": "9.3.1",
-        "contentHash": "z9tKpMm4V5LIMABboRjU2w+hYme4EUigi/OaOBcJZfRLHON/e6rtlkShZ0Opl4ownuReyCbUFbH2sD2C57NWvA==",
+        "requested": "[10.4.0, )",
+        "resolved": "10.4.0",
+        "contentHash": "RznZAH6L4RNvroECT5JpqfFQJjHTn+8N7+ThSgYutbshkuymFeL/uBIZt1CM8LOdpPPhn4//a5fLUah9/k7ayQ==",
         "dependencies": {
-          "Microsoft.Extensions.ServiceDiscovery.Abstractions": "9.3.1"
+          "Microsoft.Extensions.ServiceDiscovery.Abstractions": "10.4.0"
         }
       },
       "Microsoft.Extensions.ServiceDiscovery.Abstractions": {
         "type": "CentralTransitive",
-        "requested": "[10.2.0, )",
-        "resolved": "10.2.0",
-        "contentHash": "sANlOvfqfw/yfych4CLlHSKSWzIie6mQG7w83gVur1foNOafyHxcgpoQMvBf+KiB4Tpls6P1/Z77IIQSK8hxFg=="
+        "requested": "[10.4.0, )",
+        "resolved": "10.4.0",
+        "contentHash": "HkBb7cdi27tkQiQw1anQFbXe+A3pjRwDKgVbd/DD9fMAO2X9abK0FEyM/tNVXjW3lwOWl2tF+Xij/DqI6i+JTg=="
       },
       "Microsoft.Extensions.ServiceDiscovery.Dns": {
         "type": "CentralTransitive",
@@ -1908,13 +1908,12 @@
       },
       "Microsoft.Extensions.ServiceDiscovery.Yarp": {
         "type": "CentralTransitive",
-        "requested": "[9.3.1, )",
-        "resolved": "9.3.1",
-        "contentHash": "l4yfAZl/k2gA8VYeyj0kpr6JFybNVDzT50Q3r4Vr2F+Z0uvYwuK3R2C5RgX/KNRwmdBWhFl0m025ahoOTHehkg==",
+        "requested": "[10.4.0, )",
+        "resolved": "10.4.0",
+        "contentHash": "22dvLPEH3j6efZiNkZ/3wp6I5v32Ua7BN5wYndM2g5oIA0GhVyzysSxUYCmizw/65KfDZZLuHNrJAhCpoAwwtg==",
         "dependencies": {
-          "Microsoft.Extensions.ServiceDiscovery": "9.3.1",
-          "Microsoft.Extensions.ServiceDiscovery.Abstractions": "9.3.1",
-          "System.IO.Hashing": "9.0.4",
+          "Microsoft.Extensions.ServiceDiscovery": "10.4.0",
+          "Microsoft.Extensions.ServiceDiscovery.Abstractions": "10.4.0",
           "Yarp.ReverseProxy": "2.3.0"
         }
       },
