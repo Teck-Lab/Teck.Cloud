@@ -268,11 +268,27 @@ jobs:
           IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
           SERVICE_VERSION: ${{ inputs.version }}
         run: |
-          # Create the manifest and capture the digest
-          # Deduplicate tags to avoid "412 Precondition Failed" errors
-          TAGS=$(jq -cr '.tags | unique | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
-          docker buildx imagetools create $TAGS \
-            $(printf '%s@sha256:%s ' "$IMAGE_NAME" *)
+          set -euo pipefail
+
+          mapfile -t TAGS < <(jq -r '.tags | unique[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          tag_args=()
+          for tag in "${TAGS[@]}"; do
+            tag_args+=("-t" "$tag")
+          done
+
+          sources=()
+          for digest_file in *; do
+            [ -f "$digest_file" ] || continue
+            sources+=("${IMAGE_NAME}@sha256:${digest_file##*/}")
+          done
+
+          if [ ${#sources[@]} -eq 0 ]; then
+            echo "::error::No per-platform digests were downloaded for ${IMAGE_NAME}"
+            exit 1
+          fi
+
+          echo "Creating manifest from ${#sources[@]} digest source(s)"
+          docker buildx imagetools create "${tag_args[@]}" "${sources[@]}"
           
           # Inspect the image to get the digest
           DIGEST=$(docker buildx imagetools inspect "${IMAGE_NAME}:${SERVICE_VERSION}" --raw | sha256sum | awk '{print "sha256:"$1}')

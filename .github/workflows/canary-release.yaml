@@ -320,9 +320,22 @@ jobs:
           IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
           CANARY_TAG: ${{ needs.compute-version.outputs.version }}
         run: |
+          set -euo pipefail
+
+          sources=()
+          for digest_file in *; do
+            [ -f "$digest_file" ] || continue
+            sources+=("${IMAGE_NAME}@sha256:${digest_file##*/}")
+          done
+
+          if [ ${#sources[@]} -eq 0 ]; then
+            echo "::error::No per-platform digests were downloaded for ${IMAGE_NAME}"
+            exit 1
+          fi
+
           docker buildx imagetools create \
             -t "${IMAGE_NAME}:${CANARY_TAG}" \
-            $(printf "${IMAGE_NAME}@sha256:%s " *)
+            "${sources[@]}"
 
       - name: Inspect manifest
         env:
