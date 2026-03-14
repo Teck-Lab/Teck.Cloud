@@ -1,3 +1,15 @@
+# v0.19.1 (Sat Mar 14 2026)
+
+#### 🐛 Bug Fix
+
+- fix: update permissions in workflow files to enhance security and access control ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.19.0 (Sat Mar 14 2026)
 
 #### 🚀 Enhancement
