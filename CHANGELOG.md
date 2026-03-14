@@ -1,3 +1,15 @@
+# v0.19.0 (Sat Mar 14 2026)
+
+#### 🚀 Enhancement
+
+- fix: enhance Docker image manifest creation with error handling and improved tag processing [#222](https://github.com/Teck-Lab/Teck.Cloud/pull/222) ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.18.0 (Sat Mar 14 2026)
 
 #### 🚀 Enhancement
