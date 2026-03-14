@@ -1,3 +1,15 @@
+# v0.17.0 (Sat Mar 14 2026)
+
+#### 🚀 Enhancement
+
+- feat!: major rework [#217](https://github.com/Teck-Lab/Teck.Cloud/pull/217) ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.16.0 (Sun Feb 15 2026)
 
 #### 🚀 Enhancement
