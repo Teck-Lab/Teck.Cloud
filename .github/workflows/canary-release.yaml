@@ -322,7 +322,7 @@ jobs:
         run: |
           docker buildx imagetools create \
             -t "${IMAGE_NAME}:${CANARY_TAG}" \
-            $(printf '%s@sha256:%s ' "$IMAGE_NAME" *)
+            $(printf "${IMAGE_NAME}@sha256:%s " *)
 
       - name: Inspect manifest
         env:
