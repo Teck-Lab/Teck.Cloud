@@ -53,10 +53,10 @@ jobs:
       dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload affected.proj artifact
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected/affected.proj
@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload affected projects list
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: affected-list
           path: |
@@ -257,10 +257,10 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
@@ -274,7 +274,7 @@ jobs:
         run: dotnet restore --locked-mode
 
       - name: Download affected.proj
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected
@@ -293,9 +293,9 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           global-json-file: global.json
           cache: true
@@ -323,7 +323,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Run hadolint with reviewdog
         uses: reviewdog/action-hadolint@921946a7ebaaf08ac72607bad67209f4e52b5407 # v1.50.5
         with:
@@ -342,10 +342,10 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           global-json-file: global.json
@@ -369,7 +369,7 @@ jobs:
             --blame --blame-hang-timeout 15m
 
       - name: Combine Coverage Reports
-        uses: danielpalme/ReportGenerator-GitHub-Action@ee0ae774f6d3afedcbd1683c1ab21b83670bdf8e # 5.5.1
+        uses: danielpalme/ReportGenerator-GitHub-Action@2a82782178b2816d9d6960a7345fdd164791b323 # 5.5.3
         with:
           reports: "**/*.cobertura.xml"
           targetdir: "${{ github.workspace }}"
@@ -381,7 +381,7 @@ jobs:
           toolpath: "reportgeneratortool"
 
       - name: Upload Combined Coverage XML
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: coverage
           path: ${{ github.workspace }}/Cobertura.xml
@@ -409,14 +409,14 @@ jobs:
 
       - name: Upload Test Result Files
         if: always() && hashFiles('**/TestResults/**/*') != ''
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
           retention-days: 5
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@2c87efac073270a76b2a8c81d9b1e3b082f245c8 # v1.3.1
+        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
         if: always() && hashFiles('**/*.trx') != ''
         with:
           name: Tests
@@ -486,7 +486,7 @@ jobs:
           echo "platform_pair=$PLATFORM_PAIR" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Read .NET container versions
         id: dotnet-version
@@ -529,22 +529,22 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ghcr.io/${{ steps.build-vars.outputs.repo_lower }}
           tags: ${{ github.sha }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
         with:
           version: latest
 
       - name: Log in to GitHub Container Registry for registry cache
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -552,7 +552,7 @@ jobs:
 
       - name: Build image (no push, registry cache)
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -580,7 +580,7 @@ jobs:
 
       - name: Build image (no push, scoped GHA cache fallback)
         if: github.event.pull_request.head.repo.full_name != github.repository
-        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -627,7 +627,7 @@ jobs:
 
       - name: Generate SPDX SBOM and submit to Dependency Graph
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+        uses: anchore/sbom-action@57aae528053a48a3f6235f2d9461b05fbcb7366d # v0.23.1
         with:
           image: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
           format: spdx-json
