@@ -18,6 +18,10 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 25
+    groups:
+      nuget-all:
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore"
   
@@ -30,6 +34,10 @@ updates:
       day: "monday"
       time: "03:00"
     open-pull-requests-limit: 10
+    groups:
+      github-actions-all:
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
