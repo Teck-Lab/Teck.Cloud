@@ -1,3 +1,29 @@
+# v0.18.0 (Sat Mar 14 2026)
+
+#### 🚀 Enhancement
+
+- fix: add groups for NuGet and GitHub Actions dependencies in dependabot configuration [#219](https://github.com/Teck-Lab/Teck.Cloud/pull/219) ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- chore(deps): Bump aquasecurity/trivy-action from 0.33.1 to 0.34.0 in /.github/workflows [#218](https://github.com/Teck-Lab/Teck.Cloud/pull/218) ([@dependabot[bot]](https://github.com/dependabot[bot]))
+
+#### Authors: 2
+
+- [@dependabot[bot]](https://github.com/dependabot[bot])
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
+# v0.17.0 (Sat Mar 14 2026)
+
+#### 🚀 Enhancement
+
+- feat!: major rework [#217](https://github.com/Teck-Lab/Teck.Cloud/pull/217) ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.16.0 (Sun Feb 15 2026)
 
 #### 🚀 Enhancement
