@@ -1,8 +1,8 @@
 # Teck.Cloud
 
-[![PR Validation](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dotnet-test-check.yaml/badge.svg?branch=main)](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dotnet-test-check.yaml)
-[![Coverage](https://codecov.io/gh/Teck-Lab/Teck.Cloud/graph/badge.svg?branch=main)](https://codecov.io/gh/Teck-Lab/Teck.Cloud)
-[![Dependency Review](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dependency-review.yml)
+[![PR Validation](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dotnet-test-check.yaml/badge.svg?event=pull_request)](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dotnet-test-check.yaml)
+[![Coverage Report](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/coverage-report.yml/badge.svg?branch=main)](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/coverage-report.yml)
+[![Dependency Review](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dependency-review.yml/badge.svg?event=pull_request)](https://github.com/Teck-Lab/Teck.Cloud/actions/workflows/dependency-review.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Teck-Lab/Teck.Cloud/badge)](https://scorecard.dev/viewer/?uri=github.com/Teck-Lab/Teck.Cloud)
 
 A .NET solution following modern best practices and coding standards.
