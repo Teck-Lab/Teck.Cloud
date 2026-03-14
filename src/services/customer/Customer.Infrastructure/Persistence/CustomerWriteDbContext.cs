@@ -1,3 +1,8 @@
+// <copyright file="CustomerWriteDbContext.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using System.Diagnostics.CodeAnalysis;
 using Customer.Domain.Entities.TenantAggregate;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Persistence.Database.EFCore;
@@ -27,12 +32,15 @@ public class CustomerWriteDbContext : BaseDbContext
     /// On model creating.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
+    [RequiresUnreferencedCode("Calls ApplyConfigurationsFromAssembly which uses reflection and may require unreferenced code.")]
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
+        ArgumentNullException.ThrowIfNull(modelBuilder);
 
         // Apply entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CustomerWriteDbContext).Assembly, WriteConfigFilter);
+
+        base.OnModelCreating(modelBuilder);
     }
 
     private static bool WriteConfigFilter(Type type) =>

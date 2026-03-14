@@ -1,4 +1,9 @@
+// <copyright file="ProductPriceReadConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Products.ReadModels;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -11,29 +16,33 @@ namespace Catalog.Infrastructure.Persistence.Config.Read;
 public class ProductPriceReadConfig : IEntityTypeConfiguration<ProductPriceReadModel>
 {
     /// <inheritdoc/>
-    public void Configure(EntityTypeBuilder<ProductPriceReadModel> entityTypeBuilder)
+    public void Configure(EntityTypeBuilder<ProductPriceReadModel> builder)
     {
-        entityTypeBuilder.ToTable("ProductPrices");
+        ArgumentNullException.ThrowIfNull(builder);
 
-        entityTypeBuilder.HasKey(productPrice => productPrice.Id);
+        builder.ToTable("ProductPrices");
 
-        entityTypeBuilder.Property(productPrice => productPrice.ProductId)
+        builder.HasKey(productPrice => productPrice.Id);
+
+        builder.Property(productPrice => productPrice.ProductId)
             .IsRequired();
 
-        entityTypeBuilder.Property(productPrice => productPrice.SalePrice)
+        builder.Property(productPrice => productPrice.SalePrice)
             .IsRequired()
             .HasColumnType("decimal(18,2)");
 
-        entityTypeBuilder.Property(productPrice => productPrice.CurrencyCode)
+        builder.Property(productPrice => productPrice.CurrencyCode)
             .HasMaxLength(3);
 
-        entityTypeBuilder.Property(productPrice => productPrice.ProductPriceTypeId)
+        builder.Property(productPrice => productPrice.ProductPriceTypeId)
             .IsRequired();
 
-        entityTypeBuilder.Property(productPrice => productPrice.ProductPriceTypeName)
+        builder.Property(productPrice => productPrice.ProductPriceTypeName)
             .HasMaxLength(100);
 
         // Apply standard audit property configurations
-        entityTypeBuilder.ConfigureAuditProperties();
+        builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

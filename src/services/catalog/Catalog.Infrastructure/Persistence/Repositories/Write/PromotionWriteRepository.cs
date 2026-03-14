@@ -1,3 +1,7 @@
+// <copyright file="PromotionWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.PromotionAggregate;
 using Catalog.Domain.Entities.PromotionAggregate.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -26,17 +30,31 @@ public sealed class PromotionWriteRepository : GenericWriteRepository<Promotion,
     /// <inheritdoc/>
     public async Task<Promotion?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await DbContext.Promotions
-            .FirstOrDefaultAsync(promotion => promotion.Name == name, cancellationToken);
+        return await this.DbContext.Promotions
+            .FirstOrDefaultAsync(promotion => promotion.Name == name, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<Promotion>> GetActivePromotionsAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTimeOffset.UtcNow;
-        return await DbContext.Promotions
+
+        if (string.Equals(this.DbContext.Database.ProviderName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal))
+        {
+            var promotions = await this.DbContext.Promotions
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return promotions
+                .Where(promotion => promotion.ValidFrom <= now && promotion.ValidTo >= now)
+                .ToList();
+        }
+
+        return await this.DbContext.Promotions
             .Where(promotion => promotion.ValidFrom <= now && promotion.ValidTo >= now)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // Use the base implementation of FirstOrDefaultAsync; when tracked entity is required,

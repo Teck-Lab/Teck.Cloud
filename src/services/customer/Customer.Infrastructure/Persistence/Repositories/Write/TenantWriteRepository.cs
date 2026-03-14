@@ -1,3 +1,7 @@
+// <copyright file="TenantWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Customer.Domain.Entities.TenantAggregate;
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -29,11 +33,13 @@ public sealed class TenantWriteRepository : GenericWriteRepository<Tenant, Guid,
     /// <param name="id">The tenant identifier.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The tenant if found; otherwise, null.</returns>
-    public async Task<Tenant?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Tenant?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await DbContext.Tenants
+        return await this.DbContext.Tenants
+            .Include(tenant => tenant.Databases)
             .Where(tenant => tenant.Id == id)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -42,11 +48,13 @@ public sealed class TenantWriteRepository : GenericWriteRepository<Tenant, Guid,
     /// <param name="identifier">The tenant identifier.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The tenant if found; otherwise, null.</returns>
-    public async Task<Tenant?> GetByIdentifierAsync(string identifier, CancellationToken cancellationToken = default)
+    public async Task<Tenant?> GetByIdentifierAsync(string identifier, CancellationToken cancellationToken)
     {
-        return await DbContext.Tenants
+        return await this.DbContext.Tenants
+            .Include(tenant => tenant.Databases)
             .Where(tenant => tenant.Identifier == identifier)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -55,9 +63,10 @@ public sealed class TenantWriteRepository : GenericWriteRepository<Tenant, Guid,
     /// <param name="identifier">The tenant identifier to check.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if a tenant with the identifier exists; otherwise, false.</returns>
-    public async Task<bool> ExistsByIdentifierAsync(string identifier, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByIdentifierAsync(string identifier, CancellationToken cancellationToken)
     {
-        return await DbContext.Tenants
-            .AnyAsync(tenant => tenant.Identifier == identifier, cancellationToken);
+        return await this.DbContext.Tenants
+            .AnyAsync(tenant => tenant.Identifier == identifier, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

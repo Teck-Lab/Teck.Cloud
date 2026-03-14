@@ -1,10 +1,17 @@
+// <copyright file="ApplicationWriteDbContext.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using System.Diagnostics.CodeAnalysis;
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.ProductPriceTypeAggregate;
 using Catalog.Domain.Entities.PromotionAggregate;
 using Catalog.Domain.Entities.SupplierAggregate;
+using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.EFCore;
 
 namespace Catalog.Infrastructure.Persistence;
@@ -18,20 +25,12 @@ public class ApplicationWriteDbContext : BaseDbContext
     /// Initializes a new instance of the <see cref="ApplicationWriteDbContext"/> class.
     /// </summary>
     /// <param name="options">The options to be used by a <see cref="DbContext"/>.</param>
-    public ApplicationWriteDbContext(DbContextOptions<ApplicationWriteDbContext> options)
-        : base(options)
-    { }
-
-    /// <summary>
-    /// On model creating.
-    /// </summary>
-    /// <param name="modelBuilder">The model builder.</param>
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    /// <param name="tenantAccessor">The tenant context accessor used for resolving the current tenant.</param>
+    public ApplicationWriteDbContext(
+        DbContextOptions<ApplicationWriteDbContext> options,
+        IMultiTenantContextAccessor<TenantDetails>? tenantAccessor = null)
+        : base(options, tenantAccessor: tenantAccessor)
     {
-        base.OnModelCreating(modelBuilder);
-
-        // Apply entity configurations
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationWriteDbContext).Assembly, WriteConfigFilter);
     }
 
     /// <summary>
@@ -68,6 +67,21 @@ public class ApplicationWriteDbContext : BaseDbContext
     /// Gets or sets the suppliers.
     /// </summary>
     public DbSet<Supplier> Suppliers { get; set; } = null!;
+
+    /// <summary>
+    /// On model creating.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
+    [RequiresUnreferencedCode("Calls ApplyConfigurationsFromAssembly which uses reflection and may require unreferenced code.")]
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(modelBuilder);
+
+        base.OnModelCreating(modelBuilder);
+
+        // Apply entity configurations
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationWriteDbContext).Assembly, WriteConfigFilter);
+    }
 
     private static bool WriteConfigFilter(Type type) =>
         type.FullName?.Contains("Config.Write", StringComparison.Ordinal) ?? false;

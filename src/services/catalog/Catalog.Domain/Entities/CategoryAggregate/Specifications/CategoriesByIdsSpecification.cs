@@ -1,3 +1,7 @@
+// <copyright file="CategoriesByIdsSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.CategoryAggregate.Specifications
@@ -13,7 +17,7 @@ namespace Catalog.Domain.Entities.CategoryAggregate.Specifications
         /// <param name="ids">The category IDs.</param>
         public CategoriesByIdsSpecification(IReadOnlyCollection<Guid> ids)
         {
-            Query.Where(category => ids.Contains(category.Id));
+            this.Query.Where(category => ids.Contains(category.Id));
         }
     }
 }

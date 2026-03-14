@@ -1,3 +1,7 @@
+// <copyright file="DeleteBrandsRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Brands.Features.DeleteBrands.V1
 {
     /// <summary>

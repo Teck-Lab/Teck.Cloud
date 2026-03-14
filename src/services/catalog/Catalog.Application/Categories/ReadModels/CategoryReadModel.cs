@@ -1,3 +1,8 @@
+// <copyright file="CategoryReadModel.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using MemoryPack;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Application.Categories.ReadModels;
@@ -5,7 +10,8 @@ namespace Catalog.Application.Categories.ReadModels;
 /// <summary>
 /// Read model for Category entities, optimized for queries.
 /// </summary>
-public class CategoryReadModel : ReadModelBase<Guid>
+[MemoryPackable]
+public partial class CategoryReadModel : ReadModelBase<Guid>
 {
     /// <summary>
     /// Gets or sets the name of the category.

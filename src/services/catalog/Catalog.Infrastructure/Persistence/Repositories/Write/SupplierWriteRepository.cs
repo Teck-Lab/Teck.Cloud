@@ -1,3 +1,7 @@
+// <copyright file="SupplierWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.SupplierAggregate;
 using Catalog.Domain.Entities.SupplierAggregate.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -26,8 +30,9 @@ public sealed class SupplierWriteRepository : GenericWriteRepository<Supplier, G
     /// <inheritdoc/>
     public async Task<Supplier?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await DbContext.Suppliers
-            .FirstOrDefaultAsync(supplier => supplier.Name == name, cancellationToken);
+        return await this.DbContext.Suppliers
+            .FirstOrDefaultAsync(supplier => supplier.Name == name, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // Use the base implementation of FirstOrDefaultAsync; when tracked entity is required,

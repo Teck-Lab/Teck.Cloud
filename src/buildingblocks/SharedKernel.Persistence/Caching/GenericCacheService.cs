@@ -1,5 +1,7 @@
+using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Caching;
 using SharedKernel.Core.Database;
+using SharedKernel.Infrastructure.MultiTenant;
 using ZiggyCreatures.Caching.Fusion;
 
 namespace SharedKernel.Persistence.Caching
@@ -14,7 +16,11 @@ namespace SharedKernel.Persistence.Caching
     /// </remarks>
     /// <param name="fusionCache">The fusion cache.</param>
     /// <param name="genericRepository">The generic repository.</param>
-    public class GenericCacheService<TEntity, TId>(IFusionCache fusionCache, IGenericReadRepository<TEntity, TId> genericRepository) : IGenericCacheService<TEntity, TId>
+    /// <param name="tenantContextAccessor">The optional tenant context accessor used to scope cache keys per tenant.</param>
+    public class GenericCacheService<TEntity, TId>(
+        IFusionCache fusionCache,
+        IGenericReadRepository<TEntity, TId> genericRepository,
+        IMultiTenantContextAccessor<TenantDetails>? tenantContextAccessor = null) : IGenericCacheService<TEntity, TId>
         where TEntity : class
     {
         /// <summary>
@@ -31,6 +37,11 @@ namespace SharedKernel.Persistence.Caching
         /// The cache key prefix.
         /// </summary>
         private readonly string _cacheKeyPrefix = typeof(TEntity).Name;
+
+        /// <summary>
+        /// The tenant context accessor.
+        /// </summary>
+        private readonly IMultiTenantContextAccessor<TenantDetails>? _tenantContextAccessor = tenantContextAccessor;
 
         /// <summary>
         /// Get or set by id asynchronously.
@@ -128,6 +139,12 @@ namespace SharedKernel.Persistence.Caching
         public string GenerateCacheKey(params string[] data)
         {
             List<string> list = [_cacheKeyPrefix];
+
+            string? tenantId = _tenantContextAccessor?.MultiTenantContext?.TenantInfo?.Id;
+            if (!string.IsNullOrWhiteSpace(tenantId))
+            {
+                list.Add($"tenant:{tenantId}");
+            }
 
             list.AddRange(data);
 

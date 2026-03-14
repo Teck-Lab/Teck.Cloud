@@ -1,5 +1,9 @@
-using Customer.Application.Tenants.DTOs;
-using Customer.Application.Tenants.Queries.GetTenantById;
+// <copyright file="GetTenantByIdEndpoint.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+using Customer.Application.Tenants.Features.GetTenantById.V1;
+using Customer.Application.Tenants.Responses;
 using ErrorOr;
 using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
@@ -8,40 +12,21 @@ using SharedKernel.Infrastructure.Endpoints;
 
 namespace Customer.Api.Endpoints.V1.Tenants.GetTenantById;
 
-/// <summary>
-/// The get tenant by id endpoint.
-/// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="GetTenantByIdEndpoint"/> class.
-/// </remarks>
-/// <param name="mediator">The mediator.</param>
-internal class GetTenantByIdEndpoint(ISender mediator) : Endpoint<GetTenantByIdRequest, TenantDto>
+public sealed class GetTenantByIdEndpoint(ISender sender) : Endpoint<GetTenantByIdRequest, TenantResponse>
 {
-    /// <summary>
-    /// The mediator.
-    /// </summary>
-    private readonly ISender _mediator = mediator;
+    private readonly ISender sender = sender;
 
-    /// <summary>
-    /// Configure the endpoint.
-    /// </summary>
     public override void Configure()
     {
-        Get("/Tenants/{Id}");
-        Options(ep => ep.RequireProtectedResource("tenant", "read"));
+        Get("/Tenants/{Id:guid}");
         Version(1);
+        Options(endpoint => endpoint.RequireProtectedResource("tenant", "list"));
     }
 
-    /// <summary>
-    /// Handle the request.
-    /// </summary>
-    /// <param name="req">The request.</param>
-    /// <param name="ct">The cancellation token.</param>
-    /// <returns>A task.</returns>
-    public override async Task HandleAsync(GetTenantByIdRequest req, CancellationToken ct)
+    public override async Task HandleAsync(GetTenantByIdRequest request, CancellationToken ct)
     {
-        GetTenantByIdQuery query = new(req.Id);
-        ErrorOr<TenantDto> queryResponse = await _mediator.Send(query, ct);
-        await this.SendAsync(queryResponse, ct);
+        GetTenantByIdQuery query = new(request.Id);
+        ErrorOr<TenantResponse> queryResponse = await sender.Send(query, ct).ConfigureAwait(false);
+        await this.SendAsync(queryResponse, cancellation: ct).ConfigureAwait(false);
     }
 }

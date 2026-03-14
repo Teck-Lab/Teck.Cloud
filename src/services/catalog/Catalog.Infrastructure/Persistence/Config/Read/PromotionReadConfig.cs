@@ -1,4 +1,9 @@
+// <copyright file="PromotionReadConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Promotions.ReadModels;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class PromotionReadConfig : IEntityTypeConfiguration<PromotionReadModel>
     /// <param name="builder">The builder to be used to configure the PromotionReadModel entity.</param>
     public void Configure(EntityTypeBuilder<PromotionReadModel> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("Promotions");
 
         builder.HasKey(promotion => promotion.Id);
@@ -42,5 +49,7 @@ public class PromotionReadConfig : IEntityTypeConfiguration<PromotionReadModel>
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

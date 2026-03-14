@@ -39,11 +39,17 @@ namespace SharedKernel.Infrastructure.Behaviors
             MessageHandlerDelegate<TMessage, TResponse> next,
             CancellationToken cancellationToken)
         {
-            _logger.LogInformation(
-                "[START] Handle request={Request} - Response={Response} - RequestData={RequestData}",
-                typeof(TMessage).Name,
-                typeof(TResponse).Name,
-                message);
+            string requestName = typeof(TMessage).Name;
+            string responseName = typeof(TResponse).Name;
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "[START] Handle request={Request} - Response={Response} - RequestData={RequestData}",
+                    requestName,
+                    responseName,
+                    message);
+            }
 
             Stopwatch timer = new();
             timer.Start();
@@ -56,15 +62,18 @@ namespace SharedKernel.Infrastructure.Behaviors
             {
                 _logger.LogWarning(
                     "[PERFORMANCE] The request {Request} took {TimeTaken} seconds.",
-                    typeof(TMessage).Name,
+                    requestName,
                     timeTaken.TotalSeconds);
             }
 
-            _logger.LogInformation(
-                "[END] Handled {Request} with {Response} in {TimeTaken} seconds.",
-                typeof(TMessage).Name,
-                typeof(TResponse).Name,
-                timeTaken.TotalSeconds);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    "[END] Handled {Request} with {Response} in {TimeTaken} seconds.",
+                    requestName,
+                    responseName,
+                    timeTaken.TotalSeconds);
+            }
 
             return response;
         }

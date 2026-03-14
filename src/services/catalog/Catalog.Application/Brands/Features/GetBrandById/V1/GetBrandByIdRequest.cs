@@ -1,3 +1,7 @@
+// <copyright file="GetBrandByIdRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Brands.Features.GetBrandById.V1
 {
     /// <summary>

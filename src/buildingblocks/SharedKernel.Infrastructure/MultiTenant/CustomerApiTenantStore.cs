@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SharedKernel.Core.Pagination;
 using SharedKernel.Core.Pricing;
+using SharedKernel.Infrastructure.Caching;
 using ZiggyCreatures.Caching.Fusion;
 
 namespace SharedKernel.Infrastructure.MultiTenant
@@ -80,8 +82,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <returns>An enumerable of tenant info.</returns>
         public async Task<PagedList<TenantDetails>> GetPaginatedTennantsAsync(DatabaseStrategy strategy, int size, int page)
         {
-            // Build a cache key that includes pagination parameters
-            var cacheKey = $"AllTenants:size={size}:skip={page}:strategy={strategy}";
+            var cacheKey = FusionCacheKeys.AllTenantsPage(strategy.Name, size, page);
 
             var tenants = await _fusionCache.GetOrSetAsync<PagedList<TenantDetails>>(
                 cacheKey,
@@ -171,6 +172,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// </summary>
         /// <param name="identifier">The tenant identifier.</param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
+        [RequiresDynamicCode("Calls HttpContent.ReadFromJsonAsync which may require dynamic code at runtime.")]
         public async Task<TenantDetails?> TryGetByIdentifierAsync(string identifier)
         {
             if (string.IsNullOrEmpty(identifier))
@@ -178,55 +180,76 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 return null;
             }
 
-            var cacheKey = $"Tenant:{identifier}";
+            if (Guid.TryParse(identifier, out _))
+            {
+                return await TryGetByIdAsync(identifier);
+            }
 
-            // Try to get from cache first
-            var tenant = await _fusionCache.GetOrSetAsync(
-                cacheKey,
-                async _ =>
+            var cacheKey = FusionCacheKeys.TenantByIdentifier(identifier);
+
+            var cachedTenant = await _fusionCache.TryGetAsync<TenantDetails>(cacheKey);
+            if (cachedTenant.HasValue && cachedTenant.Value is not null)
+            {
+                return cachedTenant.Value;
+            }
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient(_options.HttpClientName);
+                string encodedIdentifier = Uri.EscapeDataString(identifier);
+                var endpoint = _options.TenantDetailsEndpoint.Replace("{tenantId}", encodedIdentifier, StringComparison.Ordinal);
+                Uri requestUri = BuildRequestUri(endpoint);
+                var response = await client.GetAsync(requestUri).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
                 {
-                    try
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        var client = _httpClientFactory.CreateClient(_options.HttpClientName);
-                        var endpoint = new Uri(_options.TenantDetailsEndpoint.Replace("{tenantId}", identifier, StringComparison.Ordinal));
-                        var response = await client.GetAsync(endpoint, _).ConfigureAwait(false);
-                        if (!response.IsSuccessStatusCode)
+                        if (_logger.IsEnabled(LogLevel.Information))
                         {
-                            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                            {
-                                _logger.LogInformation("Tenant with identifier {Identifier} not found", identifier);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Error retrieving tenant {Identifier}: {StatusCode}", identifier, response.StatusCode);
-                            }
-
-                            return null;
+                            _logger.LogInformation("Tenant with identifier {Identifier} not found", identifier);
                         }
-
-                        var details = await response.Content.ReadFromJsonAsync<TenantDetails>(cancellationToken: _);
-                        if (details == null)
+                    }
+                    else
+                    {
+                        if (_logger.IsEnabled(LogLevel.Warning))
                         {
-                            _logger.LogWarning("Tenant with identifier {Identifier} returned null details", identifier);
-                            return null;
+                            _logger.LogWarning("Error retrieving tenant {Identifier}: {StatusCode}", identifier, response.StatusCode);
                         }
+                    }
 
-                        return details;
-                    }
-                    catch (HttpRequestException exception)
-                    {
-                        _logger.LogError(exception, "HTTP error retrieving tenant {Identifier}", identifier);
-                        return null;
-                    }
-                    catch (Exception exception)
-                    {
-                        _logger.LogError(exception, "Error retrieving tenant {Identifier}", identifier);
-                        return null;
-                    }
-                },
-                options => options.SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes))
-            );
-            return tenant;
+                    await _fusionCache.RemoveAsync(cacheKey);
+                    return null;
+                }
+
+                var details = await response.Content.ReadFromJsonAsync<TenantDetails>();
+                if (details == null)
+                {
+                    _logger.LogWarning("Tenant with identifier {Identifier} returned null details", identifier);
+                    await _fusionCache.RemoveAsync(cacheKey);
+                    return null;
+                }
+
+                await _fusionCache.SetAsync(
+                    cacheKey,
+                    details,
+                    options => options
+                        .SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes))
+                        .SetFailSafe(false));
+
+                return details;
+            }
+            catch (HttpRequestException exception)
+            {
+                _logger.LogError(exception, "HTTP error retrieving tenant {Identifier}", identifier);
+                await _fusionCache.RemoveAsync(cacheKey);
+                return null;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error retrieving tenant {Identifier}", identifier);
+                await _fusionCache.RemoveAsync(cacheKey);
+                return null;
+            }
         }
 
         /// <summary>
@@ -245,6 +268,7 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <param name="id">The tenant ID.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The tenant info if found; otherwise, null.</returns>
+        [RequiresDynamicCode("Calls HttpContent.ReadFromJsonAsync which may require dynamic code at runtime.")]
         public async Task<TenantDetails?> TryGetByIdAsync(string id, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(id))
@@ -252,56 +276,72 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 return null;
             }
 
-            var cacheKey = $"TenantById:{id}";
+            var cacheKey = FusionCacheKeys.TenantById(id);
 
-            // Try to get from cache first
-            var tenant = await _fusionCache.GetOrSetAsync(
-                cacheKey,
-                async _ =>
+            var cachedTenant = await _fusionCache.TryGetAsync<TenantDetails>(cacheKey, token: cancellationToken);
+            if (cachedTenant.HasValue && cachedTenant.Value is not null)
+            {
+                return cachedTenant.Value;
+            }
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient(_options.HttpClientName);
+                string encodedId = Uri.EscapeDataString(id);
+                var endpoint = _options.TenantByIdEndpoint.Replace("{id}", encodedId, StringComparison.Ordinal);
+                Uri requestUri = BuildRequestUri(endpoint);
+                var response = await client.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
                 {
-                    try
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        var client = _httpClientFactory.CreateClient(_options.HttpClientName);
-                        var endpoint = new Uri(_options.TenantByIdEndpoint.Replace("{id}", id, StringComparison.Ordinal));
-                        var response = await client.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
-                        if (!response.IsSuccessStatusCode)
+                        if (_logger.IsEnabled(LogLevel.Information))
                         {
-                            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                            {
-                                _logger.LogInformation("Tenant with ID {Id} not found", id);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Error retrieving tenant with ID {Id}: {StatusCode}", id, response.StatusCode);
-                            }
-
-                            return null;
+                            _logger.LogInformation("Tenant with ID {Id} not found", id);
                         }
-
-                        var details = await response.Content.ReadFromJsonAsync<TenantDetails>(cancellationToken);
-                        if (details == null)
+                    }
+                    else
+                    {
+                        if (_logger.IsEnabled(LogLevel.Warning))
                         {
-                            _logger.LogWarning("Tenant with ID {Id} returned null details", id);
-                            return null;
+                            _logger.LogWarning("Error retrieving tenant with ID {Id}: {StatusCode}", id, response.StatusCode);
                         }
+                    }
 
-                        return details;
-                    }
-                    catch (HttpRequestException exception)
-                    {
-                        _logger.LogError(exception, "HTTP error retrieving tenant with ID {Id}", id);
-                        return null;
-                    }
-                    catch (Exception exception)
-                    {
-                        _logger.LogError(exception, "Error retrieving tenant with ID {Id}", id);
-                        return null;
-                    }
-                },
-                options => options.SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes)),
-                token: cancellationToken
-            );
-            return tenant;
+                    await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);
+                    return null;
+                }
+
+                var details = await response.Content.ReadFromJsonAsync<TenantDetails>(cancellationToken);
+                if (details == null)
+                {
+                    _logger.LogWarning("Tenant with ID {Id} returned null details", id);
+                    await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);
+                    return null;
+                }
+
+                await _fusionCache.SetAsync(
+                    cacheKey,
+                    details,
+                    options => options
+                        .SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes))
+                        .SetFailSafe(false),
+                    token: cancellationToken);
+
+                return details;
+            }
+            catch (HttpRequestException exception)
+            {
+                _logger.LogError(exception, "HTTP error retrieving tenant with ID {Id}", id);
+                await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);
+                return null;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error retrieving tenant with ID {Id}", id);
+                await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);
+                return null;
+            }
         }
 
         /// <summary>
@@ -317,53 +357,65 @@ namespace SharedKernel.Infrastructure.MultiTenant
                 return null;
             }
 
-            var cacheKey = $"TenantByName:{name}";
+            var cacheKey = FusionCacheKeys.TenantByName(name);
 
-            // Try to get from cache first
-            var tenant = await _fusionCache.GetOrSetAsync(
-                cacheKey,
-                async _ =>
+            var cachedTenant = await _fusionCache.TryGetAsync<TenantDetails>(cacheKey, token: cancellationToken);
+            if (cachedTenant.HasValue && cachedTenant.Value is not null)
+            {
+                return cachedTenant.Value;
+            }
+
+            try
+            {
+                TenantDetails? resolvedTenant = null;
+
+                if (!string.IsNullOrEmpty(_options.TenantByNameEndpoint))
                 {
-                    try
+                    var client = _httpClientFactory.CreateClient(_options.HttpClientName);
+                    var endpoint = _options.TenantByNameEndpoint.Replace("{name}", Uri.EscapeDataString(name), StringComparison.Ordinal);
+                    Uri requestUri = BuildRequestUri(endpoint);
+                    var response = await client.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
                     {
-                        // First try to use the API endpoint if available
-                        if (!string.IsNullOrEmpty(_options.TenantByNameEndpoint))
-                        {
-                            var client = _httpClientFactory.CreateClient(_options.HttpClientName);
-                            var endpoint = new Uri(_options.TenantByNameEndpoint.Replace("{name}", Uri.EscapeDataString(name), StringComparison.Ordinal));
-                            var response = await client.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
-                            if (response.IsSuccessStatusCode)
-                            {
-                                var details = await response.Content.ReadFromJsonAsync<TenantDetails>(cancellationToken);
-                                if (details != null)
-                                {
-                                    return details;
-                                }
-                            }
-                        }
+                        resolvedTenant = await response.Content.ReadFromJsonAsync<TenantDetails>(cancellationToken);
+                    }
+                }
 
-                        // Fall back to getting all tenants and filtering by name
-                        var allTenants = await GetAllAsync();
-                        var foundTenant = allTenants.FirstOrDefault(tenantInfo =>
-                            string.Equals(tenantInfo.Name, name, StringComparison.OrdinalIgnoreCase));
-                        return foundTenant;
-                    }
-                    catch (HttpRequestException exception)
-                    {
-                        _logger.LogError(exception, "HTTP error retrieving tenant with name {Name}", name);
-                        return null;
-                    }
-                    catch (Exception exception)
-                    {
-                        _logger.LogError(exception, "Error retrieving tenant with name {Name}", name);
-                        return null;
-                    }
-                },
-                options => options.SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes)),
-                token: cancellationToken
-            );
+                if (resolvedTenant is null)
+                {
+                    var allTenants = await GetAllAsync();
+                    resolvedTenant = allTenants.FirstOrDefault(tenantInfo =>
+                        string.Equals(tenantInfo.Name, name, StringComparison.OrdinalIgnoreCase));
+                }
 
-            return tenant;
+                if (resolvedTenant is null)
+                {
+                    await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);
+                    return null;
+                }
+
+                await _fusionCache.SetAsync(
+                    cacheKey,
+                    resolvedTenant,
+                    options => options
+                        .SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes))
+                        .SetFailSafe(false),
+                    token: cancellationToken);
+
+                return resolvedTenant;
+            }
+            catch (HttpRequestException exception)
+            {
+                _logger.LogError(exception, "HTTP error retrieving tenant with name {Name}", name);
+                await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);
+                return null;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error retrieving tenant with name {Name}", name);
+                await _fusionCache.RemoveAsync(cacheKey, token: cancellationToken);
+                return null;
+            }
         }
 
         /// <summary>
@@ -405,6 +457,13 @@ namespace SharedKernel.Infrastructure.MultiTenant
             return Task.FromResult(false);
         }
 
+        private static Uri BuildRequestUri(string endpoint)
+        {
+            return Uri.TryCreate(endpoint, UriKind.Absolute, out Uri? absoluteUri)
+                ? absoluteUri
+                : new Uri(endpoint, UriKind.Relative);
+        }
+
         // All caching is now handled by FusionCache's GetOrSetAsync methods above.
 
         /// <summary>
@@ -414,15 +473,33 @@ namespace SharedKernel.Infrastructure.MultiTenant
         /// <returns>The primary tenant ID if found; otherwise, the first tenant ID.</returns>
         public async Task<string?> FindPrimaryTenantIdAsync(IEnumerable<string> tenantIds)
         {
-            if (tenantIds == null || !tenantIds.Any())
+            if (tenantIds == null)
             {
                 return null;
             }
 
-            // Get all tenants for the provided IDs
-            var tenants = new List<TenantDetails>();
+            var normalizedTenantIds = tenantIds
+                .Where(static id => !string.IsNullOrWhiteSpace(id))
+                .Select(static id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
 
-            foreach (var tenantId in tenantIds)
+            if (normalizedTenantIds.Length == 0)
+            {
+                return null;
+            }
+
+            string cacheKey = FusionCacheKeys.PrimaryTenantIdForSet(normalizedTenantIds);
+            var cachedPrimaryTenantId = await _fusionCache.TryGetAsync<string>(cacheKey);
+            if (cachedPrimaryTenantId.HasValue)
+            {
+                return cachedPrimaryTenantId.Value;
+            }
+
+            // Get all tenants for the provided IDs
+            var tenants = new List<TenantDetails>(normalizedTenantIds.Length);
+
+            foreach (var tenantId in normalizedTenantIds)
             {
                 var tenant = await TryGetByIdentifierAsync(tenantId);
                 if (tenant != null)
@@ -433,6 +510,13 @@ namespace SharedKernel.Infrastructure.MultiTenant
 
             if (tenants.Count == 0)
             {
+                await _fusionCache.SetAsync(
+                    cacheKey,
+                    default(string),
+                    options => options
+                        .SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes))
+                        .SetFailSafe(false));
+
                 return null;
             }
 
@@ -441,12 +525,28 @@ namespace SharedKernel.Infrastructure.MultiTenant
             {
                 if (tenants[tenantIndex].IsPrimary)
                 {
-                    return tenants[tenantIndex].Identifier;
+                    string primaryTenantId = tenants[tenantIndex].Identifier;
+                    await _fusionCache.SetAsync(
+                        cacheKey,
+                        primaryTenantId,
+                        options => options
+                            .SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes))
+                            .SetFailSafe(false));
+
+                    return primaryTenantId;
                 }
             }
 
             // If no primary tenant is found, return the first tenant
-            return tenants[0].Identifier;
+            string fallbackTenantId = tenants[0].Identifier;
+            await _fusionCache.SetAsync(
+                cacheKey,
+                fallbackTenantId,
+                options => options
+                    .SetDuration(TimeSpan.FromMinutes(_options.CacheDurationMinutes))
+                    .SetFailSafe(false));
+
+            return fallbackTenantId;
         }
     }
 }

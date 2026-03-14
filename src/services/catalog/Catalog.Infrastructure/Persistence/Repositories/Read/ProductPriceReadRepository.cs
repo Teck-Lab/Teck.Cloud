@@ -1,3 +1,7 @@
+// <copyright file="ProductPriceReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Products.ReadModels;
 using Catalog.Application.Products.Repositories;
 using SharedKernel.Persistence.Database.EFCore;

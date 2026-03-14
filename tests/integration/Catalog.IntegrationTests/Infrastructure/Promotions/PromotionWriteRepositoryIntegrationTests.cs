@@ -31,8 +31,10 @@ namespace Catalog.IntegrationTests.Infrastructure.Promotions
         {
         }
 
-        protected override ApplicationWriteDbContext CreateWriteDbContext(DbContextOptions<ApplicationWriteDbContext> options)
-            => new ApplicationWriteDbContext(options);
+        protected override ApplicationWriteDbContext CreateWriteDbContext(
+            DbContextOptions<ApplicationWriteDbContext> options,
+            Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<SharedKernel.Infrastructure.MultiTenant.TenantDetails> tenantAccessor)
+            => new ApplicationWriteDbContext(options, tenantAccessor);
 
         protected override IUnitOfWork CreateUnitOfWork(ApplicationWriteDbContext context)
             => new UnitOfWork<ApplicationWriteDbContext>(context);
@@ -73,7 +75,6 @@ namespace Catalog.IntegrationTests.Infrastructure.Promotions
             );
             var product = productResult.Value;
             await _productWriteRepository.AddAsync(product, CancellationToken.None);
-            await UnitOfWork.SaveChangesAsync(CancellationToken.None);
 
             // Act: create promotion
             var promoResult = Promotion.Create(

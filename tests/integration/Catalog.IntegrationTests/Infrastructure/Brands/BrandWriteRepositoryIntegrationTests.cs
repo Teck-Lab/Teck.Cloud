@@ -20,10 +20,11 @@ namespace Catalog.IntegrationTests.Infrastructure.Brands
         public BrandWriteRepositoryIntegrationTests(SharedTestcontainersFixture sharedFixture)
             : base(sharedFixture) { }
 
-        protected override ApplicationWriteDbContext CreateWriteDbContext(DbContextOptions<ApplicationWriteDbContext> options)
+        protected override ApplicationWriteDbContext CreateWriteDbContext(
+            DbContextOptions<ApplicationWriteDbContext> options,
+            Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<SharedKernel.Infrastructure.MultiTenant.TenantDetails> tenantAccessor)
         {
-            // Provide null for ITenantInfo and use the default DatabaseStrategy if not needed for tests
-            return new ApplicationWriteDbContext(options);
+            return new ApplicationWriteDbContext(options, tenantAccessor);
         }
 
         protected override IUnitOfWork CreateUnitOfWork(ApplicationWriteDbContext context)

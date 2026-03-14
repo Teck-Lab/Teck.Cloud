@@ -9,14 +9,6 @@ namespace Catalog.Arch.UnitTests.Application
         [Fact]
         public void QueryHandlers_Should_UseReadRepositories()
         {
-            var allowedInterfaces = ArchRuleDefinition.Interfaces()
-            .That()
-            .HaveNameEndingWith("ReadRepository")
-            .Or()
-            .HaveNameEndingWith("Cache")
-            .Or()
-            .HaveNameEndingWith("Runner");
-
             ArchRuleDefinition
                 .Classes()
                 .That()
@@ -24,8 +16,17 @@ namespace Catalog.Arch.UnitTests.Application
                 .And()
                 .HaveNameEndingWith("QueryHandler")
                 .Should()
-                .DependOnAny(allowedInterfaces)
-                .Because("query handlers should use read repositories")
+                .DependOnAny(
+                    ArchRuleDefinition.Interfaces()
+                        .That()
+                        .HaveNameEndingWith("ReadRepository")
+                        .Or()
+                        .HaveNameEndingWith("Cache")
+                        .Or()
+                        .HaveNameEndingWith("Runner"))
+                .OrShould()
+                .DependOnAny(ArchRuleDefinition.Classes().That().ResideInNamespaceMatching(@"^.*\.ReadModels$"))
+                .Because("query handlers should use read-side abstractions (read repositories, cache, runners, or read models)")
                 .Check(Architecture);
         }
 

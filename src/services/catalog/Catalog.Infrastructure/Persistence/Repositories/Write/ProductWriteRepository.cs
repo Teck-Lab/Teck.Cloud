@@ -1,3 +1,7 @@
+// <copyright file="ProductWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.ProductAggregate.Repositories;
 using Microsoft.AspNetCore.Http;
@@ -26,8 +30,9 @@ public sealed class ProductWriteRepository : GenericWriteRepository<Product, Gui
     /// <inheritdoc/>
     public async Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default)
     {
-        return await DbContext.Products
-            .FirstOrDefaultAsync(product => product.ProductSKU == sku, cancellationToken);
+        return await this.DbContext.Products
+            .FirstOrDefaultAsync(product => product.ProductSKU == sku, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // Use the base implementation of FirstOrDefaultAsync; when tracked entity is required,

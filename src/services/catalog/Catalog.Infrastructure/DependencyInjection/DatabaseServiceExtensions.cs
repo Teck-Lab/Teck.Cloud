@@ -1,4 +1,9 @@
+// <copyright file="DatabaseServiceExtensions.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using System.Reflection;
+using Catalog.Application.Brands.ReadModels;
 using Catalog.Application.Brands.Repositories;
 using Catalog.Application.Categories.Repositories;
 using Catalog.Application.ProductPriceTypes.Repositories;
@@ -16,6 +21,7 @@ using Catalog.Infrastructure.Persistence.Repositories.Read;
 using Catalog.Infrastructure.Persistence.Repositories.Write;
 using Microsoft.AspNetCore.Builder;
 using SharedKernel.Core.Database;
+using SharedKernel.Core.Pricing;
 using SharedKernel.Persistence.Database.EFCore;
 using SharedKernel.Persistence.Database.MultiTenant;
 
@@ -31,19 +37,29 @@ public static class DatabaseServiceExtensions
     /// </summary>
     /// <param name="builder">The web application builder.</param>
     /// <param name="migrationsAssembly">The assembly containing migrations.</param>
-    /// <param name="defaultWriteConnectionString"></param>
-    /// <param name="defaultReadConnectionString"></param>
-    public static void AddCqrsDatabase(this WebApplicationBuilder builder, Assembly migrationsAssembly, string defaultWriteConnectionString, string defaultReadConnectionString)
+    /// <param name="defaultWriteConnectionString">The default write connection string.</param>
+    /// <param name="defaultReadConnectionString">The default read connection string.</param>
+    /// <param name="provider">The deployment-selected database provider.</param>
+    public static void AddCqrsDatabase(
+        this WebApplicationBuilder builder,
+        Assembly migrationsAssembly,
+        string defaultWriteConnectionString,
+        string defaultReadConnectionString,
+        DatabaseProvider provider)
     {
-        // Add hybrid multi-tenant database contexts with support for read/write separation
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(migrationsAssembly);
+
         builder.AddHybridMultiTenantDbContexts<ApplicationWriteDbContext, ApplicationReadDbContext>(
             migrationsAssembly,
             defaultWriteConnectionString,
-            defaultReadConnectionString);
+            defaultReadConnectionString,
+            provider);
 
         // Register repositories with appropriate read/write contexts
         builder.Services.AddScoped<IBrandWriteRepository, BrandWriteRepository>();
         builder.Services.AddScoped<IBrandReadRepository, BrandReadRepository>();
+        builder.Services.AddScoped<IGenericReadRepository<BrandReadModel, Guid>>(sp => sp.GetRequiredService<IBrandReadRepository>());
         builder.Services.AddScoped<IProductWriteRepository, ProductWriteRepository>();
         builder.Services.AddScoped<IProductReadRepository, ProductReadRepository>();
         builder.Services.AddScoped<ICategoryWriteRepository, CategoryWriteRepository>();
@@ -56,13 +72,11 @@ public static class DatabaseServiceExtensions
         builder.Services.AddScoped<ISupplierReadRepository, SupplierReadRepository>();
         builder.Services.AddScoped<IProductPriceReadRepository, ProductPriceReadRepository>();
 
-        // Register UnitOfWork with the write context using the DbContext factory to support multi-tenancy
+        // Register UnitOfWork with the write context.
         builder.Services.AddScoped<IUnitOfWork>(sp =>
         {
-            var dbContextFactory = sp.GetRequiredService<ApplicationWriteDbContext>();
-
-            // Pass the factory, not the context, to UnitOfWork
-            return new UnitOfWork<ApplicationWriteDbContext>(dbContextFactory);
+            var writeDbContext = sp.GetRequiredService<ApplicationWriteDbContext>();
+            return new UnitOfWork<ApplicationWriteDbContext>(writeDbContext);
         });
     }
 }

@@ -1,3 +1,7 @@
+// <copyright file="SupplierByIdSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.SupplierAggregate.Specifications
@@ -13,7 +17,7 @@ namespace Catalog.Domain.Entities.SupplierAggregate.Specifications
         /// <param name="id">The supplier ID.</param>
         public SupplierByIdSpecification(Guid id)
         {
-            Query.Where(supplier => supplier.Id == id);
+            this.Query.Where(supplier => supplier.Id == id);
         }
     }
 }

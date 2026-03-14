@@ -1,4 +1,9 @@
+// <copyright file="ProductWriteConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.ProductAggregate;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class ProductWriteConfig : IEntityTypeConfiguration<Product>
     /// <param name="builder">The builder to be used to configure the Product entity.</param>
     public void Configure(EntityTypeBuilder<Product> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("Products");
 
         builder.HasKey(product => product.Id);
@@ -66,5 +73,7 @@ public class ProductWriteConfig : IEntityTypeConfiguration<Product>
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

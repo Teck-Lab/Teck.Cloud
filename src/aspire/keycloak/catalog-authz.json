@@ -1,0 +1,170 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "brand",
+      "ownerManagedAccess": false,
+      "displayName": "Brand",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        },
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "system",
+      "ownerManagedAccess": false,
+      "displayName": "System",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "Is Realm Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Realm User",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"user\",\"required\":false},{\"id\":\"admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is catalog reader",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-catalog/writer\",\"required\":false},{\"id\":\"teck-catalog/reader\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is catalog writer",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[]"
+      }
+    },
+    {
+      "name": "Create Brand",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"brand\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is catalog writer\",\"Is Realm Admin\"]"
+      }
+    },
+    {
+      "name": "List brands",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"brand\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is catalog reader\",\"Is Realm User\"]"
+      }
+    },
+    {
+      "name": "Update brand",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"brand\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"Is catalog writer\",\"Is Realm Admin\"]"
+      }
+    },
+    {
+      "name": "Delete brand",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"brand\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Is catalog writer\",\"Is Realm Admin\"]"
+      }
+    },
+    {
+      "name": "List ssytem details",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "resources": "[\"system\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is catalog reader\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "create",
+      "iconUri": "",
+      "displayName": "Create"
+    },
+    {
+      "name": "list",
+      "iconUri": "",
+      "displayName": "List"
+    },
+    {
+      "name": "update",
+      "iconUri": "",
+      "displayName": "Update"
+    },
+    {
+      "name": "delete",
+      "iconUri": "",
+      "displayName": "Delete"
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}

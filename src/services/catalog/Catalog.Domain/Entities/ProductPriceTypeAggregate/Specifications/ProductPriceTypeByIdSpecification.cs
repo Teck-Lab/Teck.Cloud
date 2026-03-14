@@ -1,3 +1,7 @@
+// <copyright file="ProductPriceTypeByIdSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.ProductPriceTypeAggregate.Specifications
@@ -13,7 +17,7 @@ namespace Catalog.Domain.Entities.ProductPriceTypeAggregate.Specifications
         /// <param name="id">The product price type ID.</param>
         public ProductPriceTypeByIdSpecification(Guid id)
         {
-            Query.Where(priceType => priceType.Id == id);
+            this.Query.Where(priceType => priceType.Id == id);
         }
     }
 }

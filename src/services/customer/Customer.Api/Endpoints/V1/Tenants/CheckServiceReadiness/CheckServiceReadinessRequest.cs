@@ -1,3 +1,7 @@
+// <copyright file="CheckServiceReadinessRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Customer.Api.Endpoints.V1.Tenants.CheckServiceReadiness;
 
 /// <summary>

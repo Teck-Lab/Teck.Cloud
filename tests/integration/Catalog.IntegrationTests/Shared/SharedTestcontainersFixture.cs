@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
 
@@ -11,23 +12,32 @@ namespace Catalog.IntegrationTests.Shared
 {
     public class SharedTestcontainersFixture : IAsyncLifetime
     {
-        public PostgreSqlContainer DbContainer { get; }
-        public RabbitMqContainer RabbitMqContainer { get; }
+        public PostgreSqlContainer? DbContainer { get; private set; }
+        public RabbitMqContainer? RabbitMqContainer { get; private set; }
+        public bool UseSqliteFallback { get; private set; }
+        public SqliteConnection? SqliteConnection { get; private set; }
         public SharedTestcontainersFixture()
         {
             TryConfigurePodmanSocketIfAvailable();
 
-            DbContainer = new PostgreSqlBuilder("postgres:latest")
-                .WithDatabase("testdb")
-                .WithUsername("postgres")
-                .WithPassword("postgres")
-                .Build();
+            try
+            {
+                DbContainer = new PostgreSqlBuilder("postgres:latest")
+                    .WithDatabase("testdb")
+                    .WithUsername("postgres")
+                    .WithPassword("postgres")
+                    .Build();
 
-            RabbitMqContainer = RabbitMqTestContainerFactory.Create();
+                RabbitMqContainer = RabbitMqTestContainerFactory.Create();
+            }
+            catch (Exception ex) when (IsDockerUnavailable(ex))
+            {
+                UseSqliteFallback = true;
+            }
         }
 
 
-        private void TryConfigurePodmanSocketIfAvailable()
+        private static void TryConfigurePodmanSocketIfAvailable()
         {
             try
             {
@@ -41,6 +51,13 @@ namespace Catalog.IntegrationTests.Shared
                 // If already overridden, respect it
                 if (!string.IsNullOrEmpty(currentOverride))
                 {
+                    var normalizedOverride = NormalizeDockerSocketPath(currentOverride);
+                    if (!string.Equals(currentOverride, normalizedOverride, StringComparison.Ordinal))
+                    {
+                        Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", normalizedOverride);
+                        Console.WriteLine($"[Testcontainers] Normalized TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE to {normalizedOverride}");
+                    }
+
                     Console.WriteLine("[Testcontainers] Using existing TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE.");
                     return;
                 }
@@ -59,7 +76,7 @@ namespace Catalog.IntegrationTests.Shared
                         Console.WriteLine($"[Testcontainers] Checking socket: {path}");
                         if (File.Exists(path))
                         {
-                            var overrideValue = $"unix://{path}";
+                            var overrideValue = NormalizeDockerSocketPath(path);
                             Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", overrideValue);
                             Console.WriteLine($"[Testcontainers] Found socket at {path}; set TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE={overrideValue}");
                             return;
@@ -73,8 +90,9 @@ namespace Catalog.IntegrationTests.Shared
                 // Forward unix socket if provided
                 if (dockerHost.StartsWith("unix://", StringComparison.OrdinalIgnoreCase) || dockerHost.EndsWith(".sock", StringComparison.OrdinalIgnoreCase))
                 {
-                    Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", dockerHost);
-                    Console.WriteLine($"[Testcontainers] Forwarding DOCKER_HOST unix socket to TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: {dockerHost}");
+                    var overrideValue = NormalizeDockerSocketPath(dockerHost);
+                    Environment.SetEnvironmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", overrideValue);
+                    Console.WriteLine($"[Testcontainers] Forwarding DOCKER_HOST unix socket to TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: {overrideValue}");
                     return;
                 }
 
@@ -82,7 +100,7 @@ namespace Catalog.IntegrationTests.Shared
                 if (dockerHost.StartsWith("npipe:", StringComparison.OrdinalIgnoreCase) || dockerHost.Contains("podman_engine", StringComparison.OrdinalIgnoreCase) || dockerHost.Contains("podman", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine("[Testcontainers] Detected DOCKER_HOST using a Podman named pipe or Podman reference which Docker.DotNet may not support.");
-                    Console.WriteLine("[Testcontainers] For Podman Desktop follow: https://podman-desktop.io/tutorial/testcontainers-with-podman to enable a unix socket and set TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE accordingly.");
+                    Console.WriteLine("[Testcontainers] For Podman Desktop follow: https://podman-desktop.io/tutorial/testcontainers-with-podman to enable a unix socket and set TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE to an absolute socket path.");
                     return;
                 }
 
@@ -94,33 +112,81 @@ namespace Catalog.IntegrationTests.Shared
             }
         }
 
+        private static string NormalizeDockerSocketPath(string value)
+        {
+            var normalized = value.Trim();
+            if (!normalized.StartsWith("unix://", StringComparison.OrdinalIgnoreCase))
+            {
+                return normalized;
+            }
+
+            if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? parsed) &&
+                string.Equals(parsed.Scheme, "unix", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(parsed.AbsolutePath))
+            {
+                return parsed.AbsolutePath;
+            }
+
+            var withoutScheme = normalized.Substring("unix://".Length);
+            return withoutScheme.StartsWith('/')
+                ? withoutScheme
+                : "/" + withoutScheme.TrimStart('/');
+        }
+
         public async ValueTask InitializeAsync()
         {
+            if (UseSqliteFallback)
+            {
+                if (SqliteConnection is null)
+                {
+                    SqliteConnection = new SqliteConnection("Data Source=:memory:");
+                    await SqliteConnection.OpenAsync();
+                }
+
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-write", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-read", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", string.Empty);
+                return;
+            }
+
             try
             {
                 // Increase retry attempts and delay to reduce flakes on slow machines/CI
-                await RetryAsync(async () => await DbContainer.StartAsync(), 5, TimeSpan.FromSeconds(3));
-                var postgresConn = DbContainer.GetConnectionString();
+                await RetryAsync(async () => await DbContainer!.StartAsync(), 5, TimeSpan.FromSeconds(3));
+                var postgresConn = DbContainer!.GetConnectionString();
                 Console.WriteLine($"[Testcontainers] Postgres started: {postgresConn}");
                 // Expose postgres connection strings to the test host via environment variables
-                Environment.SetEnvironmentVariable("ConnectionStrings__postgres-write", postgresConn);
-                Environment.SetEnvironmentVariable("ConnectionStrings__postgres-read", postgresConn);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-write", postgresConn);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-read", postgresConn);
 
-                await RetryAsync(async () => await RabbitMqContainer.StartAsync(), 5, TimeSpan.FromSeconds(3));
-                var rabbitConnRaw = RabbitMqContainer.GetConnectionString() ?? string.Empty;
+                await RetryAsync(async () => await RabbitMqContainer!.StartAsync(), 5, TimeSpan.FromSeconds(3));
+                var rabbitConnRaw = RabbitMqContainer!.GetConnectionString() ?? string.Empty;
                 // Normalize rabbitmq:// / rabbitmqs:// to amqp(s):// for RabbitMQ.Client compatibility
                 var rabbitConn = rabbitConnRaw;
                 if (rabbitConnRaw.StartsWith("rabbitmqs://", StringComparison.OrdinalIgnoreCase))
                 {
-                    rabbitConn = "amqps://" + rabbitConnRaw.Substring("rabbitmqs://".Length);
+                    rabbitConn = string.Concat("amqps://", rabbitConnRaw.AsSpan("rabbitmqs://".Length));
                 }
                 else if (rabbitConnRaw.StartsWith("rabbitmq://", StringComparison.OrdinalIgnoreCase))
                 {
-                    rabbitConn = "amqp://" + rabbitConnRaw.Substring("rabbitmq://".Length);
+                    rabbitConn = string.Concat("amqp://", rabbitConnRaw.AsSpan("rabbitmq://".Length));
                 }
                 Console.WriteLine($"[Testcontainers] RabbitMQ started: {rabbitConn}");
                 Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", rabbitConn);
 
+            }
+            catch (Exception ex) when (IsDockerUnavailable(ex))
+            {
+                UseSqliteFallback = true;
+                if (SqliteConnection is null)
+                {
+                    SqliteConnection = new SqliteConnection("Data Source=:memory:");
+                    await SqliteConnection.OpenAsync();
+                }
+
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-write", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__db-read", SqliteConnection.ConnectionString);
+                Environment.SetEnvironmentVariable("ConnectionStrings__rabbitmq", string.Empty);
             }
             catch (Exception ex)
             {
@@ -129,7 +195,7 @@ namespace Catalog.IntegrationTests.Shared
                 {
                     throw new InvalidOperationException(
                         "Testcontainers failed to start containers because the Docker endpoint appears to be a Podman named pipe which is unsupported by Docker.DotNet. " +
-                        "Please configure Podman to expose a Docker-compatible unix socket (e.g. /run/podman/podman.sock) and set the environment variable TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=unix:///run/podman/podman.sock, or use Docker Desktop.\n" +
+                        "Please configure Podman to expose a Docker-compatible unix socket (e.g. /run/podman/podman.sock) and set the environment variable TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/podman/podman.sock, or use Docker Desktop.\n" +
                         "Original error: " + ex.Message,
                         ex);
                 }
@@ -140,8 +206,27 @@ namespace Catalog.IntegrationTests.Shared
 
         public async ValueTask DisposeAsync()
         {
-            try { await RabbitMqContainer.DisposeAsync(); } catch { }
-            try { await DbContainer.DisposeAsync(); } catch { }
+            if (UseSqliteFallback && SqliteConnection is not null)
+            {
+                try
+                { await SqliteConnection.DisposeAsync(); }
+                catch { }
+                return;
+            }
+
+            if (RabbitMqContainer is not null)
+            {
+                try
+                { await RabbitMqContainer.DisposeAsync(); }
+                catch { }
+            }
+
+            if (DbContainer is not null)
+            {
+                try
+                { await DbContainer.DisposeAsync(); }
+                catch { }
+            }
         }
 
         private static async Task RetryAsync(Func<Task> action, int maxAttempts, TimeSpan delay)
@@ -161,6 +246,18 @@ namespace Catalog.IntegrationTests.Shared
                     await Task.Delay(delay);
                 }
             }
+        }
+
+        private static bool IsDockerUnavailable(Exception ex)
+        {
+            if (ex.Message.Contains("Docker is either not running or misconfigured", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("Failed to connect to Docker endpoint", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("docker_engine", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return ex.InnerException is not null && IsDockerUnavailable(ex.InnerException);
         }
     }
 }

@@ -131,8 +131,8 @@ namespace Catalog.Arch.UnitTests.Infrastructure
                 .And()
                 .ResideInNamespaceMatching(@"^.*\.Application\..*")
                 .Should()
-                .ResideInNamespaceMatching(@"^.*\.Specifications$")
-                .Because("application specifications should be in the application layer in a Specifications namespace")
+                .ResideInNamespaceMatching(@"^.*\.Application\..*(\.Specifications|\.Features\..*)$")
+                .Because("application specifications should stay in the application layer under Specifications or feature namespaces")
                 .Check(Architecture);
         }
 

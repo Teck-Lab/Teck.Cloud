@@ -2,8 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
-using Shouldly;
 using SharedKernel.Persistence.UnitTests.TestHelpers;
+using Shouldly;
 
 namespace SharedKernel.Persistence.UnitTests.Database.EFCore;
 
@@ -26,10 +26,10 @@ public sealed class GenericWriteRepositoryTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         await _fixture.InitializeAsync();
-        
+
         _dbContext = new TestDbContext(_fixture.CreateDbContextOptions());
-        await _dbContext.Database.EnsureCreatedAsync();
-        
+        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+
         _repository = new TestWriteRepository(_dbContext, _httpContextAccessor);
     }
 
@@ -39,7 +39,7 @@ public sealed class GenericWriteRepositoryTests : IAsyncLifetime
         {
             await _dbContext.DisposeAsync();
         }
-        
+
         await _fixture.DisposeAsync();
     }
 
@@ -57,7 +57,7 @@ public sealed class GenericWriteRepositoryTests : IAsyncLifetime
 
         // Assert
         var result = await _dbContext.TestEntities.FirstOrDefaultAsync(
-            e => e.Name == "Test", 
+            e => e.Name == "Test",
             TestContext.Current.CancellationToken);
         result.ShouldNotBeNull();
         result.Description.ShouldBe("Test Description");

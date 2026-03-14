@@ -1,4 +1,3 @@
-using Catalog.Application.Brands.Features.Responses;
 using Catalog.Application.Categories.Response;
 using Catalog.Application.Features.ProductPrices.Response;
 using Catalog.Application.Products.Responses;
@@ -31,7 +30,7 @@ namespace Catalog.UnitTests.Application.Products
         {
             var id = Guid.NewGuid();
             var brandId = Guid.NewGuid();
-            var brand = new BrandResponse { Id = brandId, Name = "Brand" };
+            var brand = new ProductBrandResponse { Id = brandId, Name = "Brand" };
             var resp = new ProductResponse
             {
                 Id = id,
@@ -79,6 +78,28 @@ namespace Catalog.UnitTests.Application.Products
             Assert.Empty(resp.Categories);
             Assert.Empty(resp.ProductPrices);
             Assert.Empty(resp.Promotions);
+        }
+
+        [Fact]
+        public void ProductBrandResponse_CanSet_All_Properties()
+        {
+            var id = Guid.NewGuid();
+            var logoUrl = new Uri("https://brand.example.com/logo.png");
+            var websiteUrl = new Uri("https://brand.example.com");
+            var response = new ProductBrandResponse
+            {
+                Id = id,
+                Name = "Brand",
+                Description = "Brand Description",
+                LogoUrl = logoUrl,
+                WebsiteUrl = websiteUrl,
+            };
+
+            Assert.Equal(id, response.Id);
+            Assert.Equal("Brand", response.Name);
+            Assert.Equal("Brand Description", response.Description);
+            Assert.Equal(logoUrl, response.LogoUrl);
+            Assert.Equal(websiteUrl, response.WebsiteUrl);
         }
     }
 }

@@ -1,3 +1,7 @@
+// <copyright file="IBrandReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Brands.ReadModels;
 using SharedKernel.Core.Database;
 

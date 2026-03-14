@@ -1,4 +1,3 @@
-using Catalog.Application.Brands.Features.DeleteBrand.V1;
 using Catalog.Application.Brands.Features.DeleteBrands.V1;
 using Shouldly;
 
@@ -14,38 +13,44 @@ public class DeleteBrandsValidatorTests
     }
 
     [Fact]
-    public async Task Validate_ShouldPass_WhenIdIsValid()
+    public async Task Validate_ShouldPass_WhenIdsAreValid()
     {
-        var request = new DeleteBrandRequest
+        var request = new DeleteBrandsRequest
         {
-            Id = Guid.NewGuid()
+            Ids = [Guid.NewGuid()]
         };
+
         var result = await _validator.ValidateAsync(request, TestContext.Current.CancellationToken);
+
         result.IsValid.ShouldBeTrue();
     }
 
     [Fact]
-    public async Task Validate_ShouldFail_WhenIdIsEmpty()
+    public async Task Validate_ShouldFail_WhenIdsAreEmpty()
     {
-        var request = new DeleteBrandRequest
+        var request = new DeleteBrandsRequest
         {
-            Id = Guid.Empty
+            Ids = []
         };
+
         var result = await _validator.ValidateAsync(request, TestContext.Current.CancellationToken);
+
         result.IsValid.ShouldBeFalse();
-        result.Errors.ShouldContain(e => e.PropertyName == "Id");
+        result.Errors.ShouldContain(e => e.PropertyName == "Ids");
     }
 
     [Theory]
     [InlineData("00000000-0000-0000-0000-000000000000")]
-    public async Task Validate_ShouldFail_WhenIdIsDefaultGuid(string guidString)
+    public async Task Validate_ShouldFail_WhenIdsContainDefaultGuid(string guidString)
     {
-        var request = new DeleteBrandRequest
+        var request = new DeleteBrandsRequest
         {
-            Id = Guid.Parse(guidString)
+            Ids = [Guid.Parse(guidString)]
         };
+
         var result = await _validator.ValidateAsync(request, TestContext.Current.CancellationToken);
+
         result.IsValid.ShouldBeFalse();
-        result.Errors.ShouldContain(e => e.PropertyName == "Id");
+        result.Errors.ShouldContain(e => e.PropertyName.StartsWith("Ids", StringComparison.Ordinal));
     }
 }

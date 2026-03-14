@@ -1,3 +1,7 @@
+// <copyright file="ICategoryReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Categories.ReadModels;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Pagination;

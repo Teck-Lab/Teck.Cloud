@@ -1,3 +1,7 @@
+// <copyright file="CategoryResponse.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Categories.Response
 {
     /// <summary>

@@ -1,3 +1,7 @@
+// <copyright file="ProductByIdSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.ProductAggregate.Specifications
@@ -14,11 +18,11 @@ namespace Catalog.Domain.Entities.ProductAggregate.Specifications
         /// <param name="includeRelations">Whether to include related entities in the query.</param>
         public ProductByIdSpecification(Guid id, bool includeRelations = false)
         {
-            Query.Where(product => product.Id == id);
+            this.Query.Where(product => product.Id == id);
 
             if (includeRelations)
             {
-                Query
+                this.Query
                     .Include(product => product.Brand)
                     .Include(product => product.Categories)
                     .Include(product => product.ProductPrices)

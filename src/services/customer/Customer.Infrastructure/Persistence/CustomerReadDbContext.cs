@@ -1,4 +1,10 @@
-using Customer.Application.Tenants.DTOs;
+// <copyright file="CustomerReadDbContext.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using System.Diagnostics.CodeAnalysis;
+using Customer.Application.Tenants.ReadModels;
+using Customer.Infrastructure.Persistence.ReadModels;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Persistence.Database.EFCore;
 
@@ -21,17 +27,25 @@ public sealed class CustomerReadDbContext : BaseDbContext
     /// <summary>
     /// Gets or sets the tenants.
     /// </summary>
-    public DbSet<TenantDto> Tenants { get; set; } = null!;
+    public DbSet<TenantReadModel> Tenants { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets tenant database metadata rows.
+    /// </summary>
+    public DbSet<TenantDatabaseMetadataReadModel> TenantDatabaseMetadata { get; set; } = null!;
 
     /// <summary>
     /// On model creating.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
+    [RequiresUnreferencedCode("Calls ApplyConfigurationsFromAssembly which uses reflection and may require unreferenced code.")]
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
+        ArgumentNullException.ThrowIfNull(modelBuilder);
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CustomerReadDbContext).Assembly, ReadConfigFilter);
+
+        base.OnModelCreating(modelBuilder);
     }
 
     private static bool ReadConfigFilter(Type type) =>

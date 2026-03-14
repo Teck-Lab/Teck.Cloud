@@ -2,29 +2,70 @@ name: Canary Release
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
     branches: [main, next]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   packages: write
-
-env:
-  DOTNET_VERSION: "10.0.*"
 
 concurrency:
   group: canary-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  canary:
-    name: Create Canary Release
+  # ── Step 0: clean up canary images when the PR is closed/merged ──────────
+  cleanup:
+    name: Clean Up Canary Images
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (github.event.head_commit == null || (!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')))
+    if: github.event.action == 'closed'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Discover service packages
+        id: packages
+        run: |
+          PACKAGES=""
+          for api_dir in src/services/*/*.Api; do
+            if [ -f "$api_dir/Dockerfile" ]; then
+              SERVICE_NAME=$(echo "$api_dir" | sed -n 's|src/services/\([^/]*\)/.*|\1|p' | tr '[:upper:]' '[:lower:]')
+              PACKAGES="${PACKAGES:+$PACKAGES,}teck-cloud/${SERVICE_NAME}"
+            fi
+          done
+          for gateway_dir in src/gateways/*; do
+            if [ -f "$gateway_dir/Dockerfile" ]; then
+              SERVICE_NAME=$(basename "$gateway_dir" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
+              PACKAGES="${PACKAGES:+$PACKAGES,}teck-cloud/${SERVICE_NAME}"
+            fi
+          done
+          echo "list=$PACKAGES" >> "$GITHUB_OUTPUT"
+          echo "Packages to clean: $PACKAGES"
+
+      - name: Delete canary images for PR ${{ github.event.pull_request.number }}
+        uses: dataaxiom/ghcr-cleanup-action@cd0cdb900b5dbf3a6f2cc869f0dbb0b8211f50c4 # v1.0.16
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          packages: ${{ steps.packages.outputs.list }}
+          delete-tags: '*-canary.${{ github.event.pull_request.number }}.*'
+          delete-untagged: false
+
+  # ── Step 1: derive the canary version and find all Dockerfiles ────────────
+  compute-version:
+    name: Compute Canary Version
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.action != 'closed' && (
+      github.event.head_commit == null ||
+      (!contains(github.event.head_commit.message, 'ci skip') &&
+       !contains(github.event.head_commit.message, 'skip ci')))
     outputs:
-      canary-version: ${{ steps.canary.outputs.newVersion }}
-      published: ${{ steps.canary.outputs.published }}
+      version: ${{ steps.version.outputs.version }}
+      targets: ${{ steps.find.outputs.targets }}
+      build-matrix: ${{ steps.find.outputs.build-matrix }}
+
     steps:
       - name: Generate GitHub App Token
         id: generate-token
@@ -42,45 +83,291 @@ jobs:
       - name: Setup Auto
         uses: auto-it/setup-auto@8088350955c4009f66570db1f401fa1e0adb5a38 # v2.0.0
 
-      - name: Create Canary Release
-        id: canary
+      - name: Compute Canary Version
+        id: version
         run: |
-          auto canary --pr ${{ github.event.pull_request.number }} --quiet > /tmp/canary-output.txt || echo "published=false" >> $GITHUB_OUTPUT
-          
-          if grep -q "Published" /tmp/canary-output.txt; then
-            echo "published=true" >> $GITHUB_OUTPUT
-            VERSION=$(cat /tmp/canary-output.txt | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+-canary\.[0-9]+\.[a-f0-9]+' || echo "")
-            echo "newVersion=${VERSION}" >> $GITHUB_OUTPUT
-            echo "Canary version: ${VERSION}"
-          else
-            echo "published=false" >> $GITHUB_OUTPUT
-          fi
+          SHORT_SHA=$(git rev-parse --short HEAD)
+
+          # `auto version` outputs the bump type (major/minor/patch/skip) without
+          # touching GitHub. We then apply that bump to the latest git tag ourselves.
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          BUMP=$(auto version 2>/dev/null || echo "patch")
+
+          MAJOR=$(echo "$LATEST_TAG" | cut -d. -f1)
+          MINOR=$(echo "$LATEST_TAG" | cut -d. -f2)
+          PATCH=$(echo "$LATEST_TAG" | cut -d. -f3)
+
+          case "$BUMP" in
+            major) NEXT_VERSION="$((MAJOR + 1)).0.0" ;;
+            minor) NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0" ;;
+            patch) NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))" ;;
+            skip)  NEXT_VERSION="${LATEST_TAG}" ;;
+            *)     NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))" ;;
+          esac
+
+          VERSION="${NEXT_VERSION}-canary.${{ github.event.pull_request.number }}.${SHORT_SHA}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bump: ${BUMP}, Latest: ${LATEST_TAG}, Canary version: ${VERSION}"
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
+      - name: Find Docker Targets
+        id: find
+        run: |
+          TARGETS_JSON=$(
+            {
+              for api_dir in src/services/*/*.Api; do
+                if [ -f "$api_dir/Dockerfile" ]; then
+                  SERVICE_NAME=$(echo "$api_dir" | sed -n 's|src/services/\([^/]*\)/.*|\1|p')
+                  if [ -n "$SERVICE_NAME" ]; then
+                    jq -cn \
+                      --arg service_name "$SERVICE_NAME" \
+                      --arg dockerfile_path "$api_dir/Dockerfile" \
+                      '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
+                  fi
+                fi
+              done
+
+              for gateway_dir in src/gateways/*; do
+                if [ -f "$gateway_dir/Dockerfile" ]; then
+                  SERVICE_NAME=$(basename "$gateway_dir" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
+                  jq -cn \
+                    --arg service_name "$SERVICE_NAME" \
+                    --arg dockerfile_path "$gateway_dir/Dockerfile" \
+                    '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
+                fi
+              done
+            } | jq -s -c 'sort_by(.service_name)'
+          )
+
+          if [ "$TARGETS_JSON" = "[]" ]; then
+            echo "ERROR: No Docker targets found"
+            exit 1
+          fi
+
+          echo "$TARGETS_JSON" | jq -r '.[] | "Found target: \(.service_name) -> \(.dockerfile_path)"'
+          echo "targets=$TARGETS_JSON" >> "$GITHUB_OUTPUT"
+
+          # Cartesian product of services × platforms for the build matrix
+          BUILD_MATRIX=$(jq -c '[
+            .[] | . as $svc |
+            [
+              ($svc + {"runner": "ubuntu-24.04",     "platform": "linux/amd64", "platform_pair": "linux-amd64"}),
+              ($svc + {"runner": "ubuntu-24.04-arm", "platform": "linux/arm64", "platform_pair": "linux-arm64"})
+            ][]
+          ]' <<< "$TARGETS_JSON")
+          echo "build-matrix=$BUILD_MATRIX" >> "$GITHUB_OUTPUT"
+
+  # ── Step 2: build per-arch images and push by digest ────────────────────
+  build:
+    name: Build ${{ matrix.target.service_name }} (${{ matrix.target.platform }})
+    needs: compute-version
+    runs-on: ${{ matrix.target.runner }}
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.compute-version.outputs.build-matrix) }}
+      fail-fast: false
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tempdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5672:5672
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Read .NET container versions
+        id: dotnet-version
+        env:
+          DOTNET_ALPINE_VERSION: "3.23"
+        run: |
+          set -euo pipefail
+          SDK_VERSION="$(jq -r '.sdk.version' global.json)"
+          CHANNEL_VERSION="$(jq -r '.sdk.version | split(".")[0:2] | join(".")' global.json)"
+          RELEASES_URL="https://builds.dotnet.microsoft.com/dotnet/release-metadata/${CHANNEL_VERSION}/releases.json"
+          RUNTIME_VERSION="$(curl -fsSL "$RELEASES_URL" | jq -r --arg sdk "$SDK_VERSION" '.releases[] | select(.sdk.version == $sdk) | .sdk["runtime-version"]' | head -n 1)"
+
+          if [ -z "$RUNTIME_VERSION" ] || [ "$RUNTIME_VERSION" = "null" ]; then
+            echo "::error::Unable to resolve .NET runtime version for SDK ${SDK_VERSION}"
+            exit 1
+          fi
+
+          echo "value=$SDK_VERSION"       >> "$GITHUB_OUTPUT"
+          echo "runtime=$RUNTIME_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine=$DOTNET_ALPINE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare image name
+        id: image-vars
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ matrix.target.service_name }}
+          PLATFORM_PAIR: ${{ matrix.target.platform_pair }}
+        run: |
+          REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "cache_image=${IMAGE_NAME}:buildcache-${PLATFORM_PAIR}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        with:
+          context: .
+          file: ${{ matrix.target.dockerfile_path }}
+          platforms: ${{ matrix.target.platform }}
+          outputs: type=image,name=${{ steps.image-vars.outputs.image_name }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=registry,ref=${{ steps.image-vars.outputs.cache_image }}
+          cache-to: type=registry,ref=${{ steps.image-vars.outputs.cache_image }},mode=max
+          network: host
+          build-args: |
+            DOTNET_SDK_VERSION=${{ steps.dotnet-version.outputs.value }}
+            DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
+            DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
+            VERSION=${{ needs.compute-version.outputs.version }}
+            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=tempdb;Username=postgres;Password=postgres
+            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
+
+      - name: Export digest
+        env:
+          SERVICE_NAME: ${{ matrix.target.service_name }}
+          BUILD_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "/tmp/digests/${SERVICE_NAME}"
+          touch "/tmp/digests/${SERVICE_NAME}/${BUILD_DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: digests-${{ matrix.target.service_name }}-${{ matrix.target.platform_pair }}
+          path: /tmp/digests/${{ matrix.target.service_name }}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Step 3: merge per-arch digests into a multi-arch manifest ─────────────
+  merge:
+    name: Merge ${{ matrix.target.service_name }}
+    needs: [compute-version, build]
+    runs-on: ubuntu-latest
+    if: always() && needs.build.result == 'success'
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.compute-version.outputs.targets) }}
+      fail-fast: false
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ matrix.target.service_name }}-*
+          merge-multiple: true
+
+      - name: Prepare image name
+        id: image-vars
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SERVICE_NAME: ${{ matrix.target.service_name }}
+        run: |
+          REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          echo "image_name=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifest
+        working-directory: /tmp/digests
+        env:
+          IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
+          CANARY_TAG: ${{ needs.compute-version.outputs.version }}
+        run: |
+          docker buildx imagetools create \
+            -t "${IMAGE_NAME}:${CANARY_TAG}" \
+            $(printf "${IMAGE_NAME}@sha256:%s " *)
+
+      - name: Inspect manifest
+        env:
+          IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
+          CANARY_TAG: ${{ needs.compute-version.outputs.version }}
+        run: |
+          docker buildx imagetools inspect "${IMAGE_NAME}:${CANARY_TAG}"
+
+  # ── Step 4: leave a PR comment listing available canary images ────────────
+  comment:
+    name: Comment on PR
+    needs: [compute-version, merge]
+    runs-on: ubuntu-latest
+    if: always() && needs.merge.result == 'success'
+
+    steps:
       - name: Comment on PR
-        if: steps.canary.outputs.published == 'true'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
-          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
-            const version = '${{ steps.canary.outputs.newVersion }}';
-            const body = `## Canary Release Published
-            
-            **Version:** \`v${version}\`
-            
-            This PR has been published as a canary release. Docker images will be built with this version tag.
-            
-            ### Testing
-            You can test this canary by pulling:
-            \`\`\`bash
-            docker pull ghcr.io/${{ github.repository }}/catalog:v${version}
-            \`\`\`
-            `;
-            
-            github.rest.issues.createComment({
+            const version  = '${{ needs.compute-version.outputs.version }}';
+            const targets  = JSON.parse('${{ needs.compute-version.outputs.targets }}');
+            const owner    = context.repo.owner.toLowerCase();
+
+            const imageLines = targets
+              .map(t => `ghcr.io/${owner}/teck-cloud/${t.service_name}:${version}`)
+              .map(img => `docker pull ${img}`)
+              .join('\n');
+
+            const body = [
+              '## 🐤 Canary Build Available',
+              '',
+              `**Version:** \`${version}\``,
+              '',
+              'Pull the canary images with:',
+              '```bash',
+              imageLines,
+              '```',
+              '',
+              '> Images are built for `linux/amd64, linux/arm64`. No GitHub release has been created.',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
+              owner:        context.repo.owner,
+              repo:         context.repo.repo,
+              body,
             });

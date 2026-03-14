@@ -20,7 +20,7 @@ public class TenantTests
         var provider = DatabaseProvider.PostgreSQL;
 
         // Act
-        ErrorOr<Tenant> result = Tenant.Create(identifier, name, plan, strategy, provider);
+        ErrorOr<Tenant> result = Tenant.Create(CreateArgs(identifier, name, plan, strategy, provider));
 
         // Assert
         result.IsError.ShouldBeFalse();
@@ -44,13 +44,13 @@ public class TenantTests
         var provider = DatabaseProvider.PostgreSQL;
 
         // Act
-        ErrorOr<Tenant> result = Tenant.Create(identifier, name, plan, strategy, provider);
+        ErrorOr<Tenant> result = Tenant.Create(CreateArgs(identifier, name, plan, strategy, provider));
 
         // Assert
         result.IsError.ShouldBeFalse();
         result.Value.DomainEvents.ShouldNotBeEmpty();
         result.Value.DomainEvents.ShouldContain(e => e is TenantCreatedDomainEvent);
-        
+
         var domainEvent = result.Value.DomainEvents.OfType<TenantCreatedDomainEvent>().First();
         domainEvent.TenantId.ShouldBe(result.Value.Id);
         domainEvent.Identifier.ShouldBe(identifier);
@@ -67,7 +67,7 @@ public class TenantTests
         var provider = DatabaseProvider.PostgreSQL;
 
         // Act
-        ErrorOr<Tenant> result = Tenant.Create("", "Test Tenant", "Enterprise", strategy, provider);
+        ErrorOr<Tenant> result = Tenant.Create(CreateArgs("", "Test Tenant", "Enterprise", strategy, provider));
 
         // Assert
         result.IsError.ShouldBeTrue();
@@ -81,7 +81,7 @@ public class TenantTests
         var provider = DatabaseProvider.PostgreSQL;
 
         // Act
-        ErrorOr<Tenant> result = Tenant.Create("test-tenant", "", "Enterprise", strategy, provider);
+        ErrorOr<Tenant> result = Tenant.Create(CreateArgs("test-tenant", "", "Enterprise", strategy, provider));
 
         // Assert
         result.IsError.ShouldBeTrue();
@@ -95,7 +95,7 @@ public class TenantTests
         var provider = DatabaseProvider.PostgreSQL;
 
         // Act
-        ErrorOr<Tenant> result = Tenant.Create("test-tenant", "Test Tenant", "", strategy, provider);
+        ErrorOr<Tenant> result = Tenant.Create(CreateArgs("test-tenant", "Test Tenant", "", strategy, provider));
 
         // Assert
         result.IsError.ShouldBeTrue();
@@ -106,20 +106,21 @@ public class TenantTests
     {
         // Arrange
         var tenant = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL).Value;
-        
+            CreateArgs(
+                "test-tenant",
+                "Test Tenant",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL)).Value;
+
         var serviceName = "catalog";
         var writeKey = "ConnectionStrings__Tenants__tenant-id__Write";
         var readKey = "ConnectionStrings__Tenants__tenant-id__Read";
         var hasSeparateReadDatabase = true;
- 
+
         // Act
-        tenant.AddDatabaseMetadata(serviceName, writeKey, readKey, hasSeparateReadDatabase);
- 
+        tenant.AddDatabaseMetadata(CreateMetadataArgs(serviceName, writeKey, readKey, hasSeparateReadDatabase));
+
         // Assert
         tenant.Databases.ShouldContain(db => db.ServiceName == serviceName);
         var metadata = tenant.Databases.First(db => db.ServiceName == serviceName);
@@ -134,12 +135,13 @@ public class TenantTests
     {
         // Arrange
         var tenant = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL).Value;
-        
+            CreateArgs(
+                "test-tenant",
+                "Test Tenant",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL)).Value;
+
         tenant.Deactivate();
 
         // Act
@@ -154,16 +156,52 @@ public class TenantTests
     {
         // Arrange
         var tenant = Tenant.Create(
-            "test-tenant",
-            "Test Tenant",
-            "Enterprise",
-            DatabaseStrategy.Dedicated,
-            DatabaseProvider.PostgreSQL).Value;
+            CreateArgs(
+                "test-tenant",
+                "Test Tenant",
+                "Enterprise",
+                DatabaseStrategy.Dedicated,
+                DatabaseProvider.PostgreSQL)).Value;
 
         // Act
         tenant.Deactivate();
 
         // Assert
         tenant.IsActive.ShouldBeFalse();
+    }
+
+    private static TenantCreateArgs CreateArgs(
+        string identifier,
+        string name,
+        string plan,
+        DatabaseStrategy strategy,
+        DatabaseProvider provider)
+    {
+        return new TenantCreateArgs
+        {
+            Identifier = identifier,
+            Name = name,
+            Plan = plan,
+            Database = new TenantCreateDatabaseSettings
+            {
+                DatabaseStrategy = strategy,
+                DatabaseProvider = provider,
+            },
+        };
+    }
+
+    private static TenantDatabaseMetadataArgs CreateMetadataArgs(
+        string serviceName,
+        string writeKey,
+        string? readKey,
+        bool hasSeparateReadDatabase)
+    {
+        return new TenantDatabaseMetadataArgs
+        {
+            ServiceName = serviceName,
+            WriteEnvVarKey = writeKey,
+            ReadEnvVarKey = readKey,
+            ReadDatabaseMode = hasSeparateReadDatabase ? ReadDatabaseMode.SeparateRead : ReadDatabaseMode.SharedWrite,
+        };
     }
 }

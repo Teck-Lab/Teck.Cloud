@@ -26,13 +26,14 @@
     <PackageReference Include="Ardalis.Specification.EntityFrameworkCore" />
     <PackageReference Include="Ardalis.Specification" />
     <PackageReference Include="Ardalis.SmartEnum.EFCore" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SharedKernel.Core\SharedKernel.Core.csproj" />
     <ProjectReference Include="..\SharedKernel.Events\SharedKernel.Events.csproj" />
+    <ProjectReference Include="..\SharedKernel.Grpc.Contracts\SharedKernel.Grpc.Contracts.csproj" />
     <ProjectReference Include="..\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
-    <ProjectReference Include="..\SharedKernel.Core\SharedKernel.Core.csproj" />
   </ItemGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />

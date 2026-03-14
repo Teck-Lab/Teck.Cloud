@@ -1,7 +1,7 @@
 using Catalog.Application.Brands.Features.GetBrandById.V1;
 using Catalog.Application.Brands.ReadModels;
-using Catalog.Application.Brands.Repositories;
 using NSubstitute;
+using SharedKernel.Core.Caching;
 using Shouldly;
 
 namespace Catalog.UnitTests.Application.Brands
@@ -12,7 +12,7 @@ namespace Catalog.UnitTests.Application.Brands
         public async Task Handle_Should_ReturnSuccessResult_WhenBrandIsNotNull_Async()
         {
             // Arrange
-            var cache = Substitute.For<IBrandCache>();
+            var brandCacheService = Substitute.For<IGenericCacheService<BrandReadModel, Guid>>();
             var brandId = Guid.NewGuid();
             var brandReadModel = new BrandReadModel
             {
@@ -21,10 +21,10 @@ namespace Catalog.UnitTests.Application.Brands
                 Description = "Test Description"
             };
 
-            cache.GetOrSetByIdAsync(brandId, Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            brandCacheService.GetOrSetByIdAsync(brandId, Arg.Any<bool>(), Arg.Any<CancellationToken>())
                 .Returns(brandReadModel);
 
-            var sut = new GetBrandByIdQueryHandler(cache);
+            var sut = new GetBrandByIdQueryHandler(brandCacheService);
             var request = new GetBrandByIdQuery(brandId);
 
             // Act
@@ -40,13 +40,13 @@ namespace Catalog.UnitTests.Application.Brands
         public async Task Handle_Should_ReturnNotFoundResult_WhenBrandIsNull_Async()
         {
             // Arrange
-            var cache = Substitute.For<IBrandCache>();
+            var brandCacheService = Substitute.For<IGenericCacheService<BrandReadModel, Guid>>();
             var brandId = Guid.NewGuid();
 
-            cache.GetOrSetByIdAsync(brandId, Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            brandCacheService.GetOrSetByIdAsync(brandId, Arg.Any<bool>(), Arg.Any<CancellationToken>())
                 .Returns((BrandReadModel?)null);
 
-            var sut = new GetBrandByIdQueryHandler(cache);
+            var sut = new GetBrandByIdQueryHandler(brandCacheService);
             var request = new GetBrandByIdQuery(brandId);
 
             // Act

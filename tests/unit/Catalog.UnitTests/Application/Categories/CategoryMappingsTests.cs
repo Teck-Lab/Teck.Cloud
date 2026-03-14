@@ -1,4 +1,4 @@
-using Catalog.Application.Brands.Mappings;
+using Catalog.Application.Categories.Mappings;
 using Catalog.Application.Categories.ReadModels;
 using Catalog.Application.Categories.Response;
 using Catalog.Domain.Entities.CategoryAggregate;

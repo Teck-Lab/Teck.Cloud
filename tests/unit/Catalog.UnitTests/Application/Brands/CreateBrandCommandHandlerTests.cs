@@ -1,5 +1,4 @@
 using Catalog.Application.Brands.Features.CreateBrand.V1;
-using Catalog.Application.Brands.Features.Responses;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
 using ErrorOr;
 using NSubstitute;
@@ -25,7 +24,7 @@ namespace Catalog.UnitTests.Application.Brands
             CreateBrandCommand command = new("Valid Brand Name", "Description", "https://example.com");
 
             // Act
-            ErrorOr<BrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
+            ErrorOr<CreateBrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsError.ShouldBeFalse();
@@ -42,7 +41,7 @@ namespace Catalog.UnitTests.Application.Brands
             CreateBrandCommand command = new(string.Empty, null, null);
 
             // Act
-            ErrorOr<BrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
+            ErrorOr<CreateBrandResponse> result = await sut.Handle(command, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsError.ShouldBeTrue();

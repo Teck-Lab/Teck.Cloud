@@ -1,4 +1,9 @@
+// <copyright file="BrandReadConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Brands.ReadModels;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class BrandReadConfig : IEntityTypeConfiguration<BrandReadModel>
     /// <param name="builder">The builder to be used to configure the BrandReadModel entity.</param>
     public void Configure(EntityTypeBuilder<BrandReadModel> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("Brands");
 
         builder.HasKey(brand => brand.Id);
@@ -32,5 +39,7 @@ public class BrandReadConfig : IEntityTypeConfiguration<BrandReadModel>
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

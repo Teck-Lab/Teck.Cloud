@@ -1,3 +1,7 @@
+// <copyright file="Tenant.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Customer.Domain.Entities.TenantAggregate.Events;
 using ErrorOr;
 using SharedKernel.Core.Domain;
@@ -10,6 +14,21 @@ namespace Customer.Domain.Entities.TenantAggregate;
 /// </summary>
 public class Tenant : BaseEntity, IAggregateRoot
 {
+    private static readonly Error IdentifierRequiredError =
+        Error.Validation("Tenant.Identifier", "Identifier cannot be empty");
+
+    private static readonly Error NameRequiredError =
+        Error.Validation("Tenant.Name", "Name cannot be empty");
+
+    private static readonly Error PlanRequiredError =
+        Error.Validation("Tenant.Plan", "Plan cannot be empty");
+
+    private readonly List<TenantDatabaseMetadata> databases = new();
+
+    private Tenant()
+    {
+    }
+
     /// <summary>
     /// Gets the tenant identifier (unique name/slug for resolution).
     /// </summary>
@@ -24,6 +43,11 @@ public class Tenant : BaseEntity, IAggregateRoot
     /// Gets the tenant plan (e.g., "Free", "Pro", "Enterprise").
     /// </summary>
     public string Plan { get; private set; } = default!;
+
+    /// <summary>
+    /// Gets the associated Keycloak organization identifier.
+    /// </summary>
+    public string? KeycloakOrganizationId { get; private set; }
 
     /// <summary>
     /// Gets the database strategy for this tenant.
@@ -43,88 +67,37 @@ public class Tenant : BaseEntity, IAggregateRoot
     /// <summary>
     /// Gets the database metadata for each service.
     /// </summary>
-    private readonly List<TenantDatabaseMetadata> _databases = new();
-
-    /// <summary>
-    /// Gets the database metadata for each service.
-    /// </summary>
-    public IReadOnlyList<TenantDatabaseMetadata> Databases => _databases.AsReadOnly();
-
-    private Tenant() { } // EF Core constructor
+    public IReadOnlyList<TenantDatabaseMetadata> Databases => this.databases.AsReadOnly();
 
     /// <summary>
     /// Creates a new tenant.
     /// </summary>
-    /// <param name="identifier">The tenant identifier.</param>
-    /// <param name="name">The tenant name.</param>
-    /// <param name="plan">The tenant plan.</param>
-    /// <param name="databaseStrategy">The database strategy.</param>
-    /// <param name="databaseProvider">The database provider.</param>
+    /// <param name="args">Tenant creation arguments.</param>
     /// <returns>The created tenant or validation errors.</returns>
-    public static ErrorOr<Tenant> Create(
-        string identifier,
-        string name,
-        string plan,
-        DatabaseStrategy databaseStrategy,
-        DatabaseProvider databaseProvider)
+    public static ErrorOr<Tenant> Create(TenantCreateArgs args)
     {
-        var errors = new List<Error>();
-
-        if (string.IsNullOrWhiteSpace(identifier))
-            errors.Add(Error.Validation("Tenant.Identifier", "Identifier cannot be empty"));
-
-        if (string.IsNullOrWhiteSpace(name))
-            errors.Add(Error.Validation("Tenant.Name", "Name cannot be empty"));
-
-        if (string.IsNullOrWhiteSpace(plan))
-            errors.Add(Error.Validation("Tenant.Plan", "Plan cannot be empty"));
-
-        if (errors.Count > 0)
-            return errors;
-
-        var tenant = new Tenant
-        {
-            Identifier = identifier,
-            Name = name,
-            Plan = plan,
-            DatabaseStrategy = databaseStrategy,
-            DatabaseProvider = databaseProvider,
-            IsActive = true,
-        };
-
-        tenant.AddDomainEvent(new TenantCreatedDomainEvent(
-            tenant.Id,
-            identifier,
-            name,
-            databaseStrategy.Name,
-            databaseProvider.Name));
-
-        return tenant;
+        EnsureRequiredArguments(args);
+        return CreateValidated(args);
     }
 
     /// <summary>
     /// Adds database metadata for a service.
     /// </summary>
-    /// <param name="serviceName">The service name.</param>
-    /// <param name="writeEnvVarKey">The environment variable key for the write DSN.</param>
-    /// <param name="readEnvVarKey">The environment variable key for the read DSN, if separate.</param>
-    /// <param name="hasSeparateReadDatabase">Whether the tenant has a separate read database.</param>
-    public void AddDatabaseMetadata(
-        string serviceName,
-        string writeEnvVarKey,
-        string? readEnvVarKey,
-        bool hasSeparateReadDatabase)
+    /// <param name="args">The database metadata arguments.</param>
+    public void AddDatabaseMetadata(TenantDatabaseMetadataArgs args)
     {
-        var metadata = new TenantDatabaseMetadata
+        ArgumentNullException.ThrowIfNull(args);
+
+        TenantDatabaseMetadata metadata = new()
         {
-            TenantId = Id,
-            ServiceName = serviceName,
-            WriteEnvVarKey = writeEnvVarKey,
-            ReadEnvVarKey = readEnvVarKey,
-            HasSeparateReadDatabase = hasSeparateReadDatabase,
+            TenantId = this.Id,
+            ServiceName = args.ServiceName,
+            WriteEnvVarKey = args.WriteEnvVarKey,
+            ReadEnvVarKey = args.ReadEnvVarKey,
+            ReadDatabaseMode = args.ReadDatabaseMode,
         };
 
-        _databases.Add(metadata);
+        this.databases.Add(metadata);
     }
 
     /// <summary>
@@ -132,7 +105,7 @@ public class Tenant : BaseEntity, IAggregateRoot
     /// </summary>
     public void Deactivate()
     {
-        IsActive = false;
+        this.IsActive = false;
     }
 
     /// <summary>
@@ -140,6 +113,84 @@ public class Tenant : BaseEntity, IAggregateRoot
     /// </summary>
     public void Activate()
     {
-        IsActive = true;
+        this.IsActive = true;
+    }
+
+    /// <summary>
+    /// Sets the external identity provider organization identifier.
+    /// </summary>
+    /// <param name="organizationId">The external organization identifier.</param>
+    public void SetIdentityOrganizationId(string organizationId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(organizationId);
+        this.KeycloakOrganizationId = organizationId;
+    }
+
+    private static void EnsureRequiredArguments(TenantCreateArgs args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        ArgumentNullException.ThrowIfNull(args.Database);
+        ArgumentNullException.ThrowIfNull(args.Database.DatabaseStrategy);
+        ArgumentNullException.ThrowIfNull(args.Database.DatabaseProvider);
+    }
+
+    private static List<Error> ValidateCreateArguments(TenantCreateArgs args)
+    {
+        List<Error> errors = [];
+        AddIfMissing(errors, args.Identifier, IdentifierRequiredError);
+        AddIfMissing(errors, args.Name, NameRequiredError);
+        AddIfMissing(errors, args.Plan, PlanRequiredError);
+        return errors;
+    }
+
+    private static ErrorOr<Tenant> CreateValidated(TenantCreateArgs args)
+    {
+        List<Error> errors = ValidateCreateArguments(args);
+        if (errors.Count > 0)
+        {
+            return errors;
+        }
+
+        Tenant tenant = Instantiate(args);
+        TenantCreatedDomainEvent tenantCreatedDomainEvent = BuildCreatedDomainEvent(tenant, args);
+        tenant.AddDomainEvent(tenantCreatedDomainEvent);
+        return tenant;
+    }
+
+    private static Tenant Instantiate(TenantCreateArgs args)
+    {
+        return new Tenant
+        {
+            Identifier = args.Identifier,
+            Name = args.Name,
+            Plan = args.Plan,
+            DatabaseStrategy = args.Database.DatabaseStrategy,
+            DatabaseProvider = args.Database.DatabaseProvider,
+            IsActive = true,
+        };
+    }
+
+    private static TenantCreatedDomainEvent BuildCreatedDomainEvent(Tenant tenant, TenantCreateArgs args)
+    {
+        TenantCreatedEventDetails tenantCreatedEventDetails = new()
+        {
+            TenantId = tenant.Id,
+            Identifier = args.Identifier,
+            Name = args.Name,
+            DatabaseStrategy = args.Database.DatabaseStrategy.Name,
+            DatabaseProvider = args.Database.DatabaseProvider.Name,
+        };
+
+        return new TenantCreatedDomainEvent(tenantCreatedEventDetails);
+    }
+
+    private static void AddIfMissing(List<Error> errors, string? value, Error validationError)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        errors.Add(validationError);
     }
 }

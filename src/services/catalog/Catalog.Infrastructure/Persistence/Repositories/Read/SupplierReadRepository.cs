@@ -1,3 +1,7 @@
+// <copyright file="SupplierReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Suppliers.ReadModels;
 using Catalog.Application.Suppliers.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +15,7 @@ namespace Catalog.Infrastructure.Persistence.Repositories.Read;
 /// </summary>
 public sealed class SupplierReadRepository : GenericReadRepository<SupplierReadModel, Guid, ApplicationReadDbContext>, ISupplierReadRepository
 {
-    private readonly DbSet<SupplierReadModel> _suppliers;
+    private readonly DbSet<SupplierReadModel> suppliers;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SupplierReadRepository"/> class.
@@ -20,25 +24,25 @@ public sealed class SupplierReadRepository : GenericReadRepository<SupplierReadM
     public SupplierReadRepository(ApplicationReadDbContext readDbContext)
         : base(readDbContext)
     {
-        _suppliers = DbContext.Suppliers;
+        this.suppliers = this.DbContext.Suppliers;
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<SupplierReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await GetAllAsync(enableTracking: false, cancellationToken: cancellationToken);
+        return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<SupplierReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await FindByIdAsync(id, cancellationToken: cancellationToken);
+        return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<PagedList<SupplierReadModel>> GetPagedSuppliersAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
-        var query = _suppliers.AsQueryable();
+        var query = this.suppliers.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -46,11 +50,12 @@ public sealed class SupplierReadRepository : GenericReadRepository<SupplierReadM
                                    (supplier.Description != null && supplier.Description.Contains(keyword)));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await query.OrderBy(supplier => supplier.Name)
                              .Skip((page - 1) * size)
                              .Take(size)
-                             .ToListAsync(cancellationToken);
+                     .ToListAsync(cancellationToken)
+                     .ConfigureAwait(false);
 
         return new PagedList<SupplierReadModel>(items, totalCount, page, size);
     }

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[*.Infrastructure.Migrations.*]*,[*Migration.Infrastructure*]*</Exclude>
+          <ExcludeByFile>**/obj/**,**/*.g.cs,**/*.generated.cs</ExcludeByFile>
+          <ExcludeByAttribute>ExcludeFromCodeCoverage,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <Format>Cobertura</Format>
+          <IncludeTestAssembly>False</IncludeTestAssembly>
+            <ExcludeAssembliesWithoutSources>MissingAll</ExcludeAssembliesWithoutSources>
+          <CodeCoverage>
+            <ModulePaths>
+              <Exclude>
+                <ModulePath>.*[\\/]testhost\..*</ModulePath>
+                <ModulePath>.*[\\/]Microsoft\..*\.dll$</ModulePath>
+                <ModulePath>.*[\\/]System\..*\.dll$</ModulePath>
+                <ModulePath>.*[\\/].*Tests?\.dll$</ModulePath>
+                <ModulePath>.*[\\/]xunit\..*\.dll$</ModulePath>
+                  <ModulePath>.*[\\/]obj[\\/].*\.dll$</ModulePath>
+                  <ModulePath>.*[\\/]ref[\\/].*\.dll$</ModulePath>
+                  <ModulePath>.*[\\/]refint[\\/].*\.dll$</ModulePath>
+                <ModulePath>.*[\\/]Catalog\.Infrastructure\.Migrations\..*\.dll$</ModulePath>
+                <ModulePath>.*[\\/]Customer\.Infrastructure\.Migrations\..*\.dll$</ModulePath>
+                <ModulePath>.*[\\/]Migration\.Infrastructure\..*\.dll$</ModulePath>
+              </Exclude>
+            </ModulePaths>
+            <Sources>
+              <Include>
+                <Source>.*[\\/]Teck\.Cloud[\\/].*</Source>
+              </Include>
+              <Exclude>
+                <Source>.*[\\/]obj[\\/].*</Source>
+                <Source>.*[\\/]bin[\\/].*</Source>
+                <Source>.*\.g\.cs$</Source>
+                <Source>.*\.generated\.cs$</Source>
+                <Source>.*OpenApiXmlCommentSupport\.generated\.cs$</Source>
+                <Source>.*[\\/]\.nuget[\\/]packages[\\/].*</Source>
+                <Source>.*[\\/]packages[\\/].*</Source>
+                <Source>.*[\\/]TestResults[\\/].*</Source>
+              </Exclude>
+            </Sources>
+            <Attributes>
+              <Exclude>
+                <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+                <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+              </Exclude>
+            </Attributes>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

@@ -17,7 +17,7 @@ public sealed class PromotionReadRepositoryTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        _dbContext = new ApplicationReadDbContext(options);
+        _dbContext = new ApplicationReadDbContext(options, Catalog.UnitTests.Infrastructure.Persistence.TestTenantContextAccessor.Create());
         _repository = new PromotionReadRepository(_dbContext);
     }
 
@@ -55,10 +55,11 @@ public sealed class PromotionReadRepositoryTests : IDisposable
     public async Task GetByIdAsync_ShouldReturnPromotion_WhenExists()
     {
         // Arrange
-        var promotion = new PromotionReadModel 
-        { 
-            Id = Guid.NewGuid(), 
+        var promotion = new PromotionReadModel
+        {
+            Id = Guid.NewGuid(),
             Name = "Test Promotion",
+            DiscountPercentage = 15m,
             StartDate = DateTimeOffset.UtcNow,
             EndDate = DateTimeOffset.UtcNow.AddDays(7)
         };
@@ -72,6 +73,7 @@ public sealed class PromotionReadRepositoryTests : IDisposable
         result.ShouldNotBeNull();
         result.Id.ShouldBe(promotion.Id);
         result.Name.ShouldBe("Test Promotion");
+        result.DiscountPercentage.ShouldBe(15m);
     }
 
     [Fact]
@@ -154,9 +156,9 @@ public sealed class PromotionReadRepositoryTests : IDisposable
         // Arrange
         var baseDate = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var promotions = Enumerable.Range(1, 10)
-            .Select(i => new PromotionReadModel 
-            { 
-                Id = Guid.NewGuid(), 
+            .Select(i => new PromotionReadModel
+            {
+                Id = Guid.NewGuid(),
                 Name = $"Promotion {i}",
                 StartDate = baseDate.AddDays(i),
                 EndDate = baseDate.AddDays(i + 7)

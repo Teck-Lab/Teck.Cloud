@@ -25,8 +25,8 @@ namespace SharedKernel.Infrastructure.Options
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the API versions. Defaults to [1] if not set or empty.
+        /// Gets the API versions. Defaults to [1].
         /// </summary>
-        public System.Collections.ObjectModel.ReadOnlyCollection<int> Versions { get; } = new System.Collections.ObjectModel.ReadOnlyCollection<int>(new List<int> { 1 });
+        public ICollection<int> Versions { get; } = [1];
     }
 }

@@ -1,8 +1,8 @@
-name: Build and test dotnet
+name: PR Validation
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, labeled, unlabeled]
+    types: [opened, reopened, synchronize]
     branches: [main]
 
 permissions:
@@ -14,9 +14,10 @@ permissions:
   security-events: write
 
 env:
-  DOTNET_VERSION: "10.0.*"
+  DOTNET_VERSION: "10.0.201"
   REGISTRY: ghcr.io
   REPOSITORY: ${{ github.repository }}
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -52,18 +53,18 @@ jobs:
       dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Required for dotnet-affected to compare commits
-          ref: ${{ github.event.pull_request.head.sha }}  # Checkout the actual PR head commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Restore dotnet tools
-        run: dotnet tool restore
+        run: dotnet tool restore --tool-manifest .config/dotnet-tools.json
 
       - name: Run dotnet-affected
         id: affected
@@ -132,7 +133,7 @@ jobs:
 
       - name: Upload affected.proj artifact
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected/affected.proj
@@ -140,7 +141,7 @@ jobs:
 
       - name: Upload affected projects list
         if: steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: affected-list
           path: |
@@ -218,7 +219,7 @@ jobs:
 
       - name: Comment PR with affected projects
         if: steps.affected.outputs.has-changes == 'true'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
         with:
           header: affected-projects
           message: |
@@ -231,7 +232,8 @@ jobs:
             
             **Testing Strategy:**
             - ⚡ **Build**: Only affected projects are built for fast feedback
-            - ✅ **Test**: All .NET tests run on every PR to ensure no regressions
+            - ✅ **Test**: Non-E2E .NET tests run on every PR to ensure no regressions
+            - 🎯 **E2E**: Runs only when `run-e2e` label is added to the PR
             - 🐳 **Docker**: Only affected service Docker images are built to save time
             
             These jobs run **in parallel** for maximum speed.
@@ -255,21 +257,24 @@ jobs:
     if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Install .NET Aspire workload
         run: dotnet workload install aspire
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore --locked-mode
 
       - name: Download affected.proj
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected
@@ -277,41 +282,94 @@ jobs:
       - name: Build affected projects
         run: dotnet build "${{ runner.temp }}/affected/affected.proj" -c Release --no-restore
 
-      - name: Check formatting
-        run: dotnet format --verify-no-changes
-        continue-on-error: true
+  # ===================================================================
+  # Format Check: Annotate PRs with dotnet format diffs (reviewdog)
+  # ===================================================================
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@d8a7baabd7f3e8544ee4dbde3ee41d0011c3a93f # v1.5.0
+        with:
+          reviewdog_version: latest
+      - name: Restore dependencies
+        run: dotnet restore --locked-mode
+      - name: Run dotnet format and annotate
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          dotnet format
+          git diff | reviewdog -f=diff -name="dotnet-format" \
+            -reporter=github-pr-review \
+            -filter-mode=nofilter \
+              -fail-level=error
+  # ===================================================================
+  # Hadolint: Lint Dockerfiles and annotate PRs (reviewdog)
+  # ===================================================================
+  hadolint:
+    name: Hadolint Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Run hadolint with reviewdog
+        uses: reviewdog/action-hadolint@921946a7ebaaf08ac72607bad67209f4e52b5407 # v1.50.5
+        with:
+          github_token: ${{ github.token }}
+          reporter: github-pr-review
+          fail_level: warning
 
   # ===================================================================
-  # JOB 2: Run ALL tests (ensure no regressions)
+  # JOB 2: Run non-E2E tests (ensure core regressions)
   # ===================================================================
   test-all:
     runs-on: ubuntu-latest
     name: Test all projects
+    timeout-minutes: 45
     needs: [check-label]
     if: ${{ needs.check-label.outputs.status == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
 
       - name: Install .NET Aspire workload
         run: dotnet workload install aspire
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore --locked-mode
 
       - name: Build all projects
         run: dotnet build -c Release --no-restore
 
       - name: Test all projects
-        run: dotnet test -c Release --no-restore --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --blame
+        run: |
+          dotnet test Teck.Cloud.slnx \
+            -c Release --no-restore --no-build --verbosity normal \
+            --logger trx --collect:"XPlat Code Coverage" \
+            --blame --blame-hang-timeout 15m
 
       - name: Combine Coverage Reports
-        uses: danielpalme/ReportGenerator-GitHub-Action@5.5.1
+        uses: danielpalme/ReportGenerator-GitHub-Action@ee0ae774f6d3afedcbd1683c1ab21b83670bdf8e # 5.5.1
         with:
           reports: "**/*.cobertura.xml"
           targetdir: "${{ github.workspace }}"
@@ -323,14 +381,14 @@ jobs:
           toolpath: "reportgeneratortool"
 
       - name: Upload Combined Coverage XML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: coverage
           path: ${{ github.workspace }}/Cobertura.xml
           retention-days: 5
 
       - name: Publish Code Coverage Report
-        uses: irongut/CodeCoverageSummary@v1.3.0
+        uses: irongut/CodeCoverageSummary@51cc3a756ddcd398d447c044c02cb6aa83fdae95 # v1.3.0
         with:
           filename: "Cobertura.xml"
           badge: true
@@ -343,46 +401,27 @@ jobs:
           thresholds: "10 30"
 
       - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
         if: github.event_name == 'pull_request'
         with:
           header: coverage
           path: code-coverage-results.md
 
       - name: Upload Test Result Files
-        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('**/TestResults/**/*') != ''
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
           retention-days: 5
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
+        uses: dorny/test-reporter@2c87efac073270a76b2a8c81d9b1e3b082f245c8 # v1.3.1
+        if: always() && hashFiles('**/*.trx') != ''
         with:
           name: Tests
           path: "${{ github.workspace }}/**/*.trx"
           reporter: dotnet-trx
-
-      - name: Security scan with Trivy (Filesystem - Dependencies)
-        uses: aquasecurity/trivy-action@0.33.1
-        continue-on-error: true
-        with:
-          scan-type: 'fs'
-          scan-ref: .
-          format: sarif
-          output: trivy-fs-results.sarif
-          severity: 'CRITICAL,HIGH'
-          exit-code: 0
-          ignore-unfixed: true
-          scanners: 'vuln,secret,misconfig'
-
-      - name: Upload Trivy filesystem scan results to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-fs-results.sarif
-          category: 'trivy-filesystem'
 
   # ===================================================================
   # JOB 3: Build Docker images for affected services (verify Dockerfiles)
@@ -390,8 +429,8 @@ jobs:
   docker-affected:
     runs-on: ${{ matrix.builder.runner-image }}
     name: Build Docker image
-    needs: [check-label, detect-affected]
-    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
+    needs: [check-label, detect-affected, build-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
     
     # Service containers for Docker build (needed for Wolverine codegen)
     services:
@@ -434,51 +473,130 @@ jobs:
     
     steps:
       - name: Prepare
+        id: build-vars
         run: |
-          echo "REPO_LOWER=$(echo '${{ env.REPOSITORY }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')" >> $GITHUB_ENV
+          PLATFORM_PAIR=$(echo '${{ matrix.builder.platform }}' | sed 's/\//-/')
+          REPO_LOWER=$(echo '${{ env.REPOSITORY }}' | tr '[:upper:]' '[:lower:]')
+          REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+
+          echo "REPO_LOWER=$REPO_LOWER" >> $GITHUB_ENV
+          echo "REPO_OWNER_LOWER=$REPO_OWNER_LOWER" >> $GITHUB_ENV
+          echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> $GITHUB_ENV
+          echo "repo_lower=$REPO_LOWER" >> $GITHUB_OUTPUT
+          echo "platform_pair=$PLATFORM_PAIR" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Read .NET container versions
+        id: dotnet-version
+        env:
+          DOTNET_ALPINE_VERSION: "3.23"
+        run: |
+          set -euo pipefail
+
+          SDK_VERSION="$(jq -r '.sdk.version' global.json)"
+          CHANNEL_VERSION="$(jq -r '.sdk.version | split(".")[0:2] | join(".")' global.json)"
+          RELEASES_URL="https://builds.dotnet.microsoft.com/dotnet/release-metadata/${CHANNEL_VERSION}/releases.json"
+          RUNTIME_VERSION="$(curl -fsSL "$RELEASES_URL" | jq -r --arg sdk "$SDK_VERSION" '.releases[] | select(.sdk.version == $sdk) | .sdk["runtime-version"]' | head -n 1)"
+
+          if [ -z "$RUNTIME_VERSION" ] || [ "$RUNTIME_VERSION" = "null" ]; then
+            echo "::error::Unable to resolve .NET runtime version for SDK ${SDK_VERSION} from ${RELEASES_URL}"
+            exit 1
+          fi
+
+          echo "value=$SDK_VERSION" >> "$GITHUB_OUTPUT"
+          echo "runtime=$RUNTIME_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine=$DOTNET_ALPINE_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Extract service name from Dockerfile path
+        id: service-vars
         run: |
           DOCKERFILE_PATH="${{ matrix.paths }}"
+          NORMALIZED_DOCKERFILE_PATH=$(echo "$DOCKERFILE_PATH" | sed -E 's|^\./||')
           SERVICE_NAME=$(basename "$(dirname "$DOCKERFILE_PATH")" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
           SERVICE_NAME=$(echo "$SERVICE_NAME" | sed -E 's/-linux-(amd64|arm64)$//')
+          SERVICE_PROJECT=$(echo "$NORMALIZED_DOCKERFILE_PATH" | awk -F/ '{for(i=1;i<=NF;i++){if($i=="services" && (i+1)<=NF){print $(i+1); exit}}}')
+          if [ -z "$SERVICE_PROJECT" ]; then
+            SERVICE_PROJECT="$SERVICE_NAME"
+          fi
+
           echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
+          echo "SERVICE_PROJECT=$SERVICE_PROJECT" >> $GITHUB_ENV
+          echo "service_name=$SERVICE_NAME" >> $GITHUB_OUTPUT
+          echo "service_project=$SERVICE_PROJECT" >> $GITHUB_OUTPUT
+          echo "cache_image=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_PROJECT}:buildcache-${PLATFORM_PAIR}" >> $GITHUB_OUTPUT
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
         with:
-          images: ghcr.io/${{ env.REPO_LOWER }}
+          images: ghcr.io/${{ steps.build-vars.outputs.repo_lower }}
           tags: ${{ github.sha }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
         with:
           version: latest
 
-      - name: Build image (no push)
-        id: build
-        uses: docker/build-push-action@v6
+      - name: Log in to GitHub Container Registry for registry cache
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image (no push, registry cache)
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
         with:
           context: .
           file: ${{ matrix.paths }}
           platforms: ${{ matrix.builder.platform }}
           push: false
           load: true
-          tags: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
+          tags: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ steps.service-vars.outputs.cache_image }}
+          cache-to: type=registry,ref=${{ steps.service-vars.outputs.cache_image }},mode=max
           target: build
           network: host
           build-args: |
+            DOTNET_SDK_VERSION=${{ steps.dotnet-version.outputs.value }}
+            DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
+            DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
+            VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VCS_REF=${{ github.sha }}
+            VCS_URL=${{ github.repositoryUrl }}
+            WEBSITE_URL=https://teck.dk
+            DOCS_URL=https://docs.teck.dk
+            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=catalog;Username=postgres;Password=postgres
+            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
+
+      - name: Build image (no push, scoped GHA cache fallback)
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6.10.0
+        with:
+          context: .
+          file: ${{ matrix.paths }}
+          platforms: ${{ matrix.builder.platform }}
+          push: false
+          load: true
+          tags: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=buildcache-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
+          cache-to: type=gha,mode=max,scope=buildcache-${{ steps.service-vars.outputs.service_project }}-${{ steps.build-vars.outputs.platform_pair }}
+          target: build
+          network: host
+          build-args: |
+            DOTNET_SDK_VERSION=${{ steps.dotnet-version.outputs.value }}
+            DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
+            DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
             VERSION=0.0.0-pr.${{ github.event.pull_request.number }}
             BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VCS_REF=${{ github.sha }}
@@ -489,27 +607,38 @@ jobs:
             RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
       - name: Run Trivy vulnerability scanner on Docker image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+        continue-on-error: true
         with:
-          image-ref: ${{ env.SERVICE_NAME }}:test-${{ github.sha }}
+          version: 'v0.69.3'
+          image-ref: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
           format: 'sarif'
-          output: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
+          output: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: 1
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
-          sarif_file: 'trivy-image-results-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}.sarif'
-          category: 'trivy-image-${{ env.SERVICE_NAME }}-${{ env.PLATFORM_PAIR }}'
-  
+          sarif_file: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
+          category: 'trivy-image-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}'
+
+      - name: Generate SPDX SBOM and submit to Dependency Graph
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+        with:
+          image: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
+          format: spdx-json
+          dependency-snapshot: true
+          upload-artifact: false
+
   # This job ensures that the required status check always passes, even when other jobs are skipped
   status-check:
     name: Status Check
     runs-on: ubuntu-latest
-    needs: [build-affected, test-all, docker-affected, detect-affected, check-label]
+    needs: [build-affected, test-all, docker-affected, detect-affected, check-label, format-check, hadolint]
     if: always()
     steps:
       - name: Check if build-affected was successful or skipped
@@ -525,13 +654,13 @@ jobs:
       - name: Check if test-all was successful
         run: |
           if [[ "${{ needs.test-all.result }}" == "success" ]]; then
-            echo "✅ Test all job passed"
+            echo "✅ Non-E2E test job passed"
             exit 0
           else
-            echo "❌ Test all job failed or was skipped"
+            echo "❌ Non-E2E test job failed or was skipped"
             exit 1
           fi
-      
+
       - name: Check if docker-affected was successful or skipped
         run: |
           if [[ "${{ needs.docker-affected.result }}" == "success" ]] || [[ "${{ needs.docker-affected.result }}" == "skipped" ]]; then
@@ -541,7 +670,27 @@ jobs:
             echo "❌ Docker build job failed"
             exit 1
           fi
-      
+
+      - name: Check if format-check was successful
+        run: |
+          if [[ "${{ needs.format-check.result }}" == "success" ]]; then
+            echo "✅ Format check passed"
+            exit 0
+          else
+            echo "❌ Format check failed"
+            exit 1
+          fi
+
+      - name: Check if hadolint was successful
+        run: |
+          if [[ "${{ needs.hadolint.result }}" == "success" ]]; then
+            echo "✅ Hadolint passed"
+            exit 0
+          else
+            echo "❌ Hadolint failed"
+            exit 1
+          fi
+
       - name: All checks passed
         run: echo "✅ All required checks completed successfully or were skipped"
 

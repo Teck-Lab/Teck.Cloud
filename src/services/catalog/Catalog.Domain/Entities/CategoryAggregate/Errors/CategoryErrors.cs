@@ -1,3 +1,7 @@
+// <copyright file="CategoryErrors.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using ErrorOr;
 
 namespace Catalog.Domain.Entities.CategoryAggregate.Errors
@@ -11,21 +15,21 @@ namespace Catalog.Domain.Entities.CategoryAggregate.Errors
         /// Gets brand not found error.
         /// </summary>
         public static Error NotFound => Error.NotFound(
-            code: "Category.NotFound",
-            description: "Category not found");
+            "Category.NotFound",
+            "Category not found");
 
         /// <summary>
         /// Gets category empty name validation error.
         /// </summary>
         public static Error EmptyName => Error.Validation(
-            code: "Category.EmptyName",
-            description: "Category name cannot be empty.");
+            "Category.EmptyName",
+            "Category name cannot be empty.");
 
         /// <summary>
         /// Gets category empty description validation error.
         /// </summary>
         public static Error EmptyDescription => Error.Validation(
-            code: "Category.EmptyDescription",
-            description: "Category description cannot be empty.");
+            "Category.EmptyDescription",
+            "Category description cannot be empty.");
     }
 }

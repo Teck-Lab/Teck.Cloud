@@ -1,3 +1,7 @@
+// <copyright file="CategoryByIdSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.CategoryAggregate.Specifications
@@ -13,7 +17,7 @@ namespace Catalog.Domain.Entities.CategoryAggregate.Specifications
         /// <param name="id">The category ID.</param>
         public CategoryByIdSpecification(Guid id)
         {
-            Query.Where(category => category.Id == id);
+            this.Query.Where(category => category.Id == id);
         }
     }
 }

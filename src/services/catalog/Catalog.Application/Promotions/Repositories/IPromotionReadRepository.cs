@@ -1,3 +1,7 @@
+// <copyright file="IPromotionReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Promotions.ReadModels;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Pagination;

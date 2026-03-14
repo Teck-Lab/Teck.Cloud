@@ -1,4 +1,9 @@
+// <copyright file="CategoryWriteConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.CategoryAggregate;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class CategoryWriteConfig : IEntityTypeConfiguration<Category>
     /// <param name="builder">The builder to be used to configure the Category entity.</param>
     public void Configure(EntityTypeBuilder<Category> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("Categories");
 
         builder.HasKey(category => category.Id);
@@ -43,5 +50,7 @@ public class CategoryWriteConfig : IEntityTypeConfiguration<Category>
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

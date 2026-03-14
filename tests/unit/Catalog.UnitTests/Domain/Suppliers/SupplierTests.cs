@@ -139,6 +139,21 @@ public class SupplierTests
     }
 
     [Fact]
+    public void Create_Should_Succeed_With_HttpWebsite()
+    {
+        // Arrange
+        var name = _fixture.Create<string>();
+        var website = "http://example.com";
+
+        // Act
+        var result = Supplier.Create(name, null, website);
+
+        // Assert
+        result.IsError.ShouldBeFalse();
+        result.Value.Website.ShouldBe(website);
+    }
+
+    [Fact]
     public void Update_Should_Succeed_When_AllFieldsNull()
     {
         // Arrange
@@ -196,6 +211,22 @@ public class SupplierTests
         var createResult = Supplier.Create(_fixture.Create<string>(), _fixture.Create<string>(), "https://example.com");
         var supplier = createResult.Value;
         var newWebsite = "https://newsite.com";
+
+        // Act
+        var updateResult = supplier.Update(null, null, newWebsite);
+
+        // Assert
+        updateResult.IsError.ShouldBeFalse();
+        supplier.Website.ShouldBe(newWebsite);
+    }
+
+    [Fact]
+    public void Update_Should_SetWebsite_When_HttpUrlProvided()
+    {
+        // Arrange
+        var createResult = Supplier.Create(_fixture.Create<string>(), _fixture.Create<string>(), "https://example.com");
+        var supplier = createResult.Value;
+        var newWebsite = "http://newsite.com";
 
         // Act
         var updateResult = supplier.Update(null, null, newWebsite);

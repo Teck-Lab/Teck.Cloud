@@ -1,3 +1,7 @@
+// <copyright file="ICategoryWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Database;
 
 namespace Catalog.Domain.Entities.CategoryAggregate.Repositories;

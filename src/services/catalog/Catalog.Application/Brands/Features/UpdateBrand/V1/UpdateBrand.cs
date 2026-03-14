@@ -1,4 +1,7 @@
-using Catalog.Application.Brands.Features.Responses;
+// <copyright file="UpdateBrand.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Brands.Mappings;
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.BrandAggregate.Errors;
@@ -13,7 +16,7 @@ namespace Catalog.Application.Brands.Features.UpdateBrand.V1
     /// <summary>
     /// Update brand command.
     /// </summary>
-    public sealed record UpdateBrandCommand(Guid Id, string? Name, string? Description, string? Website) : ICommand<ErrorOr<BrandResponse>>;
+    public sealed record UpdateBrandCommand(Guid Id, string? Name, string? Description, string? Website) : ICommand<ErrorOr<UpdateBrandResponse>>;
 
     /// <summary>
     /// The handler.
@@ -23,7 +26,7 @@ namespace Catalog.Application.Brands.Features.UpdateBrand.V1
     /// </remarks>
     /// <param name="unitOfWork">The unit of work.</param>
     /// <param name="brandRepository">The brand repository.</param>
-    internal sealed class UpdateBrandCommandHandler(IUnitOfWork unitOfWork, IBrandWriteRepository brandRepository) : ICommandHandler<UpdateBrandCommand, ErrorOr<BrandResponse>>
+    internal sealed class UpdateBrandCommandHandler(IUnitOfWork unitOfWork, IBrandWriteRepository brandRepository) : ICommandHandler<UpdateBrandCommand, ErrorOr<UpdateBrandResponse>>
     {
         /// <summary>
         /// The unit of work.
@@ -40,11 +43,11 @@ namespace Catalog.Application.Brands.Features.UpdateBrand.V1
         /// </summary>
         /// <param name="request">The request.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns><![CDATA[Task<ErrorOr<BrandResponse>>]]></returns>
-        public async ValueTask<ErrorOr<BrandResponse>> Handle(UpdateBrandCommand request, CancellationToken cancellationToken)
+        /// <returns><![CDATA[Task<ErrorOr<UpdateBrandResponse>>]]></returns>
+        public async ValueTask<ErrorOr<UpdateBrandResponse>> Handle(UpdateBrandCommand request, CancellationToken cancellationToken)
         {
             var brandSpec = new BrandByIdSpecification(request.Id);
-            Brand? brandToBeUpdated = await _brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken);
+            Brand? brandToBeUpdated = await this._brandRepository.FirstOrDefaultAsync(brandSpec, cancellationToken).ConfigureAwait(false);
 
             if (brandToBeUpdated == null)
             {
@@ -59,10 +62,10 @@ namespace Catalog.Application.Brands.Features.UpdateBrand.V1
                 return updateOutcome.Errors;
             }
 
-            _brandRepository.Update(brandToBeUpdated);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            this._brandRepository.Update(brandToBeUpdated);
+            await this._unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-            return BrandMapper.BrandToBrandResponse(brandToBeUpdated);
+            return BrandMapper.BrandToUpdateBrandResponse(brandToBeUpdated);
         }
     }
 }

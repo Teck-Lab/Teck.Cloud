@@ -12,9 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-  <PackageReference Include="FastEndpoints" />
-  <PackageReference Include="FastEndpoints.Testing" />
-  <PackageReference Include="Shouldly" />
+    <PackageReference Include="Shouldly" />
     <PackageReference Include="AutoFixture" />
     <PackageReference Include="AutoFixture.AutoNSubstitute" />
     <PackageReference Include="Soenneker.Utils.AutoBogus" />

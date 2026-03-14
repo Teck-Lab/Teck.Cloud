@@ -1,3 +1,7 @@
+// <copyright file="IProductReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Products.ReadModels;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Pagination;

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Core.Exceptions;
@@ -18,6 +19,8 @@ namespace SharedKernel.Infrastructure.Options
         /// <param name="sectionName">The section name.</param>
         /// <exception cref="ConfigurationMissingException">.</exception>
         /// <returns>A <typeparamref name="T"/>.</returns>
+        [RequiresDynamicCode("Binding strongly typed objects to configuration values may require generating dynamic code at runtime.")]
+        [RequiresUnreferencedCode("Binding strongly typed objects to configuration values may require generating dynamic code at runtime.")]
         public static T LoadOptions<T>(this IConfiguration configuration, string sectionName)
             where T : IOptionsRoot
         {
@@ -32,6 +35,8 @@ namespace SharedKernel.Infrastructure.Options
         /// <param name="services">The services.</param>
         /// <param name="configuration">The configuration.</param>
         /// <returns>A <typeparamref name="T"/>.</returns>
+        [RequiresDynamicCode("Binding strongly typed objects to configuration values may require generating dynamic code at runtime.")]
+        [RequiresUnreferencedCode("Binding strongly typed objects to configuration values may require generating dynamic code at runtime.")]
         public static T BindValidateReturn<T>(this IServiceCollection services, IConfiguration configuration)
             where T : class, IOptionsRoot
         {
@@ -47,6 +52,7 @@ namespace SharedKernel.Infrastructure.Options
         /// </summary>
         /// <typeparam name="T"/>
         /// <param name="services">The services.</param>
+        [RequiresDynamicCode("Binding strongly typed objects to configuration values may require generating dynamic code at runtime.")]
         public static void BindValidate<T>(this IServiceCollection services)
             where T : class, IOptionsRoot
         {

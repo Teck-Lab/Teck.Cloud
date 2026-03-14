@@ -1,13 +1,13 @@
 #pragma warning disable IDE0005
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using Xunit;
-using Shouldly;
+using Catalog.Application.Categories.Repositories;
 using Catalog.Infrastructure.DependencyInjection;
-using Catalog.Infrastructure.Caching;
-using ZiggyCreatures.Caching.Fusion;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Shouldly;
+using Xunit;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace Catalog.IntegrationTests.DependencyInjection;
 
@@ -18,16 +18,16 @@ public class InfrastructureServiceRegistrationTests
     {
         var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
         // Provide minimal configuration values required by AddInfrastructureServices
-        builder.Configuration.AddInMemoryCollection(new KeyValuePair<string,string?>[]
+        builder.Configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new KeyValuePair<string,string?>("ConnectionStrings:postgres-write", "Host=localhost;Database=teck_test;Username=postgres;Password=postgres"),
-            new KeyValuePair<string,string?>("ConnectionStrings:postgres-read", "Host=localhost;Database=teck_test;Username=postgres;Password=postgres"),
+            new KeyValuePair<string,string?>("ConnectionStrings:db-write", "Host=localhost;Database=teck_test;Username=postgres;Password=postgres"),
+            new KeyValuePair<string,string?>("ConnectionStrings:db-read", "Host=localhost;Database=teck_test;Username=postgres;Password=postgres"),
             new KeyValuePair<string,string?>("ConnectionStrings:rabbitmq", "amqp://guest:guest@localhost:5672/"),
 
         });
 
         // Call the extension with the application assembly (Catalog.Application)
-        var applicationAssembly = typeof(Catalog.Application.Categories.Repositories.ICategoryCache).Assembly;
+        var applicationAssembly = typeof(ICategoryReadRepository).Assembly;
 
         builder.Services.AddFusionCache();
 

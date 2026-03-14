@@ -1,3 +1,7 @@
+// <copyright file="UpdateBrandRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 namespace Catalog.Application.Brands.Features.UpdateBrand.V1
 {
     /// <summary>

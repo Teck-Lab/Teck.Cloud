@@ -9,7 +9,7 @@
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
-  "secret": "ANzsh9vz68BTd3nnmacUGLPKkZzjTnYB",
+  "secret": "ivCqDVHR2eNn3NDHacU2A5EPvwhShLwu",
   "redirectUris": [
     "/*"
   ],
@@ -29,11 +29,15 @@
   "protocol": "openid-connect",
   "attributes": {
     "realm_client": "false",
+    "logout.confirmation.enabled": "false",
     "oidc.ciba.grant.enabled": "false",
-    "client.secret.creation.time": "1770843778",
+    "client.secret.creation.time": "1772237130",
     "backchannel.logout.session.required": "true",
     "standard.token.exchange.enabled": "true",
+    "frontchannel.logout.session.required": "true",
+    "post.logout.redirect.uris": "+",
     "oauth2.device.authorization.grant.enabled": "false",
+    "display.on.consent.screen": "false",
     "backchannel.logout.revoke.offline.tokens": "false",
     "dpop.bound.access.tokens": "false"
   },
@@ -52,8 +56,8 @@
   "optionalClientScopes": [
     "address",
     "phone",
-    "offline_access",
     "organization",
+    "offline_access",
     "microprofile-jwt"
   ],
   "access": {

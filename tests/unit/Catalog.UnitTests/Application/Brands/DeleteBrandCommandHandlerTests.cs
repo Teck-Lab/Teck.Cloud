@@ -1,7 +1,6 @@
 using AutoFixture;
 using AutoFixture.AutoNSubstitute;
 using Catalog.Application.Brands.Features.DeleteBrand.V1;
-using Catalog.Application.Brands.Repositories;
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
 using ErrorOr;
@@ -65,9 +64,8 @@ namespace Catalog.UnitTests.Application.Brands
         {
             var repo = Substitute.For<IBrandWriteRepository>();
             var uow = Substitute.For<IUnitOfWork>();
-            var cache = Substitute.For<IBrandCache>();
             repo.FirstOrDefaultAsync(Arg.Any<Catalog.Domain.Entities.BrandAggregate.Specifications.BrandByIdSpecification>(), Arg.Any<CancellationToken>()).Returns(Task.FromException<Brand?>(new Exception("repo error")));
-            var sut = new DeleteBrandCommandHandler(uow, cache, repo);
+            var sut = new DeleteBrandCommandHandler(uow, repo);
             var command = new DeleteBrandCommand(Guid.NewGuid());
             await Should.ThrowAsync<Exception>(async () => await sut.Handle(command, default));
         }
@@ -77,24 +75,9 @@ namespace Catalog.UnitTests.Application.Brands
         {
             var repo = Substitute.For<IBrandWriteRepository>();
             var uow = Substitute.For<IUnitOfWork>();
-            var cache = Substitute.For<IBrandCache>();
             repo.FirstOrDefaultAsync(Arg.Any<Catalog.Domain.Entities.BrandAggregate.Specifications.BrandByIdSpecification>(), Arg.Any<CancellationToken>()).Returns(new Brand());
             uow.When(x => x.SaveChangesAsync(Arg.Any<CancellationToken>())).Do(x => throw new Exception("uow error"));
-            var sut = new DeleteBrandCommandHandler(uow, cache, repo);
-            var command = new DeleteBrandCommand(Guid.NewGuid());
-            await Should.ThrowAsync<Exception>(async () => await sut.Handle(command, default));
-        }
-
-        [Fact]
-        public async Task Handle_Should_Throw_WhenCacheThrows_Async()
-        {
-            var repo = Substitute.For<IBrandWriteRepository>();
-            var uow = Substitute.For<IUnitOfWork>();
-            var cache = Substitute.For<IBrandCache>();
-            repo.FirstOrDefaultAsync(Arg.Any<Catalog.Domain.Entities.BrandAggregate.Specifications.BrandByIdSpecification>(), Arg.Any<CancellationToken>()).Returns(new Brand());
-            uow.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(1));
-            cache.When(x => x.RemoveAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())).Do(x => throw new Exception("cache error"));
-            var sut = new DeleteBrandCommandHandler(uow, cache, repo);
+            var sut = new DeleteBrandCommandHandler(uow, repo);
             var command = new DeleteBrandCommand(Guid.NewGuid());
             await Should.ThrowAsync<Exception>(async () => await sut.Handle(command, default));
         }

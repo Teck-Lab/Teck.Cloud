@@ -64,17 +64,15 @@ namespace SharedKernel.Infrastructure.Auth
                             .CreateLogger("JwtBearerEvents");
 
                         var traceId = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
-                        var correlationId = context.HttpContext.Request.Headers["X-Correlation-ID"].FirstOrDefault()
-                                           ?? context.HttpContext.TraceIdentifier;
                         var userId = context.HttpContext.User?.Identity?.Name ?? "anonymous";
 
                         var details = new[]
                         {
-            new
-            {
-                name = "authorization",
-                reason = context.ErrorDescription ?? "Authentication is required to access this resource."
-            }
+                            new
+                            {
+                                name = "authorization",
+                                reason = context.ErrorDescription ?? "Authentication is required to access this resource."
+                            }
                         };
 
                         var problem = new ProblemDetails
@@ -85,9 +83,8 @@ namespace SharedKernel.Infrastructure.Auth
                             Detail = "Authentication failed or was missing.",
                             Extensions =
                             {
-                ["traceId"] = traceId,
-                ["correlationId"] = correlationId,
-                ["details"] = details
+                                ["traceId"] = traceId,
+                                ["errors"] = details
                             }
                         };
 
@@ -111,17 +108,15 @@ namespace SharedKernel.Infrastructure.Auth
                             .CreateLogger("JwtBearerEvents");
 
                         var traceId = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
-                        var correlationId = context.HttpContext.Request.Headers["X-Correlation-ID"].FirstOrDefault()
-                                           ?? context.HttpContext.TraceIdentifier;
                         var userId = context.HttpContext.User?.Identity?.Name ?? "anonymous";
 
                         var details = new[]
                         {
-            new
-            {
-                name = "authorization",
-                reason = "You do not have permission to access this resource."
-            }
+                            new
+                            {
+                                name = "authorization",
+                                reason = "You do not have permission to access this resource."
+                            }
                         };
 
                         var problem = new ProblemDetails
@@ -132,9 +127,8 @@ namespace SharedKernel.Infrastructure.Auth
                             Detail = "Access denied due to insufficient permissions.",
                             Extensions =
                             {
-                ["traceId"] = traceId,
-                ["correlationId"] = correlationId,
-                ["details"] = details
+                                ["traceId"] = traceId,
+                                ["errors"] = details
                             }
                         };
 
@@ -188,7 +182,8 @@ namespace SharedKernel.Infrastructure.Auth
                 {
                     services.AddHealthChecks().AddOpenIdConnectServer(
                         openIdUri,
-                        tags: ["openId", "identity", "keycloak"],
+                        name: "keycloak-openid",
+                        tags: ["identity", "keycloak", "openid", "ready"],
                         failureStatus: HealthStatus.Degraded);
                 }
             }

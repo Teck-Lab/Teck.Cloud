@@ -1,4 +1,8 @@
-using Catalog.Application.Brands.Mappings;
+// <copyright file="Create.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using Catalog.Application.Categories.Mappings;
 using Catalog.Application.Categories.Response;
 using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.CategoryAggregate.Repositories;
@@ -15,6 +19,11 @@ namespace Catalog.Application.Features.Categories.Create.V1;
 /// <param name="Description">The description of the category (optional).</param>
 public sealed record CreateCategoryCommand(string Name, string? Description) : ICommand<ErrorOr<CategoryResponse>>;
 
+/// <summary>
+/// Handles create category commands.
+/// </summary>
+/// <param name="unitOfWork">The unit of work.</param>
+/// <param name="categoryWriteRepository">The category write repository.</param>
 internal sealed class CreateCategoryCommandHandler(IUnitOfWork unitOfWork, ICategoryWriteRepository categoryWriteRepository) : ICommandHandler<CreateCategoryCommand, ErrorOr<CategoryResponse>>
 {
     /// <summary>
@@ -40,9 +49,9 @@ internal sealed class CreateCategoryCommandHandler(IUnitOfWork unitOfWork, ICate
             return categoryToAdd.Errors;
         }
 
-        await _categoryWriteRepository.AddAsync(categoryToAdd.Value, cancellationToken);
+        await this._categoryWriteRepository.AddAsync(categoryToAdd.Value, cancellationToken).ConfigureAwait(false);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await this._unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return CategoryMapper.CategoryToCategoryResponse(categoryToAdd.Value);
     }
 }

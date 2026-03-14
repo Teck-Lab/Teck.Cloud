@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace SharedKernel.Infrastructure.Middlewares
     /// <summary>
     /// Middleware that globally catches unhandled exceptions, logs them using Serilog,
     /// and returns a <see cref="ProblemDetails"/> response including
-    /// traceId, correlationId, and a list of error details.
+    /// traceId and a list of error details.
     /// </summary>
     public class GlobalExceptionHandlerMiddleware
     {
@@ -39,6 +40,7 @@ namespace SharedKernel.Infrastructure.Middlewares
         /// </summary>
         /// <param name="context">The HTTP context.</param>
         /// <returns>A task that represents the completion of request processing.</returns>
+        [RequiresDynamicCode("Calls HttpResponse.WriteAsJsonAsync which may require dynamic code at runtime.")]
         public async Task InvokeAsync(HttpContext context)
         {
             try
@@ -49,23 +51,20 @@ namespace SharedKernel.Infrastructure.Middlewares
             {
                 // Obtain trace and correlation IDs for diagnostics and response
                 var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
-                var correlationId = context.Request.Headers["X-Correlation-ID"].FirstOrDefault() ?? traceId;
                 var user = context.User?.Identity?.Name ?? "anonymous";
                 var path = context.Request.Path;
 
                 // Enrich Serilog diagnostic context with identifiers and request info
                 _diagnosticContext.Set("TraceId", traceId);
-                _diagnosticContext.Set("CorrelationId", correlationId);
                 _diagnosticContext.Set("Path", path);
                 _diagnosticContext.Set("User", user);
 
                 // Log the exception with Serilog including contextual information
                 _logger.LogError(
                     exception,
-                    "Unhandled exception at {Path} [TraceId: {TraceId}, CorrelationId: {CorrelationId}, User: {User}]",
+                    "Unhandled exception at {Path} [TraceId: {TraceId}, User: {User}]",
                     path,
                     traceId,
-                    correlationId,
                     user
                 );
 
@@ -79,8 +78,7 @@ namespace SharedKernel.Infrastructure.Middlewares
                     Extensions =
                     {
                         ["traceId"] = traceId,
-                        ["correlationId"] = correlationId,
-                        ["details"] = new[]
+                        ["errors"] = new[]
                         {
                             new { name = "server", reason = "An unexpected error occurred. Please contact support if the problem persists." }
                         }

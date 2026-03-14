@@ -1,3 +1,7 @@
+// <copyright file="Product.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using System.Text.RegularExpressions;
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.CategoryAggregate;
@@ -5,7 +9,6 @@ using Catalog.Domain.Entities.ProductAggregate.Errors;
 using Catalog.Domain.Entities.ProductAggregate.Events;
 using Catalog.Domain.Entities.PromotionAggregate;
 using ErrorOr;
-using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.ProductAggregate
@@ -13,7 +16,6 @@ namespace Catalog.Domain.Entities.ProductAggregate
     /// <summary>
     /// The product.
     /// </summary>
-    [MultiTenant]
     public partial class Product : BaseEntity, IAggregateRoot
     {
         /// <summary>
@@ -72,45 +74,16 @@ namespace Catalog.Domain.Entities.ProductAggregate
         public ICollection<Promotion> Promotions { get; private set; } = [];
 
         /// <summary>
-        /// Update a brand.
+        /// Creates a product.
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public ErrorOr<Updated> Update(string? name)
-        {
-            var errors = new List<Error>();
-
-            if (name is not null)
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    errors.Add(ProductErrors.EmptyName);
-                }
-                else if (!Name.Equals(name, StringComparison.Ordinal))
-                {
-                    Name = name;
-                    Slug = GetProductSlug(name);
-                }
-            }
-
-            if (errors.Count != 0)
-            {
-                return errors;
-            }
-
-            return Result.Updated;
-        }
-
-        /// <summary>
-        /// Create a brand.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="sku"></param>
-        /// <param name="gtin"></param>
-        /// <param name="categories"></param>
-        /// <param name="isActive"></param>
-        /// <param name="brandId"></param>
+        /// <param name="name">The product name.</param>
+        /// <param name="description">The product description.</param>
+        /// <param name="sku">The product SKU.</param>
+        /// <param name="gtin">The product GTIN.</param>
+        /// <param name="categories">The product categories.</param>
+        /// <param name="isActive">Whether the product is active.</param>
+        /// <param name="brandId">The optional brand identifier.</param>
+        /// <returns>The created product, or validation errors.</returns>
         public static ErrorOr<Product> Create(
             string name,
             string? description,
@@ -120,51 +93,15 @@ namespace Catalog.Domain.Entities.ProductAggregate
             bool isActive,
             Guid? brandId = null)
         {
-            var validationResult = ValidateProductCreation(name, description, sku);
+            ArgumentNullException.ThrowIfNull(name);
+
+            var validationResult = ValidateCreation(name, description, sku);
             if (validationResult.IsError)
             {
                 return validationResult.Errors;
             }
 
-            var product = CreateProductInstance(name, description, sku, gtin, categories, isActive, brandId);
-            var domainEvent = new ProductCreatedDomainEvent(product.Id, product.Name);
-            product.AddDomainEvent(domainEvent);
-
-            return product;
-        }
-
-        private static ErrorOr<Success> ValidateProductCreation(string name, string? description, string? sku)
-        {
-            var errors = new List<Error>();
-
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                errors.Add(ProductErrors.EmptyName);
-            }
-
-            if (string.IsNullOrWhiteSpace(description))
-            {
-                errors.Add(ProductErrors.EmptyDescription);
-            }
-
-            if (string.IsNullOrWhiteSpace(sku))
-            {
-                errors.Add(ProductErrors.EmptySKU);
-            }
-
-            return errors.Count != 0 ? errors : Result.Success;
-        }
-
-        private static Product CreateProductInstance(
-            string name,
-            string? description,
-            string? sku,
-            string? gtin,
-            ICollection<Category> categories,
-            bool isActive,
-            Guid? brandId)
-        {
-            return new Product
+            var product = new Product
             {
                 Name = name,
                 Description = description,
@@ -173,8 +110,71 @@ namespace Catalog.Domain.Entities.ProductAggregate
                 Categories = categories ?? new List<Category>(),
                 IsActive = isActive,
                 BrandId = brandId,
-                Slug = name.ToLower(System.Globalization.CultureInfo.InvariantCulture).Replace(" ", "-", StringComparison.Ordinal)
+                Slug = name.ToLower(System.Globalization.CultureInfo.InvariantCulture).Replace(" ", "-", StringComparison.Ordinal),
             };
+            AddCreatedDomainEvent(product);
+
+            return product;
+        }
+
+        /// <summary>
+        /// Updates product name.
+        /// </summary>
+        /// <param name="name">The new product name.</param>
+        /// <returns>An updated result, or validation errors.</returns>
+        public ErrorOr<Updated> Update(string? name)
+        {
+            var errors = new List<Error>();
+
+            this.UpdateName(name, errors);
+
+            if (errors.Count != 0)
+            {
+                return errors;
+            }
+
+            return Result.Updated;
+        }
+
+        private static ErrorOr<Success> ValidateCreation(string name, string? description, string? sku)
+        {
+            var errors = new List<Error>();
+
+            ValidateNameForCreate(name, errors);
+            ValidateDescriptionForCreate(description, errors);
+            ValidateSkuForCreate(sku, errors);
+
+            return errors.Count != 0 ? errors : Result.Success;
+        }
+
+        private static void ValidateNameForCreate(string name, List<Error> errors)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(ProductErrors.EmptyName);
+            }
+        }
+
+        private static void ValidateDescriptionForCreate(string? description, List<Error> errors)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                errors.Add(ProductErrors.EmptyDescription);
+            }
+        }
+
+        private static void ValidateSkuForCreate(string? sku, List<Error> errors)
+        {
+            if (string.IsNullOrWhiteSpace(sku))
+            {
+                errors.Add(ProductErrors.EmptySKU);
+            }
+        }
+
+        private static void AddCreatedDomainEvent(Product product)
+        {
+            var productCreatedDomainEvent = new ProductCreatedDomainEvent(product.Id, product.Name);
+            product.AddDomainEvent(productCreatedDomainEvent);
         }
 
         /// <summary>
@@ -192,11 +192,11 @@ namespace Catalog.Domain.Entities.ProductAggregate
         private static partial Regex MultipleHyphensRegex();
 
         /// <summary>
-        /// Get product slug from product name.
+        /// Builds a slug from product name.
         /// </summary>
         /// <param name="name">The product name.</param>
         /// <returns>A URL-friendly slug.</returns>
-        private static string GetProductSlug(string name)
+        private static string BuildSlug(string name)
         {
             name = name.Trim();
             name = name.ToLower(System.Globalization.CultureInfo.InvariantCulture);
@@ -204,6 +204,23 @@ namespace Catalog.Domain.Entities.ProductAggregate
             name = MultipleHyphensRegex().Replace(name, "-");
             name = name.Trim('-');
             return name;
+        }
+
+        private void UpdateName(string? name, List<Error> errors)
+        {
+            if (name is null || this.Name.Equals(name, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(ProductErrors.EmptyName);
+                return;
+            }
+
+            this.Name = name;
+            this.Slug = BuildSlug(name);
         }
     }
 }

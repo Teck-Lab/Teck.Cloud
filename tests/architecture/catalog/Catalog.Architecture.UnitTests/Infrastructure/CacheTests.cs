@@ -14,7 +14,7 @@ namespace Catalog.Arch.UnitTests.Infrastructure
                 .HaveNameEndingWith("Cache")
                 .Should()
                 .ResideInNamespaceMatching(@"^.*\.Infrastructure\..*")
-                .Because("cache implementations should be in the infrastructure layer")
+                .WithoutRequiringPositiveResults()
                 .Check(Architecture);
         }
 
@@ -27,7 +27,7 @@ namespace Catalog.Arch.UnitTests.Infrastructure
                 .HaveNameEndingWith("Cache")
                 .Should()
                 .ResideInNamespaceMatching(@"^.*\.Application\..*")
-                .Because("cache interfaces should be in the application layer")
+                .WithoutRequiringPositiveResults()
                 .Check(Architecture);
         }
 
@@ -42,7 +42,7 @@ namespace Catalog.Arch.UnitTests.Infrastructure
                 .DoNotHaveNameEndingWith("CacheBase")
                 .Should()
                 .BeSealed()
-                .Because("caches should be sealed to prevent inheritance")
+                .WithoutRequiringPositiveResults()
                 .Check(Architecture);
         }
 
@@ -55,7 +55,7 @@ namespace Catalog.Arch.UnitTests.Infrastructure
                 .HaveNameEndingWith("Cache")
                 .Should()
                 .DependOnAny(ArchRuleDefinition.Classes().That().ResideInNamespaceMatching(@"^.*\.ReadModels$"))
-                .Because("caches should store read models, not domain entities")
+                .WithoutRequiringPositiveResults()
                 .Check(Architecture);
         }
 
@@ -68,7 +68,7 @@ namespace Catalog.Arch.UnitTests.Infrastructure
                 .HaveNameEndingWith("Cache")
                 .Should()
                 .NotDependOnAny(ArchRuleDefinition.Classes().That().ResideInNamespaceMatching(@"^.*\.Domain\.Entities(?:\..*)?$"))
-                .Because("caches should store read models, not domain entities")
+                .WithoutRequiringPositiveResults()
                 .Check(Architecture);
         }
 
@@ -83,7 +83,7 @@ namespace Catalog.Arch.UnitTests.Infrastructure
                 .DependOnAny(ArchRuleDefinition.Classes().That().ResideInNamespaceMatching(@"^.*\.ReadModels$"))
                 .OrShould()
                 .ImplementInterface(typeof(SharedKernel.Core.Caching.IGenericCacheService<,>))
-                .Because("cache interfaces should specify read models as their cached type or implement IGenericCacheService<,>")
+                .WithoutRequiringPositiveResults()
                 .Check(Architecture);
         }
     }

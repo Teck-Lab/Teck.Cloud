@@ -14,6 +14,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
         public LoggingBehaviorTests()
         {
             _logger = Substitute.For<ILogger<LoggingBehavior<TestMessage, TestResponse>>>();
+            _logger.IsEnabled(LogLevel.Information).Returns(true);
             _sut = new LoggingBehavior<TestMessage, TestResponse>(_logger);
         }
 
@@ -23,7 +24,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var message = new TestMessage { Data = "Test" };
             var expectedResponse = new TestResponse { Result = "Success" };
-            
+
             MessageHandlerDelegate<TestMessage, TestResponse> next = (msg, ct) =>
                 new ValueTask<TestResponse>(expectedResponse);
 
@@ -42,7 +43,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var message = new TestMessage { Data = "Slow Test" };
             var expectedResponse = new TestResponse { Result = "Success" };
-            
+
             MessageHandlerDelegate<TestMessage, TestResponse> next = async (msg, ct) =>
             {
                 await Task.Delay(3100, ct);
@@ -64,7 +65,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var message = new TestMessage { Data = "Fast Test" };
             var expectedResponse = new TestResponse { Result = "Success" };
-            
+
             MessageHandlerDelegate<TestMessage, TestResponse> next = (msg, ct) =>
                 new ValueTask<TestResponse>(expectedResponse);
 
@@ -84,7 +85,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             var message = new TestMessage { Data = "Test" };
             var expectedResponse = new TestResponse { Result = "Success" };
             var nextCalled = false;
-            
+
             MessageHandlerDelegate<TestMessage, TestResponse> next = (msg, ct) =>
             {
                 nextCalled = true;
@@ -106,7 +107,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
             // Arrange
             var message = new TestMessage { Data = "Test" };
             var expectedResponse = new TestResponse { Result = "Handler Result" };
-            
+
             MessageHandlerDelegate<TestMessage, TestResponse> next = (msg, ct) =>
                 new ValueTask<TestResponse>(expectedResponse);
 
@@ -118,7 +119,7 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
         }
     }
 
-    #pragma warning disable CA1515
+#pragma warning disable CA1515
     public class TestMessage : IMessage
     {
         public string Data { get; set; } = string.Empty;
@@ -128,5 +129,5 @@ namespace SharedKernel.Infrastructure.UnitTests.Behaviors
     {
         public string Result { get; set; } = string.Empty;
     }
-    #pragma warning restore CA1515
+#pragma warning restore CA1515
 }

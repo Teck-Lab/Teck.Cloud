@@ -19,8 +19,10 @@ namespace Catalog.IntegrationTests.Infrastructure.Promotions
         {
         }
 
-        protected override ApplicationReadDbContext CreateReadDbContext(DbContextOptions<ApplicationReadDbContext> options)
-            => new ApplicationReadDbContext(options);
+        protected override ApplicationReadDbContext CreateReadDbContext(
+            DbContextOptions<ApplicationReadDbContext> options,
+            Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<SharedKernel.Infrastructure.MultiTenant.TenantDetails> tenantAccessor)
+            => new ApplicationReadDbContext(options, tenantAccessor);
 
         public override async ValueTask InitializeAsync()
         {

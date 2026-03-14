@@ -1,3 +1,7 @@
+// <copyright file="PromotionByIdSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.PromotionAggregate.Specifications
@@ -14,11 +18,11 @@ namespace Catalog.Domain.Entities.PromotionAggregate.Specifications
         /// <param name="includeProducts">Whether to include related products in the query.</param>
         public PromotionByIdSpecification(Guid id, bool includeProducts = false)
         {
-            Query.Where(promotion => promotion.Id == id);
+            this.Query.Where(promotion => promotion.Id == id);
 
             if (includeProducts)
             {
-                Query.Include(promotion => promotion.Products);
+                this.Query.Include(promotion => promotion.Products);
             }
         }
     }

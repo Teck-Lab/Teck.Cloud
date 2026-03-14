@@ -2,14 +2,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-using Serilog;
-using Serilog.Events;
-using Serilog.Sinks.OpenTelemetry;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SharedKernel.Infrastructure.MultiTenant;
+using SharedKernel.Infrastructure.Observability;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -28,7 +24,7 @@ public static class Extensions
     /// <returns>The configured <see cref="IHostApplicationBuilder"/>.</returns>
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
-        builder.ConfigureOpenTelemetry();
+        builder.AddTeckCloudObservability();
 
         builder.AddDefaultHealthChecks();
 
@@ -47,116 +43,6 @@ public static class Extensions
     }
 
     /// <summary>
-    /// Configures OpenTelemetry logging, metrics, and tracing for the specified <see cref="IHostApplicationBuilder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to configure.</param>
-    /// <returns>The configured <see cref="IHostApplicationBuilder"/>.</returns>
-    public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
-    {
-        var resourceBuilder = ResourceBuilder.CreateDefault()
-            .AddService(
-                serviceName: builder.Environment.ApplicationName,
-                serviceVersion: typeof(Extensions).Assembly.GetName().Version?.ToString() ?? "1.0.0",
-                serviceInstanceId: Environment.MachineName);
-
-        builder.Services.AddOpenTelemetry()
-            .WithMetrics(metrics =>
-            {
-                metrics
-                    .SetResourceBuilder(resourceBuilder)
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation()
-                    .AddFusionCacheInstrumentation()
-                    .AddAspNetCoreInstrumentation()
-                    .AddMeter($"Wolverine:{builder.Environment.ApplicationName}")
-                    .AddKeycloakAuthServicesInstrumentation();
-            })
-            .WithTracing(tracing =>
-            {
-                tracing.AddAspNetCoreInstrumentation()
-
-                     // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
-                     // .AddGrpcClientInstrumentation()
-                     .SetResourceBuilder(resourceBuilder)
-                    .AddHttpClientInstrumentation()
-                    .AddFusionCacheInstrumentation()
-                    .AddEntityFrameworkCoreInstrumentation()
-                    .AddRedisInstrumentation()
-                    .AddSource("Wolverine")
-                    .AddKeycloakAuthServicesInstrumentation();
-            });
-
-        builder.AddOpenTelemetryExporters();
-        builder.ConfigureSerilogWithOpenTelemetry();
-        return builder;
-    }
-
-    private static IHostApplicationBuilder ConfigureSerilogWithOpenTelemetry(this IHostApplicationBuilder builder)
-    {
-        builder.Services.AddSerilog((services, loggerConfiguration) =>
-        {
-            loggerConfiguration
-                .ReadFrom.Configuration(builder.Configuration)
-                .Enrich.FromLogContext()
-                .Enrich.WithProperty("ApplicationName", builder.Environment.ApplicationName)
-                .WriteTo.Console(
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-                );
-
-            // Check if OTLP endpoint is configured (Aspire will set this automatically)
-            var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
-            {
-                loggerConfiguration.WriteTo.OpenTelemetry(options =>
-                {
-                    options.Endpoint = otlpEndpoint;
-                    options.Protocol = OtlpProtocol.Grpc;
-                    options.IncludedData = IncludedData.TraceIdField |
-                                          IncludedData.SpanIdField |
-                                          IncludedData.MessageTemplateTextAttribute |
-                                          IncludedData.SpecRequiredResourceAttributes;
-                    options.ResourceAttributes = new Dictionary<string, object>
-                    {
-                        ["service.name"] = builder.Environment.ApplicationName,
-                        ["service.version"] = typeof(Extensions).Assembly.GetName().Version?.ToString() ?? "1.0.0",
-                        ["deployment.environment"] = builder.Environment.EnvironmentName
-                    };
-                });
-            }
-
-            if (builder.Environment.IsDevelopment())
-            {
-                loggerConfiguration.MinimumLevel.Debug();
-            }
-            else
-            {
-                loggerConfiguration.MinimumLevel.Information();
-            }
-
-            loggerConfiguration.MinimumLevel.Override("Microsoft", LogEventLevel.Warning);
-            loggerConfiguration.MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information);
-            loggerConfiguration.MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning);
-        });
-
-        return builder;
-    }
-
-    private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder)
-    {
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-        if (useOtlpExporter)
-        {
-            builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddOtlpExporter());
-            builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddOtlpExporter());
-            builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddOtlpExporter());
-        }
-
-        return builder;
-    }
-
-    /// <summary>
     /// Adds default health checks, including a liveness check, to the specified <see cref="IHostApplicationBuilder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to configure.</param>
@@ -166,7 +52,7 @@ public static class Extensions
         builder.Services.AddHealthChecks()
 
             // Add a default liveness check to ensure app is responsive
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live", "ready"]);
 
         return builder;
     }
@@ -188,7 +74,10 @@ public static class Extensions
 
         // All health checks must pass for app to be
         // considered ready to accept traffic after starting
-        healthChecks.MapHealthChecks("/health").AllowAnonymous();
+        healthChecks.MapHealthChecks("/health", new()
+        {
+            Predicate = static remote => remote.Tags.Contains("ready"),
+        }).AllowAnonymous();
 
         // Only health checks tagged with the "live" tag
         // must pass for app to be considered alive
@@ -196,6 +85,54 @@ public static class Extensions
         {
             Predicate = static remote => remote.Tags.Contains("live"),
         }).AllowAnonymous();
+
+        CancellationTokenRegistration applicationStartedRegistration = default;
+        applicationStartedRegistration = app.Lifetime.ApplicationStarted.Register(() =>
+        {
+            applicationStartedRegistration.Dispose();
+
+            using var scope = app.Services.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("HealthChecks");
+            var options = scope.ServiceProvider.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value;
+
+            var readinessChecks = options.Registrations
+                .Where(registration => registration.Tags.Contains("ready"))
+                .Select(registration => registration.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name)
+                .ToArray();
+
+            var livenessChecks = options.Registrations
+                .Where(registration => registration.Tags.Contains("live"))
+                .Select(registration => registration.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name)
+                .ToArray();
+
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                string readinessChecksText = readinessChecks.Length == 0
+                    ? "none"
+                    : string.Join(", ", readinessChecks);
+
+                logger.LogInformation(
+                    "Registered readiness health checks ({Count}): {Checks}",
+                    readinessChecks.Length,
+                    readinessChecksText);
+            }
+
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                string livenessChecksText = livenessChecks.Length == 0
+                    ? "none"
+                    : string.Join(", ", livenessChecks);
+
+                logger.LogDebug(
+                    "Registered liveness health checks ({Count}): {Checks}",
+                    livenessChecks.Length,
+                    livenessChecksText);
+            }
+        });
 
         return app;
     }
@@ -208,28 +145,15 @@ public static class Extensions
     /// <returns>The configured host application builder.</returns>
     public static IHostApplicationBuilder AddMultiTenantSupport(this IHostApplicationBuilder builder, Uri? customerApiUrl = null)
     {
+        _ = customerApiUrl;
+
         // Configure multi-tenancy options
         builder.Services.AddTeckCloudMultiTenancy(options =>
         {
             // Configure to use the new nested organization claim format
             options.OrganizationClaimName = "organization";
-            options.MultiTenantResolutionStrategy = SharedKernel.Infrastructure.MultiTenant.MultiTenantResolutionStrategy.Primary;
-
-            // Enable or disable customer API store based on whether a URL is provided
-            options.UseCustomerApiTenantStore = customerApiUrl != null;
-
-            if (customerApiUrl != null)
-            {
-                // Add HTTP client for tenant API
-                builder.Services.AddTenantHttpClient(customerApiUrl, "CustomerApi");
-
-                // Configure the API endpoints
-                options.CustomerApiOptions.HttpClientName = "CustomerApi";
-                options.CustomerApiOptions.AllTenantsEndpoint = "api/tenants";
-                options.CustomerApiOptions.TenantDetailsEndpoint = "api/tenants/{tenantId}";
-                options.CustomerApiOptions.TenantByIdEndpoint = "api/tenants/id/{id}";
-                options.CustomerApiOptions.TenantByNameEndpoint = "api/tenants/name/{name}";
-            }
+            options.MultiTenantResolutionStrategy = SharedKernel.Infrastructure.MultiTenant.MultiTenantResolutionStrategy.FromRequest;
+            options.UseCustomerApiTenantStore = false;
         });
 
         return builder;

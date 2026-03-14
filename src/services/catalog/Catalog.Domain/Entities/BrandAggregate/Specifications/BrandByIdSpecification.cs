@@ -1,3 +1,7 @@
+// <copyright file="BrandByIdSpecification.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Ardalis.Specification;
 
 namespace Catalog.Domain.Entities.BrandAggregate.Specifications
@@ -13,7 +17,7 @@ namespace Catalog.Domain.Entities.BrandAggregate.Specifications
         /// <param name="id">The brand ID.</param>
         public BrandByIdSpecification(Guid id)
         {
-            Query.Where(brand => brand.Id == id);
+            this.Query.Where(brand => brand.Id == id);
         }
     }
 }

@@ -1,0 +1,308 @@
+name: Security Gap Scans
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: security-gap-scans-${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  scan-context:
+    name: Scan Context
+    runs-on: ubuntu-latest
+    outputs:
+      has_deployment: ${{ steps.detect.outputs.has_deployment }}
+      has_python: ${{ steps.detect.outputs.has_python }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Detect scan targets
+        id: detect
+        run: |
+          if [ -d "deployment" ]; then
+            echo "has_deployment=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_deployment=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if git ls-files "*.py" | grep -q .; then
+            echo "has_python=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_python=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  trivy-filesystem:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run Trivy filesystem scan (non-blocking)
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+        continue-on-error: true
+        with:
+          version: 'v0.69.3'
+          scan-type: 'fs'
+          scan-ref: .
+          format: sarif
+          output: trivy-fs-results.sarif
+          severity: 'CRITICAL,HIGH'
+          exit-code: 0
+          ignore-unfixed: true
+          scanners: 'vuln,secret,misconfig'
+
+      - name: Upload Trivy filesystem SARIF
+        if: always() && hashFiles('trivy-fs-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
+        with:
+          sarif_file: trivy-fs-results.sarif
+          category: trivy-filesystem
+
+  gitleaks:
+    name: Gitleaks Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks (non-blocking)
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          GITLEAKS_ENABLE_SUMMARY: false
+        continue-on-error: true
+
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: python -m pip install --upgrade semgrep
+
+      - name: Run Semgrep (non-blocking)
+        run: |
+          semgrep scan \
+            --config auto \
+            --sarif \
+            --output semgrep.sarif \
+            || true
+
+      - name: Upload Semgrep SARIF
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  checkov-workflows:
+    name: Checkov IaC (GitHub Workflows)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Checkov
+        run: python -m pip install --upgrade checkov
+
+      - name: Run Checkov on workflow definitions (non-blocking)
+        run: |
+          checkov -d .github/workflows \
+            --framework github_actions,secrets \
+            --quiet \
+            --compact \
+            --soft-fail \
+            -o cli \
+            -o sarif \
+            --output-file-path console,checkov-workflows.sarif || true
+
+      - name: Validate Checkov workflow SARIF
+        id: checkov_workflows_sarif
+        if: always()
+        run: |
+          if [[ ! -s checkov-workflows.sarif ]]; then
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if jq empty checkov-workflows.sarif >/dev/null 2>&1; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Checkov workflow SARIF is invalid JSON. Skipping upload."
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Checkov workflow SARIF
+        if: always() && steps.checkov_workflows_sarif.outputs.valid == 'true'
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
+        with:
+          sarif_file: checkov-workflows.sarif
+          category: checkov-workflows
+
+  checkov-deployment:
+    name: Checkov IaC (Deployment Folder)
+    runs-on: ubuntu-latest
+    needs: [scan-context]
+    if: ${{ needs.scan-context.outputs.has_deployment == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Checkov
+        run: python -m pip install --upgrade checkov
+
+      - name: Run Checkov on deployment folder (non-blocking)
+        run: |
+          checkov -d deployment \
+            --framework terraform,kubernetes,dockerfile,secrets \
+            --quiet \
+            --compact \
+            --soft-fail \
+            -o cli \
+            -o sarif \
+            --output-file-path console,checkov-deployment.sarif || true
+
+      - name: Validate Checkov deployment SARIF
+        id: checkov_deployment_sarif
+        if: always()
+        run: |
+          if [[ ! -s checkov-deployment.sarif ]]; then
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if jq empty checkov-deployment.sarif >/dev/null 2>&1; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Checkov deployment SARIF is invalid JSON. Skipping upload."
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Checkov deployment SARIF
+        if: always() && steps.checkov_deployment_sarif.outputs.valid == 'true'
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
+        with:
+          sarif_file: checkov-deployment.sarif
+          category: checkov-deployment
+
+  bandit:
+    name: Bandit (Python Security)
+    runs-on: ubuntu-latest
+    needs: [scan-context]
+    if: ${{ needs.scan-context.outputs.has_python == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Bandit
+        run: python -m pip install --upgrade bandit
+
+      - name: Run Bandit (non-blocking)
+        run: |
+          bandit -r . \
+            -f sarif \
+            -o bandit.sarif \
+            -x .git,node_modules,bin,obj,.tmp \
+            || true
+
+      - name: Upload Bandit SARIF
+        if: always() && hashFiles('bandit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
+
+  clamav:
+    name: ClamAV Malware Scan
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install ClamAV
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clamav
+
+      - name: Update virus definitions
+        run: sudo freshclam || true
+
+      - name: Run ClamAV scan
+        run: |
+          set +e
+          clamscan -r --infected --exclude-dir=.git --exclude-dir=bin --exclude-dir=obj --exclude-dir=.tmp . | tee clamav-report.txt
+          CLAMAV_EXIT=${PIPESTATUS[0]}
+          if [ "$CLAMAV_EXIT" -eq 1 ]; then
+            echo "::error::ClamAV found suspicious files."
+            exit 1
+          fi
+          if [ "$CLAMAV_EXIT" -gt 1 ]; then
+            echo "::warning::ClamAV exited with code $CLAMAV_EXIT."
+          fi
+
+      - name: Upload ClamAV report
+        if: always() && hashFiles('clamav-report.txt') != ''
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        with:
+          name: clamav-report
+          path: clamav-report.txt
+          retention-days: 14
+
+  zap-baseline:
+    name: OWASP ZAP Baseline (Opt-in)
+    runs-on: ubuntu-latest
+    if: ${{ vars.DAST_TARGET_URL != '' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    steps:
+      - name: Resolve target URL
+        id: target
+        run: |
+          TARGET="${{ vars.DAST_TARGET_URL }}"
+
+          echo "url=$TARGET" >> "$GITHUB_OUTPUT"
+
+      - name: Run ZAP baseline scan (non-blocking)
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: ${{ steps.target.outputs.url }}
+          fail_action: false

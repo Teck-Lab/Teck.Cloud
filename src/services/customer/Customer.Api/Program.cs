@@ -1,40 +1,99 @@
+// <copyright file="Program.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Customer.Api.Extensions;
+using Customer.Api.Grpc.V1;
 using Customer.Application;
 using Customer.Infrastructure.DependencyInjection;
+using FastEndpoints;
+using FluentValidation;
 using JasperFx;
+using SharedKernel.Grpc.Contracts.Remote.V1.ServiceVersions;
+using SharedKernel.Grpc.Contracts.Remote.V1.Tenants;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Endpoints;
 using SharedKernel.Infrastructure.OpenApi;
 using SharedKernel.Infrastructure.Options;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+namespace Customer.Api;
 
-builder.AddServiceDefaults();
+/// <summary>
+/// Application entry point.
+/// </summary>
+internal static class Program
+{
+    private static async Task Main(string[] args)
+    {
+        WebApplicationBuilder builder = CreateBuilder(args);
+        Assembly applicationAssembly = typeof(ICustomerApplication).Assembly;
+        AppOptions appOptions = BuildAppOptions(builder);
+        ConfigureServices(builder, applicationAssembly, appOptions);
+        WebApplication app = BuildApp(builder, appOptions);
+        await app.RunJasperFxCommands(args).ConfigureAwait(false);
+    }
 
-Assembly applicationAssembly = typeof(ICustomerApplication).Assembly;
-Assembly apiAssembly = typeof(Program).Assembly;
-var appOptions = new AppOptions();
-builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
+    private static WebApplicationBuilder CreateBuilder(string[] args)
+    {
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+        builder.AddServiceDefaults();
+        return builder;
+    }
 
-builder.AddBaseInfrastructure(appOptions);
-builder.AddInfrastructureServices(applicationAssembly);
+    [RequiresDynamicCode("Calls Microsoft.Extensions.Configuration.ConfigurationBinder.Bind(Object)")]
+    [RequiresUnreferencedCode("Calls Microsoft.Extensions.Configuration.ConfigurationBinder.Bind(Object)")]
+    private static AppOptions BuildAppOptions(WebApplicationBuilder builder)
+    {
+        AppOptions appOptions = new();
+        builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
+        return appOptions;
+    }
 
-builder.AddMediatorInfrastructure(applicationAssembly);
-builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
-builder.AddOpenApiInfrastructure(appOptions);
+    private static void ConfigureServices(WebApplicationBuilder builder, Assembly applicationAssembly, AppOptions appOptions)
+    {
+        Assembly apiAssembly = typeof(Program).Assembly;
+        builder.AddBaseInfrastructure(appOptions);
+        builder.AddInfrastructureServices(applicationAssembly);
+        builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
+        builder.AddOpenApiInfrastructure(appOptions);
+        AddValidation(builder, applicationAssembly, apiAssembly);
+        builder.AddMediatorInfrastructure(applicationAssembly);
+        AddCoreServices(builder);
+    }
 
-builder.Services.AddRequestTimeouts();
-builder.Services.AddOutputCache();
+    private static void AddValidation(WebApplicationBuilder builder, Assembly applicationAssembly, Assembly apiAssembly)
+    {
+        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
+        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+    }
 
-WebApplication app = builder.Build();
+    private static void AddCoreServices(WebApplicationBuilder builder)
+    {
+        builder.Services.AddRequestTimeouts();
+        builder.AddHandlerServer();
+    }
 
-app.UseBaseInfrastructure();
-app.UseInfrastructureServices();
-app.UseRequestTimeouts();
-app.UseFastEndpointsInfrastructure();
-app.UseOpenApiInfrastructure(appOptions);
+    private static WebApplication BuildApp(WebApplicationBuilder builder, AppOptions appOptions)
+    {
+        WebApplication app = builder.Build();
+        app.UseBaseInfrastructure();
+        app.UseInfrastructureServices();
+        app.UseRequestTimeouts();
+        app.UseFastEndpointsInfrastructure("customer");
+        app.UseOpenApiInfrastructure(appOptions);
+        MapEndpoints(app);
+        return app;
+    }
 
-app.MapDefaultEndpoints();
-
-await app.RunJasperFxCommands(args);
+    private static void MapEndpoints(WebApplication app)
+    {
+        app.MapHandlers(handlerRegistry =>
+        {
+            handlerRegistry.Register<GetCustomerServiceVersionCommand, GetCustomerServiceVersionCommandHandler, ServiceVersionRpcResult>();
+            handlerRegistry.Register<GetTenantDatabaseInfoCommand, GetTenantDatabaseInfoCommandHandler, TenantDatabaseInfoRpcResult>();
+        });
+        app.MapDefaultEndpoints();
+    }
+}

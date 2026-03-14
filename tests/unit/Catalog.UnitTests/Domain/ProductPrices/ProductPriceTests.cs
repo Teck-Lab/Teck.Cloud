@@ -56,7 +56,6 @@ public class ProductPriceTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(0.0)]
     public void Create_Should_Allow_ZeroPrice(decimal zeroPrice)
     {
         var currencyCode = _fixture.Create<string>();

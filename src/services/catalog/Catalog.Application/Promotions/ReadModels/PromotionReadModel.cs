@@ -1,3 +1,7 @@
+// <copyright file="PromotionReadModel.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Application.Promotions.ReadModels;

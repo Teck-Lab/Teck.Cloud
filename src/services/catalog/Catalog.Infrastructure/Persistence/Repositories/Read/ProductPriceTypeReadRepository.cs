@@ -1,3 +1,7 @@
+// <copyright file="ProductPriceTypeReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.ProductPriceTypes.ReadModels;
 using Catalog.Application.ProductPriceTypes.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -23,19 +27,19 @@ public sealed class ProductPriceTypeReadRepository : GenericReadRepository<Produ
     /// <inheritdoc/>
     public async Task<IReadOnlyList<ProductPriceTypeReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await GetAllAsync(enableTracking: false, cancellationToken: cancellationToken);
+        return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<ProductPriceTypeReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await FindByIdAsync(id, cancellationToken: cancellationToken);
+        return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<PagedList<ProductPriceTypeReadModel>> GetPagedProductPriceTypesAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
-        var query = DbContext.ProductPriceTypes.AsQueryable();
+        var query = this.DbContext.ProductPriceTypes.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -43,11 +47,12 @@ public sealed class ProductPriceTypeReadRepository : GenericReadRepository<Produ
                                    (priceType.Description != null && priceType.Description.Contains(keyword)));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await query.OrderBy(priceType => priceType.Name)
                              .Skip((page - 1) * size)
                              .Take(size)
-                             .ToListAsync(cancellationToken);
+                     .ToListAsync(cancellationToken)
+                     .ConfigureAwait(false);
 
         return new PagedList<ProductPriceTypeReadModel>(items, totalCount, page, size);
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,47 +6,27 @@ namespace SharedKernel.Persistence.Database.EFCore
 {
     internal static class ModelBuilderExtensions
     {
+        private const string SoftDeleteFilterName = "SoftDeleteFilter";
+
+        [RequiresDynamicCode("Calls System.Linq.Expressions.Expression.Lambda(Expression, params ParameterExpression[])")]
         public static ModelBuilder AppendGlobalQueryFilter<TInterface>(this ModelBuilder modelBuilder, Expression<Func<TInterface, bool>> filter)
         {
-            // get a list of entities without a baseType that implement the interface TInterface
-            IEnumerable<Type> entities = modelBuilder.Model.GetEntityTypes()
-                .Where(entity => entity.BaseType is null && entity.ClrType.GetInterface(typeof(TInterface).Name) is not null)
-                .Select(entity => entity.ClrType);
+            // get root, non-owned entities that implement the interface TInterface
+            var entities = modelBuilder.Model.GetEntityTypes()
+                .Where(entity =>
+                    entity.BaseType is null &&
+                    !entity.IsOwned() &&
+                    entity.ClrType.GetInterface(typeof(TInterface).Name) is not null)
+                .ToArray();
 
-            foreach (Type? entity in entities)
+            foreach (Type entity in entities.Select(entityType => entityType.ClrType))
             {
                 ParameterExpression parameterType = Expression.Parameter(modelBuilder.Entity(entity).Metadata.ClrType);
                 Expression filterBody = ReplaceParameter(filter.Body, filter.Parameters[0], parameterType);
 
-                // prefer declared query filters (EF Core newer API)
-                var declaredFilters = modelBuilder.Entity(entity).Metadata.GetDeclaredQueryFilters();
-                if (declaredFilters != null && declaredFilters.Cast<object>().Any())
-                {
-                    foreach (var lambdaObj in declaredFilters)
-                    {
-                        if (lambdaObj is LambdaExpression lambda)
-                        {
-                            Expression existingFilterBody = ReplaceParameter(lambda.Body, lambda.Parameters[0], parameterType);
-                            filterBody = Expression.AndAlso(existingFilterBody, filterBody);
-                        }
-                    }
-                }
-                else
-                {
-                    // fallback to older EF API GetQueryFilter() if present (suppress obsolete warning)
-#pragma warning disable CS0618
-                    var existing = modelBuilder.Entity(entity).Metadata.GetQueryFilter();
-#pragma warning restore CS0618
-
-                    if (existing is LambdaExpression existingLambda)
-                    {
-                        Expression existingFilterBody = ReplaceParameter(existingLambda.Body, existingLambda.Parameters[0], parameterType);
-                        filterBody = Expression.AndAlso(existingFilterBody, filterBody);
-                    }
-                }
-
-                // apply the new query filter
-                modelBuilder.Entity(entity).HasQueryFilter(Expression.Lambda(filterBody, parameterType));
+                // Use named query filters (EF Core 10) so this can coexist with
+                // Finbuckle's named tenant filter without anonymous/named conflicts.
+                modelBuilder.Entity(entity).HasQueryFilter(SoftDeleteFilterName, Expression.Lambda(filterBody, parameterType));
             }
 
             return modelBuilder;

@@ -1,3 +1,7 @@
+// <copyright file="CategoryReadRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Categories.ReadModels;
 using Catalog.Application.Categories.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -29,20 +33,25 @@ public sealed class CategoryReadRepository : GenericReadRepository<CategoryReadM
     public async Task<bool> ExistsByIdAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
     {
         if (ids == null)
+        {
             return false;
+        }
 
         var idList = ids as IList<Guid> ?? ids.ToList();
         if (idList.Count == 0)
+        {
             return false;
+        }
 
         var distinctCount = idList.Distinct().Count();
 
-        var existingCount = await DbContext.Categories
+        var existingCount = await this.DbContext.Categories
             .AsNoTracking()
             .Where(category => idList.Contains(category.Id))
             .Select(category => category.Id)
             .Distinct()
-            .CountAsync(cancellationToken);
+            .CountAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         return existingCount == distinctCount;
     }
@@ -50,28 +59,29 @@ public sealed class CategoryReadRepository : GenericReadRepository<CategoryReadM
     /// <inheritdoc/>
     public async Task<IReadOnlyList<CategoryReadModel>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await GetAllAsync(enableTracking: false, cancellationToken: cancellationToken);
+        return await this.GetAllAsync(false, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<CategoryReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await FindByIdAsync(id, cancellationToken: cancellationToken);
+        return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<CategoryReadModel>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default)
     {
-        return await DbContext.Categories
+        return await this.DbContext.Categories
             .AsNoTracking()
             .Where(category => category.ParentId == parentId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<PagedList<CategoryReadModel>> GetPagedCategoriesAsync(int page, int size, string? keyword, CancellationToken cancellationToken = default)
     {
-        var query = DbContext.Categories.AsQueryable();
+        var query = this.DbContext.Categories.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -79,11 +89,12 @@ public sealed class CategoryReadRepository : GenericReadRepository<CategoryReadM
                                             (category.Description != null && category.Description.Contains(keyword)));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await query.OrderBy(category => category.Name)
                              .Skip((page - 1) * size)
                              .Take(size)
-                             .ToListAsync(cancellationToken);
+                     .ToListAsync(cancellationToken)
+                     .ConfigureAwait(false);
 
         return new PagedList<CategoryReadModel>(items, totalCount, page, size);
     }

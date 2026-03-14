@@ -1,8 +1,11 @@
+// <copyright file="Promotion.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.ProductAggregate;
 using Catalog.Domain.Entities.PromotionAggregate.Errors;
 using ErrorOr;
-using Finbuckle.MultiTenant.Abstractions;
 using SharedKernel.Core.Domain;
 
 namespace Catalog.Domain.Entities.PromotionAggregate
@@ -10,7 +13,6 @@ namespace Catalog.Domain.Entities.PromotionAggregate
     /// <summary>
     /// The promotion.
     /// </summary>
-    [MultiTenant]
     public class Promotion : BaseEntity, IAggregateRoot
     {
         /// <summary>
@@ -44,83 +46,14 @@ namespace Catalog.Domain.Entities.PromotionAggregate
         public ICollection<Category> Categories { get; private set; } = [];
 
         /// <summary>
-        /// Update a brand.
+        /// Creates a promotion.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="validFrom"></param>
-        /// <param name="validTo"></param>
-        /// <param name="products"></param>
-        /// <returns></returns>
-        public ErrorOr<Updated> Update(
-            string? name,
-            string? description,
-            DateTimeOffset? validFrom,
-            DateTimeOffset? validTo,
-            ICollection<Product>? products)
-        {
-            var errors = new List<Error>();
-
-            if (name is not null)
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    errors.Add(PromotionErrors.EmptyName);
-                }
-                else if (!Name.Equals(name, StringComparison.Ordinal))
-                {
-                    Name = name;
-                }
-            }
-
-            if (description is not null && !string.Equals(Description, description, StringComparison.Ordinal))
-            {
-                Description = description;
-            }
-
-            if (validFrom.HasValue && !ValidFrom.Equals(validFrom.Value))
-            {
-                ValidFrom = validFrom.Value;
-            }
-
-            if (validTo.HasValue && !ValidTo.Equals(validTo.Value))
-            {
-                if (validFrom.HasValue && validTo.Value < validFrom.Value)
-                {
-                    errors.Add(PromotionErrors.InvalidDateRange);
-                }
-                else if (!validFrom.HasValue && validTo.Value < ValidFrom)
-                {
-                    errors.Add(PromotionErrors.InvalidDateRange);
-                }
-                else
-                {
-                    ValidTo = validTo.Value;
-                }
-            }
-
-            if (products is not null)
-            {
-                Products = products;
-            }
-
-            if (errors.Count != 0)
-            {
-                return errors;
-            }
-
-            return Result.Updated;
-        }
-
-        /// <summary>
-        /// Create a brand.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="validFrom"></param>
-        /// <param name="validTo"></param>
-        /// <param name="products"></param>
-        /// <returns></returns>
+        /// <param name="name">The promotion name.</param>
+        /// <param name="description">The optional promotion description.</param>
+        /// <param name="validFrom">The start date.</param>
+        /// <param name="validTo">The end date.</param>
+        /// <param name="products">The products in scope.</param>
+        /// <returns>The created promotion, or validation errors.</returns>
         public static ErrorOr<Promotion> Create(
             string name,
             string? description,
@@ -130,36 +63,156 @@ namespace Catalog.Domain.Entities.PromotionAggregate
         {
             var errors = new List<Error>();
 
-            if (string.IsNullOrWhiteSpace(name))
+            ValidateNameForCreate(name, errors);
+            ValidateDateRangeForCreate(validFrom, validTo, errors);
+            ValidateProductsForCreate(products, errors);
+
+            if (errors.Count > 0)
             {
-                errors.Add(PromotionErrors.EmptyName);
+                return errors.ToArray();
             }
 
-            if (validTo < validFrom)
-            {
-                errors.Add(PromotionErrors.InvalidDateRange);
-            }
-
-            if (products == null || products.Count == 0)
-            {
-                errors.Add(PromotionErrors.NoProducts);
-            }
-
-            if (errors.Count != 0)
-            {
-                return errors;
-            }
-
-            Promotion promotion = new()
+            return new Promotion
             {
                 Name = name,
                 Description = description,
                 ValidFrom = validFrom,
                 ValidTo = validTo,
-                Products = products ?? throw new ArgumentNullException(nameof(products))
+                Products = products,
             };
+        }
 
-            return promotion;
+        /// <summary>
+        /// Updates a promotion.
+        /// </summary>
+        /// <param name="name">The updated promotion name.</param>
+        /// <param name="description">The updated promotion description.</param>
+        /// <param name="validFrom">The updated start date.</param>
+        /// <param name="validTo">The updated end date.</param>
+        /// <param name="products">The updated product list.</param>
+        /// <returns>An updated result, or validation errors.</returns>
+        public ErrorOr<Updated> Update(
+            string? name,
+            string? description,
+            DateTimeOffset? validFrom,
+            DateTimeOffset? validTo,
+            ICollection<Product>? products)
+        {
+            var errors = new List<Error>();
+
+            this.UpdateName(name, errors);
+            this.UpdateDescription(description);
+            this.UpdateValidFrom(validFrom);
+            this.UpdateValidTo(validFrom, validTo, errors);
+            this.UpdateProducts(products);
+
+            return errors.Count != 0 ? errors : Result.Updated;
+        }
+
+        private static void ValidateNameForCreate(string name, List<Error> errors)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(PromotionErrors.EmptyName);
+            }
+        }
+
+        private static void ValidateDateRangeForCreate(DateTimeOffset validFrom, DateTimeOffset validTo, List<Error> errors)
+        {
+            if (validTo < validFrom)
+            {
+                errors.Add(PromotionErrors.InvalidDateRange);
+            }
+        }
+
+        private static void ValidateProductsForCreate(ICollection<Product> products, List<Error> errors)
+        {
+            if (products == null || products.Count == 0)
+            {
+                errors.Add(PromotionErrors.NoProducts);
+            }
+        }
+
+        private void UpdateName(string? name, List<Error> errors)
+        {
+            if (name is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(PromotionErrors.EmptyName);
+                return;
+            }
+
+            if (!this.Name.Equals(name, StringComparison.Ordinal))
+            {
+                this.Name = name;
+            }
+        }
+
+        private void UpdateDescription(string? description)
+        {
+            if (description is not null && !string.Equals(this.Description, description, StringComparison.Ordinal))
+            {
+                this.Description = description;
+            }
+        }
+
+        private void UpdateValidFrom(DateTimeOffset? validFrom)
+        {
+            if (validFrom is not null && !this.ValidFrom.Equals(validFrom.Value))
+            {
+                this.ValidFrom = validFrom.Value;
+            }
+        }
+
+        private void UpdateValidTo(DateTimeOffset? validFrom, DateTimeOffset? validTo, List<Error> errors)
+        {
+            if (!this.TryGetValidToForUpdate(validTo, out var validToValue))
+            {
+                return;
+            }
+
+            if (this.IsInvalidDateRange(validFrom, validToValue))
+            {
+                errors.Add(PromotionErrors.InvalidDateRange);
+                return;
+            }
+
+            this.ValidTo = validToValue;
+        }
+
+        private bool TryGetValidToForUpdate(DateTimeOffset? validTo, out DateTimeOffset validToValue)
+        {
+            validToValue = default;
+
+            if (validTo is null || this.ValidTo.Equals(validTo.Value))
+            {
+                return false;
+            }
+
+            validToValue = validTo.Value;
+            return true;
+        }
+
+        private bool IsInvalidDateRange(DateTimeOffset? validFrom, DateTimeOffset validTo)
+        {
+            if (validFrom is not null)
+            {
+                return validTo < validFrom.Value;
+            }
+
+            return validTo < this.ValidFrom;
+        }
+
+        private void UpdateProducts(ICollection<Product>? products)
+        {
+            if (products is not null)
+            {
+                this.Products = products;
+            }
         }
     }
 }

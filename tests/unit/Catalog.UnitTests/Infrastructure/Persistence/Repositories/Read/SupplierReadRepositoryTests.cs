@@ -17,7 +17,7 @@ public sealed class SupplierReadRepositoryTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        _dbContext = new ApplicationReadDbContext(options);
+        _dbContext = new ApplicationReadDbContext(options, Catalog.UnitTests.Infrastructure.Persistence.TestTenantContextAccessor.Create());
         _repository = new SupplierReadRepository(_dbContext);
     }
 
@@ -55,7 +55,16 @@ public sealed class SupplierReadRepositoryTests : IDisposable
     public async Task GetByIdAsync_ShouldReturnSupplier_WhenExists()
     {
         // Arrange
-        var supplier = new SupplierReadModel { Id = Guid.NewGuid(), Name = "Test Supplier" };
+        var website = new Uri("https://supplier.example.com");
+        var supplier = new SupplierReadModel
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Supplier",
+            ContactEmail = "contact@supplier.example.com",
+            ContactPhone = "+1-555-1234",
+            ContactName = "Test Contact",
+            WebsiteUrl = website,
+        };
         await _dbContext.Suppliers.AddAsync(supplier, TestContext.Current.CancellationToken);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -66,6 +75,10 @@ public sealed class SupplierReadRepositoryTests : IDisposable
         result.ShouldNotBeNull();
         result.Id.ShouldBe(supplier.Id);
         result.Name.ShouldBe("Test Supplier");
+        result.ContactEmail.ShouldBe("contact@supplier.example.com");
+        result.ContactPhone.ShouldBe("+1-555-1234");
+        result.ContactName.ShouldBe("Test Contact");
+        result.WebsiteUrl.ShouldBe(website);
     }
 
     [Fact]

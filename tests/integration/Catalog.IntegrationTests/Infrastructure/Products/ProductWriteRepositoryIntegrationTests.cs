@@ -38,9 +38,11 @@ namespace Catalog.IntegrationTests.Infrastructure.Products
             _categoryRepository = new CategoryWriteRepository(WriteDbContext, httpContextAccessor);
         }
 
-        protected override ApplicationWriteDbContext CreateWriteDbContext(DbContextOptions<ApplicationWriteDbContext> options)
+        protected override ApplicationWriteDbContext CreateWriteDbContext(
+            DbContextOptions<ApplicationWriteDbContext> options,
+            Finbuckle.MultiTenant.Abstractions.IMultiTenantContextAccessor<SharedKernel.Infrastructure.MultiTenant.TenantDetails> tenantAccessor)
         {
-            return new ApplicationWriteDbContext(options);
+            return new ApplicationWriteDbContext(options, tenantAccessor);
         }
 
         protected override IUnitOfWork CreateUnitOfWork(ApplicationWriteDbContext context)

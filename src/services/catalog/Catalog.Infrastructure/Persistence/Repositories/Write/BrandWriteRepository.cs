@@ -1,3 +1,7 @@
+// <copyright file="BrandWriteRepository.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Domain.Entities.BrandAggregate;
 using Catalog.Domain.Entities.BrandAggregate.Repositories;
 using Catalog.Domain.Entities.BrandAggregate.Specifications;
@@ -34,7 +38,8 @@ public sealed class BrandWriteRepository : GenericWriteRepository<Brand, Guid, A
     /// <returns>True if a brand with the name exists; otherwise, false.</returns>
     public async Task<bool> ExistsWithNameAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await FirstOrDefaultAsync(new BrandByNameSpecification(name), cancellationToken) != null;
+        BrandByNameSpecification specification = new BrandByNameSpecification(name);
+        return await this.FirstOrDefaultAsync(specification, cancellationToken).ConfigureAwait(false) != null;
     }
 
     /// <summary>
@@ -45,6 +50,7 @@ public sealed class BrandWriteRepository : GenericWriteRepository<Brand, Guid, A
     /// <returns>The brand if found; otherwise, null.</returns>
     public async Task<Brand?> FindByNameAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await FirstOrDefaultAsync(new BrandByNameSpecification(name), cancellationToken);
+        BrandByNameSpecification specification = new BrandByNameSpecification(name);
+        return await this.FirstOrDefaultAsync(specification, cancellationToken).ConfigureAwait(false);
     }
 }

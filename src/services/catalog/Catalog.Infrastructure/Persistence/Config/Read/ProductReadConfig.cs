@@ -1,4 +1,9 @@
+// <copyright file="ProductReadConfig.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using Catalog.Application.Products.ReadModels;
+using Finbuckle.MultiTenant.EntityFrameworkCore.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SharedKernel.Persistence.Database.EFCore.Config;
@@ -16,6 +21,8 @@ public class ProductReadConfig : IEntityTypeConfiguration<ProductReadModel>
     /// <param name="builder">The builder to be used to configure the ProductReadModel entity.</param>
     public void Configure(EntityTypeBuilder<ProductReadModel> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.ToTable("Products");
 
         builder.HasKey(product => product.Id);
@@ -51,9 +58,14 @@ public class ProductReadConfig : IEntityTypeConfiguration<ProductReadModel>
             .HasMaxLength(200);
 
         builder.Property(product => product.ImageUrl)
+            .HasConversion(
+                value => value == null ? null : value.ToString(),
+                value => string.IsNullOrWhiteSpace(value) ? null : new Uri(value, UriKind.RelativeOrAbsolute))
             .HasMaxLength(2048);
 
         // Apply standard audit property configurations
         builder.ConfigureAuditProperties();
+
+        builder.IsMultiTenant();
     }
 }

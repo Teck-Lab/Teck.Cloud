@@ -1,3 +1,7 @@
+// <copyright file="MinioOptions.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
 using System.ComponentModel.DataAnnotations;
 using SharedKernel.Core.Options;
 

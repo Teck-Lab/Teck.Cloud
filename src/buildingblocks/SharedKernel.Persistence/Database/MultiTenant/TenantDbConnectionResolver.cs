@@ -1,12 +1,10 @@
 using System.Collections.Concurrent;
-using System.Net.Http.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.MultiTenant;
-using ZiggyCreatures.Caching.Fusion;
 
 namespace SharedKernel.Persistence.Database.MultiTenant
 {
@@ -17,6 +15,7 @@ namespace SharedKernel.Persistence.Database.MultiTenant
     {
         private const string TenantIdHeader = "X-TenantId";
         private const string TenantDbStrategyHeader = "X-Tenant-DbStrategy";
+
         // Cache for tenant connection information as a fallback/performance optimization
         private static readonly ConcurrentDictionary<string, (string WriteConnectionString, string? ReadConnectionString, DatabaseProvider Provider, DatabaseStrategy Strategy)> _connectionCache =
             new ConcurrentDictionary<string, (string, string?, DatabaseProvider, DatabaseStrategy)>();
@@ -24,8 +23,7 @@ namespace SharedKernel.Persistence.Database.MultiTenant
         private readonly string _defaultReadConnectionString;
         private readonly DatabaseProvider _defaultProvider;
         private readonly ILogger<TenantDbConnectionResolver> _logger;
-        private readonly Lazy<IFusionCache> _fusionCache;
-        private readonly Lazy<IHttpClientFactory> _httpClientFactory;
+        private readonly Lazy<IConfiguration> _configuration;
         private readonly Lazy<IHttpContextAccessor?> _httpContextAccessor;
 
         /// <summary>
@@ -49,13 +47,9 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             _logger = serviceProvider.GetService<ILogger<TenantDbConnectionResolver>>() ??
                 throw new InvalidOperationException("Logger service is not registered");
 
-            _fusionCache = new Lazy<IFusionCache>(() =>
-                serviceProvider.GetService<IFusionCache>() ??
-                throw new InvalidOperationException("FusionCache service is not registered"));
-
-            _httpClientFactory = new Lazy<IHttpClientFactory>(() =>
-                serviceProvider.GetService<IHttpClientFactory>() ??
-                throw new InvalidOperationException("HttpClientFactory service is not registered"));
+            _configuration = new Lazy<IConfiguration>(() =>
+                serviceProvider.GetService<IConfiguration>() ??
+                throw new InvalidOperationException("Configuration service is not registered"));
 
             _httpContextAccessor = new Lazy<IHttpContextAccessor?>(() =>
                 serviceProvider.GetService<IHttpContextAccessor>());
@@ -85,71 +79,6 @@ namespace SharedKernel.Persistence.Database.MultiTenant
                 return cachedConnection;
             }
 
-            // Use FusionCache with a factory that will fetch from Customer.Api if needed
-            // This allows for distributed caching with automatic background refresh
-            try
-            {
-                var cacheKey = $"tenant-db-connection:{tenantInfo.Id}";
-                var fusionCache = _fusionCache.Value;
-                var tenantDbInfo = fusionCache.GetOrSet(
-                    cacheKey,
-                    _ => FetchTenantDatabaseInfoAsync(tenantInfo.Id ?? string.Empty),
-                    options => options
-                        .SetDuration(TimeSpan.FromMinutes(30))
-                        .SetFailSafe(true)
-                        .SetFactoryTimeouts(TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2))
-                ).Result;
-
-                if (tenantDbInfo != null)
-                {
-                    string writeConnectionString = tenantDbInfo.WriteConnectionString ?? _defaultWriteConnectionString;
-                    string? readConnectionString;
-                    DatabaseProvider.TryFromName(tenantDbInfo.Provider, out var provider);
-                    DatabaseStrategy.TryFromName(tenantDbInfo.Strategy, out var strategy);
-
-                    if (tenantDbInfo.HasReadReplicas)
-                    {
-                        readConnectionString = tenantDbInfo.ReadConnectionString;
-                        if (string.IsNullOrWhiteSpace(readConnectionString))
-                        {
-                            // If HasReadReplicas is true but no read connection string, use write connection string
-                            readConnectionString = writeConnectionString;
-                        }
-                    }
-                    else
-                    {
-                        // If HasReadReplicas is false, use write connection string for reads
-                        readConnectionString = writeConnectionString;
-                    }
-
-                    var result = (writeConnectionString, readConnectionString, provider, strategy);
-
-                    // Cache the result for future use
-                    if (!string.IsNullOrEmpty(tenantInfo.Id))
-                    {
-                        _connectionCache.TryAdd(tenantInfo.Id, result);
-                    }
-
-                    // Ensure write connection string is not null or empty before returning
-                    if (!string.IsNullOrEmpty(result.writeConnectionString))
-                    {
-                        return result;
-                    }
-                    else
-                    {
-                        // Fallback to default if result is invalid
-                        return (_defaultWriteConnectionString, _defaultReadConnectionString, _defaultProvider, DatabaseStrategy.Shared);
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(exception, "Error resolving tenant connection info from cache/API for tenant {TenantId}", tenantInfo.Id);
-
-                // Continue to fallback method
-            }
-
-            // Fallback to looking in tenant properties if API fetch fails
             return GetConnectionFromTenantProperties(tenantInfo);
         }
 
@@ -185,13 +114,7 @@ namespace SharedKernel.Persistence.Database.MultiTenant
 
             if (strategy == DatabaseStrategy.Shared)
             {
-                connection = (_defaultWriteConnectionString, _defaultReadConnectionString, _defaultProvider, DatabaseStrategy.Shared);
-
-                if (!string.IsNullOrWhiteSpace(tenantInfo.Id))
-                {
-                    _connectionCache[tenantInfo.Id] = connection;
-                }
-
+                connection = GetSharedConnection(tenantInfo);
                 return true;
             }
 
@@ -208,14 +131,12 @@ namespace SharedKernel.Persistence.Database.MultiTenant
 
         /// <summary>
         /// Safely resolves the connection string, database provider, and strategy for a tenant.
-        /// This method provides additional safety checks for premium/enterprise tenants.
         /// </summary>
         /// <param name="tenantInfo">The tenant information.</param>
-        /// <param name="requireCustomerApi">Whether to require the Customer API for non-shared tenants.</param>
+        /// <param name="requireCustomerApi">Unused compatibility parameter.</param>
         /// <returns>A task containing the tenant connection result.</returns>
         public async Task<TenantConnectionResult> ResolveTenantConnectionSafelyAsync(TenantDetails tenantInfo, bool requireCustomerApi = true)
         {
-            // If tenant is null, use default shared connection
             if (tenantInfo == null)
             {
                 return TenantConnectionResult.Success(
@@ -227,179 +148,27 @@ namespace SharedKernel.Persistence.Database.MultiTenant
                     fromCache: false);
             }
 
-            // Try to get from static cache first
             if (!string.IsNullOrEmpty(tenantInfo.Id) && _connectionCache.TryGetValue(tenantInfo.Id, out var cachedConnection))
             {
                 var (writeConnectionString, readConnectionString, provider, strategy) = cachedConnection;
-
-                // For shared tenants, cached connection is always safe
-                if (strategy == DatabaseStrategy.Shared)
-                {
-                    return TenantConnectionResult.Success(writeConnectionString, readConnectionString, provider, strategy, customerApiAvailable: true, fromCache: true);
-                }
-
-                // For premium/enterprise tenants, check if we require Customer API
-                if (requireCustomerApi && (strategy == DatabaseStrategy.Dedicated ||
-                                          strategy == DatabaseStrategy.External))
-                {
-                    // Try to fetch fresh data from Customer API
-                    var apiResult = await TryFetchTenantDatabaseInfoAsync(tenantInfo.Id);
-                    if (apiResult.Success)
-                    {
-                        // Update cache with fresh data
-                        var freshWriteConnection = apiResult.Data.WriteConnectionString ?? writeConnectionString;
-                        var freshReadConnection = apiResult.Data.ReadConnectionString;
-                        if (string.IsNullOrWhiteSpace(freshReadConnection) || freshReadConnection == freshWriteConnection)
-                        {
-                            freshReadConnection = null;
-                        }
-
-                        DatabaseProvider.TryFromName(apiResult.Data.Provider, out var providerResult);
-                        DatabaseStrategy.TryFromName(apiResult.Data.Strategy, out var strategyResult);
-                        var freshConnection = (freshWriteConnection, freshReadConnection, providerResult, strategyResult);
-                        if (!string.IsNullOrEmpty(tenantInfo.Id))
-                        {
-                            _connectionCache.TryAdd(tenantInfo.Id, freshConnection);
-                        }
-
-                        return TenantConnectionResult.Success(
-                            freshConnection.freshWriteConnection,
-                            freshConnection.freshReadConnection,
-                            freshConnection.providerResult,
-                            freshConnection.strategyResult,
-                            customerApiAvailable: true,
-                            fromCache: false);
-                    }
-                    else
-                    {
-                        // Customer API is unavailable for premium/enterprise tenant
-                        return TenantConnectionResult.UnsafeForMigration(
-                            writeConnectionString,
-                            provider,
-                            strategy,
-                            $"Customer API is unavailable for {strategy} tenant {tenantInfo.Id}. Using cached connection is unsafe for migration.");
-                    }
-                }
-
-                // If we don't require Customer API or it's a shared tenant, use cached connection
                 return TenantConnectionResult.Success(writeConnectionString, readConnectionString, provider, strategy, customerApiAvailable: false, fromCache: true);
             }
 
-            // No cache hit, try to fetch from Customer API
-            var fetchResult = await TryFetchTenantDatabaseInfoAsync(tenantInfo.Id ?? string.Empty);
-            if (fetchResult.Success)
-            {
-                var tenantDbInfo = fetchResult.Data;
-                string writeConnectionString = tenantDbInfo.WriteConnectionString ?? _defaultWriteConnectionString;
-                string? readConnectionString = tenantDbInfo.ReadConnectionString;
-                if (string.IsNullOrWhiteSpace(readConnectionString) || readConnectionString == writeConnectionString)
-                {
-                    readConnectionString = null;
-                }
-
-                DatabaseProvider.TryFromName(tenantDbInfo.Provider, out var provider);
-                DatabaseStrategy.TryFromName(tenantDbInfo.Strategy, out var strategy);
-
-                var result = (writeConnectionString, readConnectionString, provider, strategy);
-
-                // Cache the result for future use
-                if (!string.IsNullOrEmpty(tenantInfo.Id))
-                {
-                    _connectionCache.TryAdd(tenantInfo.Id, result);
-                }
-
-                return TenantConnectionResult.Success(writeConnectionString, readConnectionString, provider, strategy, customerApiAvailable: true, fromCache: false);
-            }
-
-            // Customer API is unavailable and no cache - fallback to tenant properties
-            var fallbackResult = GetConnectionFromTenantProperties(tenantInfo);
-
-            // For premium/enterprise tenants, mark as unsafe if Customer API is required
-            if (requireCustomerApi && (fallbackResult.Strategy == DatabaseStrategy.Dedicated ||
-                                       fallbackResult.Strategy == DatabaseStrategy.External))
-            {
-                return TenantConnectionResult.UnsafeForMigration(
-                    fallbackResult.WriteConnectionString,
-                    fallbackResult.Provider,
-                    fallbackResult.Strategy,
-                    $"Customer API is unavailable for {fallbackResult.Strategy} tenant {tenantInfo.Id}. Using fallback connection is unsafe for migration.");
-            }
-
-            // For shared tenants or when Customer API is not required, return success
-            return TenantConnectionResult.Success(
-                fallbackResult.WriteConnectionString,
-                fallbackResult.ReadConnectionString,
-                fallbackResult.Provider,
-                fallbackResult.Strategy,
-                customerApiAvailable: false,
-                fromCache: false);
-        }
-
-        /// <summary>
-        /// Attempts to fetch tenant database information from the Customer API with proper error handling.
-        /// </summary>
-        /// <param name="tenantId">The tenant identifier.</param>
-        /// <returns>A result indicating success or failure with the tenant database information.</returns>
-        private async Task<(bool Success, TenantDatabaseInfo Data)> TryFetchTenantDatabaseInfoAsync(string tenantId)
-        {
             try
             {
-                var httpClient = _httpClientFactory.Value.CreateClient("CustomerApi");
-                var requestUri = new Uri($"api/v1/tenants/{tenantId}/database-info", UriKind.Relative);
-
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                var response = await httpClient.GetAsync(requestUri, cts.Token);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<TenantDatabaseInfo>(cancellationToken: cts.Token);
-                    _logger.LogInformation("Successfully fetched database info for tenant {TenantId}", tenantId);
-                    return (true, result ?? new TenantDatabaseInfo());
-                }
-
-                _logger.LogWarning(
-                    "Failed to fetch tenant database info for tenant {TenantId}. Status code: {StatusCode}",
-                    tenantId,
-                    response.StatusCode);
-                return (false, new TenantDatabaseInfo());
+                var resolved = await Task.Run(() => GetConnectionFromTenantProperties(tenantInfo)).ConfigureAwait(false);
+                return TenantConnectionResult.Success(
+                    resolved.WriteConnectionString,
+                    resolved.ReadConnectionString,
+                    resolved.Provider,
+                    resolved.Strategy,
+                    customerApiAvailable: false,
+                    fromCache: false);
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Error fetching tenant database info for tenant {TenantId}", tenantId);
-                return (false, new TenantDatabaseInfo());
-            }
-        }
-
-        /// <summary>
-        /// Fetches tenant database information from the Customer.Api service.
-        /// </summary>
-        /// <param name="tenantId">The tenant identifier.</param>
-        /// <returns>The tenant database information or null if not found or an error occurs.</returns>
-        private async Task<TenantDatabaseInfo?> FetchTenantDatabaseInfoAsync(string tenantId)
-        {
-            try
-            {
-                var httpClient = _httpClientFactory.Value.CreateClient("CustomerApi");
-                var requestUri = new Uri($"api/v1/tenants/{tenantId}/database-info", UriKind.Relative);
-                var response = await httpClient.GetAsync(requestUri);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<TenantDatabaseInfo>();
-                    _logger.LogInformation("Successfully fetched database info for tenant {TenantId}", tenantId);
-                    return result;
-                }
-
-                _logger.LogWarning(
-                    "Failed to fetch tenant database info for tenant {TenantId}. Status code: {StatusCode}",
-                    tenantId,
-                    response.StatusCode);
-                return null;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(exception, "Error fetching tenant database info for tenant {TenantId}", tenantId);
-                return null;
+                _logger.LogError(exception, "Error resolving local tenant database info for tenant {TenantId}", tenantInfo.Id);
+                return TenantConnectionResult.Failure($"Failed to resolve tenant connection for '{tenantInfo.Id}': {exception.Message}");
             }
         }
 
@@ -411,29 +180,51 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             GetConnectionFromTenantProperties(TenantDetails tenantDetails)
         {
             // Determine tenant database strategy
-            DatabaseStrategy.TryFromName(tenantDetails.DatabaseStrategy, out var strategy);
+            bool hasValidStrategy = DatabaseStrategy.TryFromName(tenantDetails.DatabaseStrategy, true, out var strategy);
+            strategy ??= DatabaseStrategy.Shared;
 
-            // Use TenantDetails properties directly
-            string writeConnectionString = tenantDetails.WriteConnectionString ?? _defaultWriteConnectionString;
-            string? readConnectionString;
-
-            if (tenantDetails.HasReadReplicas)
+            if (strategy == DatabaseStrategy.Shared)
             {
-                readConnectionString = tenantDetails.ReadConnectionString;
-                if (string.IsNullOrWhiteSpace(readConnectionString))
-                {
-                    // If HasReadReplicas is true but no read connection string, use write connection string
-                    readConnectionString = writeConnectionString;
-                }
-            }
-            else
-            {
-                // If HasReadReplicas is false, use write connection string for reads
-                readConnectionString = writeConnectionString;
+                return GetSharedConnection(tenantDetails);
             }
 
-            // Determine database provider (default to PostgreSQL)
-            DatabaseProvider.TryFromName(tenantDetails.DatabaseProvider, out var provider);
+            string writeConnectionString = ResolveLocalTenantConnectionString(tenantDetails, readOnly: false)
+                ?? tenantDetails.WriteConnectionString
+                ?? _defaultWriteConnectionString;
+
+            if (string.IsNullOrWhiteSpace(writeConnectionString))
+            {
+                throw new InvalidOperationException($"Missing write connection string for tenant '{tenantDetails.Id}'.");
+            }
+
+            bool hasValidProvider = DatabaseProvider.TryFromName(tenantDetails.DatabaseProvider, true, out var provider);
+            provider ??= _defaultProvider;
+
+            if (!hasValidStrategy && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "Invalid or missing tenant database strategy '{DatabaseStrategy}' for tenant {TenantId}. Falling back to strategy '{FallbackStrategy}'.",
+                    tenantDetails.DatabaseStrategy,
+                    tenantDetails.Id,
+                    strategy.Name);
+            }
+
+            if (!hasValidProvider && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "Invalid or missing tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
+                    tenantDetails.DatabaseProvider,
+                    tenantDetails.Id,
+                    provider.Name);
+            }
+
+            string? localReadConnection = ResolveLocalTenantConnectionString(tenantDetails, readOnly: true);
+            string? readConnectionString = ResolveReadConnectionString(
+                writeConnectionString,
+                localReadConnection ?? tenantDetails.ReadConnectionString,
+                tenantDetails.HasReadReplicas,
+                provider,
+                tenantDetails.DatabaseProvider);
 
             // Cache the result
             var fullResult = (writeConnectionString, readConnectionString, provider, strategy);
@@ -445,46 +236,173 @@ namespace SharedKernel.Persistence.Database.MultiTenant
             return fullResult;
         }
 
-        /// <summary>
-        /// DTO for tenant database information.
-        /// </summary>
-        public class TenantDatabaseInfo
+        private string? ResolveLocalTenantConnectionString(TenantDetails tenantDetails, bool readOnly)
         {
-            /// <summary>
-            /// Gets or sets the tenant identifier.
-            /// </summary>
-            [JsonPropertyName("tenantId")]
-            public string TenantId { get; set; } = string.Empty;
+            string side = readOnly ? "Read" : "Write";
+            var candidates = new[]
+            {
+                tenantDetails.Id,
+                tenantDetails.Identifier,
+            }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(value => $"ConnectionStrings__Tenants__{value}__{side}")
+            .ToArray();
 
-            /// <summary>
-            /// Gets or sets the write connection string.
-            /// </summary>
-            [JsonPropertyName("writeConnectionString")]
-            public string? WriteConnectionString { get; set; }
+            foreach (var envStyleKey in candidates)
+            {
+                string? fromFile = TryReadSecretFile(envStyleKey);
+                if (!string.IsNullOrWhiteSpace(fromFile))
+                {
+                    return fromFile;
+                }
+            }
 
-            /// <summary>
-            /// Gets or sets the read connection string.
-            /// </summary>
-            [JsonPropertyName("readConnectionString")]
-            public string? ReadConnectionString { get; set; }
+            IConfiguration configuration = _configuration.Value;
+            foreach (var envStyleKey in candidates)
+            {
+                string configKey = envStyleKey.Replace("__", ":", StringComparison.Ordinal);
+                string? fromConfiguration = configuration[configKey];
+                if (!string.IsNullOrWhiteSpace(fromConfiguration))
+                {
+                    return fromConfiguration;
+                }
 
-            /// <summary>
-            /// Gets or sets the database provider (PostgreSQL, SqlServer, MySQL).
-            /// </summary>
-            [JsonPropertyName("provider")]
-            public string Provider { get; set; } = string.Empty;
+                string? fromEnvironment = Environment.GetEnvironmentVariable(envStyleKey);
+                if (!string.IsNullOrWhiteSpace(fromEnvironment))
+                {
+                    return fromEnvironment;
+                }
+            }
 
-            /// <summary>
-            /// Gets or sets the database strategy (Shared, Dedicated, External).
-            /// </summary>
-            [JsonPropertyName("strategy")]
-            public string Strategy { get; set; } = string.Empty;
+            return null;
+        }
 
-            /// <summary>
-            /// Gets or sets a value indicating whether indicates whether the tenant's database is configured with read replicas for improved read performance.
-            /// </summary>
-            [JsonPropertyName("hasReadReplicas")]
-            public bool HasReadReplicas { get; set; }
+        private string? TryReadSecretFile(string envStyleKey)
+        {
+            IConfiguration configuration = _configuration.Value;
+            string? configuredDirectory =
+                configuration["TenantConnectionSecrets:Directory"]
+                ?? Environment.GetEnvironmentVariable("TENANT_CONNECTION_SECRETS_DIRECTORY");
+
+            var directories = new List<string>();
+            if (!string.IsNullOrWhiteSpace(configuredDirectory))
+            {
+                directories.Add(configuredDirectory);
+            }
+
+            directories.Add("/run/secrets");
+            directories.Add("/mnt/secrets-store");
+            directories.Add("/var/run/secrets");
+
+            foreach (string directory in directories
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(Directory.Exists))
+            {
+                try
+                {
+                    var fileCandidates = new[]
+                    {
+                        Path.Combine(directory, envStyleKey),
+                        Path.Combine(directory, envStyleKey.Replace("__", ":", StringComparison.Ordinal)),
+                        Path.Combine(directory, envStyleKey.Replace("__", "-", StringComparison.Ordinal)),
+                    };
+
+                    foreach (string filePath in fileCandidates.Where(File.Exists))
+                    {
+                        string value = File.ReadAllText(filePath).Trim();
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            return value;
+                        }
+                    }
+                }
+                catch (Exception exception)
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug(exception, "Failed reading tenant connection secret file in directory {Directory}", directory);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string? ResolveReadConnectionString(
+            string writeConnectionString,
+            string? candidateReadConnectionString,
+            bool hasReadReplicas,
+            DatabaseProvider provider,
+            string? providerName)
+        {
+            if (!hasReadReplicas)
+            {
+                return writeConnectionString;
+            }
+
+            if (!string.IsNullOrWhiteSpace(candidateReadConnectionString))
+            {
+                return candidateReadConnectionString;
+            }
+
+            if (IsMySqlFamily(provider, providerName))
+            {
+                throw new InvalidOperationException(
+                    "Read connection string is required for MySQL/MariaDB tenants configured with separate read mode.");
+            }
+
+            return writeConnectionString;
+        }
+
+        private static bool IsMySqlFamily(DatabaseProvider provider, string? providerName)
+        {
+            if (provider == DatabaseProvider.MySQL)
+            {
+                return true;
+            }
+
+            return providerName?.Contains("mysql", StringComparison.OrdinalIgnoreCase) == true
+                || providerName?.Contains("mariadb", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        private (string WriteConnectionString, string? ReadConnectionString, DatabaseProvider Provider, DatabaseStrategy Strategy)
+            GetSharedConnection(TenantDetails tenantDetails)
+        {
+            bool hasValidSharedProvider = DatabaseProvider.TryFromName(tenantDetails.DatabaseProvider, true, out var sharedProvider);
+            sharedProvider ??= _defaultProvider;
+
+            if (!hasValidSharedProvider && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "Invalid or missing shared tenant database provider '{DatabaseProvider}' for tenant {TenantId}. Falling back to provider '{FallbackProvider}'.",
+                    tenantDetails.DatabaseProvider,
+                    tenantDetails.Id,
+                    sharedProvider.Name);
+            }
+
+            string writeConnectionString = _defaultWriteConnectionString;
+            string? localReadConnection = ResolveLocalTenantConnectionString(tenantDetails, readOnly: true);
+            string? candidateReadConnection =
+                localReadConnection
+                ?? tenantDetails.ReadConnectionString
+                ?? _defaultReadConnectionString;
+            string? readConnectionString = tenantDetails.HasReadReplicas
+                ? ResolveReadConnectionString(
+                    writeConnectionString,
+                    candidateReadConnection,
+                    hasReadReplicas: true,
+                    sharedProvider,
+                    tenantDetails.DatabaseProvider)
+                : _defaultReadConnectionString;
+
+            var sharedResult = (writeConnectionString, readConnectionString, sharedProvider, DatabaseStrategy.Shared);
+            if (!string.IsNullOrEmpty(tenantDetails.Id))
+            {
+                _connectionCache[tenantDetails.Id] = sharedResult;
+            }
+
+            return sharedResult;
         }
     }
 }
