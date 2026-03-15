@@ -48,15 +48,42 @@ jobs:
       contents: read
       pull-requests: write
     outputs:
-      affected: ${{ steps.affected.outputs.affected }}
-      affected-json: ${{ steps.affected.outputs.affected-json }}
-      has-changes: ${{ steps.affected.outputs.has-changes }}
-      dockerfiles: ${{ steps.find-dockerfiles.outputs.dockerfiles }}
+      affected: ${{ steps.finalize.outputs.affected }}
+      affected-json: ${{ steps.finalize.outputs.affected_json }}
+      has-changes: ${{ steps.finalize.outputs.has_changes }}
+      dockerfiles: ${{ steps.finalize.outputs.dockerfiles }}
+      deployment_only: ${{ steps.finalize.outputs.deployment_only }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      - name: Detect deployment-only changes
+        id: scope
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          git fetch origin $BASE_SHA --depth=1 || true
+          git fetch origin $HEAD_SHA --depth=1 || true
+
+          mapfile -t CHANGED_FILES < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          if [ ${#CHANGED_FILES[@]} -eq 0 ]; then
+            echo "deployment_only=false" >> "$GITHUB_OUTPUT"
+            echo "No changed files detected"
+            exit 0
+          fi
+
+          if printf '%s\n' "${CHANGED_FILES[@]}" | grep -Eqv '^deployment/'; then
+            echo "deployment_only=false" >> "$GITHUB_OUTPUT"
+            echo "Changes include files outside deployment/"
+          else
+            echo "deployment_only=true" >> "$GITHUB_OUTPUT"
+            echo "Only deployment/ files changed; skipping code-affect analysis"
+          fi
+
       - name: Setup .NET Core
+        if: steps.scope.outputs.deployment_only != 'true'
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -65,10 +92,12 @@ jobs:
           cache-dependency-path: "**/packages.lock.json"
 
       - name: Restore dotnet tools
+        if: steps.scope.outputs.deployment_only != 'true'
         run: dotnet tool restore --tool-manifest .config/dotnet-tools.json
 
       - name: Run dotnet-affected
         id: affected
+        if: steps.scope.outputs.deployment_only != 'true'
         run: |
           # Get the base branch commit (what we're merging into)
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
@@ -133,7 +162,7 @@ jobs:
           fi
 
       - name: Upload affected.proj artifact
-        if: steps.affected.outputs.has-changes == 'true'
+        if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: affected-projects
@@ -141,7 +170,7 @@ jobs:
           retention-days: 1
 
       - name: Upload affected projects list
-        if: steps.affected.outputs.has-changes == 'true'
+        if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: affected-list
@@ -152,7 +181,7 @@ jobs:
 
       - name: Find Dockerfiles for affected projects
         id: find-dockerfiles
-        if: steps.affected.outputs.has-changes == 'true'
+        if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
         run: |
           # Find Dockerfiles that belong to affected projects
           DOCKERFILES="[]"
@@ -182,7 +211,7 @@ jobs:
           echo "Found Dockerfiles: $DOCKERFILES"
 
       - name: Format affected projects for PR comment
-        if: steps.affected.outputs.has-changes == 'true'
+        if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
         id: format-affected
         run: |
           # Read affected projects and format them nicely
@@ -219,7 +248,7 @@ jobs:
           } >> $GITHUB_OUTPUT
 
       - name: Comment PR with affected projects
-        if: steps.affected.outputs.has-changes == 'true'
+        if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
         uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
         with:
           header: affected-projects
@@ -246,6 +275,29 @@ jobs:
             - Projects affected by NuGet package updates in `Directory.Packages.props`
             - Projects affected by changes to `Directory.Build.props`
             </details>
+
+      - name: Finalize workflow outputs
+        id: finalize
+        run: |
+          if [[ "${{ steps.scope.outputs.deployment_only }}" == "true" ]]; then
+            echo "deployment_only=true" >> "$GITHUB_OUTPUT"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "affected=" >> "$GITHUB_OUTPUT"
+            echo 'affected_json={}' >> "$GITHUB_OUTPUT"
+            echo 'dockerfiles=[]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          HAS_CHANGES="${{ steps.affected.outputs.has-changes }}"
+          AFFECTED="${{ steps.affected.outputs.affected }}"
+          AFFECTED_JSON='${{ steps.affected.outputs.affected-json }}'
+          DOCKERFILES='${{ steps.find-dockerfiles.outputs.dockerfiles }}'
+
+          echo "deployment_only=false" >> "$GITHUB_OUTPUT"
+          echo "has_changes=${HAS_CHANGES:-false}" >> "$GITHUB_OUTPUT"
+          echo "affected=${AFFECTED}" >> "$GITHUB_OUTPUT"
+          echo "affected_json=${AFFECTED_JSON:-{}}" >> "$GITHUB_OUTPUT"
+          echo "dockerfiles=${DOCKERFILES:-[]}" >> "$GITHUB_OUTPUT"
 
 
   # ===================================================================
@@ -291,6 +343,8 @@ jobs:
   format-check:
     name: Format Check
     runs-on: ubuntu-latest
+    needs: [check-label, detect-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.deployment_only != 'true' }}
     permissions:
       contents: read
       pull-requests: write
@@ -324,6 +378,8 @@ jobs:
   hadolint:
     name: Hadolint Dockerfile Lint
     runs-on: ubuntu-latest
+    needs: [check-label, detect-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.deployment_only != 'true' }}
     permissions:
       contents: read
       pull-requests: write
@@ -344,8 +400,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Test all projects
     timeout-minutes: 45
-    needs: [check-label]
-    if: ${{ needs.check-label.outputs.status == 'success' }}
+    needs: [check-label, detect-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && needs.detect-affected.outputs.deployment_only != 'true' }}
     permissions:
       contents: read
       pull-requests: write
@@ -354,48 +410,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+      - name: Run .NET tests and collect coverage
+        uses: ./.github/actions/dotnet-test-and-coverage
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          global-json-file: global.json
-          cache: true
-          cache-dependency-path: "**/packages.lock.json"
-
-      - name: Install .NET Aspire workload
-        run: dotnet workload install aspire
-
-      - name: Restore dependencies
-        run: dotnet restore --locked-mode
-
-      - name: Build all projects
-        run: dotnet build -c Release --no-restore
-
-      - name: Test all projects
-        run: |
-          dotnet test Teck.Cloud.slnx \
-            -c Release --no-restore --no-build --verbosity normal \
-            --logger trx --collect:"XPlat Code Coverage" \
-            --blame --blame-hang-timeout 15m
-
-      - name: Combine Coverage Reports
-        uses: danielpalme/ReportGenerator-GitHub-Action@2a82782178b2816d9d6960a7345fdd164791b323 # v5.5.3
-        with:
-          reports: "**/*.cobertura.xml"
-          targetdir: "${{ github.workspace }}"
-          reporttypes: "Cobertura"
-          verbosity: "Info"
-          title: "Code Coverage"
-          tag: "${{ github.run_number }}_${{ github.run_id }}"
-          customSettings: ""
-          toolpath: "reportgeneratortool"
-
-      - name: Upload Combined Coverage XML
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
           name: coverage
-          path: ${{ github.workspace }}/Cobertura.xml
-          retention-days: 5
+          coverage-retention-days: '5'
 
       - name: Publish Code Coverage Report
         uses: irongut/CodeCoverageSummary@51cc3a756ddcd398d447c044c02cb6aa83fdae95 # v1.3.0
@@ -669,7 +689,7 @@ jobs:
       
       - name: Check if test-all was successful
         run: |
-          if [[ "${{ needs.test-all.result }}" == "success" ]]; then
+          if [[ "${{ needs.test-all.result }}" == "success" ]] || ([[ "${{ needs.detect-affected.outputs.deployment_only }}" == "true" ]] && [[ "${{ needs.test-all.result }}" == "skipped" ]]); then
             echo "✅ Non-E2E test job passed"
             exit 0
           else
@@ -689,7 +709,7 @@ jobs:
 
       - name: Check if format-check was successful
         run: |
-          if [[ "${{ needs.format-check.result }}" == "success" ]]; then
+          if [[ "${{ needs.format-check.result }}" == "success" ]] || ([[ "${{ needs.detect-affected.outputs.deployment_only }}" == "true" ]] && [[ "${{ needs.format-check.result }}" == "skipped" ]]); then
             echo "✅ Format check passed"
             exit 0
           else
@@ -699,7 +719,7 @@ jobs:
 
       - name: Check if hadolint was successful
         run: |
-          if [[ "${{ needs.hadolint.result }}" == "success" ]]; then
+          if [[ "${{ needs.hadolint.result }}" == "success" ]] || ([[ "${{ needs.detect-affected.outputs.deployment_only }}" == "true" ]] && [[ "${{ needs.hadolint.result }}" == "skipped" ]]); then
             echo "✅ Hadolint passed"
             exit 0
           else

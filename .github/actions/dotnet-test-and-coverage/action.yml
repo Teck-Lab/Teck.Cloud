@@ -1,0 +1,81 @@
+name: Dotnet Test and Coverage
+description: Restore, build, test, and publish combined Cobertura coverage for the solution.
+
+inputs:
+  dotnet-version:
+    description: .NET SDK version to install.
+    required: false
+    default: "10.0.201"
+  global-json-file:
+    description: Path to the global.json file.
+    required: false
+    default: global.json
+  cache-dependency-path:
+    description: Path pattern used for NuGet cache invalidation.
+    required: false
+    default: "**/packages.lock.json"
+  solution-path:
+    description: Solution or project path to build and test.
+    required: false
+    default: Teck.Cloud.slnx
+  configuration:
+    description: Build configuration.
+    required: false
+    default: Release
+  coverage-artifact-name:
+    description: Name of the uploaded combined coverage artifact.
+    required: true
+  coverage-retention-days:
+    description: Retention days for the combined coverage artifact.
+    required: false
+    default: "5"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+        global-json-file: ${{ inputs.global-json-file }}
+        cache: true
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Install .NET Aspire workload
+      shell: bash
+      run: dotnet workload install aspire
+
+    - name: Restore dependencies
+      shell: bash
+      run: dotnet restore --locked-mode
+
+    - name: Build all projects
+      shell: bash
+      run: dotnet build "${{ inputs.solution-path }}" -c "${{ inputs.configuration }}" --no-restore
+
+    - name: Test all projects with coverage
+      shell: bash
+      run: |
+        dotnet test "${{ inputs.solution-path }}" \
+          -c "${{ inputs.configuration }}" --no-restore --no-build --verbosity normal \
+          --logger trx --collect:"XPlat Code Coverage" \
+          --blame --blame-hang-timeout 15m
+
+    - name: Combine Coverage Reports
+      uses: danielpalme/ReportGenerator-GitHub-Action@2a82782178b2816d9d6960a7345fdd164791b323 # v5.5.3
+      with:
+        reports: "**/*.cobertura.xml"
+        targetdir: "${{ github.workspace }}"
+        reporttypes: "Cobertura"
+        verbosity: "Info"
+        title: "Code Coverage"
+        tag: "${{ github.run_number }}_${{ github.run_id }}"
+        customSettings: ""
+        toolpath: "reportgeneratortool"
+
+    - name: Upload Combined Coverage XML
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      with:
+        name: ${{ inputs.coverage-artifact-name }}
+        path: ${{ github.workspace }}/Cobertura.xml
+        retention-days: ${{ inputs.coverage-retention-days }}

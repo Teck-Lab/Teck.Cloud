@@ -3,6 +3,8 @@ name: OpenSSF Scorecard
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - deployment/**
   schedule:
     - cron: '0 4 * * 1'
   workflow_dispatch:

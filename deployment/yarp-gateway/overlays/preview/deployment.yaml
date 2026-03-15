@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yarp-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: yarp-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: yarp-gateway
+    spec:
+      containers:
+        - name: yarp-gateway
+          image: ghcr.io/teck-lab/teck-cloud-yarp-gateway:preview
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
