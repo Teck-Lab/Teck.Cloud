@@ -34,7 +34,7 @@ jobs:
         uses: ./.github/actions/dotnet-test-and-coverage
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          name: coverage-main
+          coverage-artifact-name: coverage-main
           coverage-retention-days: '7'
 
       - name: Upload coverage to Codecov
