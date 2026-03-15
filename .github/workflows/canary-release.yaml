@@ -357,7 +357,45 @@ jobs:
         run: |
           docker buildx imagetools inspect "${IMAGE_NAME}:${CANARY_TAG}"
 
-  # ── Step 4: leave a PR comment listing available canary images ────────────
+  # ── Step 4: label the PR as having a preview build ────────────────────────
+  label-preview:
+    name: Label PR Preview
+    needs: [compute-version, merge]
+    runs-on: ubuntu-latest
+    if: always() && needs.merge.result == 'success'
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        continue-on-error: true
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        with:
+          app-id: ${{ vars.AUTO_RELEASE_APP_ID }}
+          private-key: ${{ secrets.AUTO_RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Apply preview label
+        id: add-preview-label
+        continue-on-error: true
+        uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
+        with:
+          repo-token: ${{ steps.generate-token.outputs.token || github.token }}
+          configuration-path: .github/labeler.yml
+          pr-number: ${{ github.event.pull_request.number }}
+
+      - name: Warn if preview label could not be applied
+        if: steps.add-preview-label.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::Skipping preview PR label because the workflow token cannot manage labels in the current context."
+
+  # ── Step 5: leave a PR comment listing available canary images ────────────
   comment:
     name: Comment on PR
     needs: [compute-version, merge]

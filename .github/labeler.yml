@@ -1,0 +1,4 @@
+preview:
+  - base-branch:
+      - '^main$'
+      - '^next$'
