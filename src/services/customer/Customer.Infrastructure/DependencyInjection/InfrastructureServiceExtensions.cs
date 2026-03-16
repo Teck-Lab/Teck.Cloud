@@ -44,7 +44,7 @@ public static class InfrastructureServiceExtensions
         ConfigureIdentity(builder);
         ConfigureDbContexts(builder, connectionSettings);
         RegisterRepositories(builder.Services);
-        ConfigureWolverine(builder, connectionSettings, isRunningGeneration);
+        ConfigureWolverine(builder, applicationAssembly, connectionSettings, isRunningGeneration);
         ConfigureHealthChecks(builder, connectionSettings, isRunningGeneration);
     }
 
@@ -140,19 +140,25 @@ public static class InfrastructureServiceExtensions
         return fallbackAssembly;
     }
 
-    private static void ConfigureWolverine(WebApplicationBuilder builder, ConnectionSettings connectionSettings, bool isRunningGeneration)
+    private static void ConfigureWolverine(WebApplicationBuilder builder, Assembly applicationAssembly, ConnectionSettings connectionSettings, bool isRunningGeneration)
     {
         bool isDevelopment = string.Equals(builder.Environment.EnvironmentName, "Development", StringComparison.OrdinalIgnoreCase);
+
+        if (isRunningGeneration)
+        {
+            builder.Host.UseWolverine(options =>
+            {
+                IncludeHandlerAssemblies(options, applicationAssembly);
+                options.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
+            });
+
+            return;
+        }
 
         builder.Host.UseWolverine(
             options =>
             {
-                if (isRunningGeneration)
-                {
-                    options.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
-                    return;
-                }
-
+                IncludeHandlerAssemblies(options, applicationAssembly);
                 WolverinePersistenceConfigurator.ConfigureStandardRuntime(
                     options,
                     isDevelopment,
@@ -160,6 +166,17 @@ public static class InfrastructureServiceExtensions
                     connectionSettings.WriteConnectionString,
                     connectionSettings.RabbitConnectionString);
             });
+    }
+
+    private static void IncludeHandlerAssemblies(WolverineOptions options, Assembly applicationAssembly)
+    {
+        options.Discovery.IncludeAssembly(applicationAssembly);
+
+        Assembly? entryAssembly = Assembly.GetEntryAssembly();
+        if (entryAssembly is not null)
+        {
+            options.Discovery.IncludeAssembly(entryAssembly);
+        }
     }
 
     private static ConnectionSettings ResolveConnectionSettings(IConfiguration configuration, bool isRunningGeneration)

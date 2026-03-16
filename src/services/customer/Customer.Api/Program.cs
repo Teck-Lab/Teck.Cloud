@@ -28,10 +28,11 @@ internal static class Program
     private static async Task Main(string[] args)
     {
         WebApplicationBuilder builder = CreateBuilder(args);
+        bool isRunningWolverineCodeGeneration = CodeGenerationDetector.IsRunningWolverineCodeGeneration();
         Assembly applicationAssembly = typeof(ICustomerApplication).Assembly;
         AppOptions appOptions = BuildAppOptions(builder);
         ConfigureServices(builder, applicationAssembly, appOptions);
-        WebApplication app = BuildApp(builder, appOptions);
+        WebApplication app = BuildApp(builder, appOptions, isRunningWolverineCodeGeneration);
         await app.RunJasperFxCommands(args).ConfigureAwait(false);
     }
 
@@ -75,25 +76,32 @@ internal static class Program
         builder.AddHandlerServer();
     }
 
-    private static WebApplication BuildApp(WebApplicationBuilder builder, AppOptions appOptions)
+    private static WebApplication BuildApp(WebApplicationBuilder builder, AppOptions appOptions, bool isRunningWolverineCodeGeneration)
     {
         WebApplication app = builder.Build();
+
+        if (isRunningWolverineCodeGeneration)
+        {
+            MapRemoteHandlers(app);
+            return app;
+        }
+
         app.UseBaseInfrastructure();
         app.UseInfrastructureServices();
         app.UseRequestTimeouts();
         app.UseFastEndpointsInfrastructure("customer");
         app.UseOpenApiInfrastructure(appOptions);
-        MapEndpoints(app);
+        MapRemoteHandlers(app);
+        app.MapDefaultEndpoints();
         return app;
     }
 
-    private static void MapEndpoints(WebApplication app)
+    private static void MapRemoteHandlers(WebApplication app)
     {
         app.MapHandlers(handlerRegistry =>
         {
             handlerRegistry.Register<GetCustomerServiceVersionCommand, GetCustomerServiceVersionCommandHandler, ServiceVersionRpcResult>();
             handlerRegistry.Register<GetTenantDatabaseInfoCommand, GetTenantDatabaseInfoCommandHandler, TenantDatabaseInfoRpcResult>();
         });
-        app.MapDefaultEndpoints();
     }
 }

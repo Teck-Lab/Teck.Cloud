@@ -41,7 +41,7 @@ public static class InfrastructureServiceExtensions
 
         ConfigureIdentity(builder);
         ConfigureDatabase(builder, connectionSettings);
-        ConfigureWolverine(builder, connectionSettings, isRunningGeneration);
+        ConfigureWolverine(builder, applicationAssembly, connectionSettings, isRunningGeneration);
         ConfigureHealthChecks(builder, connectionSettings, isRunningGeneration);
         RegisterServices(builder.Services, applicationAssembly);
     }
@@ -130,18 +130,24 @@ public static class InfrastructureServiceExtensions
         return fallbackAssembly;
     }
 
-    private static void ConfigureWolverine(WebApplicationBuilder builder, CatalogConnectionSettings settings, bool isRunningGeneration)
+    private static void ConfigureWolverine(WebApplicationBuilder builder, Assembly applicationAssembly, CatalogConnectionSettings settings, bool isRunningGeneration)
     {
         bool isDevelopment = builder.Environment.IsDevelopment();
 
-        builder.UseWolverine(options =>
+        if (isRunningGeneration)
         {
-            if (isRunningGeneration)
+            builder.Host.UseWolverine(options =>
             {
+                IncludeHandlerAssemblies(options, applicationAssembly);
                 options.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
-                return;
-            }
+            });
 
+            return;
+        }
+
+        builder.Host.UseWolverine(options =>
+        {
+            IncludeHandlerAssemblies(options, applicationAssembly);
             WolverinePersistenceConfigurator.ConfigureStandardRuntime(
                 options,
                 isDevelopment,
@@ -151,6 +157,17 @@ public static class InfrastructureServiceExtensions
 
             Console.WriteLine($"[Startup] Using RabbitMQ URI for Wolverine: {settings.RabbitConnectionString}");
         });
+    }
+
+    private static void IncludeHandlerAssemblies(WolverineOptions options, Assembly applicationAssembly)
+    {
+        options.Discovery.IncludeAssembly(applicationAssembly);
+
+        Assembly? entryAssembly = Assembly.GetEntryAssembly();
+        if (entryAssembly is not null)
+        {
+            options.Discovery.IncludeAssembly(entryAssembly);
+        }
     }
 
     private static void ConfigureHealthChecks(WebApplicationBuilder builder, CatalogConnectionSettings settings, bool isRunningGeneration)

@@ -476,23 +476,33 @@ jobs:
 
       - name: Restore Catalog.Api
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
-        run: dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj
+        run: dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj -r linux-x64
 
       - name: Restore Customer.Api
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
-        run: dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj
+        run: dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj -r linux-x64
+
+      - name: Build Catalog.Api for code generation
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
+        run: dotnet build src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release -r linux-x64 --no-restore
+
+      - name: Build Customer.Api for code generation
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
+        run: dotnet build src/services/customer/Customer.Api/Customer.Api.csproj -c Release -r linux-x64 --no-restore
 
       - name: Generate Wolverine code for Catalog.Api
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
         env:
           ASPNETCORE_ENVIRONMENT: Development
-        run: dotnet run --project src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release --no-launch-profile -- codegen write
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet src/services/catalog/Catalog.Api/bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
 
       - name: Generate Wolverine code for Customer.Api
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
         env:
           ASPNETCORE_ENVIRONMENT: Development
-        run: dotnet run --project src/services/customer/Customer.Api/Customer.Api.csproj -c Release --no-launch-profile -- codegen write
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet src/services/customer/Customer.Api/bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
 
       - name: Upload Catalog Wolverine code
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')

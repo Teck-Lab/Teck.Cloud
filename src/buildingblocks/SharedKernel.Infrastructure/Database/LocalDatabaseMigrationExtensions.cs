@@ -224,6 +224,11 @@ public static class LocalDatabaseMigrationExtensions
 
     private static bool ShouldApplyMigrations(IServiceProvider services)
     {
+        if (CodeGenerationDetector.IsRunningGeneration())
+        {
+            return false;
+        }
+
         IHostEnvironment environment = services.GetRequiredService<IHostEnvironment>();
         if (environment.IsDevelopment())
         {

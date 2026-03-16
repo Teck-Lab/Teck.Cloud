@@ -187,18 +187,25 @@ jobs:
 
       - name: Restore API projects
         run: |
-          dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj
-          dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj
+          dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj -r linux-x64
+          dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj -r linux-x64
+
+      - name: Build API projects for code generation
+        run: |
+          dotnet build src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release -r linux-x64 --no-restore
+          dotnet build src/services/customer/Customer.Api/Customer.Api.csproj -c Release -r linux-x64 --no-restore
 
       - name: Generate Wolverine code for Catalog.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
-        run: dotnet run --project src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release --no-launch-profile -- codegen write
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet src/services/catalog/Catalog.Api/bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
 
       - name: Generate Wolverine code for Customer.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
-        run: dotnet run --project src/services/customer/Customer.Api/Customer.Api.csproj -c Release --no-launch-profile -- codegen write
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet src/services/customer/Customer.Api/bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
 
       - name: Upload Catalog Wolverine code
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0

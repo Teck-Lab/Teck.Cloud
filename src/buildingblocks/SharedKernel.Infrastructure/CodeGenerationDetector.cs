@@ -12,10 +12,24 @@ public static class CodeGenerationDetector
     /// </summary>
     public static bool IsRunningGeneration()
     {
-        string? entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
-        string[] commandLineArgs = Environment.GetCommandLineArgs();
+        return IsRunningOpenApiGeneration() || IsRunningWolverineCodeGeneration();
+    }
 
-        return string.Equals(entryAssemblyName, "GetDocument.Insider", StringComparison.Ordinal)
-            || commandLineArgs.Any(arg => string.Equals(arg, "codegen", StringComparison.OrdinalIgnoreCase));
+    /// <summary>
+    /// Returns true when the current process is running Wolverine code generation commands.
+    /// </summary>
+    public static bool IsRunningWolverineCodeGeneration()
+    {
+        string[] commandLineArgs = Environment.GetCommandLineArgs();
+        return commandLineArgs.Any(arg => string.Equals(arg, "codegen", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Returns true when the current process is running OpenAPI document generation.
+    /// </summary>
+    public static bool IsRunningOpenApiGeneration()
+    {
+        string? entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+        return string.Equals(entryAssemblyName, "GetDocument.Insider", StringComparison.Ordinal);
     }
 }
