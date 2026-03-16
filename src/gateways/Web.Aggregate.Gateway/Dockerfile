@@ -44,7 +44,7 @@ WORKDIR "/src/src/gateways/Web.Aggregate.Gateway"
 
 RUN --mount=type=cache,target=/root/.nuget/packages \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet build "Web.Aggregate.Gateway.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID \
+    dotnet build "Web.Aggregate.Gateway.csproj" -c $BUILD_CONFIGURATION -r $RID \
         /p:Version=$VERSION \
         /p:PublishReadyToRun=true \
         /p:TreatWarningsAsErrors=false \
