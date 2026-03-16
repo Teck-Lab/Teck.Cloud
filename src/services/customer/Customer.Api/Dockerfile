@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Multi-stage Dockerfile for Customer.Api
 # Optimized for multi-platform, Docker cache, and best practices
 
@@ -40,14 +42,16 @@ ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
 
 # Map TARGETPLATFORM to .NET RID
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet restore "src/services/customer/Customer.Api/Customer.Api.csproj" -r $RID
 
 # Copy everything else and build
 COPY . .
 WORKDIR "/src/src/services/customer/Customer.Api"
 
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet build "Customer.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID \
         /p:Version=$VERSION \
         /p:PublishReadyToRun=true \
@@ -61,10 +65,10 @@ ARG BUILD_CONFIGURATION=Release
 ARG VERSION=1.0.0
 ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet publish "Customer.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --self-contained true --no-restore \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet publish "Customer.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --no-restore --no-build \
         /p:Version=$VERSION \
-        /p:UseAppHost=true \
         /p:PublishReadyToRun=true \
         /p:PublishTrimmed=true \
         /p:TreatWarningsAsErrors=false \
@@ -106,6 +110,7 @@ ENV APP_UID=1000 \
     ASPNETCORE_HTTP_PORTS=8080
 
 WORKDIR /app
+RUN apk add --no-cache icu-libs
 COPY --from=publish /app/publish .
 EXPOSE 8080
 
