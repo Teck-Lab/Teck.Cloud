@@ -196,16 +196,18 @@ jobs:
           dotnet build src/services/customer/Customer.Api/Customer.Api.csproj -c Release -r linux-x64 --no-restore
 
       - name: Generate Wolverine code for Catalog.Api
+        working-directory: src/services/catalog/Catalog.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
           Logging__LogLevel__Grpc: Warning
-        run: dotnet src/services/catalog/Catalog.Api/bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
+        run: dotnet ./bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
 
       - name: Generate Wolverine code for Customer.Api
+        working-directory: src/services/customer/Customer.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
           Logging__LogLevel__Grpc: Warning
-        run: dotnet src/services/customer/Customer.Api/bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
+        run: dotnet ./bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
 
       - name: Upload Catalog Wolverine code
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0

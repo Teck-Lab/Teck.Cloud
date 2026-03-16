@@ -492,17 +492,19 @@ jobs:
 
       - name: Generate Wolverine code for Catalog.Api
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
+        working-directory: src/services/catalog/Catalog.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
           Logging__LogLevel__Grpc: Warning
-        run: dotnet src/services/catalog/Catalog.Api/bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
+        run: dotnet ./bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
 
       - name: Generate Wolverine code for Customer.Api
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
+        working-directory: src/services/customer/Customer.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
           Logging__LogLevel__Grpc: Warning
-        run: dotnet src/services/customer/Customer.Api/bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
+        run: dotnet ./bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
 
       - name: Upload Catalog Wolverine code
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')

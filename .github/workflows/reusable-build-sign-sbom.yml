@@ -75,17 +75,19 @@ jobs:
 
       - name: Generate Wolverine code for Catalog.Api
         if: inputs.service-name == 'catalog'
+        working-directory: src/services/catalog/Catalog.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
           Logging__LogLevel__Grpc: Warning
-        run: dotnet src/services/catalog/Catalog.Api/bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
+        run: dotnet ./bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
 
       - name: Generate Wolverine code for Customer.Api
         if: inputs.service-name == 'customer'
+        working-directory: src/services/customer/Customer.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
           Logging__LogLevel__Grpc: Warning
-        run: dotnet src/services/customer/Customer.Api/bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
+        run: dotnet ./bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
 
       - name: Upload Catalog Wolverine code
         if: inputs.service-name == 'catalog'
