@@ -52,7 +52,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           packages: ${{ steps.packages.outputs.list }}
-          delete-tags: '*-canary.${{ github.event.pull_request.number }}.*'
+          delete-tags: '*canary.${{ github.event.pull_request.number }}.*'
           delete-untagged: false
 
   # ── Step 1: derive the canary version and find all Dockerfiles ────────────
@@ -70,6 +70,7 @@ jobs:
       contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
+      short-tag: ${{ steps.version.outputs.short-tag }}
       targets: ${{ steps.find.outputs.targets }}
       build-matrix: ${{ steps.find.outputs.build-matrix }}
 
@@ -94,6 +95,7 @@ jobs:
         id: version
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
+          SHORT_TAG="canary.${{ github.event.pull_request.number }}.${SHORT_SHA}"
 
           # `auto version` outputs the bump type (major/minor/patch/skip) without
           # touching GitHub. We then apply that bump to the latest git tag ourselves.
@@ -114,7 +116,8 @@ jobs:
 
           VERSION="${NEXT_VERSION}-canary.${{ github.event.pull_request.number }}.${SHORT_SHA}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Bump: ${BUMP}, Latest: ${LATEST_TAG}, Canary version: ${VERSION}"
+          echo "short-tag=${SHORT_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Bump: ${BUMP}, Latest: ${LATEST_TAG}, Canary version: ${VERSION}, Short tag: ${SHORT_TAG}"
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
@@ -165,10 +168,58 @@ jobs:
           ]' <<< "$TARGETS_JSON")
           echo "build-matrix=$BUILD_MATRIX" >> "$GITHUB_OUTPUT"
 
-  # ── Step 2: build per-arch images and push by digest ────────────────────
+  # ── Step 2: generate Wolverine sources outside Docker ───────────────────
+  generate-wolverine-codegen:
+    name: Generate Wolverine Code
+    needs: compute-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore API projects
+        run: |
+          dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj
+          dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj
+
+      - name: Generate Wolverine code for Catalog.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: dotnet run --project src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release --no-launch-profile -- codegen write
+
+      - name: Generate Wolverine code for Customer.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: dotnet run --project src/services/customer/Customer.Api/Customer.Api.csproj -c Release --no-launch-profile -- codegen write
+
+      - name: Upload Catalog Wolverine code
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Customer Wolverine code
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Step 3: build per-arch images and push by digest ────────────────────
   build:
     name: Build ${{ matrix.target.service_name }} (${{ matrix.target.platform }})
-    needs: compute-version
+    needs: [compute-version, generate-wolverine-codegen]
     runs-on: ${{ matrix.target.runner }}
     permissions:
       contents: read
@@ -178,36 +229,21 @@ jobs:
         target: ${{ fromJson(needs.compute-version.outputs.build-matrix) }}
       fail-fast: false
 
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: tempdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      rabbitmq:
-        image: rabbitmq:3-management-alpine
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download Catalog Wolverine code
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+
+      - name: Download Customer Wolverine code
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
 
       - name: Read .NET container versions
         id: dotnet-version
@@ -267,8 +303,6 @@ jobs:
             DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
             DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
             VERSION=${{ needs.compute-version.outputs.version }}
-            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=tempdb;Username=postgres;Password=postgres
-            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
       - name: Export digest
         env:
@@ -286,7 +320,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ── Step 3: merge per-arch digests into a multi-arch manifest ─────────────
+  # ── Step 4: merge per-arch digests into a multi-arch manifest ─────────────
   merge:
     name: Merge ${{ matrix.target.service_name }}
     needs: [compute-version, build]
@@ -332,6 +366,7 @@ jobs:
         env:
           IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
           CANARY_TAG: ${{ needs.compute-version.outputs.version }}
+          CANARY_SHORT_TAG: ${{ needs.compute-version.outputs.short-tag }}
         run: |
           set -euo pipefail
 
@@ -348,16 +383,19 @@ jobs:
 
           docker buildx imagetools create \
             -t "${IMAGE_NAME}:${CANARY_TAG}" \
+            -t "${IMAGE_NAME}:${CANARY_SHORT_TAG}" \
             "${sources[@]}"
 
       - name: Inspect manifest
         env:
           IMAGE_NAME: ${{ steps.image-vars.outputs.image_name }}
           CANARY_TAG: ${{ needs.compute-version.outputs.version }}
+          CANARY_SHORT_TAG: ${{ needs.compute-version.outputs.short-tag }}
         run: |
           docker buildx imagetools inspect "${IMAGE_NAME}:${CANARY_TAG}"
+          docker buildx imagetools inspect "${IMAGE_NAME}:${CANARY_SHORT_TAG}"
 
-  # ── Step 4: label the PR as having a preview build ────────────────────────
+  # ── Step 5: label the PR as having a preview build ────────────────────────
   label-preview:
     name: Label PR Preview
     needs: [compute-version, merge]
@@ -395,7 +433,7 @@ jobs:
         run: |
           echo "::warning::Skipping preview PR label because the workflow token cannot manage labels in the current context."
 
-  # ── Step 5: leave a PR comment listing available canary images ────────────
+  # ── Step 6: leave a PR comment listing available canary images ────────────
   comment:
     name: Comment on PR
     needs: [compute-version, merge]
@@ -419,6 +457,7 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ needs.compute-version.outputs.version }}
+          SHORT_TAG: ${{ needs.compute-version.outputs.short-tag }}
           TARGETS_JSON: ${{ needs.compute-version.outputs.targets }}
           REPO_OWNER: ${{ github.repository_owner }}
         run: |
@@ -431,10 +470,12 @@ jobs:
             echo '## 🐤 Canary Build Available'
             echo
             echo "**Version:** \`${VERSION}\`"
+            echo "**Short tag:** \`${SHORT_TAG}\`"
             echo
             echo 'Pull the canary images with:'
             echo '```bash'
             echo "$TARGETS_JSON" | jq -r --arg owner "$REPO_OWNER_LOWER" --arg version "$VERSION" '.[] | "docker pull ghcr.io/\($owner)/teck-cloud/\(.service_name):\($version)"'
+            echo "$TARGETS_JSON" | jq -r --arg owner "$REPO_OWNER_LOWER" --arg shortTag "$SHORT_TAG" '.[] | "docker pull ghcr.io/\($owner)/teck-cloud/\(.service_name):\($shortTag)"'
             echo '```'
             echo
             echo '> Images are built for `linux/amd64, linux/arm64`. No GitHub release has been created.'

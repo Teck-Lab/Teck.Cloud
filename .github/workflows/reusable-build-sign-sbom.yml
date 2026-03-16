@@ -39,42 +39,69 @@ permissions:
   contents: read
 
 jobs:
+  generate-wolverine-codegen:
+    name: Generate Wolverine Code
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+
+      - name: Setup .NET SDK
+        if: inputs.service-name == 'catalog' || inputs.service-name == 'customer'
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore Catalog.Api
+        if: inputs.service-name == 'catalog'
+        run: dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj
+
+      - name: Restore Customer.Api
+        if: inputs.service-name == 'customer'
+        run: dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj
+
+      - name: Generate Wolverine code for Catalog.Api
+        if: inputs.service-name == 'catalog'
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: dotnet run --project src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release --no-launch-profile -- codegen write
+
+      - name: Generate Wolverine code for Customer.Api
+        if: inputs.service-name == 'customer'
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: dotnet run --project src/services/customer/Customer.Api/Customer.Api.csproj -c Release --no-launch-profile -- codegen write
+
+      - name: Upload Catalog Wolverine code
+        if: inputs.service-name == 'catalog'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Customer Wolverine code
+        if: inputs.service-name == 'customer'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
   build-and-push:
     name: Build ${{ inputs.service-name }} (${{ matrix.builder.platform }})
+    needs: [generate-wolverine-codegen]
     runs-on: ${{ matrix.builder.runner-image }}
     permissions:
       contents: read
       packages: write
-    
-    # Service containers needed for Wolverine codegen during build
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: tempdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      rabbitmq:
-        image: rabbitmq:3-management-alpine
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
     
     strategy:
       matrix:
@@ -94,6 +121,20 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: refs/tags/v${{ inputs.version }}
+
+      - name: Download Catalog Wolverine code
+        if: inputs.service-name == 'catalog'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+
+      - name: Download Customer Wolverine code
+        if: inputs.service-name == 'customer'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
 
       - name: Read .NET container versions
         id: dotnet-version
@@ -180,8 +221,6 @@ jobs:
             DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
             DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
             VERSION=${{ inputs.version }}
-            POSTGRES_CONNECTION=${{ inputs.postgres-connection }}
-            RABBITMQ_CONNECTION=${{ inputs.rabbitmq-connection }}
 
       - name: Export digest
         id: export-digest

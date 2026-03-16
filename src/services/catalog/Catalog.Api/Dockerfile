@@ -42,10 +42,6 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
 COPY . .
 WORKDIR "/src/src/services/catalog/Catalog.Api"
 
-# Build arguments for codegen (optional, with defaults)
-ARG POSTGRES_CONNECTION="Host=localhost;Database=catalog;Username=postgres;Password=postgres"
-ARG RABBITMQ_CONNECTION="amqp://guest:guest@localhost:5672/"
-
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet build "Catalog.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID \
         /p:Version=$VERSION \
@@ -53,12 +49,6 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; 
         /p:TreatWarningsAsErrors=false \
         /p:RunAnalyzersDuringBuild=false \
         /p:EnforceCodeStyleInBuild=false
-
-# Generate Wolverine codegen
-ENV ASPNETCORE_ENVIRONMENT=Development \
-    ConnectionStrings__db-write="${POSTGRES_CONNECTION}" \
-    ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
-RUN dotnet /app/build/Catalog.Api.dll codegen write
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
