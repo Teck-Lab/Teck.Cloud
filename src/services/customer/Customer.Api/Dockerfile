@@ -7,6 +7,7 @@
 ARG DOTNET_SDK_VERSION=10.0.103
 ARG DOTNET_RUNTIME_VERSION=10.0.3
 ARG DOTNET_ALPINE_VERSION=3.23
+ARG ICU_LIBS_VERSION=76.1-r1
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK_VERSION}-alpine${DOTNET_ALPINE_VERSION} AS build
@@ -70,7 +71,6 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet publish "Customer.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --no-restore --no-build \
         /p:Version=$VERSION \
         /p:PublishReadyToRun=true \
-        /p:PublishTrimmed=true \
         /p:TreatWarningsAsErrors=false \
         /p:RunAnalyzersDuringBuild=false \
         /p:EnforceCodeStyleInBuild=false
@@ -80,6 +80,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_AL
 ARG DOTNET_SDK_VERSION
 ARG DOTNET_RUNTIME_VERSION
 ARG DOTNET_ALPINE_VERSION
+ARG ICU_LIBS_VERSION
 
 # Build arguments for metadata
 ARG VERSION=1.0.0
@@ -110,7 +111,7 @@ ENV APP_UID=1000 \
     ASPNETCORE_HTTP_PORTS=8080
 
 WORKDIR /app
-RUN apk add --no-cache icu-libs
+RUN apk add --no-cache icu-libs=${ICU_LIBS_VERSION}
 COPY --from=publish /app/publish .
 EXPOSE 8080
 
