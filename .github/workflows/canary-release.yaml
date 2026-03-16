@@ -4,8 +4,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [main, next]
-    paths-ignore:
-      - deployment/**
 
 permissions:
   contents: read
