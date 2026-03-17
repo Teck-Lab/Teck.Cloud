@@ -16,6 +16,78 @@ spec:
         - name: customer-api
           image: ghcr.io/teck-lab/teck-cloud-customer-api:preview
           imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: customer-api-config
+          env:
+            - name: Keycloak__credentials__secret
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-keycloak
+                  key: Keycloak__credentials__secret
+            - name: PREVIEW_POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: customer-api-postgres-connection
+                  key: host
+            - name: PREVIEW_POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: customer-api-postgres-connection
+                  key: port
+            - name: PREVIEW_POSTGRES_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: customer-api-postgres-connection
+                  key: database
+            - name: PREVIEW_POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-postgres-app
+                  key: username
+            - name: PREVIEW_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-postgres-app
+                  key: password
+            - name: PREVIEW_RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: rabbitmq-connection
+                  key: host
+            - name: PREVIEW_RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: rabbitmq-connection
+                  key: port
+            - name: PREVIEW_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: preview-rabbitmq-default-user
+                  key: username
+            - name: PREVIEW_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: preview-rabbitmq-default-user
+                  key: password
+            - name: PREVIEW_REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-connection
+                  key: host
+            - name: PREVIEW_REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: redis-connection
+                  key: port
+            - name: ConnectionStrings__redis
+              value: $(PREVIEW_REDIS_HOST):$(PREVIEW_REDIS_PORT),abortConnect=false
+            - name: ConnectionStrings__db-write
+              value: Host=$(PREVIEW_POSTGRES_HOST);Database=$(PREVIEW_POSTGRES_DATABASE);Username=$(PREVIEW_POSTGRES_USERNAME);Password=$(PREVIEW_POSTGRES_PASSWORD);Port=$(PREVIEW_POSTGRES_PORT)
+            - name: ConnectionStrings__db-read
+              value: Host=$(PREVIEW_POSTGRES_HOST);Database=$(PREVIEW_POSTGRES_DATABASE);Username=$(PREVIEW_POSTGRES_USERNAME);Password=$(PREVIEW_POSTGRES_PASSWORD);Port=$(PREVIEW_POSTGRES_PORT)
+            - name: ConnectionStrings__rabbitmq
+              value: rabbitmq://$(PREVIEW_RABBITMQ_USERNAME):$(PREVIEW_RABBITMQ_PASSWORD)@$(PREVIEW_RABBITMQ_HOST):$(PREVIEW_RABBITMQ_PORT)/
           ports:
             - name: http
               containerPort: 8080

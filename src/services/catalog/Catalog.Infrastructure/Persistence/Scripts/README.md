@@ -1,15 +1,14 @@
 # Catalog SQL Migration Scripts
 
-The CI/CD pipeline publishes **provider-specific SQL scripts** for Catalog migrations into this folder.
+This folder is no longer the deployment source for generated migration SQL.
 
 ```
-Persistence/Scripts/
-    PostgreSQL/   # *.sql scripts for Postgres
-    SqlServer/    # *.sql scripts for SQL Server
-    MySql/        # *.sql scripts for MySQL / MariaDB
+deployment/catalog-api/database/flyway/
+    postgres/   # versioned Flyway SQL for Postgres
+    sqlserver/  # reserved for future SQL Server output
+    mysql/      # reserved for future MySQL / MariaDB output
 ```
 
-Name scripts with a sortable prefix (e.g., `0001_Initial.sql`, `0002_AddProducts.sql`).
-They are embedded into the `Catalog.Infrastructure` assembly and executed by the
-`Catalog.Migration` service (DbUp).  Only place `.sql` artifacts here—generated
-C# EF migration files remain under `Persistence/Migrations`.
+The CI/CD pipeline generates provider-specific Flyway SQL from the EF Core migration projects and stores the checked-in artifacts under `deployment/catalog-api/database/flyway`.
+
+Keep EF migration source files under `Persistence/Migrations`. Do not add deployment SQL artifacts to `Persistence/Scripts`.

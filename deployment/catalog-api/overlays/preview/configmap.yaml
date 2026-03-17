@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-api-config
+data:
+  Keycloak__realm: Teck.Cloud.Preview
+  Keycloak__auth-server-url: https://auth.tecklab.dk/
+  Keycloak__ssl-required: none
+  Keycloak__resource: teck-catalog
+  Keycloak__verify-token-audience: "true"
+  Keycloak__use-resource-role-mappings: "true"
+  Keycloak__confidential-port: "0"
