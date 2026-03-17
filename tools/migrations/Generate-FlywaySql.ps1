@@ -151,6 +151,16 @@ function Ensure-ProjectRestore {
     $restoredProjects.Add($ProjectPath) | Out-Null
 }
 
+function Ensure-ProjectBuild {
+    param([string]$ProjectPath)
+
+    Write-Host "Building project: $ProjectPath" -ForegroundColor DarkCyan
+    & dotnet build $ProjectPath --no-restore --configuration Debug
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet build failed for '$ProjectPath'."
+    }
+}
+
 function Update-FlywayKustomization {
     param(
         [string]$SolutionRoot,
@@ -238,6 +248,7 @@ foreach ($rawServiceName in $ServiceName) {
         Write-Host "Generating Flyway SQL for $($serviceConfig.AppKey) ($providerKey)" -ForegroundColor Yellow
 
         Ensure-ProjectRestore -ProjectPath $migrationProject
+        Ensure-ProjectBuild -ProjectPath $migrationProject
 
         $previousServerType = $env:MIGRATION_SERVER_TYPE
         $previousConnectionString = $env:MIGRATION_CONNECTION_STRING
@@ -264,6 +275,7 @@ foreach ($rawServiceName in $ServiceName) {
                     $migrationProject,
                     '--context',
                     $providerConfig.Context,
+                    '--no-build',
                     '--output',
                     $flywayOutputPath
                 )
