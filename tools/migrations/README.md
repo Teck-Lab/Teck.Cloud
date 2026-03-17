@@ -56,6 +56,8 @@ deployment/
 
 The preferred path is the GitHub Actions workflow at `.github/workflows/flyway-sql-sync.yaml`. For same-repository pull requests it regenerates the Flyway SQL and commits the refreshed files back to the PR branch automatically so Argo preview generation can pick them up from the branch.
 
+The checked-in PostgreSQL SQL files may be absent on a feature branch until the Flyway workflow runs. In that case the `database/flyway` kustomization keeps a placeholder entry so the base manifests remain valid until CI regenerates the real SQL.
+
 Generate or refresh the Flyway SQL manually when you need to troubleshoot the pipeline or bootstrap locally:
 
 ```powershell
@@ -83,6 +85,7 @@ Prerequisites:
 
 - Run `dotnet tool restore --tool-manifest .config/dotnet-tools.json`.
 - Ensure the targeted migration projects build successfully.
+- On clean machines or CI runners, restore NuGet packages before generation. The GitHub workflow does this with `dotnet restore Teck.Cloud.slnx --locked-mode`.
 
 Behavior in CI:
 

@@ -90,6 +90,9 @@ jobs:
       - name: Restore dotnet tools
         run: dotnet tool restore --tool-manifest .config/dotnet-tools.json
 
+      - name: Restore solution packages
+        run: dotnet restore Teck.Cloud.slnx --locked-mode
+
       - name: Generate Flyway SQL
         shell: pwsh
         run: |
