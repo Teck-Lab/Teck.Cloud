@@ -10,5 +10,5 @@ resources:
 configMapGenerator:
   - name: catalog-api-flyway-postgres-sql
     files:
-      - .placeholder=./postgres/.placeholder
+      - V20260303203156__InitialPostgreSQL.sql=./postgres/V20260303203156__InitialPostgreSQL.sql
 
