@@ -25,31 +25,6 @@ spec:
                 secretKeyRef:
                   name: aggregate-gateway-keycloak
                   key: Keycloak__credentials__secret
-            - name: PREVIEW_POSTGRES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: aggregate-gateway-postgres-connection
-                  key: host
-            - name: PREVIEW_POSTGRES_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: aggregate-gateway-postgres-connection
-                  key: port
-            - name: PREVIEW_POSTGRES_DATABASE
-              valueFrom:
-                configMapKeyRef:
-                  name: aggregate-gateway-postgres-connection
-                  key: database
-            - name: PREVIEW_POSTGRES_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: aggregate-gateway-postgres-app
-                  key: username
-            - name: PREVIEW_POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: aggregate-gateway-postgres-app
-                  key: password
             - name: PREVIEW_RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:
@@ -82,10 +57,6 @@ spec:
                   key: port
             - name: ConnectionStrings__redis
               value: $(PREVIEW_REDIS_HOST):$(PREVIEW_REDIS_PORT),abortConnect=false
-            - name: ConnectionStrings__db-write
-              value: Host=$(PREVIEW_POSTGRES_HOST);Database=$(PREVIEW_POSTGRES_DATABASE);Username=$(PREVIEW_POSTGRES_USERNAME);Password=$(PREVIEW_POSTGRES_PASSWORD);Port=$(PREVIEW_POSTGRES_PORT)
-            - name: ConnectionStrings__db-read
-              value: Host=$(PREVIEW_POSTGRES_HOST);Database=$(PREVIEW_POSTGRES_DATABASE);Username=$(PREVIEW_POSTGRES_USERNAME);Password=$(PREVIEW_POSTGRES_PASSWORD);Port=$(PREVIEW_POSTGRES_PORT)
             - name: ConnectionStrings__rabbitmq
               value: rabbitmq://$(PREVIEW_RABBITMQ_USERNAME):$(PREVIEW_RABBITMQ_PASSWORD)@$(PREVIEW_RABBITMQ_HOST):$(PREVIEW_RABBITMQ_PORT)/
           ports:
