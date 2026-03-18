@@ -13,6 +13,7 @@ using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.EFCore;
+using Wolverine.EntityFrameworkCore;
 
 namespace Catalog.Infrastructure.Persistence;
 
@@ -78,6 +79,7 @@ public class ApplicationWriteDbContext : BaseDbContext
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
+        modelBuilder.MapWolverineEnvelopeStorage();
 
         // Apply entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationWriteDbContext).Assembly, WriteConfigFilter);

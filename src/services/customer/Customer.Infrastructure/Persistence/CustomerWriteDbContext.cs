@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using Customer.Domain.Entities.TenantAggregate;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Persistence.Database.EFCore;
+using Wolverine.EntityFrameworkCore;
 
 namespace Customer.Infrastructure.Persistence;
 
@@ -36,6 +37,8 @@ public class CustomerWriteDbContext : BaseDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
+
+        modelBuilder.MapWolverineEnvelopeStorage();
 
         // Apply entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CustomerWriteDbContext).Assembly, WriteConfigFilter);
