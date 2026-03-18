@@ -25,6 +25,7 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -55,7 +56,11 @@ spec:
             - name: migration-sql
               mountPath: /flyway/sql
               readOnly: true
+            - name: temp
+              mountPath: /tmp
       volumes:
         - name: migration-sql
           configMap:
             name: catalog-api-flyway-postgres-sql
+        - name: temp
+          emptyDir: {}
