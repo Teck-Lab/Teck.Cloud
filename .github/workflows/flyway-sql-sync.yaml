@@ -62,15 +62,19 @@ jobs:
     steps:
       - name: Set workflow mode
         id: mode
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
-            echo "can_push=true" >> "$GITHUB_OUTPUT"
-            echo "checkout_ref=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "can_push=false" >> "$GITHUB_OUTPUT"
-            echo "checkout_ref=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          fi
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v8.0.0
+        with:
+          script: |
+            const isSameRepoPullRequest =
+              context.eventName === 'pull_request' &&
+              context.payload.pull_request?.head?.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`;
+
+            const checkoutRef = isSameRepoPullRequest
+              ? context.payload.pull_request.head.ref
+              : process.env.GITHUB_REF_NAME;
+
+            core.setOutput('can_push', isSameRepoPullRequest ? 'true' : 'false');
+            core.setOutput('checkout_ref', checkoutRef);
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

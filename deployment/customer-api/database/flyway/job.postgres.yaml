@@ -16,10 +16,18 @@ spec:
         app.kubernetes.io/component: database-migration
     spec:
       restartPolicy: Never
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: flyway
           image: redgate/flyway:12.1.0
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           args:
             - -url=$(FLYWAY_URL)
             - -user=$(FLYWAY_USER)
