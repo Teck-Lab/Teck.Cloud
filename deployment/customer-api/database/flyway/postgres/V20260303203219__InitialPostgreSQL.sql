@@ -4,7 +4,6 @@
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
 );
 
-START TRANSACTION;
 CREATE TABLE "Tenants" (
     "Id" uuid NOT NULL,
     "Identifier" character varying(100) NOT NULL,
@@ -46,6 +45,4 @@ CREATE UNIQUE INDEX "IX_Tenants_Identifier" ON "Tenants" ("Identifier");
 
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
 VALUES ('20260303203219_InitialPostgreSQL', '10.0.2');
-
-COMMIT;
 

@@ -4,7 +4,6 @@
     CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY ("MigrationId")
 );
 
-START TRANSACTION;
 CREATE TABLE "Brands" (
     "Id" uuid NOT NULL,
     "Name" character varying(200) NOT NULL,
@@ -170,6 +169,4 @@ CREATE INDEX "IX_PromotionCategories_PromotionId" ON "PromotionCategories" ("Pro
 
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
 VALUES ('20260303203156_InitialPostgreSQL', '10.0.2');
-
-COMMIT;
 

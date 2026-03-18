@@ -198,6 +198,13 @@ function Update-FlywayKustomization {
         }
     }
 
+    $builder.Add('    options:')
+    $builder.Add('      disableNameSuffixHash: true')
+    $builder.Add('      annotations:')
+    $builder.Add('        argocd.argoproj.io/hook: PreSync')
+    $builder.Add('        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation')
+    $builder.Add('        argocd.argoproj.io/sync-wave: "-1"')
+
     $content = ($builder -join "`r`n") + "`r`n"
     Set-Content -Path $kustomizationPath -Value $content -Encoding utf8
 }
@@ -279,6 +286,10 @@ foreach ($rawServiceName in $ServiceName) {
                     '--output',
                     $flywayOutputPath
                 )
+
+                if ($providerKey -eq 'postgres') {
+                    $efArguments += '--no-transactions'
+                }
 
                 & dotnet @efArguments
                 if ($LASTEXITCODE -ne 0) {
