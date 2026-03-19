@@ -53,9 +53,29 @@ jobs:
           delete-tags: '*canary.${{ github.event.pull_request.number }}.*'
           delete-untagged: false
 
-  # ── Step 1: derive the canary version and find all Dockerfiles ────────────
+  # ── Step 1: generate Flyway SQL and commit it before image build ──────────
+  generate-flyway-sql:
+    name: Generate Flyway SQL
+    if: >-
+      github.event.action != 'closed' &&
+      !contains(github.event.pull_request.title, 'ci skip') &&
+      !contains(github.event.pull_request.title, 'skip ci') &&
+      (github.event.pull_request.body == null ||
+      (!contains(github.event.pull_request.body, 'ci skip') &&
+       !contains(github.event.pull_request.body, 'skip ci')))
+    permissions:
+      contents: write
+    uses: ./.github/workflows/flyway-sql-validation.yaml
+    with:
+      checkout-ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref || github.event.pull_request.head.sha }}
+      can-push: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      commit-branch: ${{ github.event.pull_request.head.ref }}
+      upload-artifact: false
+
+  # ── Step 2: derive the canary version and find all Dockerfiles ────────────
   compute-version:
     name: Compute Canary Version
+    needs: generate-flyway-sql
     runs-on: ubuntu-latest
     if: >-
       github.event.action != 'closed' &&
@@ -84,7 +104,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref || github.event.pull_request.head.sha }}
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Setup Auto
@@ -167,7 +187,7 @@ jobs:
           ]' <<< "$TARGETS_JSON")
           echo "build-matrix=$BUILD_MATRIX" >> "$GITHUB_OUTPUT"
 
-  # ── Step 2: generate Wolverine sources outside Docker ───────────────────
+  # ── Step 3: generate Wolverine sources outside Docker ───────────────────
   generate-wolverine-codegen:
     name: Generate Wolverine Code
     needs: compute-version
@@ -179,7 +199,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref || github.event.pull_request.head.sha }}
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
@@ -226,7 +246,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ── Step 3: build per-arch images and push by digest ────────────────────
+  # ── Step 4: build per-arch images and push by digest ────────────────────
   build:
     name: Build ${{ matrix.target.service_name }} (${{ matrix.target.platform }})
     needs: [compute-version, generate-wolverine-codegen]
@@ -243,7 +263,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref || github.event.pull_request.head.sha }}
 
       - name: Download Catalog Wolverine code
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -332,7 +352,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # ── Step 4: merge per-arch digests into a multi-arch manifest ─────────────
+  # ── Step 5: merge per-arch digests into a multi-arch manifest ─────────────
   merge:
     name: Merge ${{ matrix.target.service_name }}
     needs: [compute-version, build]
@@ -407,7 +427,7 @@ jobs:
           docker buildx imagetools inspect "${IMAGE_NAME}:${CANARY_TAG}"
           docker buildx imagetools inspect "${IMAGE_NAME}:${CANARY_SHORT_TAG}"
 
-  # ── Step 5: label the PR as having a preview build ────────────────────────
+  # ── Step 6: label the PR as having a preview build ────────────────────────
   label-preview:
     name: Label PR Preview
     needs: [compute-version, merge]
@@ -445,7 +465,7 @@ jobs:
         run: |
           echo "::warning::Skipping preview PR label because the workflow token cannot manage labels in the current context."
 
-  # ── Step 6: leave a PR comment listing available canary images ────────────
+  # ── Step 7: leave a PR comment listing available canary images ────────────
   comment:
     name: Comment on PR
     needs: [compute-version, merge]

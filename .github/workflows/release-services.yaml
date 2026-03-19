@@ -16,8 +16,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-flyway-sql:
+    name: Validate Flyway SQL
+    if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci') && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: read
+    uses: ./.github/workflows/flyway-sql-validation.yaml
+    with:
+      checkout-ref: ${{ github.ref_name }}
+      can-push: false
+      commit-branch: ''
+      upload-artifact: false
+
   release:
     name: Create Release
+    needs: validate-flyway-sql
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci') && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]')"
     permissions:
