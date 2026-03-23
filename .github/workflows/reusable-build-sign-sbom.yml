@@ -358,7 +358,7 @@ jobs:
 
       - name: Upload Trivy results to Security tab
         if: always() && hashFiles('trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy-image-${{ inputs.service-name }}'
@@ -417,7 +417,7 @@ jobs:
           password: ${{ secrets.github-token }}
 
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@57aae528053a48a3f6235f2d9461b05fbcb7366d # v0.23.1
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: ${{ steps.set-image.outputs.ref }}
           format: spdx-json
@@ -427,7 +427,7 @@ jobs:
           dependency-snapshot: true
 
       - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@57aae528053a48a3f6235f2d9461b05fbcb7366d # v0.23.1
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: ${{ steps.set-image.outputs.ref }}
           format: cyclonedx-json
@@ -542,7 +542,7 @@ jobs:
             "$CYCLONEDX_FILE"
 
       - name: Attest SPDX SBOM
-        uses: actions/attest-sbom@07e74fc4e78d1aad915e867f9a094073a9f71527 # v4.0.0
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ${{ steps.set-image.outputs.name }}
           subject-digest: ${{ needs.merge-manifests.outputs.digest }}
@@ -618,7 +618,7 @@ jobs:
 
       - name: Upload Grype results to GitHub Security tab
         if: always() && hashFiles('grype-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
         with:
           sarif_file: grype-results.sarif
           category: grype-${{ inputs.service-name }}
