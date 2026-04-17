@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-api-migrations-postgres
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: catalog-api
+        app.kubernetes.io/component: database-migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: migrations
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrations
+          image: ghcr.io/teck-lab/teck-cloud-migrations:preview
+          imagePullPolicy: Always
+          args:
+            - --service
+            - catalog
+            - --mode
+            - all
+          terminationMessagePolicy: FallbackToLogsOnError
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-api-migrations-postgres
+                  key: connection-string
+            - name: CUSTOMER_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-migrations-postgres
+                  key: connection-string
+            - name: OpenBao__Url
+              value: "http://vault-active.vault-system.svc.cluster.local:8200"
+            - name: OpenBao__AuthPath
+              value: "kubernetes"
+            - name: OpenBao__Role
+              value: "migrations"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

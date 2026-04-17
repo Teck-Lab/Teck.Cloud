@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: yarp-gateway
-          image: ghcr.io/teck-lab/teck-cloud-yarp-gateway:preview
+          image: ghcr.io/teck-lab/teck-cloud/web-public-gateway:preview
           imagePullPolicy: Always
           envFrom:
             - configMapRef:

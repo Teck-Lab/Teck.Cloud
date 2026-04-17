@@ -4,7 +4,6 @@
 
 using System.Reflection;
 using Catalog.Api.Extensions;
-using Catalog.Api.Grpc.V1;
 using Catalog.Application;
 using Catalog.Infrastructure.DependencyInjection;
 using FastEndpoints;
@@ -12,7 +11,6 @@ using Finbuckle.MultiTenant.AspNetCore.Extensions;
 using FluentValidation;
 using JasperFx;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using SharedKernel.Grpc.Contracts.Remote.V1.ServiceVersions;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Caching;
 using SharedKernel.Infrastructure.Endpoints;
@@ -77,6 +75,5 @@ static void MapRemoteHandlers(WebApplication app)
 {
     app.MapHandlers(handlerRegistry =>
     {
-        handlerRegistry.Register<GetCatalogServiceVersionCommand, GetCatalogServiceVersionCommandHandler, ServiceVersionRpcResult>();
     });
 }

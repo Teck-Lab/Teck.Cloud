@@ -92,11 +92,11 @@ LABEL org.opencontainers.image.title="Catalog API" \
 
 # Additional custom labels
 LABEL com.teck.service.name="catalog" \
-      com.teck.service.type="api" \
-      com.teck.service.tier="backend" \
+    com.teck.service.type="api" \
+    com.teck.service.tier="backend" \
     com.teck.dotnet.version="${DOTNET_RUNTIME_VERSION}" \
     com.teck.dotnet.sdk.version="${DOTNET_SDK_VERSION}" \
-      com.teck.build.configuration="Release"
+    com.teck.build.configuration="Release"
 
 # Environment variables for .NET running in container
 ENV APP_UID=1000 \

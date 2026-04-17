@@ -18,7 +18,7 @@ public sealed class GetTenantByIdEndpoint(ISender sender) : Endpoint<GetTenantBy
 
     public override void Configure()
     {
-        Get("/Tenants/{Id:guid}");
+        Get("/admin/Tenants/{Id:guid}");
         Version(1);
         Options(endpoint => endpoint.RequireProtectedResource("tenant", "list"));
     }

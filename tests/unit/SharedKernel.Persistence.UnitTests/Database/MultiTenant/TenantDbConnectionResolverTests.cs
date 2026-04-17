@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -46,14 +46,11 @@ public sealed class TenantDbConnectionResolverTests
     }
 
     [Fact]
-    public void ResolveTenantConnection_FallsBack_WhenGatewayHintTenantDoesNotMatch()
+    public void ResolveTenantConnection_UsesSharedDefaults_WhenNoHeaderAndDefaultStrategyIsShared()
     {
-        // Arrange
+        // Arrange â€” no headers at all, defaultStrategy = "Shared"
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers["X-TenantId"] = "tenant-other";
-        httpContext.Request.Headers["X-Tenant-DbStrategy"] = "Shared";
-
-        var serviceProvider = BuildServiceProvider(httpContext, returnErrorFromCustomerApi: true);
+        var serviceProvider = BuildServiceProvider(httpContext);
         var resolver = new TenantDbConnectionResolver(
             serviceProvider,
             "Host=shared-write;",
@@ -62,10 +59,49 @@ public sealed class TenantDbConnectionResolverTests
 
         var tenant = new TenantDetails
         {
-            Id = "tenant-dedicated-1",
+            Id = "tenant-1",
             DatabaseStrategy = "Dedicated",
-            WriteConnectionString = "Host=tenant-dedicated;",
-            ReadConnectionString = "Host=tenant-dedicated-read;",
+            DatabaseProvider = "PostgreSQL",
+        };
+
+        // Act
+        var result = resolver.ResolveTenantConnection(tenant);
+
+        // Assert â€” falls back to default strategy (Shared)
+        result.Strategy.ShouldBe(DatabaseStrategy.Shared);
+        result.WriteConnectionString.ShouldBe("Host=shared-write;");
+    }
+
+    [Fact]
+    public void ResolveTenantConnection_CallsVaultProvider_WhenGatewayHintIsDedicated()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Tenant-DbStrategy"] = "Dedicated";
+
+        var serviceProvider = BuildServiceProvider(httpContext);
+
+        var vaultProvider = Substitute.For<IVaultTenantConnectionProvider>();
+        vaultProvider
+            .TryGetCached("tenant-dedicated-1", out Arg.Any<(string Write, string? Read)>())
+            .Returns(callInfo =>
+            {
+                callInfo[1] = ("Host=vault-write;", (string?)"Host=vault-read;");
+                return true;
+            });
+
+        var resolver = new TenantDbConnectionResolver(
+            serviceProvider,
+            "Host=shared-write;",
+            "Host=shared-read;",
+            DatabaseProvider.PostgreSQL,
+            vaultProvider);
+
+        var tenant = new TenantDetails
+        {
+            Id = "tenant-dedicated-1",
+            Identifier = "tenant-dedicated-1",
+            DatabaseStrategy = "Dedicated",
             DatabaseProvider = "PostgreSQL",
             HasReadReplicas = true,
         };
@@ -75,207 +111,98 @@ public sealed class TenantDbConnectionResolverTests
 
         // Assert
         result.Strategy.ShouldBe(DatabaseStrategy.Dedicated);
-        result.WriteConnectionString.ShouldBe("Host=tenant-dedicated;");
-        result.ReadConnectionString.ShouldBe("Host=tenant-dedicated-read;");
+        result.WriteConnectionString.ShouldBe("Host=vault-write;");
+        result.ReadConnectionString.ShouldBe("Host=vault-read;");
+        result.Provider.ShouldBe(DatabaseProvider.PostgreSQL);
     }
 
     [Fact]
-    public void ResolveTenantConnection_UsesSecretFileBeforeConfiguration_WhenDedicatedTenant()
+    public void ResolveTenantConnection_OmitsReadConnection_WhenNoReadReplicas()
     {
         // Arrange
-        string tenantId = $"tenant-{Guid.NewGuid():N}";
-        string secretDir = Path.Combine(Path.GetTempPath(), "tenant-secrets", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(secretDir);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Tenant-DbStrategy"] = "Dedicated";
 
-        try
-        {
-            string secretKey = $"ConnectionStrings__Tenants__{tenantId}__Write";
-            string secretPath = Path.Combine(secretDir, secretKey);
-            File.WriteAllText(secretPath, "Host=file-write;Username=file;");
+        var serviceProvider = BuildServiceProvider(httpContext);
 
-            IConfiguration configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["TenantConnectionSecrets:Directory"] = secretDir,
-                    [$"ConnectionStrings:Tenants:{tenantId}:Write"] = "Host=config-write;Username=config;",
-                    [$"ConnectionStrings:Tenants:{tenantId}:Read"] = "Host=config-read;Username=config;",
-                })
-                .Build();
-
-            ServiceProvider serviceProvider = BuildServiceProvider(new DefaultHttpContext(), configuration: configuration);
-            var resolver = new TenantDbConnectionResolver(
-                serviceProvider,
-                "Host=shared-write;",
-                "Host=shared-read;",
-                DatabaseProvider.PostgreSQL);
-
-            var tenant = new TenantDetails
+        var vaultProvider = Substitute.For<IVaultTenantConnectionProvider>();
+        vaultProvider
+            .TryGetCached("tenant-1", out Arg.Any<(string Write, string? Read)>())
+            .Returns(callInfo =>
             {
-                Id = tenantId,
-                DatabaseStrategy = "Dedicated",
-                DatabaseProvider = "PostgreSQL",
-                HasReadReplicas = true,
-            };
+                callInfo[1] = ("Host=vault-write;", (string?)"Host=vault-read;");
+                return true;
+            });
 
-            // Act
-            var result = resolver.ResolveTenantConnection(tenant);
-
-            // Assert
-            result.WriteConnectionString.ShouldBe("Host=file-write;Username=file;");
-            result.ReadConnectionString.ShouldBe("Host=config-read;Username=config;");
-        }
-        finally
-        {
-            if (Directory.Exists(secretDir))
-            {
-                Directory.Delete(secretDir, recursive: true);
-            }
-        }
-    }
-
-    [Fact]
-    public void ResolveTenantConnection_UsesConfigurationKeys_WhenDedicatedTenantHasNoInlineConnections()
-    {
-        // Arrange
-        string tenantId = $"tenant-{Guid.NewGuid():N}";
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:Tenants:{tenantId}:Write"] = "Host=config-write;",
-                [$"ConnectionStrings:Tenants:{tenantId}:Read"] = "Host=config-read;",
-            })
-            .Build();
-
-        ServiceProvider serviceProvider = BuildServiceProvider(new DefaultHttpContext(), configuration: configuration);
         var resolver = new TenantDbConnectionResolver(
             serviceProvider,
             "Host=shared-write;",
             "Host=shared-read;",
-            DatabaseProvider.PostgreSQL);
+            DatabaseProvider.PostgreSQL,
+            vaultProvider);
 
         var tenant = new TenantDetails
         {
-            Id = tenantId,
+            Id = "tenant-1",
+            Identifier = "tenant-1",
             DatabaseStrategy = "Dedicated",
             DatabaseProvider = "PostgreSQL",
-            HasReadReplicas = true,
+            HasReadReplicas = false,   // <--- no read replicas
         };
 
         // Act
         var result = resolver.ResolveTenantConnection(tenant);
 
-        // Assert
-        result.WriteConnectionString.ShouldBe("Host=config-write;");
-        result.ReadConnectionString.ShouldBe("Host=config-read;");
+        // Assert â€” read connection must be null when HasReadReplicas is false
+        result.WriteConnectionString.ShouldBe("Host=vault-write;");
+        result.ReadConnectionString.ShouldBeNull();
     }
 
     [Fact]
-    public void ResolveTenantConnection_UsesEnvironmentFallback_WhenConfigurationIsMissing()
+    public void ResolveTenantConnection_ThrowsTenantConnectionNotFoundException_WhenVaultNotConfiguredAndDedicated()
     {
-        // Arrange
-        string tenantId = $"tenant-{Guid.NewGuid():N}";
-        string writeEnvKey = $"ConnectionStrings__Tenants__{tenantId}__Write";
-        string readEnvKey = $"ConnectionStrings__Tenants__{tenantId}__Read";
+        // Arrange â€” NullVaultTenantConnectionProvider (default when vaultProvider param is omitted)
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Tenant-DbStrategy"] = "Dedicated";
 
-        Environment.SetEnvironmentVariable(writeEnvKey, "Host=env-write;");
-        Environment.SetEnvironmentVariable(readEnvKey, "Host=env-read;");
+        var serviceProvider = BuildServiceProvider(httpContext);
+        var resolver = new TenantDbConnectionResolver(
+            serviceProvider,
+            "Host=shared-write;",
+            "Host=shared-read;",
+            DatabaseProvider.PostgreSQL);   // no vaultProvider â†’ NullVaultTenantConnectionProvider
 
-        try
+        var tenant = new TenantDetails
         {
-            ServiceProvider serviceProvider = BuildServiceProvider(new DefaultHttpContext(), configuration: new ConfigurationBuilder().Build());
-            var resolver = new TenantDbConnectionResolver(
-                serviceProvider,
-                "Host=shared-write;",
-                "Host=shared-read;",
-                DatabaseProvider.PostgreSQL);
+            Id = "tenant-dedicated-1",
+            Identifier = "tenant-dedicated-1",
+            DatabaseStrategy = "Dedicated",
+            DatabaseProvider = "PostgreSQL",
+        };
 
-            var tenant = new TenantDetails
-            {
-                Id = tenantId,
-                DatabaseStrategy = "Dedicated",
-                DatabaseProvider = "PostgreSQL",
-                HasReadReplicas = true,
-            };
-
-            // Act
-            var result = resolver.ResolveTenantConnection(tenant);
-
-            // Assert
-            result.WriteConnectionString.ShouldBe("Host=env-write;");
-            result.ReadConnectionString.ShouldBe("Host=env-read;");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(writeEnvKey, null);
-            Environment.SetEnvironmentVariable(readEnvKey, null);
-        }
+        // Act & Assert
+        Should.Throw<TenantConnectionNotFoundException>(() => resolver.ResolveTenantConnection(tenant));
     }
 
     [Fact]
-    public void ResolveTenantConnection_UsesTenantSpecificReadConnection_WhenSharedTenantHasSeparateRead()
+    public void ResolveTenantConnection_ReturnsDefaults_WhenTenantInfoIsNull()
     {
         // Arrange
-        string tenantId = $"tenant-{Guid.NewGuid():N}";
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:Tenants:{tenantId}:Read"] = "Host=tenant-shared-read;",
-            })
-            .Build();
-
-        ServiceProvider serviceProvider = BuildServiceProvider(new DefaultHttpContext(), configuration: configuration);
+        var serviceProvider = BuildServiceProvider(new DefaultHttpContext());
         var resolver = new TenantDbConnectionResolver(
             serviceProvider,
             "Host=shared-write;",
             "Host=shared-read;",
             DatabaseProvider.PostgreSQL);
 
-        var tenant = new TenantDetails
-        {
-            Id = tenantId,
-            DatabaseStrategy = "Shared",
-            DatabaseProvider = "PostgreSQL",
-            HasReadReplicas = true,
-        };
-
         // Act
-        var result = resolver.ResolveTenantConnection(tenant);
+        var result = resolver.ResolveTenantConnection(null!);
 
         // Assert
-        result.Strategy.ShouldBe(DatabaseStrategy.Shared);
         result.WriteConnectionString.ShouldBe("Host=shared-write;");
-        result.ReadConnectionString.ShouldBe("Host=tenant-shared-read;");
-    }
-
-    [Fact]
-    public void ResolveTenantConnection_Throws_WhenMySqlSeparateReadIsConfiguredWithoutReadConnection()
-    {
-        // Arrange
-        string tenantId = $"tenant-{Guid.NewGuid():N}";
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:Tenants:{tenantId}:Write"] = "Server=mysql-write;",
-            })
-            .Build();
-
-        ServiceProvider serviceProvider = BuildServiceProvider(new DefaultHttpContext(), configuration: configuration);
-        var resolver = new TenantDbConnectionResolver(
-            serviceProvider,
-            "Host=shared-write;",
-            "Host=shared-read;",
-            DatabaseProvider.PostgreSQL);
-
-        var tenant = new TenantDetails
-        {
-            Id = tenantId,
-            DatabaseStrategy = "Dedicated",
-            DatabaseProvider = "MySQL",
-            HasReadReplicas = true,
-        };
-
-        // Act
-        Should.Throw<InvalidOperationException>(() => resolver.ResolveTenantConnection(tenant));
+        result.ReadConnectionString.ShouldBe("Host=shared-read;");
+        result.Provider.ShouldBe(DatabaseProvider.PostgreSQL);
+        result.Strategy.ShouldBe(DatabaseStrategy.Shared);
     }
 
     private static ServiceProvider BuildServiceProvider(

@@ -24,6 +24,16 @@ var rabbitmqPassword = builder.CreateResourceBuilder(new ParameterResource(
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq", rabbitmqUserName, rabbitmqPassword).WithManagementPlugin();
 
+var catalogMigrations = builder.AddProject<Projects.Teck_Cloud_Migrations>("catalog-migrations")
+    .WithEnvironment("CONNECTION_STRING", catalogDb_postgresWrite)
+    .WithArgs("--service", "catalog")
+    .WaitFor(postgresWrite);
+
+var customerMigrations = builder.AddProject<Projects.Teck_Cloud_Migrations>("customer-migrations")
+    .WithEnvironment("CONNECTION_STRING", customerdb_postgresWrite)
+    .WithArgs("--service", "customer")
+    .WaitFor(postgresWrite);
+
 var catalogapi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
     .WithReference(cache)
     .WithReference(catalogDb_postgresWrite, "db-write")
@@ -31,6 +41,7 @@ var catalogapi = builder.AddProject<Projects.Catalog_Api>("catalog-api")
     .WithReference(rabbitmq)
     .WaitFor(cache)
     .WaitFor(rabbitmq)
+    .WaitForCompletion(catalogMigrations)
     .WithEnvironment("ASPIRE_LOCAL", "true");
 
 var customerapi = builder.AddProject<Projects.Customer_Api>("customer-api")
@@ -40,39 +51,34 @@ var customerapi = builder.AddProject<Projects.Customer_Api>("customer-api")
     .WithReference(rabbitmq)
     .WaitFor(cache)
     .WaitFor(rabbitmq)
+    .WaitForCompletion(customerMigrations)
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("ASPIRE_LOCAL", "true");
 
-var aggregateGateway = builder.AddProject<Projects.Web_Aggregate_Gateway>("web-aggregate-gateway")
+var edgeGateway = builder.AddProject<Projects.Web_Public_Gateway>("web-public-gateway")
     .WithReference(cache)
     .WithReference(rabbitmq)
     .WaitFor(cache)
     .WaitFor(rabbitmq)
     .WithEnvironment("ASPIRE_LOCAL", "true");
 
-var edgeGateway = builder.AddProject<Projects.Web_Edge>("web-edge")
-    .WithReference(cache)
-    .WithReference(rabbitmq)
-    .WaitFor(cache)
-    .WaitFor(rabbitmq)
+var adminGateway = builder.AddProject<Projects.Web_Admin_Gateway>("web-admin-gateway")
     .WithEnvironment("ASPIRE_LOCAL", "true");
 
 catalogapi.WithReference(customerapi).WaitFor(customerapi);
-aggregateGateway.WithReference(customerapi).WaitFor(customerapi);
-aggregateGateway.WithReference(catalogapi).WaitFor(catalogapi);
-edgeGateway.WithReference(aggregateGateway).WaitFor(aggregateGateway);
 edgeGateway.WithReference(customerapi).WaitFor(customerapi);
 edgeGateway.WithReference(catalogapi).WaitFor(catalogapi);
+adminGateway.WithReference(customerapi).WaitFor(customerapi);
+adminGateway.WithReference(catalogapi).WaitFor(catalogapi);
 
 catalogapi.WithEnvironment("Services__CustomerApi__Url", customerapi.GetEndpoint("https"));
 
-aggregateGateway
-    .WithEnvironment("Services__CatalogApi__Url", catalogapi.GetEndpoint("https"))
-    .WithEnvironment("Services__CustomerApi__Url", customerapi.GetEndpoint("https"));
-
 edgeGateway
     .WithEnvironment("Services__CustomerApi__Url", customerapi.GetEndpoint("https"))
-    .WithEnvironment("ReverseProxy__Clusters__aggregate-gateway__Destinations__Default__Address", aggregateGateway.GetEndpoint("http"))
+    .WithEnvironment("ReverseProxy__Clusters__catalog__Destinations__Default__Address", catalogapi.GetEndpoint("http"))
+    .WithEnvironment("ReverseProxy__Clusters__customer__Destinations__Default__Address", customerapi.GetEndpoint("http"));
+
+adminGateway
     .WithEnvironment("ReverseProxy__Clusters__catalog__Destinations__Default__Address", catalogapi.GetEndpoint("http"))
     .WithEnvironment("ReverseProxy__Clusters__customer__Destinations__Default__Address", customerapi.GetEndpoint("http"));
 
@@ -94,8 +100,8 @@ foreach (var setting in multiTenantSettings)
     // API projects
     catalogapi.WithEnvironment(setting.Key, setting.Value);
     customerapi.WithEnvironment(setting.Key, setting.Value);
-    aggregateGateway.WithEnvironment(setting.Key, setting.Value);
     edgeGateway.WithEnvironment(setting.Key, setting.Value);
+    adminGateway.WithEnvironment(setting.Key, setting.Value);
 }
 
 await builder.Build().RunAsync();

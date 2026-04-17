@@ -18,7 +18,6 @@ using SharedKernel.Core.Database;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure;
-using SharedKernel.Infrastructure.Database;
 using SharedKernel.Infrastructure.HealthChecks;
 using SharedKernel.Infrastructure.Messaging;
 using SharedKernel.Persistence.Database;
@@ -56,7 +55,6 @@ public static class InfrastructureServiceExtensions
     public static IApplicationBuilder UseInfrastructureServices(this IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.ApplyLocalDatabaseMigrations<CustomerWriteDbContext, CustomerReadDbContext>();
         return app;
     }
 

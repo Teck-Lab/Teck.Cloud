@@ -27,6 +27,7 @@
     <PackageReference Include="Ardalis.Specification" />
     <PackageReference Include="Ardalis.SmartEnum.EFCore" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="VaultSharp" />
   </ItemGroup>
 
   <ItemGroup>

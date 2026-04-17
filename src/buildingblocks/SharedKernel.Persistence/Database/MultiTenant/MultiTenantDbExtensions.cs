@@ -3,7 +3,9 @@ using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Core.Caching;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.HealthChecks;
@@ -35,23 +37,51 @@ public static class MultiTenantDbExtensions
     /// <param name="defaultWriteConnectionString">The default write connection string for shared database.</param>
     /// <param name="defaultReadConnectionString">The default read connection string for shared database.</param>
     /// <param name="defaultProvider">The default database provider (defaults to PostgreSQL).</param>
+    /// <param name="serviceName">
+    /// The Vault path segment for this service (e.g. <c>catalog</c>).
+    /// Used to locate tenant secrets at <c>teck-cloud/tenants/{tenantId}/{serviceName}</c>.
+    /// </param>
     public static void AddHybridMultiTenantDbContexts<TWriteContext, TReadContext>(
         this WebApplicationBuilder builder,
         Assembly migrationsAssembly,
         string defaultWriteConnectionString,
         string defaultReadConnectionString,
-        DatabaseProvider? defaultProvider = null)
+        DatabaseProvider? defaultProvider = null,
+        string serviceName = "")
         where TWriteContext : BaseDbContext
         where TReadContext : BaseDbContext
     {
         DatabaseProvider effectiveProvider = defaultProvider ?? DatabaseProvider.PostgreSQL;
+
+        // Bind OpenBao options and register the vault connection provider
+        var openBaoOptions = builder.Configuration
+            .GetSection(OpenBaoOptions.Section)
+            .Get<OpenBaoOptions>() ?? new OpenBaoOptions();
+
+        builder.Services.AddSingleton<IVaultTenantConnectionProvider>(sp =>
+        {
+            if (string.IsNullOrWhiteSpace(openBaoOptions.Url))
+            {
+                return new NullVaultTenantConnectionProvider();
+            }
+
+            var logger = sp.GetRequiredService<ILogger<VaultTenantConnectionProvider>>();
+            return new VaultTenantConnectionProvider(openBaoOptions, serviceName, logger);
+        });
 
         builder.Services.AddScoped(typeof(IGenericCacheService<,>), typeof(GenericCacheService<,>));
 
         // Register the tenant database resolver service
         builder.Services.AddScoped<ITenantDbConnectionResolver>(sp =>
         {
-            return new TenantDbConnectionResolver(sp, defaultWriteConnectionString, defaultReadConnectionString, effectiveProvider);
+            var vaultProvider = sp.GetRequiredService<IVaultTenantConnectionProvider>();
+            return new TenantDbConnectionResolver(
+                sp,
+                defaultWriteConnectionString,
+                defaultReadConnectionString,
+                effectiveProvider,
+                vaultProvider,
+                openBaoOptions.DefaultStrategy);
         });
         builder.Services.AddScoped<AuditingInterceptor>();
         builder.Services.AddScoped<SoftDeleteInterceptor>();

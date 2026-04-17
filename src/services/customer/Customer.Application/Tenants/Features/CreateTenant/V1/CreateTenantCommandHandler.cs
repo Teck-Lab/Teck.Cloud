@@ -125,6 +125,11 @@ public class CreateTenantCommandHandler : ICommandHandler<CreateTenantCommand, E
         Tenant tenant,
         DatabaseStrategy strategy)
     {
+        if (strategy == DatabaseStrategy.Shared)
+        {
+            return Result.Success;
+        }
+
         foreach (string serviceName in Services)
         {
             ErrorOr<Success> setupResult = SetupServiceDatabase(tenant, serviceName, strategy);

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <AnalysisMode>Default</AnalysisMode>
+    <NoWarn>SA1633;SA1600;SA1601;SA1518;CS1591;CA1873;AV1706</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="WolverineFx.Postgresql" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure.Migrations.PostgreSQL\Catalog.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure.Migrations.SqlServer\Catalog.Infrastructure.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure.Migrations.MySql\Catalog.Infrastructure.Migrations.MySql.csproj" />
+    <ProjectReference Include="..\..\services\customer\Customer.Infrastructure\Customer.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\customer\Customer.Infrastructure.Migrations.PostgreSQL\Customer.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\services\customer\Customer.Infrastructure.Migrations.SqlServer\Customer.Infrastructure.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\..\services\customer\Customer.Infrastructure.Migrations.MySql\Customer.Infrastructure.Migrations.MySql.csproj" />
+  </ItemGroup>
+
+</Project>

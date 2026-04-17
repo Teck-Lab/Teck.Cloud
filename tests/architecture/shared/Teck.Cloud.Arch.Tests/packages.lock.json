@@ -1532,7 +1532,8 @@
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Events": "[0.0.1, )",
           "SharedKernel.Grpc.Contracts": "[0.0.1, )",
-          "SharedKernel.Infrastructure": "[0.0.1, )"
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "VaultSharp": "[1.17.5.1, )"
         }
       },
       "Ardalis.SmartEnum": {
@@ -2772,6 +2773,12 @@
           "Microsoft.IdentityModel.JsonWebTokens": "8.16.0",
           "Microsoft.IdentityModel.Tokens": "8.16.0"
         }
+      },
+      "VaultSharp": {
+        "type": "CentralTransitive",
+        "requested": "[1.17.5.1, )",
+        "resolved": "1.17.5.1",
+        "contentHash": "1O/F+AQCkyK4K709pBDYEbDDfJ12OlaE5lnOs9dffq+KxqrnPxh8FIdQtEst9yBJmC7I0BptftzTJyRSwhZR/A=="
       },
       "WolverineFx": {
         "type": "CentralTransitive",

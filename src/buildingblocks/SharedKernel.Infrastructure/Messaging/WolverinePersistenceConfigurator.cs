@@ -86,7 +86,7 @@ public static class WolverinePersistenceConfigurator
         {
             options
                 .PersistMessagesWithPostgresql(writeConnectionString, WolverineSchemaName)
-                .OverrideAutoCreateResources(AutoCreate.None);
+                .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
             return;
         }
 
@@ -94,7 +94,7 @@ public static class WolverinePersistenceConfigurator
         {
             options
                 .PersistMessagesWithSqlServer(writeConnectionString, WolverineSchemaName)
-                .OverrideAutoCreateResources(AutoCreate.None);
+                .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
             return;
         }
 

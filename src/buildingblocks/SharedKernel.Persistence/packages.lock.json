@@ -240,6 +240,12 @@
         "resolved": "1.3.3",
         "contentHash": "5kYs4l+DngqjJkGW2cOidpwPdFvjw6jTEwg5IPNQW55pGCzkflD+WFKAK+IAFrMAgHHMGsd/ynfboNuXFQ/I+A=="
       },
+      "VaultSharp": {
+        "type": "Direct",
+        "requested": "[1.17.5.1, )",
+        "resolved": "1.17.5.1",
+        "contentHash": "1O/F+AQCkyK4K709pBDYEbDDfJ12OlaE5lnOs9dffq+KxqrnPxh8FIdQtEst9yBJmC7I0BptftzTJyRSwhZR/A=="
+      },
       "AWSSDK.S3": {
         "type": "Transitive",
         "resolved": "4.0.6.6",

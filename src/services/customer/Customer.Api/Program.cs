@@ -11,7 +11,6 @@ using Customer.Infrastructure.DependencyInjection;
 using FastEndpoints;
 using FluentValidation;
 using JasperFx;
-using SharedKernel.Grpc.Contracts.Remote.V1.ServiceVersions;
 using SharedKernel.Grpc.Contracts.Remote.V1.Tenants;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Endpoints;
@@ -100,7 +99,6 @@ internal static class Program
     {
         app.MapHandlers(handlerRegistry =>
         {
-            handlerRegistry.Register<GetCustomerServiceVersionCommand, GetCustomerServiceVersionCommandHandler, ServiceVersionRpcResult>();
             handlerRegistry.Register<GetTenantDatabaseInfoCommand, GetTenantDatabaseInfoCommandHandler, TenantDatabaseInfoRpcResult>();
         });
     }
