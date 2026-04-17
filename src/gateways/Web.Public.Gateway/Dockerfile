@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-# Multi-stage Dockerfile for Web.Edge
+# Multi-stage Dockerfile for Web.Public.Gateway
 # Optimized for multi-platform, Docker cache, and best practices
 
 # Build arguments for .NET image version support
@@ -22,7 +22,7 @@ COPY ["Directory.Packages.props", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["src/Directory.Build.props", "src/"]
 COPY ["src/buildingblocks/Directory.Build.props", "src/buildingblocks/"]
-COPY ["src/gateways/Web.Edge/Web.Edge.csproj", "src/gateways/Web.Edge/"]
+COPY ["src/gateways/Web.Public.Gateway/Web.Public.Gateway.csproj", "src/gateways/Web.Public.Gateway/"]
 COPY ["src/aspire/Teck.Cloud.ServiceDefaults/Teck.Cloud.ServiceDefaults.csproj", "src/aspire/Teck.Cloud.ServiceDefaults/"]
 COPY ["src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj", "src/buildingblocks/SharedKernel.Core/"]
 COPY ["src/buildingblocks/SharedKernel.Grpc.Contracts/SharedKernel.Grpc.Contracts.csproj", "src/buildingblocks/SharedKernel.Grpc.Contracts/"]
@@ -36,15 +36,15 @@ ARG RUNTIME_IDENTIFIER=linux-musl-x64
 # Map TARGETPLATFORM to .NET RID
 RUN --mount=type=cache,target=/root/.nuget/packages \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet restore "src/gateways/Web.Edge/Web.Edge.csproj" -r $RID
+    dotnet restore "src/gateways/Web.Public.Gateway/Web.Public.Gateway.csproj" -r $RID
 
 # Copy everything else and build
 COPY . .
-WORKDIR "/src/src/gateways/Web.Edge"
+WORKDIR "/src/src/gateways/Web.Public.Gateway"
 
 RUN --mount=type=cache,target=/root/.nuget/packages \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet build "Web.Edge.csproj" -c $BUILD_CONFIGURATION -r $RID \
+    dotnet build "Web.Public.Gateway.csproj" -c $BUILD_CONFIGURATION -r $RID \
         /p:Version=$VERSION \
         /p:PublishReadyToRun=true \
         /p:TreatWarningsAsErrors=false \
@@ -59,7 +59,7 @@ ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
 RUN --mount=type=cache,target=/root/.nuget/packages \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet publish "Web.Edge.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --no-restore --no-build \
+    dotnet publish "Web.Public.Gateway.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --no-restore --no-build \
         /p:Version=$VERSION \
         /p:PublishReadyToRun=true \
         /p:TreatWarningsAsErrors=false \
@@ -78,8 +78,8 @@ ARG VERSION=1.0.0
 
 # OCI Image Format Specification labels
 # https://github.com/opencontainers/image-spec/blob/main/annotations.md
-LABEL org.opencontainers.image.title="Web Edge Gateway" \
-      org.opencontainers.image.description="Edge gateway for Teck platform" \
+LABEL org.opencontainers.image.title="Web Public Gateway" \
+      org.opencontainers.image.description="Public gateway for Teck platform" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.authors="Teck Team" \
       org.opencontainers.image.vendor="Teck" \
@@ -87,7 +87,7 @@ LABEL org.opencontainers.image.title="Web Edge Gateway" \
     org.opencontainers.image.base.name="mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_ALPINE_VERSION}-composite"
 
 # Additional custom labels
-LABEL com.teck.service.name="web-edge" \
+LABEL com.teck.service.name="web-public-gateway" \
       com.teck.service.type="gateway" \
       com.teck.service.tier="edge" \
     com.teck.dotnet.version="${DOTNET_RUNTIME_VERSION}" \
@@ -108,4 +108,4 @@ EXPOSE 8080
 
 # Set user only in final stage (if needed)
 USER $APP_UID
-ENTRYPOINT ["dotnet", "Web.Edge.dll"]
+ENTRYPOINT ["dotnet", "Web.Public.Gateway.dll"]

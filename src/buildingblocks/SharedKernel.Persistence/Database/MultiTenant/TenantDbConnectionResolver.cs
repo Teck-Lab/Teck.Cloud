@@ -1,4 +1,4 @@
-﻿// <copyright file="TenantDbConnectionResolver.cs" company="TeckLab">
+// <copyright file="TenantDbConnectionResolver.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
