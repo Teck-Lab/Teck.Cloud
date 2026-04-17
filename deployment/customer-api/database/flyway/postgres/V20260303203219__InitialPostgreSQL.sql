@@ -44,5 +44,5 @@ CREATE TABLE "TenantDatabaseMetadata" (
 CREATE UNIQUE INDEX "IX_Tenants_Identifier" ON "Tenants" ("Identifier");
 
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-VALUES ('20260303203219_InitialPostgreSQL', '10.0.2');
+VALUES ('20260303203219_InitialPostgreSQL', '10.0.5');
 

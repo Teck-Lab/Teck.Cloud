@@ -168,5 +168,5 @@ CREATE UNIQUE INDEX "IX_Products_SKU" ON "Products" ("SKU");
 CREATE INDEX "IX_PromotionCategories_PromotionId" ON "PromotionCategories" ("PromotionId");
 
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-VALUES ('20260303203156_InitialPostgreSQL', '10.0.2');
+VALUES ('20260303203156_InitialPostgreSQL', '10.0.5');
 
