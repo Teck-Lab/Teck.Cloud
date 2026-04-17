@@ -19,12 +19,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: yarp-gateway-config
+            - secretRef:
+                name: yarp-gateway-keycloak
           env:
-            - name: Keycloak__credentials__secret
-              valueFrom:
-                secretKeyRef:
-                  name: yarp-gateway-keycloak
-                  key: Keycloak__credentials__secret
             - name: PREVIEW_RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:

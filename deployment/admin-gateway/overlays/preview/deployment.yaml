@@ -12,19 +12,28 @@ spec:
       labels:
         app.kubernetes.io/name: admin-gateway
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: admin-gateway
           image: ghcr.io/teck-lab/teck-cloud/web-admin-gateway:preview
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           envFrom:
             - configMapRef:
                 name: admin-gateway-config
-          env:
-            - name: Keycloak__credentials__secret
-              valueFrom:
-                secretKeyRef:
-                  name: admin-gateway-keycloak
-                  key: Keycloak__credentials__secret
+            - secretRef:
+                name: admin-gateway-keycloak
           ports:
             - name: http
               containerPort: 8080
@@ -36,3 +45,9 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

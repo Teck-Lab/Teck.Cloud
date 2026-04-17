@@ -17,6 +17,7 @@ spec:
     spec:
       restartPolicy: Never
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:

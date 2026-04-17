@@ -18,6 +18,7 @@ spec:
       restartPolicy: Never
       serviceAccountName: migrations
       securityContext:
+        runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:

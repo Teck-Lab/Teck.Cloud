@@ -1,0 +1,8 @@
+misconfig:
+  # Registries trusted for KSV-0125 (restricted-image-registries).
+  # ghcr.io/teck-lab is the project's own GitHub Container Registry.
+  # registry.k8s.io and docker.io/redgate are accepted vendor images.
+  allowed-registries:
+    - ghcr.io/teck-lab
+    - registry.k8s.io
+    - docker.io/redgate

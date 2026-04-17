@@ -19,12 +19,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: customer-api-config
+            - secretRef:
+                name: customer-api-keycloak
           env:
-            - name: Keycloak__credentials__secret
-              valueFrom:
-                secretKeyRef:
-                  name: customer-api-keycloak
-                  key: Keycloak__credentials__secret
             - name: PREVIEW_POSTGRES_HOST
               valueFrom:
                 configMapKeyRef:

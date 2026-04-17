@@ -66,6 +66,7 @@ jobs:
           exit-code: 0
           ignore-unfixed: true
           scanners: 'vuln,secret,misconfig'
+          trivy-config: trivy.yaml
 
       - name: Upload Trivy filesystem SARIF
         if: always() && hashFiles('trivy-fs-results.sarif') != ''
