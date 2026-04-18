@@ -11,3 +11,11 @@ configMapGenerator:
   - name: catalog-api-flyway-postgres-sql
     files:
       - V20260303203156__InitialPostgreSQL.sql=./postgres/V20260303203156__InitialPostgreSQL.sql
+      - V20260318233206__AddWolverineMessageStoragePostgreSQL.sql=./postgres/V20260318233206__AddWolverineMessageStoragePostgreSQL.sql
+    options:
+      disableNameSuffixHash: true
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+        argocd.argoproj.io/sync-wave: "-1"
+
