@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yarp-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: yarp-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: yarp-gateway
+    spec:
+      imagePullSecrets:
+        - name: github-pull-secret-yarp-gateway
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: yarp-gateway
+          image: ghcr.io/teck-lab/teck-cloud/web-public-gateway:development
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          envFrom:
+            - configMapRef:
+                name: yarp-gateway-config
+            - secretRef:
+                name: yarp-gateway-keycloak
+          env:
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-shared-default-user
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-shared-default-user
+                  key: password
+            - name: ConnectionStrings__rabbitmq
+              value: rabbitmq://$(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD)@rabbitmq-shared.rabbitmq-system.svc.cluster.local:5672/
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
