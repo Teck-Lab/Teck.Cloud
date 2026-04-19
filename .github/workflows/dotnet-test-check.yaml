@@ -163,7 +163,7 @@ jobs:
 
       - name: Upload affected.proj artifact
         if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected/affected.proj
@@ -171,7 +171,7 @@ jobs:
 
       - name: Upload affected projects list
         if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: affected-list
           path: |
@@ -249,7 +249,7 @@ jobs:
 
       - name: Comment PR with affected projects
         if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
-        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         with:
           header: affected-projects
           message: |
@@ -431,7 +431,7 @@ jobs:
           thresholds: "10 30"
 
       - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         if: github.event_name == 'pull_request'
         with:
           header: coverage
@@ -439,14 +439,14 @@ jobs:
 
       - name: Upload Test Result Files
         if: always() && hashFiles('**/TestResults/**/*') != ''
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
           retention-days: 5
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: always() && hashFiles('**/*.trx') != ''
         with:
           name: Tests
@@ -508,7 +508,7 @@ jobs:
 
       - name: Upload Catalog Wolverine code
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: wolverine-generated-catalog
           path: src/services/catalog/Catalog.Api/Internal/Generated
@@ -517,7 +517,7 @@ jobs:
 
       - name: Upload Customer Wolverine code
         if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: wolverine-generated-customer
           path: src/services/customer/Customer.Api/Internal/Generated
@@ -633,7 +633,7 @@ jobs:
 
       - name: Log in to GitHub Container Registry for registry cache
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -641,7 +641,7 @@ jobs:
 
       - name: Build image (no push, registry cache)
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -667,7 +667,7 @@ jobs:
 
       - name: Build image (no push, scoped GHA cache fallback)
         if: github.event.pull_request.head.repo.full_name != github.repository
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -705,7 +705,7 @@ jobs:
 
       - name: Upload Trivy scan results to Security tab
         if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
           category: 'trivy-image-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}'
