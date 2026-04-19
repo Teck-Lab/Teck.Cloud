@@ -1,3 +1,25 @@
+# v0.22.0 (Sun Apr 19 2026)
+
+#### 🚀 Enhancement
+
+- fix: Refactor code structure for improved readability and maintainability [#223](https://github.com/Teck-Lab/Teck.Cloud/pull/223) ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### 🐛 Bug Fix
+
+- fix: Remove Flyway SQL validation workflow ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### ⚠️ Pushed to `main`
+
+- Use raw private key secret in workflows ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Fix private-key newlines in workflows ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Update release-services.yaml ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.21.2 (Sun Mar 15 2026)
 
 #### ⚠️ Pushed to `main`
