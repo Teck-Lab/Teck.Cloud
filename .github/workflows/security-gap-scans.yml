@@ -46,6 +46,7 @@ jobs:
   trivy-filesystem:
     name: Trivy Filesystem Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       security-events: write
@@ -66,10 +67,18 @@ jobs:
           exit-code: 0
           ignore-unfixed: true
           scanners: 'vuln,secret,misconfig'
+          trivy-config: trivy.yaml
+
+      - name: Ensure SARIF file exists for upload
+        if: always()
+        run: |
+          if [ ! -s trivy-fs-results.sarif ]; then
+            echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"Trivy","informationUri":"https://trivy.dev","rules":[]}},"results":[]}]}' > trivy-fs-results.sarif
+          fi
 
       - name: Upload Trivy filesystem SARIF
-        if: always() && hashFiles('trivy-fs-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        if: always()
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: trivy-fs-results.sarif
           category: trivy-filesystem
@@ -94,6 +103,7 @@ jobs:
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       security-events: write
@@ -110,16 +120,20 @@ jobs:
         run: python -m pip install --upgrade semgrep
 
       - name: Run Semgrep (non-blocking)
+        env:
+          SEMGREP_SEND_METRICS: "off"
         run: |
           semgrep scan \
-            --config auto \
+            --config p/csharp \
+            --config p/secrets \
+            --config p/r2c-security-audit \
             --sarif \
             --output semgrep.sarif \
             || true
 
       - name: Upload Semgrep SARIF
         if: always() && hashFiles('semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -171,7 +185,7 @@ jobs:
 
       - name: Upload Checkov workflow SARIF
         if: always() && steps.checkov_workflows_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: checkov-workflows.sarif
           category: checkov-workflows
@@ -225,7 +239,7 @@ jobs:
 
       - name: Upload Checkov deployment SARIF
         if: always() && steps.checkov_deployment_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: checkov-deployment.sarif
           category: checkov-deployment
@@ -260,7 +274,7 @@ jobs:
 
       - name: Upload Bandit SARIF
         if: always() && hashFiles('bandit.sarif') != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: bandit.sarif
           category: bandit
@@ -296,7 +310,7 @@ jobs:
 
       - name: Upload ClamAV report
         if: always() && hashFiles('clamav-report.txt') != ''
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: clamav-report
           path: clamav-report.txt

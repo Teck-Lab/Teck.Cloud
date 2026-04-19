@@ -21,9 +21,10 @@ public sealed class CreateTenantEndpoint(ISender sender, IConfiguration configur
 
     public override void Configure()
     {
-        Post("/Tenants");
+        Post("/admin/Tenants");
         Version(1);
         Options(endpoint => endpoint.RequireProtectedResource("tenant", "create"));
+        Validator<CreateTenantValidator>();
     }
 
     public override async Task HandleAsync(CreateTenantRequest request, CancellationToken ct)
@@ -32,7 +33,7 @@ public sealed class CreateTenantEndpoint(ISender sender, IConfiguration configur
         ErrorOr<TenantResponse> commandResponse = await sender.Send(command, ct).ConfigureAwait(false);
 
         await this
-            .SendCreatedAsync(commandResponse, value => $"/customer/v1/Tenants/{value.Id}", ct)
+            .SendCreatedAsync(commandResponse, value => $"/customer/v1/admin/Tenants/{value.Id}", ct)
             .ConfigureAwait(false);
     }
 

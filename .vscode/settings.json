@@ -3,6 +3,8 @@
         "/^dotnet test tests/unit/SharedKernel\\.Persistence\\.UnitTests/SharedKernel\\.Persistence\\.UnitTests\\.csproj --nologo --verbosity minimal$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "dotnet list": true,
+        "dotnet build": true
     }
 }

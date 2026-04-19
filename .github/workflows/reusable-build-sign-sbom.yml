@@ -39,42 +39,81 @@ permissions:
   contents: read
 
 jobs:
+  generate-wolverine-codegen:
+    name: Generate Wolverine Code
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+
+      - name: Setup .NET SDK
+        if: inputs.service-name == 'catalog' || inputs.service-name == 'customer'
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore Catalog.Api
+        if: inputs.service-name == 'catalog'
+        run: dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj -r linux-x64
+
+      - name: Restore Customer.Api
+        if: inputs.service-name == 'customer'
+        run: dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj -r linux-x64
+
+      - name: Build Catalog.Api for code generation
+        if: inputs.service-name == 'catalog'
+        run: dotnet build src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release -r linux-x64 --no-restore
+
+      - name: Build Customer.Api for code generation
+        if: inputs.service-name == 'customer'
+        run: dotnet build src/services/customer/Customer.Api/Customer.Api.csproj -c Release -r linux-x64 --no-restore
+
+      - name: Generate Wolverine code for Catalog.Api
+        if: inputs.service-name == 'catalog'
+        working-directory: src/services/catalog/Catalog.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet ./bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
+
+      - name: Generate Wolverine code for Customer.Api
+        if: inputs.service-name == 'customer'
+        working-directory: src/services/customer/Customer.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet ./bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
+
+      - name: Upload Catalog Wolverine code
+        if: inputs.service-name == 'catalog'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Customer Wolverine code
+        if: inputs.service-name == 'customer'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
   build-and-push:
     name: Build ${{ inputs.service-name }} (${{ matrix.builder.platform }})
+    needs: [generate-wolverine-codegen]
     runs-on: ${{ matrix.builder.runner-image }}
     permissions:
       contents: read
       packages: write
-    
-    # Service containers needed for Wolverine codegen during build
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: tempdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      rabbitmq:
-        image: rabbitmq:3-management-alpine
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
     
     strategy:
       matrix:
@@ -94,6 +133,20 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: refs/tags/v${{ inputs.version }}
+
+      - name: Download Catalog Wolverine code
+        if: inputs.service-name == 'catalog'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+
+      - name: Download Customer Wolverine code
+        if: inputs.service-name == 'customer'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
 
       - name: Read .NET container versions
         id: dotnet-version
@@ -138,7 +191,7 @@ jobs:
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -165,7 +218,7 @@ jobs:
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: ${{ inputs.docker-context }}
           file: ${{ inputs.dockerfile-path }}
@@ -180,8 +233,6 @@ jobs:
             DOTNET_RUNTIME_VERSION=${{ steps.dotnet-version.outputs.runtime }}
             DOTNET_ALPINE_VERSION=${{ steps.dotnet-version.outputs.alpine }}
             VERSION=${{ inputs.version }}
-            POSTGRES_CONNECTION=${{ inputs.postgres-connection }}
-            RABBITMQ_CONNECTION=${{ inputs.rabbitmq-connection }}
 
       - name: Export digest
         id: export-digest
@@ -205,7 +256,7 @@ jobs:
           echo "digest-${PLATFORM_SUFFIX}=$BUILD_DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Upload digest
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: digests-${{ inputs.service-name }}-${{ steps.image-vars.outputs.platform_pair }}
           path: /tmp/digests/${{ inputs.service-name }}/*
@@ -245,7 +296,7 @@ jobs:
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -335,7 +386,7 @@ jobs:
           echo "Image reference: $IMAGE_REF"
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -358,7 +409,7 @@ jobs:
 
       - name: Upload Trivy results to Security tab
         if: always() && hashFiles('trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy-image-${{ inputs.service-name }}'
@@ -379,7 +430,7 @@ jobs:
 
       - name: Upload Trivy JSON report
         if: always() && hashFiles('trivy-results.json') != ''
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: trivy-scan-${{ inputs.service-name }}
           path: trivy-results.json
@@ -410,7 +461,7 @@ jobs:
           echo "Image reference: $IMAGE_REF"
           
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -436,14 +487,14 @@ jobs:
           registry-password: ${{ secrets.github-token }}
 
       - name: Upload SPDX SBOM artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbom-spdx-${{ inputs.service-name }}
           path: sbom-${{ inputs.service-name }}.spdx.json
           retention-days: 90
 
       - name: Upload CycloneDX SBOM artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbom-cyclonedx-${{ inputs.service-name }}
           path: sbom-${{ inputs.service-name }}.cyclonedx.json
@@ -479,7 +530,7 @@ jobs:
           name: sbom-cyclonedx-${{ inputs.service-name }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
 
       - name: Sign SPDX SBOM with Cosign
         env:
@@ -542,14 +593,14 @@ jobs:
             "$CYCLONEDX_FILE"
 
       - name: Attest SPDX SBOM
-        uses: actions/attest-sbom@07e74fc4e78d1aad915e867f9a094073a9f71527 # v4.0.0
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ${{ steps.set-image.outputs.name }}
           subject-digest: ${{ needs.merge-manifests.outputs.digest }}
           sbom-path: sbom-${{ inputs.service-name }}.spdx.json
 
       - name: Upload signed SPDX SBOM artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbom-spdx-signed-${{ inputs.service-name }}
           path: |
@@ -560,7 +611,7 @@ jobs:
           retention-days: 90
 
       - name: Upload signed CycloneDX SBOM artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbom-cyclonedx-signed-${{ inputs.service-name }}
           path: |
@@ -618,7 +669,7 @@ jobs:
 
       - name: Upload Grype results to GitHub Security tab
         if: always() && hashFiles('grype-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: grype-results.sarif
           category: grype-${{ inputs.service-name }}
@@ -699,7 +750,7 @@ jobs:
           echo "VEX document generated with $(jq '.statements | length' "$VEX_FILE") statements"
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
 
       - name: Sign VEX document
         env:
@@ -728,7 +779,7 @@ jobs:
             "$VEX_FILE"
 
       - name: Upload VEX artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vex-${{ inputs.service-name }}
           path: |
@@ -764,10 +815,10 @@ jobs:
           echo "name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
           
       - name: Install Cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

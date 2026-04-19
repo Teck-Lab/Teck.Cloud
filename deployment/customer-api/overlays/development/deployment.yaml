@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: customer-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: customer-api
+    spec:
+      imagePullSecrets:
+        - name: github-pull-secret-customer-api
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: customer-api
+          image: ghcr.io/teck-lab/teck-cloud/customer:development
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          envFrom:
+            - configMapRef:
+                name: customer-api-config
+            - secretRef:
+                name: customer-api-keycloak
+          env:
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: customer-api-postgres-connection
+                  key: host
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: customer-api-postgres-connection
+                  key: port
+            - name: POSTGRES_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: customer-api-postgres-connection
+                  key: database
+            - name: POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-postgres-app
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: customer-api-postgres-app
+                  key: password
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-shared-default-user
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-shared-default-user
+                  key: password
+            - name: ConnectionStrings__db-write
+              value: Host=$(POSTGRES_HOST);Database=$(POSTGRES_DATABASE);Username=$(POSTGRES_USERNAME);Password=$(POSTGRES_PASSWORD);Port=$(POSTGRES_PORT)
+            - name: ConnectionStrings__db-read
+              value: Host=$(POSTGRES_HOST);Database=$(POSTGRES_DATABASE);Username=$(POSTGRES_USERNAME);Password=$(POSTGRES_PASSWORD);Port=$(POSTGRES_PORT)
+            - name: ConnectionStrings__rabbitmq
+              value: rabbitmq://$(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD)@rabbitmq-shared.rabbitmq-system.svc.cluster.local:5672/
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -17,7 +17,7 @@ using Microsoft.Extensions.Configuration;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
-using SharedKernel.Infrastructure.Database;
+using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.HealthChecks;
 using SharedKernel.Infrastructure.Messaging;
 using SharedKernel.Persistence.Database;
@@ -38,12 +38,13 @@ public static class InfrastructureServiceExtensions
     public static void AddInfrastructureServices(this WebApplicationBuilder builder, Assembly applicationAssembly)
     {
         ValidateInputs(builder, applicationAssembly);
-        ConnectionSettings connectionSettings = ResolveConnectionSettings(builder.Configuration);
+        bool isRunningGeneration = CodeGenerationDetector.IsRunningGeneration();
+        ConnectionSettings connectionSettings = ResolveConnectionSettings(builder.Configuration, isRunningGeneration);
         ConfigureIdentity(builder);
         ConfigureDbContexts(builder, connectionSettings);
         RegisterRepositories(builder.Services);
-        ConfigureWolverine(builder, connectionSettings);
-        ConfigureHealthChecks(builder, connectionSettings);
+        ConfigureWolverine(builder, applicationAssembly, connectionSettings, isRunningGeneration);
+        ConfigureHealthChecks(builder, connectionSettings, isRunningGeneration);
     }
 
     /// <summary>
@@ -54,12 +55,16 @@ public static class InfrastructureServiceExtensions
     public static IApplicationBuilder UseInfrastructureServices(this IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.ApplyLocalDatabaseMigrations<CustomerWriteDbContext, CustomerReadDbContext>();
         return app;
     }
 
-    private static void ConfigureHealthChecks(WebApplicationBuilder builder, ConnectionSettings connectionSettings)
+    private static void ConfigureHealthChecks(WebApplicationBuilder builder, ConnectionSettings connectionSettings, bool isRunningGeneration)
     {
+        if (isRunningGeneration)
+        {
+            return;
+        }
+
         builder.AddRabbitMqHealthCheck(connectionSettings.RabbitConnectionString);
     }
 
@@ -133,13 +138,25 @@ public static class InfrastructureServiceExtensions
         return fallbackAssembly;
     }
 
-    private static void ConfigureWolverine(WebApplicationBuilder builder, ConnectionSettings connectionSettings)
+    private static void ConfigureWolverine(WebApplicationBuilder builder, Assembly applicationAssembly, ConnectionSettings connectionSettings, bool isRunningGeneration)
     {
         bool isDevelopment = string.Equals(builder.Environment.EnvironmentName, "Development", StringComparison.OrdinalIgnoreCase);
+
+        if (isRunningGeneration)
+        {
+            builder.Host.UseWolverine(options =>
+            {
+                IncludeHandlerAssemblies(options, applicationAssembly);
+                options.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
+            });
+
+            return;
+        }
 
         builder.Host.UseWolverine(
             options =>
             {
+                IncludeHandlerAssemblies(options, applicationAssembly);
                 WolverinePersistenceConfigurator.ConfigureStandardRuntime(
                     options,
                     isDevelopment,
@@ -149,11 +166,27 @@ public static class InfrastructureServiceExtensions
             });
     }
 
-    private static ConnectionSettings ResolveConnectionSettings(IConfiguration configuration)
+    private static void IncludeHandlerAssemblies(WolverineOptions options, Assembly applicationAssembly)
     {
+        options.Discovery.IncludeAssembly(applicationAssembly);
+
+        Assembly? entryAssembly = Assembly.GetEntryAssembly();
+        if (entryAssembly is not null)
+        {
+            options.Discovery.IncludeAssembly(entryAssembly);
+        }
+    }
+
+    private static ConnectionSettings ResolveConnectionSettings(IConfiguration configuration, bool isRunningGeneration)
+    {
+        DatabaseProvider databaseProvider = configuration.GetDatabaseProvider();
+        if (isRunningGeneration)
+        {
+            return CreateCodeGenerationConnectionSettings(databaseProvider);
+        }
+
         string rabbitConnectionString = configuration.GetConnectionString("rabbitmq")
             ?? throw new ConfigurationMissingException("RabbitMq");
-        DatabaseProvider databaseProvider = configuration.GetDatabaseProvider();
         string writeConnectionString = ResolveWriteConnectionString(configuration, databaseProvider);
         string readConnectionString = ResolveReadConnectionString(configuration, databaseProvider, writeConnectionString);
 
@@ -164,6 +197,31 @@ public static class InfrastructureServiceExtensions
             WriteConnectionString = writeConnectionString,
             ReadConnectionString = readConnectionString,
             DatabaseProvider = databaseProvider,
+        };
+    }
+
+    private static ConnectionSettings CreateCodeGenerationConnectionSettings(DatabaseProvider provider)
+    {
+        string placeholderConnectionString;
+        if (provider == DatabaseProvider.SqlServer)
+        {
+            placeholderConnectionString = "Server=localhost,1433;Database=tempdb;User Id=sa;TrustServerCertificate=True";
+        }
+        else if (provider == DatabaseProvider.MySQL)
+        {
+            placeholderConnectionString = "Server=localhost;Port=3306;Database=tempdb;Uid=root;";
+        }
+        else
+        {
+            placeholderConnectionString = "Host=localhost;Port=5432;Database=tempdb;Username=postgres";
+        }
+
+        return new ConnectionSettings
+        {
+            RabbitConnectionString = "amqp://guest:guest@localhost:5672/",
+            WriteConnectionString = placeholderConnectionString,
+            ReadConnectionString = placeholderConnectionString,
+            DatabaseProvider = provider,
         };
     }
 

@@ -54,7 +54,8 @@ public static class DatabaseServiceExtensions
             migrationsAssembly,
             defaultWriteConnectionString,
             defaultReadConnectionString,
-            provider);
+            provider,
+            serviceName: "catalog");
 
         // Register repositories with appropriate read/write contexts
         builder.Services.AddScoped<IBrandWriteRepository, BrandWriteRepository>();

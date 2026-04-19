@@ -1,0 +1,165 @@
+name: Flyway SQL Validation
+
+on:
+  workflow_call:
+    inputs:
+      checkout-ref:
+        description: Ref or SHA to check out before generating Flyway SQL.
+        required: true
+        type: string
+      can-push:
+        description: Whether generated Flyway SQL may be committed back to the source branch.
+        required: false
+        default: false
+        type: boolean
+      commit-branch:
+        description: Branch name to commit back to when can-push is true.
+        required: false
+        default: ''
+        type: string
+      upload-artifact:
+        description: Upload generated Flyway SQL as a workflow artifact.
+        required: false
+        default: true
+        type: boolean
+      artifact-name:
+        description: Artifact name used when upload-artifact is true.
+        required: false
+        default: flyway-sql
+        type: string
+      dotnet-version:
+        description: .NET SDK version to install alongside global.json.
+        required: false
+        default: 10.0.201
+        type: string
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main, next]
+    paths:
+      - .config/dotnet-tools.json
+      - .github/workflows/flyway-sql-validation.yaml
+      - Directory.Build.props
+      - Directory.Packages.props
+      - global.json
+      - nuget.config
+      - deployment/catalog-api/database/**
+      - deployment/customer-api/database/**
+      - src/buildingblocks/**
+      - src/services/catalog/**
+      - src/services/customer/**
+      - tools/migrations/**
+  push:
+    branches: [main, next]
+    paths:
+      - .config/dotnet-tools.json
+      - .github/workflows/flyway-sql-validation.yaml
+      - Directory.Build.props
+      - Directory.Packages.props
+      - global.json
+      - nuget.config
+      - deployment/catalog-api/database/**
+      - deployment/customer-api/database/**
+      - src/buildingblocks/**
+      - src/services/catalog/**
+      - src/services/customer/**
+      - tools/migrations/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLYWAY_AUTO_COMMIT_MESSAGE: 'chore(flyway): refresh generated migration SQL [skip ci]'
+
+concurrency:
+  group: flyway-sql-${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  generate-and-sync:
+    name: Generate Flyway SQL
+    if: >-
+      github.event_name == 'workflow_call' ||
+      github.event_name != 'pull_request' ||
+      (!contains(github.event.pull_request.title, 'ci skip') &&
+       !contains(github.event.pull_request.title, 'skip ci') &&
+       (github.event.pull_request.body == null ||
+        (!contains(github.event.pull_request.body, 'ci skip') &&
+         !contains(github.event.pull_request.body, 'skip ci'))))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_call' && inputs.checkout-ref || (github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref || github.event.pull_request.head.sha) || github.ref_name) }}
+          persist-credentials: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: ${{ github.event_name == 'workflow_call' && inputs.dotnet-version || '10.0.201' }}
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      - name: Restore dotnet tools
+        run: dotnet tool restore --tool-manifest .config/dotnet-tools.json
+
+      - name: Restore solution packages
+        run: dotnet restore Teck.Cloud.slnx --locked-mode
+
+      - name: Generate Flyway SQL
+        shell: pwsh
+        run: |
+          ./tools/migrations/Generate-FlywaySql.ps1 -Providers @('postgres')
+
+      - name: Detect Flyway changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- deployment/catalog-api/database/flyway deployment/customer-api/database/flyway; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            git diff -- deployment/catalog-api/database/flyway deployment/customer-api/database/flyway
+          fi
+
+      - name: Report clean Flyway state
+        if: steps.changes.outputs.has_changes == 'false'
+        shell: bash
+        run: |
+          echo "Flyway-generated SQL is already up to date."
+
+      - name: Upload generated Flyway SQL
+        if: ${{ steps.changes.outputs.has_changes == 'true' && ((github.event_name == 'workflow_call' && inputs.upload-artifact) || github.event_name != 'workflow_call') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ github.event_name == 'workflow_call' && inputs.artifact-name || 'flyway-sql' }}
+          path: |
+            deployment/catalog-api/database/flyway
+            deployment/customer-api/database/flyway
+          if-no-files-found: warn
+
+      - name: Commit Flyway SQL to source branch
+        if: >-
+          steps.changes.outputs.has_changes == 'true' &&
+          ((github.event_name == 'workflow_call' && inputs.can-push) ||
+           (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+        uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
+        with:
+          commit_message: ${{ env.FLYWAY_AUTO_COMMIT_MESSAGE }}
+          branch: ${{ github.event_name == 'workflow_call' && inputs.commit-branch || (github.event_name == 'pull_request' && github.event.pull_request.head.ref || '') }}
+          file_pattern: deployment/catalog-api/database/flyway deployment/customer-api/database/flyway
+
+      - name: Fail validation when Flyway output is stale
+        if: >-
+          steps.changes.outputs.has_changes == 'true' &&
+          ((github.event_name == 'workflow_call' && !inputs.can-push) ||
+           (github.event_name != 'workflow_call' &&
+            (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)))
+        shell: bash
+        run: |
+          echo "::error::Flyway-generated SQL is out of date. Open a same-repo branch or update the generated Flyway SQL before continuing."
+          exit 1

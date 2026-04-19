@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-gateway-config
+data:
+  ReverseProxy__Clusters__catalog__Destinations__Default__Address: http://catalog-api
+  ReverseProxy__Clusters__customer__Destinations__Default__Address: http://customer-api

@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Multi-stage Dockerfile for Catalog.Api
 # Optimized for multi-platform, Docker cache, and best practices
 
@@ -5,6 +7,7 @@
 ARG DOTNET_SDK_VERSION=10.0.103
 ARG DOTNET_RUNTIME_VERSION=10.0.3
 ARG DOTNET_ALPINE_VERSION=3.23
+ARG ICU_LIBS_VERSION=76.1-r1
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK_VERSION}-alpine${DOTNET_ALPINE_VERSION} AS build
@@ -35,30 +38,22 @@ ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
 
 # Map TARGETPLATFORM to .NET RID
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet restore "src/services/catalog/Catalog.Api/Catalog.Api.csproj" -r $RID
 
 # Copy everything else and build
 COPY . .
 WORKDIR "/src/src/services/catalog/Catalog.Api"
 
-# Build arguments for codegen (optional, with defaults)
-ARG POSTGRES_CONNECTION="Host=localhost;Database=catalog;Username=postgres;Password=postgres"
-ARG RABBITMQ_CONNECTION="amqp://guest:guest@localhost:5672/"
-
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet build "Catalog.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build -r $RID \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet build "Catalog.Api.csproj" -c $BUILD_CONFIGURATION -r $RID \
         /p:Version=$VERSION \
         /p:PublishReadyToRun=true \
         /p:TreatWarningsAsErrors=false \
         /p:RunAnalyzersDuringBuild=false \
         /p:EnforceCodeStyleInBuild=false
-
-# Generate Wolverine codegen
-ENV ASPNETCORE_ENVIRONMENT=Development \
-    ConnectionStrings__db-write="${POSTGRES_CONNECTION}" \
-    ConnectionStrings__rabbitmq="${RABBITMQ_CONNECTION}"
-RUN dotnet /app/build/Catalog.Api.dll codegen write
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
@@ -66,12 +61,11 @@ ARG BUILD_CONFIGURATION=Release
 ARG VERSION=1.0.0
 ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
-    dotnet publish "Catalog.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --self-contained true --no-restore \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet publish "Catalog.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID --no-restore --no-build \
         /p:Version=$VERSION \
-        /p:UseAppHost=true \
         /p:PublishReadyToRun=true \
-        /p:PublishTrimmed=true \
         /p:TreatWarningsAsErrors=false \
         /p:RunAnalyzersDuringBuild=false \
         /p:EnforceCodeStyleInBuild=false
@@ -81,6 +75,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_AL
 ARG DOTNET_SDK_VERSION
 ARG DOTNET_RUNTIME_VERSION
 ARG DOTNET_ALPINE_VERSION
+ARG ICU_LIBS_VERSION
 
 # Build arguments for metadata
 ARG VERSION=1.0.0
@@ -97,11 +92,11 @@ LABEL org.opencontainers.image.title="Catalog API" \
 
 # Additional custom labels
 LABEL com.teck.service.name="catalog" \
-      com.teck.service.type="api" \
-      com.teck.service.tier="backend" \
+    com.teck.service.type="api" \
+    com.teck.service.tier="backend" \
     com.teck.dotnet.version="${DOTNET_RUNTIME_VERSION}" \
     com.teck.dotnet.sdk.version="${DOTNET_SDK_VERSION}" \
-      com.teck.build.configuration="Release"
+    com.teck.build.configuration="Release"
 
 # Environment variables for .NET running in container
 ENV APP_UID=1000 \
@@ -111,6 +106,7 @@ ENV APP_UID=1000 \
     ASPNETCORE_HTTP_PORTS=8080
 
 WORKDIR /app
+RUN apk add --no-cache icu-libs=${ICU_LIBS_VERSION}
 COPY --from=publish /app/publish .
 EXPOSE 8080
 

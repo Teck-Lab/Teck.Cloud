@@ -1,3 +1,4 @@
+using JasperFx;
 using JasperFx.CodeGeneration;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Pricing;
@@ -57,6 +58,7 @@ public static class WolverinePersistenceConfigurator
             : TypeLoadMode.Static;
 
         ConfigureDatabasePersistence(options, provider, writeConnectionString);
+        options.AutoBuildMessageStorageOnStartup = AutoCreate.None;
         options.UseMemoryPackSerialization();
 
         options.UseEntityFrameworkCoreTransactions();
@@ -82,13 +84,17 @@ public static class WolverinePersistenceConfigurator
     {
         if (provider == DatabaseProvider.PostgreSQL)
         {
-            options.PersistMessagesWithPostgresql(writeConnectionString, WolverineSchemaName);
+            options
+                .PersistMessagesWithPostgresql(writeConnectionString, WolverineSchemaName)
+                .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
             return;
         }
 
         if (provider == DatabaseProvider.SqlServer)
         {
-            options.PersistMessagesWithSqlServer(writeConnectionString, WolverineSchemaName);
+            options
+                .PersistMessagesWithSqlServer(writeConnectionString, WolverineSchemaName)
+                .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
             return;
         }
 

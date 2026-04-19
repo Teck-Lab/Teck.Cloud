@@ -13,6 +13,9 @@
     <File Path="stylecop.json" />
   </Folder>
   <Folder Name="/src/" />
+  <Folder Name="/src/migrations/">
+    <Project Path="src/migrations/Teck.Cloud.Migrations/Teck.Cloud.Migrations.csproj" />
+  </Folder>
   <Folder Name="/src/aspire/">
     <Project Path="src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj" />
     <Project Path="src/aspire/Teck.Cloud.ServiceDefaults/Teck.Cloud.ServiceDefaults.csproj" />
@@ -28,8 +31,8 @@
 
   </Folder>
   <Folder Name="/src/gateways/">
-    <Project Path="src/gateways/Web.Edge/Web.Edge.csproj" />
-    <Project Path="src/gateways/Web.Aggregate.Gateway/Web.Aggregate.Gateway.csproj" />
+    <Project Path="src/gateways/Web.Admin.Gateway/Web.Admin.Gateway.csproj" />
+    <Project Path="src/gateways/Web.Public.Gateway/Web.Public.Gateway.csproj" />
   </Folder>
   <Folder Name="/src/services/">
     <File Path="src/services/Directory.Build.props" />
@@ -70,14 +73,15 @@
   <Folder Name="/tests/functional/catalog/" />
   <Folder Name="/tests/integration/">
     <Project Path="tests/integration/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
-    <Project Path="tests/integration/Web.Edge.IntegrationTests/Web.Edge.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Web.Admin.Gateway.IntegrationTests/Web.Admin.Gateway.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Web.Public.Gateway.IntegrationTests/Web.Public.Gateway.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/">
     <Project Path="tests/unit/Catalog.UnitTests/Catalog.UnitTests.csproj" />
     <Project Path="tests/unit/Customer.UnitTests/Customer.UnitTests.csproj" />
     <Project Path="tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj" />
-    <Project Path="tests/unit/Web.Edge.UnitTests/Web.Edge.UnitTests.csproj" />
-
+    <Project Path="tests/unit/Web.Public.Gateway.UnitTests/Web.Public.Gateway.UnitTests.csproj" />
+    <Project Path="tests/unit/Web.Admin.Gateway.UnitTests/Web.Admin.Gateway.UnitTests.csproj" />
     <Project Path="tests/unit/SharedKernel.Persistence.UnitTests/SharedKernel.Persistence.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/" />

@@ -163,7 +163,7 @@ jobs:
 
       - name: Upload affected.proj artifact
         if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: affected-projects
           path: ${{ runner.temp }}/affected/affected.proj
@@ -171,7 +171,7 @@ jobs:
 
       - name: Upload affected projects list
         if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: affected-list
           path: |
@@ -249,7 +249,7 @@ jobs:
 
       - name: Comment PR with affected projects
         if: steps.scope.outputs.deployment_only != 'true' && steps.affected.outputs.has-changes == 'true'
-        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         with:
           header: affected-projects
           message: |
@@ -431,7 +431,7 @@ jobs:
           thresholds: "10 30"
 
       - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@70d2764d1a7d5d9560b100cbea0077fc8f633987 # v3.0.2
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
         if: github.event_name == 'pull_request'
         with:
           header: coverage
@@ -439,14 +439,14 @@ jobs:
 
       - name: Upload Test Result Files
         if: always() && hashFiles('**/TestResults/**/*') != ''
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results
           path: ${{ github.workspace }}/**/TestResults/**/*
           retention-days: 5
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@3d76b34a4535afbd0600d347b09a6ee5deb3ed7f # v2.6.0
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: always() && hashFiles('**/*.trx') != ''
         with:
           name: Tests
@@ -454,47 +454,88 @@ jobs:
           reporter: dotnet-trx
 
   # ===================================================================
+  # JOB 3: Generate Wolverine sources for affected API services
+  # ===================================================================
+  generate-wolverine-codegen:
+    runs-on: ubuntu-latest
+    name: Generate Wolverine code
+    needs: [check-label, detect-affected, build-affected]
+    if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup .NET SDK
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile') || contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore Catalog.Api
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
+        run: dotnet restore src/services/catalog/Catalog.Api/Catalog.Api.csproj -r linux-x64
+
+      - name: Restore Customer.Api
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
+        run: dotnet restore src/services/customer/Customer.Api/Customer.Api.csproj -r linux-x64
+
+      - name: Build Catalog.Api for code generation
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
+        run: dotnet build src/services/catalog/Catalog.Api/Catalog.Api.csproj -c Release -r linux-x64 --no-restore
+
+      - name: Build Customer.Api for code generation
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
+        run: dotnet build src/services/customer/Customer.Api/Customer.Api.csproj -c Release -r linux-x64 --no-restore
+
+      - name: Generate Wolverine code for Catalog.Api
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
+        working-directory: src/services/catalog/Catalog.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet ./bin/Release/net10.0/linux-x64/Catalog.Api.dll codegen write
+
+      - name: Generate Wolverine code for Customer.Api
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
+        working-directory: src/services/customer/Customer.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          Logging__LogLevel__Grpc: Warning
+        run: dotnet ./bin/Release/net10.0/linux-x64/Customer.Api.dll codegen write
+
+      - name: Upload Catalog Wolverine code
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/catalog/Catalog.Api/Dockerfile')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Customer Wolverine code
+        if: contains(needs.detect-affected.outputs.dockerfiles, 'src/services/customer/Customer.Api/Dockerfile')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
+          if-no-files-found: error
+          retention-days: 1
+
+  # ===================================================================
   # JOB 3: Build Docker images for affected services (verify Dockerfiles)
   # ===================================================================
   docker-affected:
     runs-on: ${{ matrix.builder.runner-image }}
     name: Build Docker image
-    needs: [check-label, detect-affected, build-affected]
+    needs: [check-label, detect-affected, build-affected, generate-wolverine-codegen]
     if: ${{ needs.check-label.outputs.status == 'success' && (needs.build-affected.result == 'success' || needs.build-affected.result == 'skipped') && needs.detect-affected.outputs.has-changes == 'true' && needs.detect-affected.outputs.dockerfiles != '[]' }}
     permissions:
       contents: write
       packages: write
       security-events: write
-    
-    # Service containers for Docker build (needed for Wolverine codegen)
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: catalog
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      rabbitmq:
-        image: rabbitmq:3-management-alpine
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5672:5672
-          - 15672:15672
     
     strategy:
       matrix:
@@ -521,6 +562,20 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download Catalog Wolverine code
+        if: contains(matrix.paths, 'src/services/catalog/Catalog.Api/Dockerfile')
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-catalog
+          path: src/services/catalog/Catalog.Api/Internal/Generated
+
+      - name: Download Customer Wolverine code
+        if: contains(matrix.paths, 'src/services/customer/Customer.Api/Dockerfile')
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wolverine-generated-customer
+          path: src/services/customer/Customer.Api/Internal/Generated
 
       - name: Read .NET container versions
         id: dotnet-version
@@ -578,7 +633,7 @@ jobs:
 
       - name: Log in to GitHub Container Registry for registry cache
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -586,7 +641,7 @@ jobs:
 
       - name: Build image (no push, registry cache)
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -609,12 +664,10 @@ jobs:
             VCS_URL=${{ github.repositoryUrl }}
             WEBSITE_URL=https://teck.dk
             DOCS_URL=https://docs.teck.dk
-            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=catalog;Username=postgres;Password=postgres
-            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
       - name: Build image (no push, scoped GHA cache fallback)
         if: github.event.pull_request.head.repo.full_name != github.repository
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           file: ${{ matrix.paths }}
@@ -637,8 +690,6 @@ jobs:
             VCS_URL=${{ github.repositoryUrl }}
             WEBSITE_URL=https://teck.dk
             DOCS_URL=https://docs.teck.dk
-            POSTGRES_CONNECTION=Host=localhost;Port=5432;Database=catalog;Username=postgres;Password=postgres
-            RABBITMQ_CONNECTION=amqp://guest:guest@localhost:5672/
 
       - name: Run Trivy vulnerability scanner on Docker image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
@@ -654,7 +705,7 @@ jobs:
 
       - name: Upload Trivy scan results to Security tab
         if: always() && hashFiles(format('trivy-image-results-{0}-{1}.sarif', steps.service-vars.outputs.service_name, steps.build-vars.outputs.platform_pair)) != ''
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: 'trivy-image-results-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}.sarif'
           category: 'trivy-image-${{ steps.service-vars.outputs.service_name }}-${{ steps.build-vars.outputs.platform_pair }}'

@@ -14,8 +14,36 @@ spec:
     spec:
       containers:
         - name: yarp-gateway
-          image: ghcr.io/teck-lab/teck-cloud-yarp-gateway:preview
+          image: ghcr.io/teck-lab/teck-cloud/web-public-gateway:preview
           imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: yarp-gateway-config
+            - secretRef:
+                name: yarp-gateway-keycloak
+          env:
+            - name: PREVIEW_RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: rabbitmq-connection
+                  key: host
+            - name: PREVIEW_RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: rabbitmq-connection
+                  key: port
+            - name: PREVIEW_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: preview-rabbitmq-default-user
+                  key: username
+            - name: PREVIEW_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: preview-rabbitmq-default-user
+                  key: password
+            - name: ConnectionStrings__rabbitmq
+              value: rabbitmq://$(PREVIEW_RABBITMQ_USERNAME):$(PREVIEW_RABBITMQ_PASSWORD)@$(PREVIEW_RABBITMQ_HOST):$(PREVIEW_RABBITMQ_PORT)/
           ports:
             - name: http
               containerPort: 8080

@@ -1,4 +1,5 @@
 **/.git
+**/.github
 **/.vs
 **/.vscode
 **/bin
@@ -19,3 +20,10 @@
 **/Dockerfile*
 **/.env
 **/.env.*
+
+# Exclude repo areas not required for service and gateway image builds.
+deployment/
+tests/
+tools/
+src/aspire/keycloak/
+src/aspire/Teck.Cloud.AppHost/

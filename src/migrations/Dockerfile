@@ -1,0 +1,90 @@
+# syntax=docker/dockerfile:1.7
+
+# Multi-stage Dockerfile for Teck.Cloud.Migrations
+# Runs EF Core migrations + Wolverine resource setup as a short-lived Job
+
+ARG DOTNET_SDK_VERSION=10.0.103
+ARG DOTNET_RUNTIME_VERSION=10.0.3
+ARG DOTNET_ALPINE_VERSION=3.23
+ARG ICU_LIBS_VERSION=76.1-r1
+
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK_VERSION}-alpine${DOTNET_ALPINE_VERSION} AS build
+ARG BUILD_CONFIGURATION=Release
+ARG VERSION=1.0.0
+WORKDIR /src
+
+# Copy props and project files for restore layer cache
+COPY ["global.json", "."]
+COPY ["Directory.Packages.props", "."]
+COPY ["Directory.Build.props", "."]
+COPY ["src/services/Directory.Build.props", "src/services/"]
+COPY ["src/services/catalog/Directory.Build.props", "src/services/catalog/"]
+COPY ["src/services/customer/Directory.Build.props", "src/services/customer/"]
+COPY ["src/buildingblocks/Directory.Build.props", "src/buildingblocks/"]
+
+COPY ["src/migrations/Teck.Cloud.Migrations/Teck.Cloud.Migrations.csproj", "src/migrations/Teck.Cloud.Migrations/"]
+
+# Catalog
+COPY ["src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj", "src/services/catalog/Catalog.Infrastructure/"]
+COPY ["src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL/Catalog.Infrastructure.Migrations.PostgreSQL.csproj", "src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL/"]
+COPY ["src/services/catalog/Catalog.Application/Catalog.Application.csproj", "src/services/catalog/Catalog.Application/"]
+COPY ["src/services/catalog/Catalog.Domain/Catalog.Domain.csproj", "src/services/catalog/Catalog.Domain/"]
+
+# Customer
+COPY ["src/services/customer/Customer.Infrastructure/Customer.Infrastructure.csproj", "src/services/customer/Customer.Infrastructure/"]
+COPY ["src/services/customer/Customer.Infrastructure.Migrations.PostgreSQL/Customer.Infrastructure.Migrations.PostgreSQL.csproj", "src/services/customer/Customer.Infrastructure.Migrations.PostgreSQL/"]
+COPY ["src/services/customer/Customer.Application/Customer.Application.csproj", "src/services/customer/Customer.Application/"]
+COPY ["src/services/customer/Customer.Domain/Customer.Domain.csproj", "src/services/customer/Customer.Domain/"]
+
+# Buildingblocks
+COPY ["src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj", "src/buildingblocks/SharedKernel.Core/"]
+COPY ["src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj", "src/buildingblocks/SharedKernel.Infrastructure/"]
+COPY ["src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj", "src/buildingblocks/SharedKernel.Persistence/"]
+COPY ["src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj", "src/buildingblocks/SharedKernel.Events/"]
+
+ARG TARGETPLATFORM
+ARG RUNTIME_IDENTIFIER=linux-musl-x64
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet restore "src/migrations/Teck.Cloud.Migrations/Teck.Cloud.Migrations.csproj" -r $RID
+
+COPY . .
+WORKDIR "/src/src/migrations/Teck.Cloud.Migrations"
+
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
+    dotnet publish "Teck.Cloud.Migrations.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID \
+        /p:Version=$VERSION \
+        /p:TreatWarningsAsErrors=false \
+        /p:RunAnalyzersDuringBuild=false \
+        /p:EnforceCodeStyleInBuild=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_ALPINE_VERSION} AS final
+ARG DOTNET_SDK_VERSION
+ARG DOTNET_RUNTIME_VERSION
+ARG DOTNET_ALPINE_VERSION
+ARG ICU_LIBS_VERSION
+ARG VERSION=1.0.0
+
+LABEL org.opencontainers.image.title="Teck.Cloud Migrations" \
+      org.opencontainers.image.description="EF Core + Wolverine database migration runner for Teck.Cloud services" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.authors="Teck Team" \
+      org.opencontainers.image.vendor="Teck" \
+      org.opencontainers.image.licenses="MIT"
+
+LABEL com.teck.service.name="migrations" \
+      com.teck.service.type="job" \
+      com.teck.service.tier="data"
+
+ENV APP_UID=1000 \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+WORKDIR /app
+RUN apk add --no-cache icu-libs=${ICU_LIBS_VERSION}
+COPY --from=build /app/publish .
+
+USER $APP_UID
+ENTRYPOINT ["dotnet", "Teck.Cloud.Migrations.dll"]
