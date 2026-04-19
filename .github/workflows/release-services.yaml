@@ -16,9 +16,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  precheck:
+    name: Evaluate Release Gate
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.gate.outputs.should-run }}
+    steps:
+      - name: Check commit title for skip markers
+        id: gate
+        shell: bash
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message || '' }}
+        run: |
+          set -euo pipefail
+          COMMIT_TITLE="${HEAD_COMMIT_MESSAGE%%$'\n'*}"
+          COMMIT_TITLE_LOWER=$(echo "$COMMIT_TITLE" | tr '[:upper:]' '[:lower:]')
+
+          if [[ "$COMMIT_TITLE_LOWER" == *"[skip ci]"* || "$COMMIT_TITLE_LOWER" == *"[ci skip]"* || "$COMMIT_TITLE_LOWER" == *"skip ci"* || "$COMMIT_TITLE_LOWER" == *"ci skip"* ]]; then
+            echo "should-run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping release for commit title: $COMMIT_TITLE"
+          else
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
+            echo "Release enabled for commit title: $COMMIT_TITLE"
+          fi
+
   validate-flyway-sql:
     name: Validate Flyway SQL
-    if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci') && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]')"
+    needs: precheck
+    if: needs.precheck.outputs.should-run == 'true'
     permissions:
       contents: read
     uses: ./.github/workflows/flyway-sql-validation.yaml
@@ -30,9 +55,9 @@ jobs:
 
   release:
     name: Create Release
-    needs: validate-flyway-sql
+    needs: [precheck, validate-flyway-sql]
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci') && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]')"
+    if: needs.precheck.outputs.should-run == 'true'
     permissions:
       contents: write
       issues: write
