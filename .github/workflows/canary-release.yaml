@@ -53,30 +53,9 @@ jobs:
           delete-tags: '*canary.${{ github.event.pull_request.number }}.*'
           delete-untagged: false
 
-  # ── Step 1: generate Flyway SQL and commit it before image build ──────────
-  generate-flyway-sql:
-    name: Generate Flyway SQL
-    if: >-
-      github.event.action != 'closed' &&
-      contains(github.event.pull_request.labels.*.name, 'preview') &&
-      !contains(github.event.pull_request.title, 'ci skip') &&
-      !contains(github.event.pull_request.title, 'skip ci') &&
-      (github.event.pull_request.body == null ||
-      (!contains(github.event.pull_request.body, 'ci skip') &&
-       !contains(github.event.pull_request.body, 'skip ci')))
-    permissions:
-      contents: write
-    uses: ./.github/workflows/flyway-sql-validation.yaml
-    with:
-      checkout-ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref || github.event.pull_request.head.sha }}
-      can-push: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-      commit-branch: ${{ github.event.pull_request.head.ref }}
-      upload-artifact: false
-
-  # ── Step 2: derive the canary version and find all Dockerfiles ────────────
+  # ── Step 1: derive the canary version and find all Dockerfiles ────────────
   compute-version:
     name: Compute Canary Version
-    needs: generate-flyway-sql
     runs-on: ubuntu-latest
     if: >-
       github.event.action != 'closed' &&

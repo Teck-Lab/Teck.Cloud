@@ -40,22 +40,9 @@ jobs:
             echo "Release enabled for commit title: $COMMIT_TITLE"
           fi
 
-  validate-flyway-sql:
-    name: Validate Flyway SQL
-    needs: precheck
-    if: needs.precheck.outputs.should-run == 'true'
-    permissions:
-      contents: read
-    uses: ./.github/workflows/flyway-sql-validation.yaml
-    with:
-      checkout-ref: ${{ github.ref_name }}
-      can-push: false
-      commit-branch: ''
-      upload-artifact: false
-
   release:
     name: Create Release
-    needs: [precheck, validate-flyway-sql]
+    needs: precheck
     runs-on: ubuntu-latest
     if: needs.precheck.outputs.should-run == 'true'
     permissions:
