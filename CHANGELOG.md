@@ -1,3 +1,16 @@
+# v0.22.4 (Tue Apr 21 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Update dotnet-test-check.yaml ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Bump ArgoCD sync-wave for DB migrations ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.3 (Tue Apr 21 2026)
 
 #### ⚠️ Pushed to `main`
