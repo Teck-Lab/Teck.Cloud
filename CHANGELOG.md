@@ -1,3 +1,18 @@
+# v0.22.1 (Tue Apr 21 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Handle migrations image and unify pull secrets ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Remove serviceaccount.yaml from catalog-api overlays ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Add migrations ServiceAccount to preview overlays ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Use cloudflare-public as httproute parentRef ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.0 (Sun Apr 19 2026)
 
 #### 🚀 Enhancement
