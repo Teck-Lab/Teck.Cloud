@@ -73,7 +73,7 @@ spec:
             - name: ConnectionStrings__db-read
               value: Host=$(POSTGRES_HOST);Database=$(POSTGRES_DATABASE);Username=$(POSTGRES_USERNAME);Password=$(POSTGRES_PASSWORD);Port=$(POSTGRES_PORT)
             - name: ConnectionStrings__rabbitmq
-              value: rabbitmq://$(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD)@rabbitmq-shared.rabbitmq-system.svc.cluster.local:5672/
+              value: rabbitmq://$(RABBITMQ_USERNAME):$(RABBITMQ_PASSWORD)@rabbitmq-shared.rabbitmq-system.svc.cluster.local:5672/teck-cloud-core
           ports:
             - name: http
               containerPort: 8080
