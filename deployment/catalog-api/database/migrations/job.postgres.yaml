@@ -17,6 +17,8 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: migrations
+      imagePullSecrets:
+        - name: github-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:

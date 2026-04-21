@@ -13,7 +13,7 @@ spec:
         app.kubernetes.io/name: yarp-gateway
     spec:
       imagePullSecrets:
-        - name: github-pull-secret-yarp-gateway
+        - name: github-pull-secret
       securityContext:
         runAsNonRoot: true
         seccompProfile:

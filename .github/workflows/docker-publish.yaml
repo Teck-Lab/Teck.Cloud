@@ -46,6 +46,13 @@ jobs:
                     '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
                 fi
               done
+
+              if [ -f "src/migrations/Dockerfile" ]; then
+                jq -cn \
+                  --arg service_name "migrations" \
+                  --arg dockerfile_path "src/migrations/Dockerfile" \
+                  '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
+              fi
             } | jq -s -c 'sort_by(.service_name)'
           )
 

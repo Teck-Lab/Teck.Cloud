@@ -42,6 +42,9 @@ jobs:
               PACKAGES="${PACKAGES:+$PACKAGES,}teck-cloud/${SERVICE_NAME}"
             fi
           done
+          if [ -f "src/migrations/Dockerfile" ]; then
+            PACKAGES="${PACKAGES:+$PACKAGES,}teck-cloud-migrations"
+          fi
           echo "list=$PACKAGES" >> "$GITHUB_OUTPUT"
           echo "Packages to clean: $PACKAGES"
 
@@ -147,6 +150,13 @@ jobs:
                     '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
                 fi
               done
+
+              if [ -f "src/migrations/Dockerfile" ]; then
+                jq -cn \
+                  --arg service_name "migrations" \
+                  --arg dockerfile_path "src/migrations/Dockerfile" \
+                  '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
+              fi
             } | jq -s -c 'sort_by(.service_name)'
           )
 
@@ -286,7 +296,11 @@ jobs:
           PLATFORM_PAIR: ${{ matrix.target.platform_pair }}
         run: |
           REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
           echo "cache_image=${IMAGE_NAME}:buildcache-${PLATFORM_PAIR}" >> "$GITHUB_OUTPUT"
 
@@ -362,7 +376,12 @@ jobs:
           SERVICE_NAME: ${{ matrix.target.service_name }}
         run: |
           REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          echo "image_name=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
+          echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
@@ -449,8 +468,8 @@ jobs:
             echo
             echo 'Pull the canary images with:'
             echo '```bash'
-            echo "$TARGETS_JSON" | jq -r --arg owner "$REPO_OWNER_LOWER" --arg version "$VERSION" '.[] | "docker pull ghcr.io/\($owner)/teck-cloud/\(.service_name):\($version)"'
-            echo "$TARGETS_JSON" | jq -r --arg owner "$REPO_OWNER_LOWER" --arg shortTag "$SHORT_TAG" '.[] | "docker pull ghcr.io/\($owner)/teck-cloud/\(.service_name):\($shortTag)"'
+            echo "$TARGETS_JSON" | jq -r --arg owner "$REPO_OWNER_LOWER" --arg version "$VERSION" '.[] | if .service_name == "migrations" then "docker pull ghcr.io/\($owner)/teck-cloud-migrations:\($version)" else "docker pull ghcr.io/\($owner)/teck-cloud/\(.service_name):\($version)" end'
+            echo "$TARGETS_JSON" | jq -r --arg owner "$REPO_OWNER_LOWER" --arg shortTag "$SHORT_TAG" '.[] | if .service_name == "migrations" then "docker pull ghcr.io/\($owner)/teck-cloud-migrations:\($shortTag)" else "docker pull ghcr.io/\($owner)/teck-cloud/\(.service_name):\($shortTag)" end'
             echo '```'
             echo
             echo '> Images are built for `linux/amd64, linux/arm64`. No GitHub release has been created.'

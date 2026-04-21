@@ -178,7 +178,11 @@ jobs:
         run: |
           PLATFORM_PAIR=$(echo "$MATRIX_PLATFORM" | sed 's/\//-/')
           REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
           CACHE_IMAGE="${IMAGE_NAME}:buildcache-${PLATFORM_PAIR}"
           echo "platform_pair=$PLATFORM_PAIR" >> "$GITHUB_OUTPUT"
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
@@ -289,7 +293,11 @@ jobs:
           SERVICE_NAME: ${{ inputs.service-name }}
         run: |
           REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
@@ -381,7 +389,12 @@ jobs:
           IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
           REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
+          IMAGE_REF="${IMAGE_NAME}@${IMAGE_DIGEST}"
           echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           echo "Image reference: $IMAGE_REF"
 
@@ -456,7 +469,12 @@ jobs:
           IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
           REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
+          IMAGE_REF="${IMAGE_NAME}@${IMAGE_DIGEST}"
           echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           echo "Image reference: $IMAGE_REF"
           
@@ -517,7 +535,12 @@ jobs:
           SERVICE_NAME: ${{ inputs.service-name }}
         run: |
           REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          echo "name=ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}" >> "$GITHUB_OUTPUT"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
+          echo "name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
           
       - name: Download SPDX SBOM
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -641,7 +664,12 @@ jobs:
         id: set-image
         run: |
           REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          IMAGE_REF="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
+          IMAGE_REF="${IMAGE_NAME}@${IMAGE_DIGEST}"
           echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           
       - name: Download SPDX SBOM
@@ -809,7 +837,11 @@ jobs:
           IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
           REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
-          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
           IMAGE_REF="${IMAGE_NAME}@${IMAGE_DIGEST}"
           echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           echo "name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
@@ -863,7 +895,13 @@ jobs:
           SERVICE_NAME: ${{ inputs.service-name }}
           IMAGE_DIGEST: ${{ needs.merge-manifests.outputs.digest }}
         run: |
-          IMAGE_REF="ghcr.io/${REPOSITORY_OWNER}/teck-cloud/${SERVICE_NAME}@${IMAGE_DIGEST}"
+          REPO_OWNER_LOWER=$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
+          IMAGE_REF="${IMAGE_NAME}@${IMAGE_DIGEST}"
           echo "ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
           
       - name: Download signed SPDX SBOM
