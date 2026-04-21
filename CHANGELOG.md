@@ -1,3 +1,15 @@
+# v0.22.2 (Tue Apr 21 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Update global.json ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.1 (Tue Apr 21 2026)
 
 #### ⚠️ Pushed to `main`
