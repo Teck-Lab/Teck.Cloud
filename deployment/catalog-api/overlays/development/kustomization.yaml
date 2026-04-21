@@ -6,7 +6,6 @@ resources:
   - configmap.yaml
   - deployment.yaml
   - service.yaml
-  - serviceaccount.yaml
 
 images:
   - name: ghcr.io/teck-lab/teck-cloud-migrations
