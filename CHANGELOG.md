@@ -1,3 +1,15 @@
+# v0.22.5 (Tue Apr 21 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Add krb5-libs to migration Containerfile ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.4 (Tue Apr 21 2026)
 
 #### ⚠️ Pushed to `main`
