@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       dockerfile-path:
-        description: 'Path to Dockerfile'
+        description: 'Path to Containerfile'
         required: true
         type: string
       docker-context:
@@ -1019,3 +1019,4 @@ jobs:
           gh release download v${RELEASE_VERSION} --pattern "sbom-${SERVICE_NAME}.*"
           ```
           EOF
+

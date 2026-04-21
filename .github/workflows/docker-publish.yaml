@@ -26,31 +26,31 @@ jobs:
           TARGETS_JSON=$(
             {
               for api_dir in src/services/*/*.Api; do
-                if [ -f "$api_dir/Dockerfile" ]; then
+                if [ -f "$api_dir/Containerfile" ]; then
                   SERVICE_NAME=$(echo "$api_dir" | sed -n 's|src/services/\([^/]*\)/.*|\1|p')
                   if [ -n "$SERVICE_NAME" ]; then
                     jq -cn \
                       --arg service_name "$SERVICE_NAME" \
-                      --arg dockerfile_path "$api_dir/Dockerfile" \
+                      --arg dockerfile_path "$api_dir/Containerfile" \
                       '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
                   fi
                 fi
               done
 
               for gateway_dir in src/gateways/*; do
-                if [ -f "$gateway_dir/Dockerfile" ]; then
+                if [ -f "$gateway_dir/Containerfile" ]; then
                   SERVICE_NAME=$(basename "$gateway_dir" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
                   jq -cn \
                     --arg service_name "$SERVICE_NAME" \
-                    --arg dockerfile_path "$gateway_dir/Dockerfile" \
+                    --arg dockerfile_path "$gateway_dir/Containerfile" \
                     '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
                 fi
               done
 
-              if [ -f "src/migrations/Dockerfile" ]; then
+              if [ -f "src/migrations/Containerfile" ]; then
                 jq -cn \
                   --arg service_name "migrations" \
-                  --arg dockerfile_path "src/migrations/Dockerfile" \
+                  --arg dockerfile_path "src/migrations/Containerfile" \
                   '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
               fi
             } | jq -s -c 'sort_by(.service_name)'
@@ -102,3 +102,4 @@ jobs:
       rabbitmq-connection: 'amqp://guest:guest@localhost:5672/'
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
+

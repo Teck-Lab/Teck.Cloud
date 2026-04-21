@@ -19,7 +19,6 @@ COPY ["Directory.Packages.props", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["src/services/Directory.Build.props", "src/services/"]
 COPY ["src/services/catalog/Directory.Build.props", "src/services/catalog/"]
-COPY ["src/services/customer/Directory.Build.props", "src/services/customer/"]
 COPY ["src/buildingblocks/Directory.Build.props", "src/buildingblocks/"]
 
 COPY ["src/migrations/Teck.Cloud.Migrations/Teck.Cloud.Migrations.csproj", "src/migrations/Teck.Cloud.Migrations/"]

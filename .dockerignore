@@ -17,7 +17,7 @@
 **/.coverage
 **/*.coverage
 **/.dockerignore
-**/Dockerfile*
+**/Containerfile*
 **/.env
 **/.env.*
 

@@ -23,7 +23,7 @@ jobs:
           echo "Building auth version: $VERSION"
 
   check-auth:
-    name: Check if auth Dockerfile exists
+    name: Check if auth Containerfile exists
     runs-on: ubuntu-latest
     outputs:
       exists: ${{ steps.check.outputs.exists }}
@@ -33,15 +33,15 @@ jobs:
         with:
           ref: refs/tags/${{ github.event.release.tag_name }}
 
-      - name: Check for auth Dockerfile
+      - name: Check for auth Containerfile
         id: check
         run: |
-          if [ -f "src/auth/Dockerfile" ]; then
+          if [ -f "src/auth/Containerfile" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Auth Dockerfile found"
+            echo "Auth Containerfile found"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Auth Dockerfile not found - skipping"
+            echo "Auth Containerfile not found - skipping"
           fi
 
   build-sign-sbom-auth:
@@ -58,10 +58,11 @@ jobs:
     with:
       service-name: auth
       version: ${{ needs.get-version.outputs.version }}
-      dockerfile-path: src/auth/Dockerfile
+      dockerfile-path: src/auth/Containerfile
       docker-context: '.'
       # Auth service doesn't need PostgreSQL/RabbitMQ (Keycloak-based)
       postgres-connection: ''
       rabbitmq-connection: ''
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
+

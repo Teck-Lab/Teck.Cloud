@@ -21,13 +21,14 @@ Custom Keycloak image for Teck.Cloud, based on the [official Keycloak image](htt
 ## Local build
 
 ```bash
-docker build -t teck-auth:local --build-arg VERSION=0.0.0-dev src/auth
+podman build -f src/auth/Containerfile -t teck-auth:local --build-arg VERSION=0.0.0-dev src/auth
 ```
 
 ## CI/CD
 
-The auth image is built and published by `.github/workflows/docker-publish.yaml` when `src/auth/Dockerfile` exists. It uses the same version as other services (unified versioning from Auto).
+The auth image is built and published by `.github/workflows/docker-publish.yaml` when `src/auth/Containerfile` exists. It uses the same version as other services (unified versioning from Auto).
 
 ## Theme configuration
 
 The image includes the keycloak-shadcn extension JAR. Configure theme behavior via Keycloak realm/theme settings and relevant environment variables.
+

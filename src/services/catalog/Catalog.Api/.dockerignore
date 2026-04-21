@@ -18,7 +18,7 @@ TestResults/
 *.sln.docstates
 
 # Ignore Docker-related files not needed in build context
-Dockerfile*
+Containerfile*
 .dockerignore
 
 docker-compose*
