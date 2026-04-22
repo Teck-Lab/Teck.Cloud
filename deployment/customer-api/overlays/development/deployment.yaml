@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: customer-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    reloader.stakater.com/search: "true"
 spec:
   replicas: 1
   selector:
