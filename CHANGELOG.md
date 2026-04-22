@@ -1,3 +1,17 @@
+# v0.22.6 (Wed Apr 22 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Update Program.cs ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Use single Redis headless host in dev configs ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Add RabbitMQ vhost to development env vars ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.5 (Tue Apr 21 2026)
 
 #### ⚠️ Pushed to `main`
