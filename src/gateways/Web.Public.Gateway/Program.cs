@@ -58,6 +58,9 @@ builder.Services.AddHttpClient("KeycloakTokenClient", client =>
 EdgeTenantOptions edgeTenantOptions = builder.Configuration.GetEdgeTenantOptions();
 builder.Services.AddSingleton(edgeTenantOptions);
 
+EdgeRouteSecurityOptions edgeRouteSecurityOptions = builder.Configuration.GetEdgeRouteSecurityOptions();
+builder.Services.AddSingleton(edgeRouteSecurityOptions);
+
 IConfigurationSection reverseProxyConfiguration = builder.Configuration.GetSection("ReverseProxy");
 builder.Services.AddReverseProxy()
     .LoadFromConfig(reverseProxyConfiguration)
