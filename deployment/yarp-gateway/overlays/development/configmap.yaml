@@ -8,4 +8,4 @@ data:
   ReverseProxy__Clusters__catalog__Destinations__Default__Address: http://catalog-api
   ReverseProxy__Clusters__customer__Destinations__Default__Address: http://customer-api
   ConnectionStrings__redis: >-
-    redis-shared-0.redis-shared-headless.redis-system.svc.cluster.local:26379,redis-shared-1.redis-shared-headless.redis-system.svc.cluster.local:26379,redis-shared-2.redis-shared-headless.redis-system.svc.cluster.local:26379,serviceName=mymaster,abortConnect=false
+    redis-shared-s-hl.redis-system.svc.cluster.local:26379,serviceName=mymaster,abortConnect=false
