@@ -80,9 +80,8 @@ app.MapRemote(
         remote.Register<SharedKernel.Grpc.Contracts.Remote.V1.Tenants.GetTenantDatabaseInfoCommand, SharedKernel.Grpc.Contracts.Remote.V1.Tenants.TenantDatabaseInfoRpcResult>();
     });
 
-app.UseRouting();
-
 app.UseBaseInfrastructure();
+app.UseRouting();
 app.UseMiddleware<TenantEnforcementMiddleware>();
 
 if (app.Environment.IsDevelopment())
