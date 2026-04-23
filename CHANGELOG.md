@@ -1,3 +1,15 @@
+# v0.22.12 (Thu Apr 23 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Update Extensions.cs ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.11 (Thu Apr 23 2026)
 
 #### ⚠️ Pushed to `main`
