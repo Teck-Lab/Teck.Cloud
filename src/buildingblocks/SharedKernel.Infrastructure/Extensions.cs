@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Infrastructure.Middlewares;
 using SharedKernel.Infrastructure.Options;
@@ -60,6 +61,15 @@ namespace SharedKernel.Infrastructure
                 options.KnownIPNetworks.Clear();
                 options.KnownProxies.Clear();
             });
+
+            // Add HTTP request logging so we can inspect forwarded headers at runtime.
+            builder.Services.AddHttpLogging(options =>
+            {
+                options.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders;
+                options.RequestHeaders.Add("X-Forwarded-For");
+                options.RequestHeaders.Add("X-Forwarded-Proto");
+                options.RequestHeaders.Add("X-Forwarded-Host");
+            });
         }
 
         /// <summary>
@@ -76,14 +86,25 @@ namespace SharedKernel.Infrastructure
             app.UseCors(AllowAllOrigins);
             app.UseForwardedHeaders();
 
-            app.Use((context, next) =>
+            // Enable HTTP logging after forwarded headers so logs reflect the proxied values.
+            app.UseHttpLogging();
+
+            app.Use(async (context, next) =>
             {
+                app.Logger.LogInformation(
+                    "Request Scheme={Scheme} Host={Host} XFP={XForwardedProto} XFH={XForwardedHost} XFF={XForwardedFor}",
+                    context.Request.Scheme,
+                    context.Request.Host.Value,
+                    context.Request.Headers["X-Forwarded-Proto"].ToString(),
+                    context.Request.Headers["X-Forwarded-Host"].ToString(),
+                    context.Request.Headers["X-Forwarded-For"].ToString());
+
                 if (context.Request.Headers.TryGetValue("X-Forwarded-Prefix", out var prefix))
                 {
                     context.Request.PathBase = new PathString(prefix);
                 }
 
-                return next();
+                await next();
             });
 
             app.UseAuthentication();
