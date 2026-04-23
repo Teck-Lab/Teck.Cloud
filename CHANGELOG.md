@@ -1,3 +1,17 @@
+# v0.22.7 (Thu Apr 23 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Support X-Forwarded-Host and clear known proxies ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Use dev-api.tecklab.dk for dev gateways ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Update annotations, DNS hostnames, and ArgoCD hooks ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.6 (Wed Apr 22 2026)
 
 #### ⚠️ Pushed to `main`
