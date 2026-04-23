@@ -54,7 +54,11 @@ namespace SharedKernel.Infrastructure
             // 4. Forwarded headers
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
-                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                                         | ForwardedHeaders.XForwardedProto
+                                         | ForwardedHeaders.XForwardedHost;
+                options.KnownIPNetworks.Clear();
+                options.KnownProxies.Clear();
             });
         }
 
@@ -70,12 +74,7 @@ namespace SharedKernel.Infrastructure
 
             // Preserve Order
             app.UseCors(AllowAllOrigins);
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
-            {
-                ForwardedHeaders = ForwardedHeaders.XForwardedFor
-                                 | ForwardedHeaders.XForwardedProto
-                                 | ForwardedHeaders.XForwardedHost
-            });
+            app.UseForwardedHeaders();
 
             app.Use((context, next) =>
             {
