@@ -37,7 +37,7 @@ public sealed class TenantWriteRepository : GenericWriteRepository<Tenant, Guid,
     {
         return await this.DbContext.Tenants
             .Include(tenant => tenant.Databases)
-            .Where(tenant => tenant.Id == id)
+            .Where(tenant => tenant.KeycloakOrganizationId == id.ToString())
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
