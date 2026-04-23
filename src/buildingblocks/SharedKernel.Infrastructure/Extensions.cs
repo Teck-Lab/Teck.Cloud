@@ -92,13 +92,22 @@ namespace SharedKernel.Infrastructure
 
             app.Use(async (context, next) =>
             {
-                app.Logger.LogInformation(
-                    "Request Scheme={Scheme} Host={Host} XFP={XForwardedProto} XFH={XForwardedHost} XFF={XForwardedFor}",
-                    context.Request.Scheme,
-                    context.Request.Host.Value,
-                    context.Request.Headers["X-Forwarded-Proto"].ToString(),
-                    context.Request.Headers["X-Forwarded-Host"].ToString(),
-                    context.Request.Headers["X-Forwarded-For"].ToString());
+                if (app.Logger.IsEnabled(LogLevel.Information))
+                {
+                    var scheme = context.Request.Scheme;
+                    var host = context.Request.Host.Value;
+                    var xfp = context.Request.Headers["X-Forwarded-Proto"].ToString();
+                    var xfh = context.Request.Headers["X-Forwarded-Host"].ToString();
+                    var xff = context.Request.Headers["X-Forwarded-For"].ToString();
+
+                    app.Logger.LogInformation(
+                        "Request Scheme={Scheme} Host={Host} XFP={XForwardedProto} XFH={XForwardedHost} XFF={XForwardedFor}",
+                        scheme,
+                        host,
+                        xfp,
+                        xfh,
+                        xff);
+                }
 
                 if (context.Request.Headers.TryGetValue("X-Forwarded-Prefix", out var prefix))
                 {
