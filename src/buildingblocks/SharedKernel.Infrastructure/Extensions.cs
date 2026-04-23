@@ -2,10 +2,8 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Json;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using SharedKernel.Infrastructure.Middlewares;
 using SharedKernel.Infrastructure.Options;
 
@@ -63,14 +61,7 @@ namespace SharedKernel.Infrastructure
                 options.KnownProxies.Clear();
             });
 
-            // Add HTTP request logging so we can inspect forwarded headers at runtime.
-            builder.Services.AddHttpLogging(options =>
-            {
-                options.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders;
-                options.RequestHeaders.Add("X-Forwarded-For");
-                options.RequestHeaders.Add("X-Forwarded-Proto");
-                options.RequestHeaders.Add("X-Forwarded-Host");
-            });
+            // NOTE: HTTP logging removed (was temporarily added for debugging forwarded headers).
         }
 
         /// <summary>
@@ -87,34 +78,14 @@ namespace SharedKernel.Infrastructure
             app.UseCors(AllowAllOrigins);
             app.UseForwardedHeaders();
 
-            // Enable HTTP logging after forwarded headers so logs reflect the proxied values.
-            app.UseHttpLogging();
-
-            app.Use(async (context, next) =>
+            app.Use((context, next) =>
             {
-                if (app.Logger.IsEnabled(LogLevel.Information))
-                {
-                    var scheme = context.Request.Scheme;
-                    var host = context.Request.Host.Value;
-                    var xfp = context.Request.Headers["X-Forwarded-Proto"].ToString();
-                    var xfh = context.Request.Headers["X-Forwarded-Host"].ToString();
-                    var xff = context.Request.Headers["X-Forwarded-For"].ToString();
-
-                    app.Logger.LogInformation(
-                        "Request Scheme={Scheme} Host={Host} XFP={XForwardedProto} XFH={XForwardedHost} XFF={XForwardedFor}",
-                        scheme,
-                        host,
-                        xfp,
-                        xfh,
-                        xff);
-                }
-
                 if (context.Request.Headers.TryGetValue("X-Forwarded-Prefix", out var prefix))
                 {
                     context.Request.PathBase = new PathString(prefix);
                 }
 
-                await next();
+                return next();
             });
 
             app.UseAuthentication();
