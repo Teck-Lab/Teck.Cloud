@@ -1,3 +1,15 @@
+# v0.22.14 (Sat Apr 25 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Add GrpcHostingExtensions and use for Kestrel config ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.13 (Thu Apr 23 2026)
 
 #### ⚠️ Pushed to `main`
