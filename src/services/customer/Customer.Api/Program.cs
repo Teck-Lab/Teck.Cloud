@@ -38,6 +38,7 @@ internal static class Program
     private static WebApplicationBuilder CreateBuilder(string[] args)
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+        builder.ConfigureInternalServiceTransport();
         builder.AddServiceDefaults();
         return builder;
     }

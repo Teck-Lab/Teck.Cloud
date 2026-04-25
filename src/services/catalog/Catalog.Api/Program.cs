@@ -10,7 +10,6 @@ using FastEndpoints;
 using Finbuckle.MultiTenant.AspNetCore.Extensions;
 using FluentValidation;
 using JasperFx;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Caching;
 using SharedKernel.Infrastructure.Endpoints;
@@ -19,15 +18,7 @@ using SharedKernel.Infrastructure.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 bool isRunningWolverineCodeGeneration = CodeGenerationDetector.IsRunningWolverineCodeGeneration();
-
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ConfigureEndpointDefaults(listenOptions =>
-    {
-        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-    });
-});
-
+builder.ConfigureInternalServiceTransport();
 builder.AddServiceDefaults();
 
 // Add multi-tenant support BEFORE infrastructure services
