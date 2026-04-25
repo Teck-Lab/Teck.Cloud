@@ -1,3 +1,16 @@
+# v0.22.15 (Sat Apr 25 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Parameterize PublishReadyToRun and tune Docker builds ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Update package versions and lockfiles ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.14 (Sat Apr 25 2026)
 
 #### ⚠️ Pushed to `main`
