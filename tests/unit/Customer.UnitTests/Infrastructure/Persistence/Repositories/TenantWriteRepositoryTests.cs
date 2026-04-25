@@ -84,9 +84,10 @@ public class TenantWriteRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetByIdentifierAsync_ShouldReturnTenant_WhenExists()
+    public async Task GetByIdentifierAsync_ShouldReturnTenant_WhenKeycloakOrganizationIdExists()
     {
         // Arrange
+        string keycloakOrganizationId = Guid.NewGuid().ToString();
         var tenantResult = Tenant.Create(
             CreateArgs(
                 "unique-tenant",
@@ -96,23 +97,25 @@ public class TenantWriteRepositoryTests : IDisposable
                 DatabaseProvider.PostgreSQL));
 
         var tenant = tenantResult.Value;
+        tenant.SetIdentityOrganizationId(keycloakOrganizationId);
         await _dbContext.Tenants.AddAsync(tenant, TestContext.Current.CancellationToken);
         await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _repository.GetByIdentifierAsync("unique-tenant", TestContext.Current.CancellationToken);
+        var result = await _repository.GetByIdentifierAsync(keycloakOrganizationId, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
         result.Identifier.ShouldBe("unique-tenant");
+        result.KeycloakOrganizationId.ShouldBe(keycloakOrganizationId);
         result.Name.ShouldBe("Unique Tenant");
     }
 
     [Fact]
-    public async Task GetByIdentifierAsync_ShouldReturnNull_WhenNotExists()
+    public async Task GetByIdentifierAsync_ShouldReturnNull_WhenKeycloakOrganizationIdNotExists()
     {
         // Act
-        var result = await _repository.GetByIdentifierAsync("non-existent", TestContext.Current.CancellationToken);
+        var result = await _repository.GetByIdentifierAsync(Guid.NewGuid().ToString(), TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldBeNull();

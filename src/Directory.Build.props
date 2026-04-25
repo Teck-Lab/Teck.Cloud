@@ -4,7 +4,7 @@
 
   <!-- Language & Compilation Settings -->
   <PropertyGroup>
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);AV1500;AV1561;AV1564;AV1710;IL2026;IL2072;IL3050</WarningsNotAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);AV1500;AV1561;AV1564;AV1710;IL2026;IL2067;IL2072;IL2090;IL2091;IL3050</WarningsNotAsErrors>
     <NoWarn>IDE00585;CS8669;HLQ012</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces> 

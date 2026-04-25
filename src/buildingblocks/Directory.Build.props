@@ -18,6 +18,6 @@
   <!-- Support for Trimming -->
   <PropertyGroup>
     <IsTrimmable>false</IsTrimmable>
-    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 </Project>

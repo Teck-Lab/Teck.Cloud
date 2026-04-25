@@ -32,9 +32,9 @@ public interface ITenantWriteRepository
     Task<Tenant?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets a tenant by identifier.
+    /// Gets a tenant by Keycloak organization identifier.
     /// </summary>
-    /// <param name="identifier">The tenant identifier.</param>
+    /// <param name="identifier">The Keycloak organization identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The tenant or null if not found.</returns>
     Task<Tenant?> GetByIdentifierAsync(string identifier, CancellationToken cancellationToken);

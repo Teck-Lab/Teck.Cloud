@@ -37,22 +37,22 @@ public sealed class TenantWriteRepository : GenericWriteRepository<Tenant, Guid,
     {
         return await this.DbContext.Tenants
             .Include(tenant => tenant.Databases)
-            .Where(tenant => tenant.KeycloakOrganizationId == id.ToString())
+            .Where(tenant => tenant.Id == id)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Gets a tenant by its identifier (unique slug).
+    /// Gets a tenant by its Keycloak organization identifier.
     /// </summary>
-    /// <param name="identifier">The tenant identifier.</param>
+    /// <param name="identifier">The Keycloak organization identifier.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The tenant if found; otherwise, null.</returns>
     public async Task<Tenant?> GetByIdentifierAsync(string identifier, CancellationToken cancellationToken)
     {
         return await this.DbContext.Tenants
             .Include(tenant => tenant.Databases)
-            .Where(tenant => tenant.Identifier == identifier)
+            .Where(tenant => tenant.KeycloakOrganizationId == identifier)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
