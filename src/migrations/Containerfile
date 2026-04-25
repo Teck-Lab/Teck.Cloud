@@ -15,6 +15,7 @@ WORKDIR /src
 
 # Copy props and project files for restore layer cache
 COPY ["global.json", "."]
+COPY ["nuget.config", "."]
 COPY ["Directory.Packages.props", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["src/services/Directory.Build.props", "src/services/"]
@@ -45,6 +46,7 @@ ARG TARGETPLATFORM
 ARG RUNTIME_IDENTIFIER=linux-musl-x64
 
 RUN --mount=type=cache,target=/root/.nuget/packages \
+    --mount=type=cache,target=/root/.local/share/NuGet/v3-cache \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet restore "src/migrations/Teck.Cloud.Migrations/Teck.Cloud.Migrations.csproj" -r $RID
 
@@ -52,6 +54,7 @@ COPY . .
 WORKDIR "/src/src/migrations/Teck.Cloud.Migrations"
 
 RUN --mount=type=cache,target=/root/.nuget/packages \
+    --mount=type=cache,target=/root/.local/share/NuGet/v3-cache \
     if [ "$TARGETPLATFORM" = "linux/arm64" ]; then export RID=linux-musl-arm64; else export RID=linux-musl-x64; fi && \
     dotnet publish "Teck.Cloud.Migrations.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r $RID \
         /p:Version=$VERSION \
