@@ -1644,8 +1644,8 @@
           "OpenTelemetry.Resources.Process": "[1.15.0-beta.1, )",
           "OpenTelemetry.Resources.ProcessRuntime": "[1.15.0-beta.1, )",
           "RabbitMQ.Client.OpenTelemetry": "[1.0.0-rc.2, )",
-          "Scalar.AspNetCore": "[2.14.4, )",
-          "Scalar.AspNetCore.Microsoft": "[2.14.4, )",
+          "Scalar.AspNetCore": "[2.13.22, )",
+          "Scalar.AspNetCore.Microsoft": "[2.13.22, )",
           "Scrutor": "[7.0.0, )",
           "Serilog.AspNetCore": "[10.0.0, )",
           "Serilog.Enrichers.Environment": "[3.0.1, )",
@@ -2749,18 +2749,18 @@
       },
       "Scalar.AspNetCore": {
         "type": "CentralTransitive",
-        "requested": "[2.14.4, )",
-        "resolved": "2.14.4",
-        "contentHash": "PyuqLRi7JXyTJm/rh+IWCA4Fct1SlZuWrdYiui5hiaBuSY88+roc4eWKfYaE6zrupBIwnEP8pJLe4ifvU7HtZA=="
+        "requested": "[2.13.22, )",
+        "resolved": "2.13.22",
+        "contentHash": "MN267boY7T3AEHW1mTFDpg4KHF/oiKbox7ue5Orz6/2OeqZHYF1ZQcjBHXGSwxN+lyGSYGL9/i0IRorCYyqw3Q=="
       },
       "Scalar.AspNetCore.Microsoft": {
         "type": "CentralTransitive",
-        "requested": "[2.14.4, )",
-        "resolved": "2.14.4",
-        "contentHash": "O+WDL7BwLtIzyLF7nfo1V5PglPwEzNG75rcpo7lBB7AT2Nn8UeMUbESHZBl6Cce0FpLfXpAkNZSzv2GurVoGtA==",
+        "requested": "[2.13.22, )",
+        "resolved": "2.13.22",
+        "contentHash": "yoe/+LQUIJp5y2W2yzIur3DO5W2D1kqt+mqwhFogrmfL6Dd08sW0TdiRpzcmsWRBaJyFHvoDmbpXSQJldWUmiQ==",
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "10.0.0",
-          "Scalar.AspNetCore": "2.14.4"
+          "Scalar.AspNetCore": "2.13.22"
         }
       },
       "Scrutor": {
