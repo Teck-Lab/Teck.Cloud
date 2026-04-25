@@ -1,3 +1,15 @@
+# v0.22.16 (Sat Apr 25 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Use Keycloak org ID; enable trim analyzer ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.15 (Sat Apr 25 2026)
 
 #### ⚠️ Pushed to `main`
