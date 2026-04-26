@@ -36,13 +36,13 @@ spec:
             - secretRef:
                 name: customer-api-keycloak
           env:
-            - name: ASPNETCORE_Kestrel__Endpoints__Http__Url
+            - name: Kestrel__Endpoints__Http__Url
               value: http://+:8080
-            - name: ASPNETCORE_Kestrel__Endpoints__Http__Protocols
+            - name: Kestrel__Endpoints__Http__Protocols
               value: Http1
-            - name: ASPNETCORE_Kestrel__Endpoints__Grpc__Url
+            - name: Kestrel__Endpoints__Grpc__Url
               value: http://+:8081
-            - name: ASPNETCORE_Kestrel__Endpoints__Grpc__Protocols
+            - name: Kestrel__Endpoints__Grpc__Protocols
               value: Http2
             - name: POSTGRES_HOST
               valueFrom:
