@@ -1,3 +1,15 @@
+# v0.22.19 (Sun Apr 26 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Add h2c appProtocol and improve resolver logs ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.18 (Sat Apr 25 2026)
 
 #### ⚠️ Pushed to `main`
