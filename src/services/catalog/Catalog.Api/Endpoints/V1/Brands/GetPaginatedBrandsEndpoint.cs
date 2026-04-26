@@ -9,6 +9,7 @@ using Keycloak.AuthServices.Authorization;
 using Mediator;
 using SharedKernel.Core.Pagination;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Brands;
 
@@ -20,7 +21,11 @@ public sealed class GetPaginatedBrandsEndpoint(ISender sender) : Endpoint<GetPag
     {
         Get("/Brands");
         Version(1);
-        Options(endpoint => endpoint.RequireProtectedResource("brand", "list"));
+        Options(endpoint =>
+        {
+            endpoint.RequireProtectedResource("brand", "list");
+            endpoint.WithMetadata(new OpenApiAudienceMetadata("public"));
+        });
         Validator<GetPaginatedBrandsValidator>();
     }
 

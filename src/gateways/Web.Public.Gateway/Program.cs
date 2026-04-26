@@ -75,10 +75,13 @@ string customerApiRemoteAddress = ResolveRemoteAddress(
     builder.Configuration,
     "Services:CustomerApi:Url");
 
-app.Logger.LogInformation(
-    "Configuring tenant lookup RPC remote. ServiceName={ServiceName}; RemoteAddress={RemoteAddress}",
-    "customer",
-    customerApiRemoteAddress);
+if (app.Logger.IsEnabled(LogLevel.Information))
+{
+    app.Logger.LogInformation(
+        "Configuring tenant lookup RPC remote. ServiceName={ServiceName}; RemoteAddress={RemoteAddress}",
+        "customer",
+        customerApiRemoteAddress);
+}
 
 app.MapRemote(
     customerApiRemoteAddress,

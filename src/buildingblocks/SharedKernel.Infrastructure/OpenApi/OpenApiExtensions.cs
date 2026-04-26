@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
 using FastEndpoints.Swagger;
 using Keycloak.AuthServices.Authentication;
@@ -22,6 +23,7 @@ namespace SharedKernel.Infrastructure.OpenApi
         public static void AddOpenApiInfrastructure(this WebApplicationBuilder builder, AppOptions appOptions)
         {
             var keycloakOptions = builder.Configuration.GetKeycloakOptions<KeycloakAuthenticationOptions>();
+            string applicationVersion = ResolveApplicationVersion();
             List<int> apiVersions = appOptions.Versions
                 .Where(version => version > 0)
                 .Distinct()
@@ -37,13 +39,13 @@ namespace SharedKernel.Infrastructure.OpenApi
 
             foreach (var apiVersion in apiVersions)
             {
-                Action<DocumentOptions> document = new(options =>
+                Action<DocumentOptions> allDocument = new(options =>
                 {
                     options.EnableJWTBearerAuth = false;
                     options.MaxEndpointVersion = apiVersion;
                     options.DocumentSettings = settings =>
                     {
-                        settings.Version = $"v{apiVersion}";
+                        settings.Version = applicationVersion;
                         settings.Title = $"{appOptions.Name} API";
                         settings.DocumentName = $"v{apiVersion}";
                         settings.Description = appOptions.Description;
@@ -62,7 +64,35 @@ namespace SharedKernel.Infrastructure.OpenApi
                     };
                 });
 
-                documentOptions.Add(document);
+                documentOptions.Add(allDocument);
+
+                Action<DocumentOptions> publicDocument = new(options =>
+                {
+                    options.EnableJWTBearerAuth = false;
+                    options.MaxEndpointVersion = apiVersion;
+                    options.DocumentSettings = settings =>
+                    {
+                        settings.Version = applicationVersion;
+                        settings.Title = $"{appOptions.Name} Public API";
+                        settings.DocumentName = $"v{apiVersion}-public";
+                        settings.Description = appOptions.Description;
+
+                        if (keycloakOptions is not null)
+                        {
+                            settings.AddSecurity(
+                                "oAuth2",
+                                BuildOAuthScheme(
+                                    keycloakOptions.KeycloakTokenEndpoint,
+                                    keycloakOptions.KeycloakUrlRealm + "protocol/openid-connect/auth",
+                                    keycloakOptions.KeycloakTokenEndpoint));
+                        }
+
+                        settings.OperationProcessors.Add(new OpenApiAudienceOperationProcessor("public", includeUnannotated: false));
+                        settings.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("oAuth2"));
+                    };
+                });
+
+                documentOptions.Add(publicDocument);
             }
 
             foreach (ref Action<DocumentOptions> option in CollectionsMarshal.AsSpan(documentOptions))
@@ -130,6 +160,33 @@ namespace SharedKernel.Infrastructure.OpenApi
                     },
                 },
             };
+        }
+
+        private static string ResolveApplicationVersion()
+        {
+            Assembly? entryAssembly = Assembly.GetEntryAssembly();
+            if (entryAssembly is null)
+            {
+                return "1.0.0";
+            }
+
+            string? informationalVersion = entryAssembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+
+            if (!string.IsNullOrWhiteSpace(informationalVersion))
+            {
+                return informationalVersion;
+            }
+
+            Version? assemblyVersion = entryAssembly.GetName().Version;
+            if (assemblyVersion is null)
+            {
+                return "1.0.0";
+            }
+
+            int build = assemblyVersion.Build >= 0 ? assemblyVersion.Build : 0;
+            return $"{assemblyVersion.Major}.{assemblyVersion.Minor}.{build}";
         }
     }
 }

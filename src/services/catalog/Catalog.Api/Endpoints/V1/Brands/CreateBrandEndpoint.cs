@@ -7,6 +7,7 @@ using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Brands;
 
@@ -18,7 +19,11 @@ public sealed class CreateBrandEndpoint(ISender sender) : Endpoint<CreateBrandRe
     {
         Post("/Brands");
         Version(1);
-        Options(endpoint => endpoint.RequireProtectedResource("brand", "create"));
+        Options(endpoint =>
+        {
+            endpoint.RequireProtectedResource("brand", "create");
+            endpoint.WithMetadata(new OpenApiAudienceMetadata("public"));
+        });
     }
 
     public override async Task HandleAsync(CreateBrandRequest request, CancellationToken ct)

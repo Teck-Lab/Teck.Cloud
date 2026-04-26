@@ -9,6 +9,7 @@ using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Customer.Api.Endpoints.V1.Tenants.GetTenantById;
 
@@ -20,7 +21,11 @@ public sealed class GetTenantByIdEndpoint(ISender sender) : Endpoint<GetTenantBy
     {
         Get("/admin/Tenants/{Id:guid}");
         Version(1);
-        Options(endpoint => endpoint.RequireProtectedResource("tenant", "list"));
+        Options(endpoint =>
+        {
+            endpoint.RequireProtectedResource("tenant", "list");
+            endpoint.WithMetadata(new OpenApiAudienceMetadata("admin"));
+        });
     }
 
     public override async Task HandleAsync(GetTenantByIdRequest request, CancellationToken ct)

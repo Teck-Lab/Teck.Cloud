@@ -10,6 +10,7 @@ using Keycloak.AuthServices.Authorization;
 using Mediator;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 using SharedKernel.Persistence.Database;
 
 namespace Customer.Api.Endpoints.V1.Tenants.CreateTenant;
@@ -23,7 +24,11 @@ public sealed class CreateTenantEndpoint(ISender sender, IConfiguration configur
     {
         Post("/admin/Tenants");
         Version(1);
-        Options(endpoint => endpoint.RequireProtectedResource("tenant", "create"));
+        Options(endpoint =>
+        {
+            endpoint.RequireProtectedResource("tenant", "create");
+            endpoint.WithMetadata(new OpenApiAudienceMetadata("admin"));
+        });
         Validator<CreateTenantValidator>();
     }
 

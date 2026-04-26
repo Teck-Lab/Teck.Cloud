@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Scalar.AspNetCore;
 
 namespace Web.Public.Gateway.Services;
@@ -10,6 +9,7 @@ internal static class ScalarEndpointExtensions
         app.MapScalarApiReference("docs", options =>
         {
             options.WithOpenApiRoutePattern("/openapi/{documentName}/openapi.json");
+            var addedDocuments = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             IConfigurationSection clustersSection = configuration.GetSection("ReverseProxy:Clusters");
             foreach (IConfigurationSection cluster in clustersSection.GetChildren())
@@ -35,15 +35,22 @@ internal static class ScalarEndpointExtensions
                             .Where(static path => !string.IsNullOrWhiteSpace(path))
                             .Cast<string>())
                         {
-                            Match versionMatch = Regex.Match(path, @"v\d+");
-                            string version = versionMatch.Success ? versionMatch.Value : "v1";
-                            string normalizedVersion = version.ToLowerInvariant();
-                            string documentName = $"{normalizedService}-{normalizedVersion}";
+                            if (!TryResolveDocumentName(path, out string? resolvedDocumentName))
+                            {
+                                continue;
+                            }
+
+                            string normalizedDocumentName = resolvedDocumentName!.ToLowerInvariant();
+                            string documentName = $"{normalizedService}-{normalizedDocumentName}";
+                            if (!addedDocuments.Add(documentName))
+                            {
+                                continue;
+                            }
 
                             options.AddDocument(
                                 documentName,
-                                $"{cluster.Key[0].ToString().ToUpperInvariant()}{cluster.Key.Substring(1).ToLowerInvariant()} {version}",
-                                $"/{normalizedService}/openapi/{normalizedVersion}/openapi.json");
+                                $"{cluster.Key[0].ToString().ToUpperInvariant()}{cluster.Key.Substring(1).ToLowerInvariant()} {resolvedDocumentName}",
+                                $"/{normalizedService}/openapi/{resolvedDocumentName}/openapi.json");
                         }
                     }
                 }
@@ -97,5 +104,31 @@ internal static class ScalarEndpointExtensions
         tokenEndpoint = $"{realmBase}/protocol/openid-connect/token";
 
         return true;
+    }
+
+    private static bool TryResolveDocumentName(string path, out string? documentName)
+    {
+        documentName = null;
+
+        string[] segments = path
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        for (int index = 0; index < segments.Length - 2; index++)
+        {
+            if (!segments[index].Equals("openapi", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!segments[index + 2].Equals("openapi.json", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            documentName = segments[index + 1];
+            return !string.IsNullOrWhiteSpace(documentName);
+        }
+
+        return false;
     }
 }

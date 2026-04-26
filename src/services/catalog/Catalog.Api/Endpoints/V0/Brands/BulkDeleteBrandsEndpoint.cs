@@ -7,6 +7,7 @@ using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V0.Brands;
 
@@ -18,7 +19,11 @@ public sealed class BulkDeleteBrandsEndpoint(ISender sender) : Endpoint<DeleteBr
     {
         Post("/Brands/bulk/delete");
         Version(0);
-        Options(endpoint => endpoint.RequireProtectedResource("brands", "update"));
+        Options(endpoint =>
+        {
+            endpoint.RequireProtectedResource("brands", "update");
+            endpoint.WithMetadata(new OpenApiAudienceMetadata("public"));
+        });
         Summary(summary => summary.Summary = "Bulk delete brands");
     }
 

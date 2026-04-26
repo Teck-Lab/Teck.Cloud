@@ -7,6 +7,7 @@ using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Brands;
 
@@ -18,7 +19,11 @@ public sealed class UpdateBrandEndpoint(ISender sender) : Endpoint<UpdateBrandRe
     {
         Put("/Brands");
         Version(1);
-        Options(endpoint => endpoint.RequireProtectedResource("brand", "update"));
+        Options(endpoint =>
+        {
+            endpoint.RequireProtectedResource("brand", "update");
+            endpoint.WithMetadata(new OpenApiAudienceMetadata("admin"));
+        });
     }
 
     public override async Task HandleAsync(UpdateBrandRequest request, CancellationToken ct)

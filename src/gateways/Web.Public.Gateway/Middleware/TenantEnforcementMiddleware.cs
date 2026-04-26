@@ -56,6 +56,12 @@ internal sealed class TenantEnforcementMiddleware
             || context.Request.Path.Value?.Contains("/openapi/", StringComparison.OrdinalIgnoreCase) == true;
 
         bool isDocsRequest = context.Request.Path.StartsWithSegments("/docs", StringComparison.OrdinalIgnoreCase);
+        if (isOpenApiRequest && !IsPublicOpenApiDocumentPath(context.Request.Path))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
         if (isOpenApiRequest || isDocsRequest)
         {
             await _next(context);
@@ -419,5 +425,46 @@ internal sealed class TenantEnforcementMiddleware
             || description.Contains("invalid token", StringComparison.OrdinalIgnoreCase)
             || description.Contains("invalid bearer token", StringComparison.OrdinalIgnoreCase)
             || string.Equals(description.Trim(), "Invalid token", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsPublicOpenApiDocumentPath(PathString path)
+    {
+        if (!TryGetOpenApiDocumentName(path, out string? documentName))
+        {
+            return true;
+        }
+
+        return documentName.EndsWith("-public", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryGetOpenApiDocumentName(PathString path, [NotNullWhen(true)] out string? documentName)
+    {
+        documentName = null;
+
+        if (!path.HasValue)
+        {
+            return false;
+        }
+
+        string[] segments = path.Value!
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        for (int index = 0; index < segments.Length - 2; index++)
+        {
+            if (!segments[index].Equals("openapi", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!segments[index + 2].Equals("openapi.json", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            documentName = segments[index + 1];
+            return !string.IsNullOrWhiteSpace(documentName);
+        }
+
+        return false;
     }
 }

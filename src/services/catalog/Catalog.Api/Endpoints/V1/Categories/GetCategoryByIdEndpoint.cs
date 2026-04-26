@@ -8,6 +8,7 @@ using ErrorOr;
 using FastEndpoints;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Categories;
 
@@ -20,6 +21,7 @@ public sealed class GetCategoryByIdEndpoint(IMediator mediator) : Endpoint<GetCa
         Get("/categories/{Id:guid}");
         Version(1);
         AllowAnonymous();
+        Options(endpoint => endpoint.WithMetadata(new OpenApiAudienceMetadata("public")));
     }
 
     public override async Task HandleAsync(GetCategoryByIdRequest request, CancellationToken ct)

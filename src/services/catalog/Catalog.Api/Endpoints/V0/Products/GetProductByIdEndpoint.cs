@@ -9,6 +9,7 @@ using ErrorOr;
 using FastEndpoints;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V0.Products;
 
@@ -21,6 +22,7 @@ public sealed class GetProductByIdEndpoint(ISender sender) : Endpoint<GetProduct
         Get("/Products/{ProductId:guid}");
         Version(0);
         AllowAnonymous();
+        Options(endpoint => endpoint.WithMetadata(new OpenApiAudienceMetadata("public")));
     }
 
     public override async Task HandleAsync(GetProductByIdRequest request, CancellationToken ct)

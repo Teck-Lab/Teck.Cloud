@@ -71,7 +71,8 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.MapOpenApi();
+app.MapOpenApi().RequireAuthorization("PlatformAdmin");
+app.MapAdminScalarApiReference(builder.Configuration);
 app.MapReverseProxy();
 
 await app.RunAsync();
