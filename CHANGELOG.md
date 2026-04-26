@@ -1,3 +1,17 @@
+# v0.22.20 (Sun Apr 26 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Include customer API remote address in logs ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Standardize Kestrel env var names in deployments ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Expose customer-api gRPC and update gateway ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.19 (Sun Apr 26 2026)
 
 #### ⚠️ Pushed to `main`
