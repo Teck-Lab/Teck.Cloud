@@ -71,10 +71,17 @@ builder.Services.AddOpenApi();
 
 WebApplication app = builder.Build();
 
+string customerApiRemoteAddress = ResolveRemoteAddress(
+    builder.Configuration,
+    "Services:CustomerApi:Url");
+
+app.Logger.LogInformation(
+    "Configuring tenant lookup RPC remote. ServiceName={ServiceName}; RemoteAddress={RemoteAddress}",
+    "customer",
+    customerApiRemoteAddress);
+
 app.MapRemote(
-    ResolveRemoteAddress(
-        builder.Configuration,
-        "Services:CustomerApi:Url"),
+    customerApiRemoteAddress,
     remote =>
     {
         remote.Register<SharedKernel.Grpc.Contracts.Remote.V1.Tenants.GetTenantDatabaseInfoCommand, SharedKernel.Grpc.Contracts.Remote.V1.Tenants.TenantDatabaseInfoRpcResult>();

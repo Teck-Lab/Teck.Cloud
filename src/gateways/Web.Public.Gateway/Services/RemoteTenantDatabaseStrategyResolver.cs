@@ -11,9 +11,10 @@ namespace Web.Public.Gateway.Services;
 /// <summary>
 /// Resolves tenant database strategy by invoking the Customer handler server via FE remote command bus.
 /// </summary>
-internal sealed class RemoteTenantDatabaseStrategyResolver(ILogger<RemoteTenantDatabaseStrategyResolver> logger) : ITenantDatabaseStrategyResolver
+internal sealed class RemoteTenantDatabaseStrategyResolver(ILogger<RemoteTenantDatabaseStrategyResolver> logger, IConfiguration configuration) : ITenantDatabaseStrategyResolver
 {
     private readonly ILogger<RemoteTenantDatabaseStrategyResolver> logger = logger;
+    private readonly string customerApiRemoteAddress = configuration["Services:CustomerApi:Url"] ?? "(missing Services:CustomerApi:Url)";
 
     /// <inheritdoc/>
     public async Task<TenantDatabaseStrategyLookupResult> ResolveAsync(string tenantId, string? serviceName, CancellationToken cancellationToken)
@@ -65,9 +66,10 @@ internal sealed class RemoteTenantDatabaseStrategyResolver(ILogger<RemoteTenantD
         {
             logger.LogWarning(
                 exception,
-                "Tenant lookup RPC failed. TenantId={TenantId}; ServiceName={ServiceName}; StatusCode={StatusCode}; Detail={Detail}",
+                "Tenant lookup RPC failed. TenantId={TenantId}; ServiceName={ServiceName}; RemoteAddress={RemoteAddress}; StatusCode={StatusCode}; Detail={Detail}",
                 tenantId,
                 serviceName,
+                customerApiRemoteAddress,
                 exception.StatusCode,
                 exception.Status.Detail);
 
@@ -86,9 +88,10 @@ internal sealed class RemoteTenantDatabaseStrategyResolver(ILogger<RemoteTenantD
         {
             logger.LogError(
                 exception,
-                "Unexpected tenant lookup failure. TenantId={TenantId}; ServiceName={ServiceName}",
+                "Unexpected tenant lookup failure. TenantId={TenantId}; ServiceName={ServiceName}; RemoteAddress={RemoteAddress}",
                 tenantId,
-                serviceName);
+                serviceName,
+                customerApiRemoteAddress);
 
             return new TenantDatabaseStrategyLookupResult(
                 false,
