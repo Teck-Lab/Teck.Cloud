@@ -1,3 +1,15 @@
+# v0.22.21 (Sun Apr 26 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Add OpenAPI audience filtering and docs ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.20 (Sun Apr 26 2026)
 
 #### ⚠️ Pushed to `main`
