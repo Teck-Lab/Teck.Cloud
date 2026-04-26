@@ -11,8 +11,10 @@ namespace Web.Public.Gateway.Services;
 /// <summary>
 /// Resolves tenant database strategy by invoking the Customer handler server via FE remote command bus.
 /// </summary>
-internal sealed class RemoteTenantDatabaseStrategyResolver : ITenantDatabaseStrategyResolver
+internal sealed class RemoteTenantDatabaseStrategyResolver(ILogger<RemoteTenantDatabaseStrategyResolver> logger) : ITenantDatabaseStrategyResolver
 {
+    private readonly ILogger<RemoteTenantDatabaseStrategyResolver> logger = logger;
+
     /// <inheritdoc/>
     public async Task<TenantDatabaseStrategyLookupResult> ResolveAsync(string tenantId, string? serviceName, CancellationToken cancellationToken)
     {
@@ -59,8 +61,35 @@ internal sealed class RemoteTenantDatabaseStrategyResolver : ITenantDatabaseStra
 
             return new TenantDatabaseStrategyLookupResult(true, reply.DatabaseStrategy, null, null, null);
         }
-        catch (RpcException)
+        catch (RpcException exception)
         {
+            logger.LogWarning(
+                exception,
+                "Tenant lookup RPC failed. TenantId={TenantId}; ServiceName={ServiceName}; StatusCode={StatusCode}; Detail={Detail}",
+                tenantId,
+                serviceName,
+                exception.StatusCode,
+                exception.Status.Detail);
+
+            string detail = string.IsNullOrWhiteSpace(exception.Status.Detail)
+                ? "Tenant lookup service is unavailable."
+                : $"Tenant lookup service is unavailable: {exception.Status.Detail}";
+
+            return new TenantDatabaseStrategyLookupResult(
+                false,
+                null,
+                StatusCodes.Status503ServiceUnavailable,
+                "tenant.lookup.unavailable",
+                detail);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Unexpected tenant lookup failure. TenantId={TenantId}; ServiceName={ServiceName}",
+                tenantId,
+                serviceName);
+
             return new TenantDatabaseStrategyLookupResult(
                 false,
                 null,
