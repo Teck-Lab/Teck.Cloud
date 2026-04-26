@@ -4,7 +4,7 @@ metadata:
   name: yarp-gateway-config
 data:
   Services__CatalogApi__Url: http://catalog-api
-  Services__CustomerApi__Url: http://customer-api
+  Services__CustomerApi__Url: http://customer-api:81
   ReverseProxy__Clusters__catalog__Destinations__Default__Address: http://catalog-api
   ReverseProxy__Clusters__customer__Destinations__Default__Address: http://customer-api
   ConnectionStrings__redis: preview-redis:6379,abortConnect=false

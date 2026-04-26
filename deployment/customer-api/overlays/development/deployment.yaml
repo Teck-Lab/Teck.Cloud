@@ -36,6 +36,14 @@ spec:
             - secretRef:
                 name: customer-api-keycloak
           env:
+            - name: ASPNETCORE_Kestrel__Endpoints__Http__Url
+              value: http://+:8080
+            - name: ASPNETCORE_Kestrel__Endpoints__Http__Protocols
+              value: Http1
+            - name: ASPNETCORE_Kestrel__Endpoints__Grpc__Url
+              value: http://+:8081
+            - name: ASPNETCORE_Kestrel__Endpoints__Grpc__Protocols
+              value: Http2
             - name: POSTGRES_HOST
               valueFrom:
                 configMapKeyRef:
@@ -80,6 +88,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 8081
               protocol: TCP
           resources:
             requests:
