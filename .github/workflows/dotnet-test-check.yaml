@@ -693,7 +693,7 @@ jobs:
             DOCS_URL=https://docs.teck.dk
 
       - name: Run Trivy vulnerability scanner on Docker image
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         continue-on-error: true
         with:
           version: 'v0.69.3'
@@ -713,7 +713,7 @@ jobs:
 
       - name: Generate SPDX SBOM and submit to Dependency Graph
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: anchore/sbom-action@57aae528053a48a3f6235f2d9461b05fbcb7366d # v0.23.1
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           image: ${{ steps.service-vars.outputs.service_name }}:test-${{ github.sha }}
           format: spdx-json
