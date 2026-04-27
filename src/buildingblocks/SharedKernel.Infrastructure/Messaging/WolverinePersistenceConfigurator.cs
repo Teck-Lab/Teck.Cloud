@@ -1,5 +1,6 @@
 using JasperFx;
 using JasperFx.CodeGeneration;
+using JasperFx.MultiTenancy;
 using SharedKernel.Core.Domain;
 using SharedKernel.Core.Pricing;
 using Wolverine;
@@ -46,18 +47,20 @@ public static class WolverinePersistenceConfigurator
     /// <param name="provider">The selected database provider.</param>
     /// <param name="writeConnectionString">The write database connection string.</param>
     /// <param name="rabbitConnectionString">The normalized RabbitMQ connection string.</param>
+    /// <param name="tenantSource">Optional tenant source used for dynamic per-tenant connection resolution.</param>
     public static void ConfigureStandardRuntime(
         WolverineOptions options,
         bool isDevelopment,
         DatabaseProvider provider,
         string writeConnectionString,
-        string rabbitConnectionString)
+        string rabbitConnectionString,
+        ITenantedSource<string>? tenantSource = null)
     {
         options.CodeGeneration.TypeLoadMode = isDevelopment
             ? TypeLoadMode.Dynamic
             : TypeLoadMode.Static;
 
-        ConfigureDatabasePersistence(options, provider, writeConnectionString);
+        ConfigureDatabasePersistence(options, provider, writeConnectionString, tenantSource);
         options.AutoBuildMessageStorageOnStartup = AutoCreate.None;
         options.UseMemoryPackSerialization();
 
@@ -77,24 +80,42 @@ public static class WolverinePersistenceConfigurator
     /// <param name="options">The Wolverine options.</param>
     /// <param name="provider">The selected database provider.</param>
     /// <param name="writeConnectionString">The write connection string.</param>
+    /// <param name="tenantSource">Optional tenant source used for dynamic per-tenant connection resolution.</param>
     public static void ConfigureDatabasePersistence(
         WolverineOptions options,
         DatabaseProvider provider,
-        string writeConnectionString)
+        string writeConnectionString,
+        ITenantedSource<string>? tenantSource = null)
     {
         if (provider == DatabaseProvider.PostgreSQL)
         {
-            options
-                .PersistMessagesWithPostgresql(writeConnectionString, WolverineSchemaName)
-                .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
+            var persistence = options.PersistMessagesWithPostgresql(writeConnectionString, WolverineSchemaName);
+            if (tenantSource is not null)
+            {
+                persistence.RegisterTenants(tenantSource);
+            }
+            else
+            {
+                persistence.UseMasterTableTenancy(static _ => { });
+            }
+
+            persistence.OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
             return;
         }
 
         if (provider == DatabaseProvider.SqlServer)
         {
-            options
-                .PersistMessagesWithSqlServer(writeConnectionString, WolverineSchemaName)
-                .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
+            var persistence = options.PersistMessagesWithSqlServer(writeConnectionString, WolverineSchemaName);
+            if (tenantSource is not null)
+            {
+                persistence.RegisterTenants(tenantSource);
+            }
+            else
+            {
+                persistence.UseMasterTableTenancy(static _ => { });
+            }
+
+            persistence.OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
             return;
         }
 

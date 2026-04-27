@@ -168,6 +168,46 @@ public sealed class TenantReadRepositoryTests : IDisposable
         result.HasReadReplicas.ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task ListConnectionSeedsAsync_ShouldReturnOnlyActiveTenants()
+    {
+        // Arrange
+        TenantReadModel activeTenant = new()
+        {
+            Id = Guid.NewGuid(),
+            Identifier = "tenant-active",
+            Name = "Tenant Active",
+            Plan = "Starter",
+            DatabaseStrategy = "Shared",
+            DatabaseProvider = "PostgreSQL",
+            IsActive = true,
+        };
+
+        TenantReadModel inactiveTenant = new()
+        {
+            Id = Guid.NewGuid(),
+            Identifier = "tenant-inactive",
+            Name = "Tenant Inactive",
+            Plan = "Starter",
+            DatabaseStrategy = "Dedicated",
+            DatabaseProvider = "PostgreSQL",
+            IsActive = false,
+        };
+
+        await _dbContext.Tenants.AddRangeAsync([activeTenant, inactiveTenant], TestContext.Current.CancellationToken);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        IReadOnlyList<TenantConnectionSeedReadModel> result = await _repository
+            .ListConnectionSeedsAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Count.ShouldBe(1);
+        result[0].TenantId.ShouldBe(activeTenant.Id);
+        result[0].Identifier.ShouldBe("tenant-active");
+        result[0].DatabaseStrategy.ShouldBe("Shared");
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

@@ -14,6 +14,7 @@ using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
@@ -21,7 +22,9 @@ using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.HealthChecks;
 using SharedKernel.Infrastructure.Messaging;
 using SharedKernel.Persistence.Database;
+using SharedKernel.Persistence.Database.MultiTenant;
 using Wolverine;
+using Wolverine.EntityFrameworkCore;
 
 namespace Customer.Infrastructure.DependencyInjection;
 
@@ -157,18 +160,51 @@ public static class InfrastructureServiceExtensions
             options =>
             {
                 IncludeHandlerAssemblies(options, applicationAssembly);
+
+                OpenBaoOptions openBaoOptions = builder.Configuration
+                    .GetSection(OpenBaoOptions.Section)
+                    .Get<OpenBaoOptions>() ?? new OpenBaoOptions();
+
+                options.Services.TryAddSingleton<IVaultTenantConnectionProvider>(sp =>
+                {
+                    if (string.IsNullOrWhiteSpace(openBaoOptions.Url))
+                    {
+                        return new NullVaultTenantConnectionProvider();
+                    }
+
+                    ILogger<VaultTenantConnectionProvider> logger = sp.GetRequiredService<ILogger<VaultTenantConnectionProvider>>();
+                    return new VaultTenantConnectionProvider(openBaoOptions, "customer", logger);
+                });
+
+                WolverineTenantConnectionSource tenantConnectionSource = new(connectionSettings.WriteConnectionString);
+                options.Services.AddSingleton(tenantConnectionSource);
+
+                Assembly migrationsAssembly = ResolveMigrationsAssembly(connectionSettings.DatabaseProvider, typeof(CustomerWriteDbContext).Assembly);
+                options.Services.AddDbContextWithWolverineManagedMultiTenancy<CustomerWriteDbContext>(
+                    (dbBuilder, connectionString, _) =>
+                    {
+                        SharedKernel.Persistence.Database.Extensions.ConfigureProviderDbContextOptions(
+                            dbBuilder,
+                            connectionString.Value,
+                            migrationsAssembly,
+                            connectionSettings.DatabaseProvider);
+                    },
+                    JasperFx.AutoCreate.CreateOrUpdate);
+
                 WolverinePersistenceConfigurator.ConfigureStandardRuntime(
                     options,
                     isDevelopment,
                     connectionSettings.DatabaseProvider,
                     connectionSettings.WriteConnectionString,
-                    connectionSettings.RabbitConnectionString);
+                    connectionSettings.RabbitConnectionString,
+                    tenantConnectionSource);
             });
     }
 
     private static void IncludeHandlerAssemblies(WolverineOptions options, Assembly applicationAssembly)
     {
         options.Discovery.IncludeAssembly(applicationAssembly);
+        options.Discovery.IncludeAssembly(typeof(InfrastructureServiceExtensions).Assembly);
 
         Assembly? entryAssembly = Assembly.GetEntryAssembly();
         if (entryAssembly is not null)

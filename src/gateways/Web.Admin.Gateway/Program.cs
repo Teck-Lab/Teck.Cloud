@@ -63,8 +63,8 @@ builder.Services.AddOpenApi();
 
 WebApplication app = builder.Build();
 
-app.UseBaseInfrastructure();
 app.UseRouting();
+app.UseBaseInfrastructure();
 
 if (app.Environment.IsDevelopment())
 {

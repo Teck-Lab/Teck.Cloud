@@ -130,7 +130,7 @@ public sealed class EdgeMiddlewareBehaviorTests
     }
 
     [Fact]
-    public async Task TenantMiddleware_ShouldCallNext_WhenOpenApiRequest()
+    public async Task TenantMiddleware_ShouldCallNext_WhenPublicOpenApiRequest()
     {
         bool nextCalled = false;
         RequestDelegate next = _ =>
@@ -142,7 +142,7 @@ public sealed class EdgeMiddlewareBehaviorTests
 
         DefaultHttpContext context = CreateHttpContext(
             routeConfig: CreateRouteConfig(path: "/catalog/v1/items"),
-            requestPath: "/catalog/openapi/v1/openapi.json",
+            requestPath: "/catalog/openapi/v1-public/openapi.json",
             authenticationService: new AlwaysFailAuthenticationService());
 
         await InvokeMiddlewareAsync(middleware, context);

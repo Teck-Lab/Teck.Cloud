@@ -127,6 +127,22 @@ namespace SharedKernel.Persistence.Database
         /// <summary>
         /// Configures database context options based on the selected provider.
         /// </summary>
+        /// <param name="options">The DbContext options builder.</param>
+        /// <param name="connectionString">The database connection string.</param>
+        /// <param name="migrationsAssembly">Optional migrations assembly.</param>
+        /// <param name="provider">The selected database provider.</param>
+        public static void ConfigureProviderDbContextOptions(
+            DbContextOptionsBuilder options,
+            string connectionString,
+            Assembly? migrationsAssembly,
+            DatabaseProvider provider)
+        {
+            ConfigureDbContextOptions(options, connectionString, migrationsAssembly, provider);
+        }
+
+        /// <summary>
+        /// Configures database context options based on the selected provider.
+        /// </summary>
         private static void ConfigureDbContextOptions(
             DbContextOptionsBuilder options,
             string connectionString,

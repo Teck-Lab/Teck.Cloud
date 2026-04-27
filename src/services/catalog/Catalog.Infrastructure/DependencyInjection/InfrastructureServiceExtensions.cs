@@ -9,6 +9,7 @@ using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Scrutor;
 using SharedKernel.Core.Exceptions;
@@ -18,7 +19,9 @@ using SharedKernel.Infrastructure.Auth;
 using SharedKernel.Infrastructure.HealthChecks;
 using SharedKernel.Infrastructure.Messaging;
 using SharedKernel.Persistence.Database;
+using SharedKernel.Persistence.Database.MultiTenant;
 using Wolverine;
+using Wolverine.EntityFrameworkCore;
 
 namespace Catalog.Infrastructure.DependencyInjection;
 
@@ -146,12 +149,44 @@ public static class InfrastructureServiceExtensions
         builder.Host.UseWolverine(options =>
         {
             IncludeHandlerAssemblies(options, applicationAssembly);
+
+            OpenBaoOptions openBaoOptions = builder.Configuration
+                .GetSection(OpenBaoOptions.Section)
+                .Get<OpenBaoOptions>() ?? new OpenBaoOptions();
+
+            options.Services.TryAddSingleton<IVaultTenantConnectionProvider>(sp =>
+            {
+                if (string.IsNullOrWhiteSpace(openBaoOptions.Url))
+                {
+                    return new NullVaultTenantConnectionProvider();
+                }
+
+                ILogger<VaultTenantConnectionProvider> logger = sp.GetRequiredService<ILogger<VaultTenantConnectionProvider>>();
+                return new VaultTenantConnectionProvider(openBaoOptions, "catalog", logger);
+            });
+
+            WolverineTenantConnectionSource tenantConnectionSource = new(settings.WriteConnectionString);
+            options.Services.AddSingleton(tenantConnectionSource);
+
+            Assembly migrationsAssembly = ResolveMigrationsAssembly(settings.DatabaseProvider, typeof(ApplicationWriteDbContext).Assembly);
+            options.Services.AddDbContextWithWolverineManagedMultiTenancy<ApplicationWriteDbContext>(
+                (dbBuilder, connectionString, _) =>
+                {
+                        SharedKernel.Persistence.Database.Extensions.ConfigureProviderDbContextOptions(
+                            dbBuilder,
+                            connectionString.Value,
+                            migrationsAssembly,
+                            settings.DatabaseProvider);
+                },
+                JasperFx.AutoCreate.CreateOrUpdate);
+
             WolverinePersistenceConfigurator.ConfigureStandardRuntime(
                 options,
                 isDevelopment,
                 settings.DatabaseProvider,
                 settings.WriteConnectionString,
-                settings.RabbitConnectionString);
+                settings.RabbitConnectionString,
+                tenantConnectionSource);
 
             Console.WriteLine($"[Startup] Using RabbitMQ URI for Wolverine: {settings.RabbitConnectionString}");
         });
@@ -160,6 +195,7 @@ public static class InfrastructureServiceExtensions
     private static void IncludeHandlerAssemblies(WolverineOptions options, Assembly applicationAssembly)
     {
         options.Discovery.IncludeAssembly(applicationAssembly);
+        options.Discovery.IncludeAssembly(typeof(InfrastructureServiceExtensions).Assembly);
 
         Assembly? entryAssembly = Assembly.GetEntryAssembly();
         if (entryAssembly is not null)

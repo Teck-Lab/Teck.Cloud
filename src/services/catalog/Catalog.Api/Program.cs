@@ -4,12 +4,14 @@
 
 using System.Reflection;
 using Catalog.Api.Extensions;
+using Catalog.Api.Infrastructure.Messaging.Tenants;
 using Catalog.Application;
 using Catalog.Infrastructure.DependencyInjection;
 using FastEndpoints;
 using Finbuckle.MultiTenant.AspNetCore.Extensions;
 using FluentValidation;
 using JasperFx;
+using SharedKernel.Grpc.Contracts.Remote.V1.Tenants;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Caching;
 using SharedKernel.Infrastructure.Endpoints;
@@ -31,6 +33,7 @@ builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 
 builder.AddBaseInfrastructure(appOptions);
 builder.AddInfrastructureServices(applicationAssembly);
+builder.Services.AddHostedService<TenantConnectionBootstrapHostedService>();
 
 builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
 builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, typeof(Program).Assembly);
@@ -42,6 +45,17 @@ builder.Services.AddRequestTimeouts();
 builder.AddHandlerServer();
 
 WebApplication app = builder.Build();
+
+string customerApiRemoteAddress = ResolveRemoteAddress(
+    builder.Configuration,
+    "Services:CustomerApi:Url");
+
+app.MapRemote(
+    customerApiRemoteAddress,
+    remote =>
+    {
+        remote.Register<GetTenantConnectionSeedsCommand, TenantConnectionSeedsRpcResult>();
+    });
 
 if (isRunningWolverineCodeGeneration)
 {
@@ -67,4 +81,33 @@ static void MapRemoteHandlers(WebApplication app)
     app.MapHandlers(handlerRegistry =>
     {
     });
+}
+
+static string ResolveRemoteAddress(IConfiguration configuration, string key)
+{
+    string? value = configuration[key];
+    if (TryBuildAbsoluteUri(value, out Uri uri))
+    {
+        return uri.ToString();
+    }
+
+    throw new InvalidOperationException($"Missing valid remote address. Configure '{key}'.");
+}
+
+static bool TryBuildAbsoluteUri(string? value, out Uri uri)
+{
+    uri = default!;
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        return false;
+    }
+
+    string normalized = value.Trim();
+    if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? parsed) && parsed is not null)
+    {
+        uri = parsed;
+        return true;
+    }
+
+    return false;
 }

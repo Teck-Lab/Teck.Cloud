@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Customer.Api.Extensions;
 using Customer.Api.Grpc.V1;
+using Customer.Api.Infrastructure.Messaging.Tenants;
 using Customer.Application;
 using Customer.Infrastructure.DependencyInjection;
 using FastEndpoints;
@@ -57,6 +58,7 @@ internal static class Program
         Assembly apiAssembly = typeof(Program).Assembly;
         builder.AddBaseInfrastructure(appOptions);
         builder.AddInfrastructureServices(applicationAssembly);
+        builder.Services.AddHostedService<TenantConnectionBootstrapHostedService>();
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
         builder.AddOpenApiInfrastructure(appOptions);
         AddValidation(builder, applicationAssembly, apiAssembly);
@@ -101,6 +103,7 @@ internal static class Program
         app.MapHandlers(handlerRegistry =>
         {
             handlerRegistry.Register<GetTenantDatabaseInfoCommand, GetTenantDatabaseInfoCommandHandler, TenantDatabaseInfoRpcResult>();
+            handlerRegistry.Register<GetTenantConnectionSeedsCommand, GetTenantConnectionSeedsCommandHandler, TenantConnectionSeedsRpcResult>();
         });
     }
 }

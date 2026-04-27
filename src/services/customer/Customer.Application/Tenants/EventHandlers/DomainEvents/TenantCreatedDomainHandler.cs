@@ -40,6 +40,11 @@ public class TenantCreatedDomainHandler
             domainEvent.DatabaseStrategy,
             domainEvent.DatabaseProvider);
 
-        await this.messageBus.PublishAsync(integrationEvent).ConfigureAwait(false);
+        DeliveryOptions options = new()
+        {
+            TenantId = domainEvent.TenantId.ToString("D"),
+        };
+
+        await this.messageBus.PublishAsync(integrationEvent, options).ConfigureAwait(false);
     }
 }

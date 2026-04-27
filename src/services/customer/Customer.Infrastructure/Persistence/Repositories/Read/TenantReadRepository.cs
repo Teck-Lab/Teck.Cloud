@@ -49,6 +49,23 @@ public sealed class TenantReadRepository : ITenantReadRepository
         return CreateTenantDatabaseInfoReadModel(tenant, hasReadReplicas);
     }
 
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<TenantConnectionSeedReadModel>> ListConnectionSeedsAsync(CancellationToken cancellationToken)
+    {
+        return await this.readDbContext.Tenants
+            .AsNoTracking()
+            .Where(tenant => tenant.IsActive)
+            .OrderBy(tenant => tenant.Identifier)
+            .Select(tenant => new TenantConnectionSeedReadModel
+            {
+                TenantId = tenant.Id,
+                Identifier = tenant.Identifier,
+                DatabaseStrategy = tenant.DatabaseStrategy,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     private static string? NormalizeServiceName(string? serviceName)
     {
         return string.IsNullOrWhiteSpace(serviceName)

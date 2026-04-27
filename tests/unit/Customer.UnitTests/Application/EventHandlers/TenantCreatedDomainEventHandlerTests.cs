@@ -29,10 +29,12 @@ public class TenantCreatedDomainEventHandlerTests
         await _sut.Handle(domainEvent);
 
         // Assert
-        await _messageBus.Received(1).PublishAsync(Arg.Is<TenantCreatedIntegrationEvent>(e =>
-            e.TenantId == tenantId &&
-            e.Identifier == "test-tenant" &&
-            e.Name == "Test Tenant"));
+        await _messageBus.Received(1).PublishAsync(
+            Arg.Is<TenantCreatedIntegrationEvent>(e =>
+                e.TenantId == tenantId &&
+                e.Identifier == "test-tenant" &&
+                e.Name == "Test Tenant"),
+            Arg.Is<DeliveryOptions>(options => options.TenantId == tenantId.ToString("D")));
     }
 
     [Fact]
@@ -46,8 +48,9 @@ public class TenantCreatedDomainEventHandlerTests
         await _sut.Handle(domainEvent);
 
         // Assert
-        await _messageBus.Received(1).PublishAsync(Arg.Is<TenantCreatedIntegrationEvent>(e =>
-            e.DatabaseStrategy == "Dedicated"));
+        await _messageBus.Received(1).PublishAsync(
+            Arg.Is<TenantCreatedIntegrationEvent>(e => e.DatabaseStrategy == "Dedicated"),
+            Arg.Is<DeliveryOptions>(options => options.TenantId == tenantId.ToString("D")));
     }
 
     [Fact]
@@ -61,8 +64,9 @@ public class TenantCreatedDomainEventHandlerTests
         await _sut.Handle(domainEvent);
 
         // Assert
-        await _messageBus.Received(1).PublishAsync(Arg.Is<TenantCreatedIntegrationEvent>(e =>
-            e.DatabaseProvider == "SqlServer"));
+        await _messageBus.Received(1).PublishAsync(
+            Arg.Is<TenantCreatedIntegrationEvent>(e => e.DatabaseProvider == "SqlServer"),
+            Arg.Is<DeliveryOptions>(options => options.TenantId == tenantId.ToString("D")));
     }
 
     [Fact]
@@ -73,7 +77,10 @@ public class TenantCreatedDomainEventHandlerTests
         var domainEvent = CreateDomainEvent(tenantId, "my-tenant", "My Tenant Name", "External", "MySQL");
 
         TenantCreatedIntegrationEvent? capturedEvent = null;
-        await _messageBus.PublishAsync(Arg.Do<TenantCreatedIntegrationEvent>(e => capturedEvent = e));
+        DeliveryOptions? capturedOptions = null;
+        await _messageBus.PublishAsync(
+            Arg.Do<TenantCreatedIntegrationEvent>(e => capturedEvent = e),
+            Arg.Do<DeliveryOptions>(options => capturedOptions = options));
 
         // Act
         await _sut.Handle(domainEvent);
@@ -85,6 +92,8 @@ public class TenantCreatedDomainEventHandlerTests
         capturedEvent.Name.ShouldBe("My Tenant Name");
         capturedEvent.DatabaseStrategy.ShouldBe("External");
         capturedEvent.DatabaseProvider.ShouldBe("MySQL");
+        capturedOptions.ShouldNotBeNull();
+        capturedOptions!.TenantId.ShouldBe(tenantId.ToString("D"));
     }
 
     private static TenantCreatedDomainEvent CreateDomainEvent(

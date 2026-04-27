@@ -27,4 +27,11 @@ public interface ITenantReadRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The tenant database info if found; otherwise, null.</returns>
     Task<TenantDatabaseInfoReadModel?> GetDatabaseInfoByIdAsync(Guid id, string? serviceName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists active tenants for message persistence bootstrap.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Active tenant seed records.</returns>
+    Task<IReadOnlyList<TenantConnectionSeedReadModel>> ListConnectionSeedsAsync(CancellationToken cancellationToken);
 }

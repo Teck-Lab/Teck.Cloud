@@ -41,15 +41,22 @@ internal static class ScalarEndpointExtensions
                                 }
 
                                 string normalizedDocumentName = resolvedDocumentName.ToLowerInvariant();
-                                string documentName = $"{normalizedService}-{normalizedDocumentName}";
+                                bool isAdminDocument = normalizedDocumentName.Equals("admin", StringComparison.OrdinalIgnoreCase);
+                                string documentName = isAdminDocument
+                                    ? $"{normalizedService}-admin"
+                                    : normalizedService;
                                 if (!addedDocuments.Add(documentName))
                                 {
                                     continue;
                                 }
 
+                                string documentTitle = isAdminDocument
+                                    ? $"{GetClusterDisplayName(cluster.Key)} Admin"
+                                    : GetClusterDisplayName(cluster.Key);
+
                                 options.AddDocument(
                                     documentName,
-                                    $"{GetClusterDisplayName(cluster.Key)} {resolvedDocumentName}",
+                                    documentTitle,
                                     $"/{normalizedService}/openapi/{resolvedDocumentName}/openapi.json");
                             }
                         }
