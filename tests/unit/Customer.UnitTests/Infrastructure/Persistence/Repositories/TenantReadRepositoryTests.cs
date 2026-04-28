@@ -208,6 +208,117 @@ public sealed class TenantReadRepositoryTests : IDisposable
         result[0].DatabaseStrategy.ShouldBe("Shared");
     }
 
+    [Fact]
+    public async Task GetPagedTenantsAsync_ShouldReturnPagedResults_WithPlanAndActiveFilters()
+    {
+        // Arrange
+        TenantReadModel matchingTenant = new()
+        {
+            Id = Guid.NewGuid(),
+            Identifier = "tenant-matching",
+            Name = "Tenant Matching",
+            Plan = "Business",
+            DatabaseStrategy = "Dedicated",
+            DatabaseProvider = "PostgreSQL",
+            IsActive = true,
+        };
+
+        TenantReadModel differentPlanTenant = new()
+        {
+            Id = Guid.NewGuid(),
+            Identifier = "tenant-plan-miss",
+            Name = "Tenant Plan Miss",
+            Plan = "Starter",
+            DatabaseStrategy = "Shared",
+            DatabaseProvider = "PostgreSQL",
+            IsActive = true,
+        };
+
+        TenantReadModel inactiveTenant = new()
+        {
+            Id = Guid.NewGuid(),
+            Identifier = "tenant-inactive",
+            Name = "Tenant Inactive",
+            Plan = "Business",
+            DatabaseStrategy = "Dedicated",
+            DatabaseProvider = "PostgreSQL",
+            IsActive = false,
+        };
+
+        await _dbContext.Tenants.AddRangeAsync([matchingTenant, differentPlanTenant, inactiveTenant], TestContext.Current.CancellationToken);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _repository.GetPagedTenantsAsync(
+            page: 1,
+            size: 10,
+            keyword: null,
+            plan: "Business",
+            isActive: true,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.TotalItems.ShouldBe(1);
+        result.Items.Count.ShouldBe(1);
+        result.Items[0].Identifier.ShouldBe("tenant-matching");
+        result.Items[0].Plan.ShouldBe("Business");
+        result.Items[0].IsActive.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GetPagedTenantsAsync_ShouldFilterByKeywordAgainstIdentifierAndName()
+    {
+        // Arrange
+        TenantReadModel firstTenant = new()
+        {
+            Id = Guid.NewGuid(),
+            Identifier = "northwind",
+            Name = "Northwind Traders",
+            Plan = "Business",
+            DatabaseStrategy = "Dedicated",
+            DatabaseProvider = "PostgreSQL",
+            IsActive = true,
+        };
+
+        TenantReadModel secondTenant = new()
+        {
+            Id = Guid.NewGuid(),
+            Identifier = "contoso",
+            Name = "Contoso Ltd",
+            Plan = "Starter",
+            DatabaseStrategy = "Shared",
+            DatabaseProvider = "PostgreSQL",
+            IsActive = true,
+        };
+
+        await _dbContext.Tenants.AddRangeAsync([firstTenant, secondTenant], TestContext.Current.CancellationToken);
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var byIdentifier = await _repository.GetPagedTenantsAsync(
+            page: 1,
+            size: 10,
+            keyword: "north",
+            plan: null,
+            isActive: null,
+            TestContext.Current.CancellationToken);
+
+        var byName = await _repository.GetPagedTenantsAsync(
+            page: 1,
+            size: 10,
+            keyword: "Contoso",
+            plan: null,
+            isActive: null,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        byIdentifier.TotalItems.ShouldBe(1);
+        byIdentifier.Items[0].Identifier.ShouldBe("northwind");
+
+        byName.TotalItems.ShouldBe(1);
+        byName.Items[0].Identifier.ShouldBe("contoso");
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

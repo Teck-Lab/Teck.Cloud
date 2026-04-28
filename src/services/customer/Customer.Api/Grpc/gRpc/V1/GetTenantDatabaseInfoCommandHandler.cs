@@ -48,6 +48,7 @@ internal sealed class GetTenantDatabaseInfoCommandHandler(ITenantReadRepository 
         {
             Found = true,
             TenantId = tenant.TenantId.ToString(),
+            Identifier = tenant.Identifier,
             DatabaseStrategy = tenant.DatabaseStrategy,
             DatabaseProvider = tenant.DatabaseProvider,
             HasReadReplicas = tenant.HasReadReplicas,

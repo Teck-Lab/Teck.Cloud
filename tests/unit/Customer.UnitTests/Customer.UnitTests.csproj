@@ -35,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\services\customer\Customer.Api\Customer.Api.csproj" />
     <ProjectReference Include="..\..\..\src\services\customer\Customer.Application\Customer.Application.csproj" />
     <ProjectReference Include="..\..\..\src\services\customer\Customer.Domain\Customer.Domain.csproj" />
     <ProjectReference Include="..\..\..\src\services\customer\Customer.Infrastructure\Customer.Infrastructure.csproj" />

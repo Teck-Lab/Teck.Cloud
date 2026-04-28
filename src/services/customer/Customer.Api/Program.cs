@@ -17,6 +17,7 @@ using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Endpoints;
 using SharedKernel.Infrastructure.OpenApi;
 using SharedKernel.Infrastructure.Options;
+using SharedKernel.Persistence.Database.MultiTenant;
 
 namespace Customer.Api;
 
@@ -58,7 +59,7 @@ internal static class Program
         Assembly apiAssembly = typeof(Program).Assembly;
         builder.AddBaseInfrastructure(appOptions);
         builder.AddInfrastructureServices(applicationAssembly);
-        builder.Services.AddHostedService<TenantConnectionBootstrapHostedService>();
+        builder.Services.AddSingleton<CustomerTenantConnectionMissResolver>();
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
         builder.AddOpenApiInfrastructure(appOptions);
         AddValidation(builder, applicationAssembly, apiAssembly);
@@ -88,6 +89,8 @@ internal static class Program
             return app;
         }
 
+        ConfigureTenantMissResolution(app);
+
         app.UseBaseInfrastructure();
         app.UseInfrastructureServices();
         app.UseRequestTimeouts();
@@ -105,5 +108,15 @@ internal static class Program
             handlerRegistry.Register<GetTenantDatabaseInfoCommand, GetTenantDatabaseInfoCommandHandler, TenantDatabaseInfoRpcResult>();
             handlerRegistry.Register<GetTenantConnectionSeedsCommand, GetTenantConnectionSeedsCommandHandler, TenantConnectionSeedsRpcResult>();
         });
+    }
+
+    private static void ConfigureTenantMissResolution(WebApplication app)
+    {
+        WolverineTenantConnectionSource tenantConnectionSource = app.Services.GetRequiredService<WolverineTenantConnectionSource>();
+        CustomerTenantConnectionMissResolver resolver = app.Services.GetRequiredService<CustomerTenantConnectionMissResolver>();
+        bool strictTenantIsolation = app.Configuration.GetValue<bool>("Messaging:StrictTenantIsolation");
+
+        tenantConnectionSource.SetStrictTenantResolution(strictTenantIsolation);
+        tenantConnectionSource.SetMissingTenantResolver(resolver.ResolveAsync);
     }
 }

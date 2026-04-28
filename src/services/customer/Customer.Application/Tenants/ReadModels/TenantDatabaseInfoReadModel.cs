@@ -15,6 +15,11 @@ public sealed class TenantDatabaseInfoReadModel
     public Guid TenantId { get; set; }
 
     /// <summary>
+    /// Gets or sets the tenant slug/identifier.
+    /// </summary>
+    public string Identifier { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the tenant database strategy.
     /// </summary>
     public string DatabaseStrategy { get; set; } = string.Empty;

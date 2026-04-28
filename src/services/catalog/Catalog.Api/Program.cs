@@ -17,6 +17,7 @@ using SharedKernel.Infrastructure.Caching;
 using SharedKernel.Infrastructure.Endpoints;
 using SharedKernel.Infrastructure.OpenApi;
 using SharedKernel.Infrastructure.Options;
+using SharedKernel.Persistence.Database.MultiTenant;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 bool isRunningWolverineCodeGeneration = CodeGenerationDetector.IsRunningWolverineCodeGeneration();
@@ -33,7 +34,8 @@ builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 
 builder.AddBaseInfrastructure(appOptions);
 builder.AddInfrastructureServices(applicationAssembly);
-builder.Services.AddHostedService<TenantConnectionBootstrapHostedService>();
+builder.Services.AddSingleton<ICatalogTenantDatabaseInfoClient, CatalogTenantDatabaseInfoClient>();
+builder.Services.AddSingleton<CatalogTenantConnectionMissResolver>();
 
 builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
 builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, typeof(Program).Assembly);
@@ -54,7 +56,7 @@ app.MapRemote(
     customerApiRemoteAddress,
     remote =>
     {
-        remote.Register<GetTenantConnectionSeedsCommand, TenantConnectionSeedsRpcResult>();
+        remote.Register<GetTenantDatabaseInfoCommand, TenantDatabaseInfoRpcResult>();
     });
 
 if (isRunningWolverineCodeGeneration)
@@ -63,6 +65,8 @@ if (isRunningWolverineCodeGeneration)
     await app.RunJasperFxCommands(args).ConfigureAwait(false);
     return;
 }
+
+ConfigureTenantMissResolution(app);
 
 app.UseMultiTenant();
 
@@ -110,4 +114,14 @@ static bool TryBuildAbsoluteUri(string? value, out Uri uri)
     }
 
     return false;
+}
+
+static void ConfigureTenantMissResolution(WebApplication app)
+{
+    WolverineTenantConnectionSource tenantConnectionSource = app.Services.GetRequiredService<WolverineTenantConnectionSource>();
+    CatalogTenantConnectionMissResolver resolver = app.Services.GetRequiredService<CatalogTenantConnectionMissResolver>();
+    bool strictTenantIsolation = app.Configuration.GetValue<bool>("Messaging:StrictTenantIsolation");
+
+    tenantConnectionSource.SetStrictTenantResolution(strictTenantIsolation);
+    tenantConnectionSource.SetMissingTenantResolver(resolver.ResolveAsync);
 }

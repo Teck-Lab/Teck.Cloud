@@ -6,6 +6,7 @@ using Customer.Application.Tenants.ReadModels;
 using Customer.Application.Tenants.Repositories;
 using Customer.Infrastructure.Persistence.ReadModels;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.Pagination;
 
 namespace Customer.Infrastructure.Persistence.Repositories.Read;
 
@@ -50,6 +51,45 @@ public sealed class TenantReadRepository : ITenantReadRepository
     }
 
     /// <inheritdoc/>
+    public async Task<PagedList<TenantReadModel>> GetPagedTenantsAsync(
+        int page,
+        int size,
+        string? keyword,
+        string? plan,
+        bool? isActive,
+        CancellationToken cancellationToken)
+    {
+        IQueryable<TenantReadModel> query = this.readDbContext.Tenants.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(tenant =>
+                (tenant.Identifier != null && tenant.Identifier.Contains(keyword)) ||
+                (tenant.Name != null && tenant.Name.Contains(keyword)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(plan))
+        {
+            query = query.Where(tenant => tenant.Plan == plan);
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(tenant => tenant.IsActive == isActive.Value);
+        }
+
+        int totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+        List<TenantReadModel> items = await query
+            .OrderBy(tenant => tenant.Identifier)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return new PagedList<TenantReadModel>(items, totalCount, page, size);
+    }
+
+    /// <inheritdoc/>
     public async Task<IReadOnlyList<TenantConnectionSeedReadModel>> ListConnectionSeedsAsync(CancellationToken cancellationToken)
     {
         return await this.readDbContext.Tenants
@@ -78,6 +118,7 @@ public sealed class TenantReadRepository : ITenantReadRepository
         return new TenantDatabaseInfoReadModel
         {
             TenantId = tenant.Id,
+            Identifier = tenant.Identifier,
             DatabaseStrategy = tenant.DatabaseStrategy,
             DatabaseProvider = tenant.DatabaseProvider,
             HasReadReplicas = hasReadReplicas,

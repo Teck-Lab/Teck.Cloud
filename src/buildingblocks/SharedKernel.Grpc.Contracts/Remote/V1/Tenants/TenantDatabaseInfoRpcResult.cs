@@ -20,6 +20,11 @@ public sealed class TenantDatabaseInfoRpcResult
     public string TenantId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the tenant slug/identifier.
+    /// </summary>
+    public string Identifier { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the tenant database strategy.
     /// </summary>
     public string DatabaseStrategy { get; set; } = string.Empty;

@@ -169,6 +169,189 @@ public sealed class WolverineTenantPersistenceIsolationIntegrationTests
         await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
+    [Fact]
+    public async Task ScheduledMessages_ShouldResolveDedicatedTenantOnDemand_WhenNotPreRegistered()
+    {
+        EnsurePostgresTestcontainersAvailable();
+
+        await using PostgreSqlContainer sharedContainer = BuildTenantDatabaseContainer("tenant_shared_ondemand");
+        await using PostgreSqlContainer dedicatedContainer = new PostgreSqlBuilder("postgres:latest")
+            .WithDatabase($"tenant_dedicated_ondemand_{Guid.NewGuid():N}")
+            .WithUsername("postgres")
+            .WithPassword("postgres")
+            .Build();
+        await sharedContainer.StartAsync(TestContext.Current.CancellationToken);
+        await dedicatedContainer.StartAsync(TestContext.Current.CancellationToken);
+
+        string sharedConnectionString = sharedContainer.GetConnectionString();
+        string dedicatedConnectionString = dedicatedContainer.GetConnectionString();
+
+        string dedicatedTenantId = "tenant-dedicated-ondemand";
+        WolverineTenantConnectionSource tenantSource = new(sharedConnectionString);
+
+        int resolveCount = 0;
+        tenantSource.SetMissingTenantResolver((tenantId, _) =>
+        {
+            Interlocked.Increment(ref resolveCount);
+            return Task.FromResult<string?>(
+                string.Equals(tenantId, dedicatedTenantId, StringComparison.Ordinal)
+                    ? dedicatedConnectionString
+                    : null);
+        });
+
+        using IHost host = Host
+            .CreateDefaultBuilder()
+            .UseWolverine(options =>
+            {
+                options.Discovery.IncludeAssembly(typeof(WolverineTenantPersistenceIsolationIntegrationTests).Assembly);
+                options.UseSystemTextJsonForSerialization();
+                options.Policies.UseDurableLocalQueues();
+
+                options
+                    .PersistMessagesWithPostgresql(sharedConnectionString, "wolverine")
+                    .RegisterTenants(tenantSource)
+                    .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
+            })
+            .Build();
+
+        await host.StartAsync(TestContext.Current.CancellationToken);
+        await host.SetupResources(TestContext.Current.CancellationToken);
+
+        IMessageBus messageBus = host.Services.GetRequiredService<IMessageBus>();
+
+        string dedicatedMarker = $"ondemand-{Guid.NewGuid():N}";
+        DeliveryOptions options = new()
+        {
+            TenantId = dedicatedTenantId,
+        };
+        options.WithHeader("x-tenant-probe", dedicatedMarker);
+
+        await messageBus.ScheduleAsync(
+            new TenantIsolationProbeMessage(dedicatedMarker),
+            TimeSpan.FromMinutes(5),
+            options);
+
+        await Task.Delay(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+
+        long markerInDedicated = await CountMarkerOccurrencesAsync(dedicatedConnectionString, dedicatedMarker, TestContext.Current.CancellationToken);
+        long markerInShared = await CountMarkerOccurrencesAsync(sharedConnectionString, dedicatedMarker, TestContext.Current.CancellationToken);
+
+        markerInDedicated.ShouldBeGreaterThan(0);
+        markerInShared.ShouldBe(0);
+        resolveCount.ShouldBe(1);
+
+        await host.StopAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task ScheduledMessages_ShouldReflectTenantLifecycleMappings_ForPreUseTransitions()
+    {
+        EnsurePostgresTestcontainersAvailable();
+
+        await using PostgreSqlContainer sharedContainer = BuildTenantDatabaseContainer("tenant_shared_lifecycle");
+        await using PostgreSqlContainer dedicatedContainer = new PostgreSqlBuilder("postgres:latest")
+            .WithDatabase($"tenant_dedicated_lifecycle_{Guid.NewGuid():N}")
+            .WithUsername("postgres")
+            .WithPassword("postgres")
+            .Build();
+        await sharedContainer.StartAsync(TestContext.Current.CancellationToken);
+        await dedicatedContainer.StartAsync(TestContext.Current.CancellationToken);
+
+        string sharedConnectionString = sharedContainer.GetConnectionString();
+        string dedicatedConnectionString = dedicatedContainer.GetConnectionString();
+
+        string strategyTenantId = "tenant-lifecycle-strategy";
+        string disabledTenantId = "tenant-lifecycle-disabled";
+        string reenabledTenantId = "tenant-lifecycle-reenabled";
+        string removedTenantId = "tenant-lifecycle-removed";
+
+        WolverineTenantConnectionSource tenantSource = new(sharedConnectionString);
+
+        using IHost host = Host
+            .CreateDefaultBuilder()
+            .UseWolverine(options =>
+            {
+                options.Discovery.IncludeAssembly(typeof(WolverineTenantPersistenceIsolationIntegrationTests).Assembly);
+                options.UseSystemTextJsonForSerialization();
+                options.Policies.UseDurableLocalQueues();
+
+                options
+                    .PersistMessagesWithPostgresql(sharedConnectionString, "wolverine")
+                    .RegisterTenants(tenantSource)
+                    .OverrideAutoCreateResources(AutoCreate.CreateOrUpdate);
+            })
+            .Build();
+
+        await host.StartAsync(TestContext.Current.CancellationToken);
+        await host.SetupResources(TestContext.Current.CancellationToken);
+
+        IMessageBus messageBus = host.Services.GetRequiredService<IMessageBus>();
+
+        // Strategy change before first use should route to the latest mapping.
+        await tenantSource.AddTenantAsync(strategyTenantId, sharedConnectionString);
+        await tenantSource.AddTenantAsync(strategyTenantId, dedicatedConnectionString);
+        string strategyMarker = $"lifecycle-strategy-{Guid.NewGuid():N}";
+        await ScheduleProbeAsync(messageBus, strategyTenantId, strategyMarker);
+
+        // Disabled tenant should fallback to shared.
+        await tenantSource.AddTenantAsync(disabledTenantId, dedicatedConnectionString);
+        await tenantSource.DisableTenantAsync(disabledTenantId);
+        string disabledMarker = $"lifecycle-disabled-{Guid.NewGuid():N}";
+        await ScheduleProbeAsync(messageBus, disabledTenantId, disabledMarker);
+
+        // Re-enabled tenant (without prior resolution while disabled) should route dedicated.
+        await tenantSource.AddTenantAsync(reenabledTenantId, dedicatedConnectionString);
+        await tenantSource.DisableTenantAsync(reenabledTenantId);
+        await tenantSource.EnableTenantAsync(reenabledTenantId);
+        string reenabledMarker = $"lifecycle-reenabled-{Guid.NewGuid():N}";
+        await ScheduleProbeAsync(messageBus, reenabledTenantId, reenabledMarker);
+
+        // Removed tenant should fallback to shared.
+        await tenantSource.AddTenantAsync(removedTenantId, dedicatedConnectionString);
+        await tenantSource.RemoveTenantAsync(removedTenantId);
+        string removedMarker = $"lifecycle-removed-{Guid.NewGuid():N}";
+        await ScheduleProbeAsync(messageBus, removedTenantId, removedMarker);
+
+        await Task.Delay(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+
+        long strategyInShared = await CountMarkerOccurrencesAsync(sharedConnectionString, strategyMarker, TestContext.Current.CancellationToken);
+        long strategyInDedicated = await CountMarkerOccurrencesAsync(dedicatedConnectionString, strategyMarker, TestContext.Current.CancellationToken);
+        long disabledInShared = await CountMarkerOccurrencesAsync(sharedConnectionString, disabledMarker, TestContext.Current.CancellationToken);
+        long disabledInDedicated = await CountMarkerOccurrencesAsync(dedicatedConnectionString, disabledMarker, TestContext.Current.CancellationToken);
+        long reenabledInShared = await CountMarkerOccurrencesAsync(sharedConnectionString, reenabledMarker, TestContext.Current.CancellationToken);
+        long reenabledInDedicated = await CountMarkerOccurrencesAsync(dedicatedConnectionString, reenabledMarker, TestContext.Current.CancellationToken);
+        long removedInShared = await CountMarkerOccurrencesAsync(sharedConnectionString, removedMarker, TestContext.Current.CancellationToken);
+        long removedInDedicated = await CountMarkerOccurrencesAsync(dedicatedConnectionString, removedMarker, TestContext.Current.CancellationToken);
+
+        strategyInDedicated.ShouldBeGreaterThan(0);
+        strategyInShared.ShouldBe(0);
+
+        disabledInShared.ShouldBeGreaterThan(0);
+        disabledInDedicated.ShouldBe(0);
+
+        reenabledInDedicated.ShouldBeGreaterThan(0);
+        reenabledInShared.ShouldBe(0);
+
+        removedInShared.ShouldBeGreaterThan(0);
+        removedInDedicated.ShouldBe(0);
+
+        await host.StopAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task ScheduleProbeAsync(IMessageBus messageBus, string tenantId, string marker)
+    {
+        DeliveryOptions options = new()
+        {
+            TenantId = tenantId,
+        };
+        options.WithHeader("x-tenant-probe", marker);
+
+        await messageBus.ScheduleAsync(
+            new TenantIsolationProbeMessage(marker),
+            TimeSpan.FromMinutes(5),
+            options);
+    }
+
     private void EnsurePostgresTestcontainersAvailable()
     {
         if (this.sharedFixture.UseSqliteFallback)
