@@ -32,9 +32,9 @@
       },
       "Microsoft.TestPlatform": {
         "type": "Direct",
-        "requested": "[18.4.0, )",
-        "resolved": "18.4.0",
-        "contentHash": "ba0T/ipIjqANjInJtXY08xe1aFLVCAy6AnfpuIDHSRMNompJGCamLZ6ADs3uQvvNIN8VQJMmmNHWIScL4OPHoQ=="
+        "requested": "[18.5.1, )",
+        "resolved": "18.5.1",
+        "contentHash": "B6SUkx8dexki1Njbf5CI1i43Xvq2KVGi2reJzkmC72Xgyk248HZ02WcI7/vGqsXEqkc8ZSqaVzhuN0rWVvLToA=="
       },
       "NSubstitute": {
         "type": "Direct",
@@ -1793,7 +1793,7 @@
           "Bogus": "[35.6.5, )",
           "ErrorOr": "[2.0.1, )",
           "Microsoft.NET.Test.Sdk": "[18.4.0, )",
-          "Microsoft.TestPlatform": "[18.4.0, )",
+          "Microsoft.TestPlatform": "[18.5.1, )",
           "NSubstitute": "[5.3.0, )",
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Persistence": "[0.0.1, )",

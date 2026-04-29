@@ -22,9 +22,9 @@
       },
       "Meziantou.Analyzer": {
         "type": "Direct",
-        "requested": "[3.0.54, )",
-        "resolved": "3.0.54",
-        "contentHash": "fybpNsTg4ZT+oiQWkrkTvvy1dowdqjfkefFa/7OIPFPmTkHd9eSEjPCpoK1c5oYdp68QjpLTbeCDpZB2TOUQ4A=="
+        "requested": "[3.0.58, )",
+        "resolved": "3.0.58",
+        "contentHash": "EWprZh8ONB5W4T5lajB9H3/ThznWgEVbb8sWkIZe2ZOCRPPzAdLxkFfM8z57SosJtUYGxPXvxlqGmClxw8mA9g=="
       },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
@@ -87,9 +87,9 @@
       },
       "SonarAnalyzer.CSharp": {
         "type": "Direct",
-        "requested": "[10.24.0.138807, )",
-        "resolved": "10.24.0.138807",
-        "contentHash": "+ZEa1+KhNSulMSatpffgHnovbLGtYL9oukMh8uQp8RBDnPOjEFzvECSa4kfu1D4PJxErksiGOQQ+kDeao1x9jQ=="
+        "requested": "[10.25.0.139117, )",
+        "resolved": "10.25.0.139117",
+        "contentHash": "2iBZIkcgsaUNyIPFqR9ECv5PLbAwV9I/v/PeEiMdkfhWEAnqD7VyNXzukQDlL/D24f5OoUc4MbWF5SgYI7x3CA=="
       },
       "StackExchange.Redis.Analyzer": {
         "type": "Direct",
@@ -1275,11 +1275,11 @@
       },
       "WolverineFx.RDBMS": {
         "type": "Transitive",
-        "resolved": "5.32.1",
-        "contentHash": "Z+UiyV6PBOzfExacXcySG/IpUIjcf4jJKcKjJ09Hf+U6DQ2+TsxIBY5MJTrq1RXB/u6b8JioA9qYh4zrZoWWkQ==",
+        "resolved": "5.33.0",
+        "contentHash": "i/hpCr7qOBclKMZ6u5ET8QweDuFAqyXen84hlOZOMf3Dn+135uJFD0YFESqZCezRY58VjFjmOxhua1aBa2Y62w==",
         "dependencies": {
           "Weasel.Core": "8.14.1",
-          "WolverineFx": "5.32.1"
+          "WolverineFx": "5.33.0"
         }
       },
       "YamlDotNet": {
@@ -1401,8 +1401,8 @@
           "OpenTelemetry.Resources.Process": "[1.15.0-beta.1, )",
           "OpenTelemetry.Resources.ProcessRuntime": "[1.15.0-beta.1, )",
           "RabbitMQ.Client.OpenTelemetry": "[1.0.0-rc.2, )",
-          "Scalar.AspNetCore": "[2.13.8, )",
-          "Scalar.AspNetCore.Microsoft": "[2.13.8, )",
+          "Scalar.AspNetCore": "[2.14.6, )",
+          "Scalar.AspNetCore.Microsoft": "[2.14.6, )",
           "Scrutor": "[7.0.0, )",
           "Serilog.AspNetCore": "[10.0.0, )",
           "Serilog.Enrichers.Environment": "[3.0.1, )",
@@ -1420,12 +1420,12 @@
           "SharedKernel.Core": "[0.0.1, )",
           "StackExchange.Redis": "[2.12.14, )",
           "System.IdentityModel.Tokens.Jwt": "[8.17.0, )",
-          "WolverineFx": "[5.32.1, )",
-          "WolverineFx.EntityFrameworkCore": "[5.32.1, )",
-          "WolverineFx.FluentValidation": "[5.32.1, )",
-          "WolverineFx.Http": "[5.32.1, )",
-          "WolverineFx.MemoryPack": "[5.32.1, )",
-          "WolverineFx.Postgresql": "[5.32.1, )",
+          "WolverineFx": "[5.33.0, )",
+          "WolverineFx.EntityFrameworkCore": "[5.33.0, )",
+          "WolverineFx.FluentValidation": "[5.33.0, )",
+          "WolverineFx.Http": "[5.33.0, )",
+          "WolverineFx.MemoryPack": "[5.33.0, )",
+          "WolverineFx.Postgresql": "[5.33.0, )",
           "WolverineFx.RabbitMQ": "[5.32.1, )",
           "WolverineFx.SignalR": "[5.32.1, )",
           "WolverineFx.SqlServer": "[5.32.1, )",
@@ -2506,18 +2506,18 @@
       },
       "Scalar.AspNetCore": {
         "type": "CentralTransitive",
-        "requested": "[2.13.8, )",
-        "resolved": "2.13.8",
-        "contentHash": "Sp75IcOIZFMVawlpSiiHiyeWYJJVvbXKt1PcB9CcmjzJumofETWzOCMwfhKumbfBPLg/89sOBQUEfzKpXhAw6g=="
+        "requested": "[2.14.6, )",
+        "resolved": "2.14.6",
+        "contentHash": "Q2JlF4FNSa3ooMbelv8WmP0rJCZHuQ6AJIB4tQfubcqbH3pgKIpsYBhXRzVECZ3erOZD8FmussrUpdbyVCNXYw=="
       },
       "Scalar.AspNetCore.Microsoft": {
         "type": "CentralTransitive",
-        "requested": "[2.13.8, )",
-        "resolved": "2.13.8",
-        "contentHash": "GXKcO02oBYEBK/AzE+lFLqdbQXQ3nbs+1JCMsH+xow/Dpu1Wh0iZ+Q/u2OcdjkTaVgPCsCUVvL2JkwjHzFKMig==",
+        "requested": "[2.14.6, )",
+        "resolved": "2.14.6",
+        "contentHash": "6BTgDZxc7Tr8nNmuDru/RsTGyMMI8cCmqodPk9FlgmPSWiOd6eh+E7773yufXhmGxX0GiryMzRtcmBv+T0kaeA==",
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "10.0.0",
-          "Scalar.AspNetCore": "2.13.8"
+          "Scalar.AspNetCore": "2.14.6"
         }
       },
       "Scrutor": {
@@ -2714,9 +2714,9 @@
       },
       "WolverineFx": {
         "type": "CentralTransitive",
-        "requested": "[5.32.1, )",
-        "resolved": "5.32.1",
-        "contentHash": "CbEkXuIap1YlUpTKQJZLr+tVe6bs2ubgkbk2vca/pIYqmShBkZxloEjavYK0LY2LVa/4NE8/GUN37M2B7lqewA==",
+        "requested": "[5.33.0, )",
+        "resolved": "5.33.0",
+        "contentHash": "zpkvGtL86V/Hf4bXJaAjL0ShGKrU7Fz9OO0SlEk2traX2sTUZOGDx6f4POlQzBMsBL95T88v8EpYUf/arIvZMg==",
         "dependencies": {
           "JasperFx": "1.26.0",
           "JasperFx.Events": "1.29.0",
@@ -2737,54 +2737,54 @@
       },
       "WolverineFx.EntityFrameworkCore": {
         "type": "CentralTransitive",
-        "requested": "[5.32.1, )",
-        "resolved": "5.32.1",
-        "contentHash": "LFYE/cI7ZKlFa1GLI4T/5F0ynSsKnDoGbehn9xT901EDxl89ih4j44W1KF+yLHxsxs8kUZVoMXDweVYvzfkKTg==",
+        "requested": "[5.33.0, )",
+        "resolved": "5.33.0",
+        "contentHash": "PlesFCu4wX37ftOo42tbZK6pPz74VY7Z6nKKnzw+yfChdMpFJPMix/VifAsqiQsKdGk70ZoIFcYufS2RGn3BNQ==",
         "dependencies": {
           "Microsoft.EntityFrameworkCore": "10.0.2",
           "Microsoft.EntityFrameworkCore.Design": "10.0.2",
           "Microsoft.EntityFrameworkCore.Relational": "10.0.2",
           "Weasel.EntityFrameworkCore": "8.14.1",
-          "WolverineFx.RDBMS": "5.32.1"
+          "WolverineFx.RDBMS": "5.33.0"
         }
       },
       "WolverineFx.FluentValidation": {
         "type": "CentralTransitive",
-        "requested": "[5.32.1, )",
-        "resolved": "5.32.1",
-        "contentHash": "jcEngvWAY4h4d0p1pJ6/dgEp16ISFpTpXsYxUH1h7Y6utNHeFdtw9i6YZuu/Ju3paFhkyLz28A1iNQVwWiotYQ==",
+        "requested": "[5.33.0, )",
+        "resolved": "5.33.0",
+        "contentHash": "bypGvJK4bUJg6Pr4TqCOYQFl2cDOKAoW1IHwpYGQC7vpVyomCX76BzFWllC69XzyLyaP2x81fhIBTZZgCg+OKA==",
         "dependencies": {
           "FluentValidation": "12.0.0",
-          "WolverineFx": "5.32.1"
+          "WolverineFx": "5.33.0"
         }
       },
       "WolverineFx.Http": {
         "type": "CentralTransitive",
-        "requested": "[5.32.1, )",
-        "resolved": "5.32.1",
-        "contentHash": "HwA764Dq18gIRAaXQN+RxRJHCkqFw49L8JgGZywGWfdI+AfLpTSx0V/LU2/G9WIqAcqgLX4ELG1s+vwy7+/b/Q==",
+        "requested": "[5.33.0, )",
+        "resolved": "5.33.0",
+        "contentHash": "YPJvDqm9GCaNdJmnn4D3M9EtzR9kJJE6c/toKPxjSf8BRbK27aGnvHC6zpT1CcxJiftQjzMEvDRueJnpmGlZYw==",
         "dependencies": {
-          "WolverineFx": "5.32.1"
+          "WolverineFx": "5.33.0"
         }
       },
       "WolverineFx.MemoryPack": {
         "type": "CentralTransitive",
-        "requested": "[5.32.1, )",
-        "resolved": "5.32.1",
-        "contentHash": "jzyAmdCiwnKFWD+HphDLEPbbAoyAWIpBf3kzKrzXLoN0ttdakTBgY4z0dvQLhbR0Hrb+BCodbvuD8A7j2b8lgA==",
+        "requested": "[5.33.0, )",
+        "resolved": "5.33.0",
+        "contentHash": "8EfO25YD1oyQ/Y/zMO3Mw05Nuy0k1RQKXoMuMrTeVJWWQHDwUIYH3g9Rfg4ynsB3itylEuSxq2p02VJYYNaC/w==",
         "dependencies": {
           "MemoryPack": "1.21.3",
-          "WolverineFx": "5.32.1"
+          "WolverineFx": "5.33.0"
         }
       },
       "WolverineFx.Postgresql": {
         "type": "CentralTransitive",
-        "requested": "[5.32.1, )",
-        "resolved": "5.32.1",
-        "contentHash": "wQK6J6jYwD6cDMiJQPiysDnXbT+ze6LtARKjizhpR+rhp67AY0klasTA5j8lEGqMYTg4sCPsvLYlVrKCbbf+Pg==",
+        "requested": "[5.33.0, )",
+        "resolved": "5.33.0",
+        "contentHash": "Wxnu912yRiULwiSGvNI8v1mGVHEFJ89oi4gNZigyTuLKTbBCXWRgc1cD2hdBRRAwoEl4Wo4/hPWV8lbsTGqRzg==",
         "dependencies": {
           "Weasel.Postgresql": "8.14.1",
-          "WolverineFx.RDBMS": "5.32.1"
+          "WolverineFx.RDBMS": "5.33.0"
         }
       },
       "WolverineFx.RabbitMQ": {
