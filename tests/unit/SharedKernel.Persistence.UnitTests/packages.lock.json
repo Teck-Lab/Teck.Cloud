@@ -60,9 +60,9 @@
       },
       "Microsoft.TestPlatform": {
         "type": "Direct",
-        "requested": "[18.4.0, )",
-        "resolved": "18.4.0",
-        "contentHash": "ba0T/ipIjqANjInJtXY08xe1aFLVCAy6AnfpuIDHSRMNompJGCamLZ6ADs3uQvvNIN8VQJMmmNHWIScL4OPHoQ=="
+        "requested": "[18.5.1, )",
+        "resolved": "18.5.1",
+        "contentHash": "B6SUkx8dexki1Njbf5CI1i43Xvq2KVGi2reJzkmC72Xgyk248HZ02WcI7/vGqsXEqkc8ZSqaVzhuN0rWVvLToA=="
       },
       "Npgsql.EntityFrameworkCore.PostgreSQL": {
         "type": "Direct",
@@ -329,8 +329,8 @@
       },
       "Finbuckle.MultiTenant.Abstractions": {
         "type": "Transitive",
-        "resolved": "10.0.6",
-        "contentHash": "tXVr3GPLoTJPxawNC5bdolr5b6ZeWsVQk8X75HJCUlsxxMEQXftbQX7eWUd7dD9brnEa8Jk5DaSyltFZXd8snw=="
+        "resolved": "10.0.7",
+        "contentHash": "R8LP+Iw1TKADDdWP5z2mwJu4cPBNWIZ8e3tr2iuBt3NEsxBcZ3MO6g8o3ha4G7H4NSIcxTQvaXdSCJvTXp62aA=="
       },
       "Grpc.Net.Client": {
         "type": "Transitive",
@@ -1640,7 +1640,7 @@
           "Ardalis.Specification": "[9.3.1, )",
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "ErrorOr": "[2.0.1, )",
-          "Finbuckle.MultiTenant": "[10.0.6, )",
+          "Finbuckle.MultiTenant": "[10.0.7, )",
           "Mediator.Abstractions": "[3.0.2, )",
           "Nanoid": "[3.1.0, )",
           "NewId": "[4.0.1, )"
@@ -1681,9 +1681,9 @@
           "DistributedLock.Redis": "[1.1.1, )",
           "FastEndpoints": "[8.1.0, )",
           "FastEndpoints.Swagger": "[8.1.0, )",
-          "Finbuckle.MultiTenant": "[10.0.6, )",
-          "Finbuckle.MultiTenant.AspNetCore": "[10.0.6, )",
-          "Finbuckle.MultiTenant.EntityFrameworkCore": "[10.0.6, )",
+          "Finbuckle.MultiTenant": "[10.0.7, )",
+          "Finbuckle.MultiTenant.AspNetCore": "[10.0.7, )",
+          "Finbuckle.MultiTenant.EntityFrameworkCore": "[10.0.7, )",
           "FluentStorage": "[6.0.3, )",
           "FluentStorage.AWS": "[6.0.3, )",
           "FluentValidation": "[12.1.1, )",
@@ -1764,8 +1764,8 @@
           "AspNetCore.HealthChecks.SqlServer": "[9.0.0, )",
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "EntityFrameworkCore.Exceptions.PostgreSQL": "[10.0.0, )",
-          "Finbuckle.MultiTenant": "[10.0.6, )",
-          "Finbuckle.MultiTenant.EntityFrameworkCore": "[10.0.6, )",
+          "Finbuckle.MultiTenant": "[10.0.7, )",
+          "Finbuckle.MultiTenant.EntityFrameworkCore": "[10.0.7, )",
           "Grpc.Net.ClientFactory": "[2.76.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.7, )",
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.7, )",
@@ -2055,11 +2055,11 @@
       },
       "Finbuckle.MultiTenant": {
         "type": "CentralTransitive",
-        "requested": "[10.0.6, )",
-        "resolved": "10.0.6",
-        "contentHash": "H+tENriHqjtf4BXO4Hdbbvl6MxHjCbnt308E+LeArkZkdHnaB3DKQvQkno6mm30Nd+XIRFlL4guXhbbdBhVF3A==",
+        "requested": "[10.0.7, )",
+        "resolved": "10.0.7",
+        "contentHash": "jsfVeBio36fEUpOcbx7eRfYq1FnNQ2nuhOUPGJpeQ3Lg59/uMwUEdS5uyMpvugbmlQ4YQSGq0e+sQDLotpPjuA==",
         "dependencies": {
-          "Finbuckle.MultiTenant.Abstractions": "10.0.6",
+          "Finbuckle.MultiTenant.Abstractions": "10.0.7",
           "Microsoft.Extensions.Caching.Abstractions": "10.0.7",
           "Microsoft.Extensions.Configuration": "10.0.7",
           "Microsoft.Extensions.DependencyInjection": "10.0.7",
@@ -2071,21 +2071,21 @@
       },
       "Finbuckle.MultiTenant.AspNetCore": {
         "type": "CentralTransitive",
-        "requested": "[10.0.6, )",
-        "resolved": "10.0.6",
-        "contentHash": "i06e0VDxPJTaXxwlv9RNH6aX4ye+R26cybQgbuVj0pGrFNWBcDihR8pSFn4DB3V2/i1iPlPgc8NVCH4CFlMbtQ==",
+        "requested": "[10.0.7, )",
+        "resolved": "10.0.7",
+        "contentHash": "h59/pgUEgPrRNEF/Foxrad60uvfAEW5e+9xxo8l2unov+nXfeyJWgat1d4IrfmrL/MljmuPaG9fHfr1QSjbBEQ==",
         "dependencies": {
-          "Finbuckle.MultiTenant": "10.0.6",
+          "Finbuckle.MultiTenant": "10.0.7",
           "Microsoft.AspNetCore.Authentication.OpenIdConnect": "10.0.7"
         }
       },
       "Finbuckle.MultiTenant.EntityFrameworkCore": {
         "type": "CentralTransitive",
-        "requested": "[10.0.6, )",
-        "resolved": "10.0.6",
-        "contentHash": "qtKSfxCOoIIUEyOOhNaurynl/hgh44sDIPzsyIJqyLxoxicS1vHrlJMuE8bITPb9KFUevpfV9ePNzpMmDH8o8g==",
+        "requested": "[10.0.7, )",
+        "resolved": "10.0.7",
+        "contentHash": "JNf+xJ0gaX4Le7wP9AvFApfyaHTzBr+ZZ2SPlxUmu2Tt7bS+CbFrb6SxpillGUguoouvNiwJL+xMJJTI39VY9Q==",
         "dependencies": {
-          "Finbuckle.MultiTenant": "10.0.6",
+          "Finbuckle.MultiTenant": "10.0.7",
           "Microsoft.EntityFrameworkCore.Relational": "10.0.7"
         }
       },

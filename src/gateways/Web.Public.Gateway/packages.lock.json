@@ -44,9 +44,9 @@
       },
       "Meziantou.Analyzer": {
         "type": "Direct",
-        "requested": "[3.0.54, )",
-        "resolved": "3.0.54",
-        "contentHash": "fybpNsTg4ZT+oiQWkrkTvvy1dowdqjfkefFa/7OIPFPmTkHd9eSEjPCpoK1c5oYdp68QjpLTbeCDpZB2TOUQ4A=="
+        "requested": "[3.0.58, )",
+        "resolved": "3.0.58",
+        "contentHash": "EWprZh8ONB5W4T5lajB9H3/ThznWgEVbb8sWkIZe2ZOCRPPzAdLxkFfM8z57SosJtUYGxPXvxlqGmClxw8mA9g=="
       },
       "Microsoft.Extensions.ServiceDiscovery": {
         "type": "Direct",
@@ -129,9 +129,9 @@
       },
       "SonarAnalyzer.CSharp": {
         "type": "Direct",
-        "requested": "[10.24.0.138807, )",
-        "resolved": "10.24.0.138807",
-        "contentHash": "+ZEa1+KhNSulMSatpffgHnovbLGtYL9oukMh8uQp8RBDnPOjEFzvECSa4kfu1D4PJxErksiGOQQ+kDeao1x9jQ=="
+        "requested": "[10.25.0.139117, )",
+        "resolved": "10.25.0.139117",
+        "contentHash": "2iBZIkcgsaUNyIPFqR9ECv5PLbAwV9I/v/PeEiMdkfhWEAnqD7VyNXzukQDlL/D24f5OoUc4MbWF5SgYI7x3CA=="
       },
       "StackExchange.Redis.Analyzer": {
         "type": "Direct",
@@ -268,8 +268,8 @@
       },
       "Finbuckle.MultiTenant.Abstractions": {
         "type": "Transitive",
-        "resolved": "10.0.6",
-        "contentHash": "tXVr3GPLoTJPxawNC5bdolr5b6ZeWsVQk8X75HJCUlsxxMEQXftbQX7eWUd7dD9brnEa8Jk5DaSyltFZXd8snw=="
+        "resolved": "10.0.7",
+        "contentHash": "R8LP+Iw1TKADDdWP5z2mwJu4cPBNWIZ8e3tr2iuBt3NEsxBcZ3MO6g8o3ha4G7H4NSIcxTQvaXdSCJvTXp62aA=="
       },
       "Grpc.AspNetCore.Server": {
         "type": "Transitive",
@@ -1136,7 +1136,7 @@
           "Ardalis.Specification": "[9.3.1, )",
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "ErrorOr": "[2.0.1, )",
-          "Finbuckle.MultiTenant": "[10.0.6, )",
+          "Finbuckle.MultiTenant": "[10.0.7, )",
           "Mediator.Abstractions": "[3.0.2, )",
           "Nanoid": "[3.1.0, )",
           "NewId": "[4.0.1, )"
@@ -1170,9 +1170,9 @@
           "DistributedLock.Redis": "[1.1.1, )",
           "FastEndpoints": "[8.1.0, )",
           "FastEndpoints.Swagger": "[8.1.0, )",
-          "Finbuckle.MultiTenant": "[10.0.6, )",
-          "Finbuckle.MultiTenant.AspNetCore": "[10.0.6, )",
-          "Finbuckle.MultiTenant.EntityFrameworkCore": "[10.0.6, )",
+          "Finbuckle.MultiTenant": "[10.0.7, )",
+          "Finbuckle.MultiTenant.AspNetCore": "[10.0.7, )",
+          "Finbuckle.MultiTenant.EntityFrameworkCore": "[10.0.7, )",
           "FluentStorage": "[6.0.3, )",
           "FluentStorage.AWS": "[6.0.3, )",
           "FluentValidation": "[12.1.1, )",
@@ -1209,8 +1209,8 @@
           "OpenTelemetry.Resources.Process": "[1.15.0-beta.1, )",
           "OpenTelemetry.Resources.ProcessRuntime": "[1.15.0-beta.1, )",
           "RabbitMQ.Client.OpenTelemetry": "[1.0.0-rc.2, )",
-          "Scalar.AspNetCore": "[2.13.8, )",
-          "Scalar.AspNetCore.Microsoft": "[2.13.8, )",
+          "Scalar.AspNetCore": "[2.14.8, )",
+          "Scalar.AspNetCore.Microsoft": "[2.14.8, )",
           "Scrutor": "[7.0.0, )",
           "Serilog.AspNetCore": "[10.0.0, )",
           "Serilog.Enrichers.Environment": "[3.0.1, )",
@@ -1461,30 +1461,30 @@
       },
       "Finbuckle.MultiTenant": {
         "type": "CentralTransitive",
-        "requested": "[10.0.6, )",
-        "resolved": "10.0.6",
-        "contentHash": "H+tENriHqjtf4BXO4Hdbbvl6MxHjCbnt308E+LeArkZkdHnaB3DKQvQkno6mm30Nd+XIRFlL4guXhbbdBhVF3A==",
+        "requested": "[10.0.7, )",
+        "resolved": "10.0.7",
+        "contentHash": "jsfVeBio36fEUpOcbx7eRfYq1FnNQ2nuhOUPGJpeQ3Lg59/uMwUEdS5uyMpvugbmlQ4YQSGq0e+sQDLotpPjuA==",
         "dependencies": {
-          "Finbuckle.MultiTenant.Abstractions": "10.0.6"
+          "Finbuckle.MultiTenant.Abstractions": "10.0.7"
         }
       },
       "Finbuckle.MultiTenant.AspNetCore": {
         "type": "CentralTransitive",
-        "requested": "[10.0.6, )",
-        "resolved": "10.0.6",
-        "contentHash": "i06e0VDxPJTaXxwlv9RNH6aX4ye+R26cybQgbuVj0pGrFNWBcDihR8pSFn4DB3V2/i1iPlPgc8NVCH4CFlMbtQ==",
+        "requested": "[10.0.7, )",
+        "resolved": "10.0.7",
+        "contentHash": "h59/pgUEgPrRNEF/Foxrad60uvfAEW5e+9xxo8l2unov+nXfeyJWgat1d4IrfmrL/MljmuPaG9fHfr1QSjbBEQ==",
         "dependencies": {
-          "Finbuckle.MultiTenant": "10.0.6",
+          "Finbuckle.MultiTenant": "10.0.7",
           "Microsoft.AspNetCore.Authentication.OpenIdConnect": "10.0.7"
         }
       },
       "Finbuckle.MultiTenant.EntityFrameworkCore": {
         "type": "CentralTransitive",
-        "requested": "[10.0.6, )",
-        "resolved": "10.0.6",
-        "contentHash": "qtKSfxCOoIIUEyOOhNaurynl/hgh44sDIPzsyIJqyLxoxicS1vHrlJMuE8bITPb9KFUevpfV9ePNzpMmDH8o8g==",
+        "requested": "[10.0.7, )",
+        "resolved": "10.0.7",
+        "contentHash": "JNf+xJ0gaX4Le7wP9AvFApfyaHTzBr+ZZ2SPlxUmu2Tt7bS+CbFrb6SxpillGUguoouvNiwJL+xMJJTI39VY9Q==",
         "dependencies": {
-          "Finbuckle.MultiTenant": "10.0.6",
+          "Finbuckle.MultiTenant": "10.0.7",
           "Microsoft.EntityFrameworkCore.Relational": "10.0.7"
         }
       },
@@ -1999,18 +1999,18 @@
       },
       "Scalar.AspNetCore": {
         "type": "CentralTransitive",
-        "requested": "[2.13.8, )",
-        "resolved": "2.13.8",
-        "contentHash": "Sp75IcOIZFMVawlpSiiHiyeWYJJVvbXKt1PcB9CcmjzJumofETWzOCMwfhKumbfBPLg/89sOBQUEfzKpXhAw6g=="
+        "requested": "[2.14.8, )",
+        "resolved": "2.14.8",
+        "contentHash": "v9afCyheCy+t5zXQvAF5JMqXt6BMCEQuqxtBl/52eGiwan3xGeDKpuUNH+DdKyY+LrSjIecCwCCUGaPbdtiuwg=="
       },
       "Scalar.AspNetCore.Microsoft": {
         "type": "CentralTransitive",
-        "requested": "[2.13.8, )",
-        "resolved": "2.13.8",
-        "contentHash": "GXKcO02oBYEBK/AzE+lFLqdbQXQ3nbs+1JCMsH+xow/Dpu1Wh0iZ+Q/u2OcdjkTaVgPCsCUVvL2JkwjHzFKMig==",
+        "requested": "[2.14.8, )",
+        "resolved": "2.14.8",
+        "contentHash": "ItVZ4tz1aTXqD8d10m8B07bygldKD5M36JQVep5gFnVx0l5j/+586H6rfu0ys0bxtzfV+K0p1JyYcUAdQ64nDQ==",
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "10.0.0",
-          "Scalar.AspNetCore": "2.13.8"
+          "Scalar.AspNetCore": "2.14.8"
         }
       },
       "Scrutor": {
