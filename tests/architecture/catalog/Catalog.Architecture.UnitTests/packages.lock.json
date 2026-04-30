@@ -596,6 +596,14 @@
         "resolved": "6.0.2",
         "contentHash": "f+pRODTWX7Y67jXO3T5S2dIPZ9qMJNySjlZT/TKmWVNWe19N8jcWmHaqHnnchaq3gxEKv1SWVY5EFzOD06l41w=="
       },
+      "Microsoft.Data.Sqlite.Core": {
+        "type": "Transitive",
+        "resolved": "10.0.7",
+        "contentHash": "xVrtBg3M1wJlBDkoT0dXEYB/wSc8bIHJPYtw/bu1AqpWgF79uPSs87DAhERR/Ilumre6TKZa1cjMg3VUUObVLA==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
       "Microsoft.EntityFrameworkCore.Abstractions": {
         "type": "Transitive",
         "resolved": "10.0.7",
@@ -605,6 +613,20 @@
         "type": "Transitive",
         "resolved": "10.0.7",
         "contentHash": "eZnMyiJzo249Ejg5CaFScvJS0u7neQfS9DXknAHTO6FHVMM99gO0byNXHGZmA/BOkZ13ngeVziQLHTMOtgescg=="
+      },
+      "Microsoft.EntityFrameworkCore.Sqlite.Core": {
+        "type": "Transitive",
+        "resolved": "10.0.7",
+        "contentHash": "XVjGSW98Z/f3nFZsZILL/tntgM8i2hxUDUB4Nzt7ZvJ63MczC/VG4zjQh+m+q88SU+IJBUDipJJpkYBU57YWXg==",
+        "dependencies": {
+          "Microsoft.Data.Sqlite.Core": "10.0.7",
+          "Microsoft.EntityFrameworkCore.Relational": "10.0.7",
+          "Microsoft.Extensions.Caching.Memory": "10.0.7",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.7",
+          "Microsoft.Extensions.DependencyModel": "10.0.7",
+          "Microsoft.Extensions.Logging": "10.0.7",
+          "SQLitePCLRaw.core": "2.1.11"
+        }
       },
       "Microsoft.Extensions.AmbientMetadata.Application": {
         "type": "Transitive",
@@ -1297,6 +1319,33 @@
         "resolved": "0.55.0",
         "contentHash": "GIfgOvuF8MpU52bprhwtDEtx0gmVIGOepM8bw0lH/TSMD0rg1Xp+5Y53kPG8rFVdcpbNANlhDQ5mEVVPO3/2Tg=="
       },
+      "SQLitePCLRaw.bundle_e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "DC4nA7yWnf4UZdgJDF+9Mus4/cb0Y3Sfgi3gDnAoKNAIBwzkskNAbNbyu+u4atT0ruVlZNJfwZmwiEwE5oz9LQ==",
+        "dependencies": {
+          "SQLitePCLRaw.lib.e_sqlite3": "2.1.11",
+          "SQLitePCLRaw.provider.e_sqlite3": "2.1.11"
+        }
+      },
+      "SQLitePCLRaw.core": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "PK0GLFkfhZzLQeR3PJf71FmhtHox+U3vcY6ZtswoMjrefkB9k6ErNJEnwXqc5KgXDSjige2XXrezqS39gkpQKA=="
+      },
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "Ev2ytaXiOlWZ4b3R67GZBsemTINslLD1DCJr2xiacpn4tbapu0Q4dHEzSvZSMnVWeE5nlObU3VZN2p81q3XOYQ=="
+      },
+      "SQLitePCLRaw.provider.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "Y/0ZkR+r0Cg3DQFuCl1RBnv/tmxpIZRU3HUvelPw6MVaKHwYYR8YNvgs0vuNuXCMvlyJ+Fh88U1D4tah1tt6qw==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
       "System.ClientModel": {
         "type": "Transitive",
         "resolved": "1.5.1",
@@ -1566,6 +1615,54 @@
         "resolved": "0.8.6",
         "contentHash": "iP4jVLQoQmUjMU88g1WObiNr6YKZGvh4aOXn3yOJsHqZsflwRsxZPcIBvNXgjXO3vQKSLctXGLTpcBPLnWPS8A=="
       },
+      "basket.api": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Basket.Application": "[0.1.0, )",
+          "Basket.Infrastructure": "[0.1.0, )",
+          "FastEndpoints": "[8.1.0, )",
+          "FastEndpoints.Messaging.Remote": "[8.1.0, )",
+          "FastEndpoints.Swagger": "[8.1.0, )",
+          "FluentValidation.DependencyInjectionExtensions": "[12.1.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "Teck.Cloud.ServiceDefaults": "[1.0.0, )"
+        }
+      },
+      "basket.application": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Basket.Domain": "[0.1.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "FluentValidation": "[12.1.1, )",
+          "SharedKernel.Core": "[0.0.1, )"
+        }
+      },
+      "basket.domain": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "SharedKernel.Core": "[0.0.1, )"
+        }
+      },
+      "basket.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Basket.Application": "[0.1.0, )",
+          "Basket.Domain": "[0.1.0, )",
+          "FastEndpoints.Messaging.Remote": "[8.1.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.7, )",
+          "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.7, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "ZiggyCreatures.FusionCache": "[2.6.0, )"
+        }
+      },
       "catalog.api": {
         "type": "Project",
         "dependencies": {
@@ -1639,6 +1736,126 @@
         "dependencies": {
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "Catalog.Infrastructure": "[0.1.0, )"
+        }
+      },
+      "customer.api": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Customer.Application": "[1.0.0, )",
+          "Customer.Infrastructure": "[1.0.0, )",
+          "Customer.Infrastructure.Migrations.MySql": "[1.0.0, )",
+          "Customer.Infrastructure.Migrations.PostgreSQL": "[1.0.0, )",
+          "Customer.Infrastructure.Migrations.SqlServer": "[1.0.0, )",
+          "FastEndpoints": "[8.1.0, )",
+          "FastEndpoints.Messaging.Remote": "[8.1.0, )",
+          "FastEndpoints.Swagger": "[8.1.0, )",
+          "Finbuckle.MultiTenant.AspNetCore": "[10.0.6, )",
+          "Microsoft.AspNetCore.OpenApi": "[10.0.7, )",
+          "Microsoft.VisualStudio.Azure.Containers.Tools.Targets": "[1.23.0, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "Teck.Cloud.ServiceDefaults": "[1.0.0, )"
+        }
+      },
+      "customer.application": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Customer.Domain": "[1.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "FluentValidation": "[12.1.1, )",
+          "Microsoft.AspNetCore.OpenApi": "[10.0.7, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )"
+        }
+      },
+      "customer.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ardalis.GuardClauses": "[5.0.0, )",
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )"
+        }
+      },
+      "customer.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Customer.Application": "[1.0.0, )",
+          "Customer.Domain": "[1.0.0, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )"
+        }
+      },
+      "customer.infrastructure.migrations.mysql": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Customer.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "customer.infrastructure.migrations.postgresql": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Customer.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "customer.infrastructure.migrations.sqlserver": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Customer.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "order.api": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "FastEndpoints": "[8.1.0, )",
+          "FastEndpoints.Messaging.Remote": "[8.1.0, )",
+          "FastEndpoints.Swagger": "[8.1.0, )",
+          "FluentValidation.DependencyInjectionExtensions": "[12.1.1, )",
+          "Order.Application": "[0.1.0, )",
+          "Order.Infrastructure": "[0.1.0, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "Teck.Cloud.ServiceDefaults": "[1.0.0, )"
+        }
+      },
+      "order.application": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "FluentValidation": "[12.1.1, )",
+          "Order.Domain": "[0.1.0, )",
+          "SharedKernel.Core": "[0.0.1, )"
+        }
+      },
+      "order.domain": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "SharedKernel.Core": "[0.0.1, )"
+        }
+      },
+      "order.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "FastEndpoints.Messaging.Remote": "[8.1.0, )",
+          "Order.Application": "[0.1.0, )",
+          "Order.Domain": "[0.1.0, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )"
         }
       },
       "sharedkernel.core": {
@@ -1790,11 +2007,19 @@
       "teck.cloud.arch.tests": {
         "type": "Project",
         "dependencies": {
+          "Basket.Api": "[0.1.0, )",
+          "Basket.Application": "[0.1.0, )",
           "Bogus": "[35.6.5, )",
+          "Catalog.Api": "[0.1.0, )",
+          "Catalog.Application": "[0.1.0, )",
+          "Customer.Api": "[1.0.0, )",
+          "Customer.Application": "[1.0.0, )",
           "ErrorOr": "[2.0.1, )",
           "Microsoft.NET.Test.Sdk": "[18.4.0, )",
           "Microsoft.TestPlatform": "[18.4.0, )",
           "NSubstitute": "[5.3.0, )",
+          "Order.Api": "[0.1.0, )",
+          "Order.Application": "[0.1.0, )",
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Persistence": "[0.0.1, )",
           "TngTech.ArchUnitNET": "[0.13.3, )",
@@ -2432,6 +2657,21 @@
           "Microsoft.Extensions.Caching.Memory": "10.0.7",
           "Microsoft.Extensions.Configuration.Abstractions": "10.0.7",
           "Microsoft.Extensions.Logging": "10.0.7"
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Sqlite": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.7, )",
+        "resolved": "10.0.7",
+        "contentHash": "0cnk9Chkuz2Jc6pbXRqdjy2CMAi62q4dJhvJzG25iCIvbavUYLxk/5ukwM+mzOl7ADN88WPmY1Lx1cAH2g8QSA==",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Sqlite.Core": "10.0.7",
+          "Microsoft.Extensions.Caching.Memory": "10.0.7",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.7",
+          "Microsoft.Extensions.DependencyModel": "10.0.7",
+          "Microsoft.Extensions.Logging": "10.0.7",
+          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.11",
+          "SQLitePCLRaw.core": "2.1.11"
         }
       },
       "Microsoft.EntityFrameworkCore.SqlServer": {
@@ -3353,6 +3593,11 @@
           "ZstdSharp.Port": "0.8.6"
         }
       },
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "Ev2ytaXiOlWZ4b3R67GZBsemTINslLD1DCJr2xiacpn4tbapu0Q4dHEzSvZSMnVWeE5nlObU3VZN2p81q3XOYQ=="
+      },
       "System.Diagnostics.EventLog": {
         "type": "Transitive",
         "resolved": "10.0.7",
@@ -3417,6 +3662,11 @@
           "System.Security.Permissions": "8.0.0",
           "ZstdSharp.Port": "0.8.6"
         }
+      },
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "Ev2ytaXiOlWZ4b3R67GZBsemTINslLD1DCJr2xiacpn4tbapu0Q4dHEzSvZSMnVWeE5nlObU3VZN2p81q3XOYQ=="
       },
       "System.Diagnostics.EventLog": {
         "type": "Transitive",

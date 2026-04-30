@@ -10,6 +10,7 @@ var catalogDb_postgresWrite = postgresWrite.AddDatabase("catalogdb");
 _ = postgresWrite.AddDatabase("sitedb");
 _ = postgresWrite.AddDatabase("devicedb");
 var customerdb_postgresWrite = postgresWrite.AddDatabase("customerdb");
+var basketdb_postgresWrite = postgresWrite.AddDatabase("basketdb");
 
 var rabbitmqUserName = builder.CreateResourceBuilder(new ParameterResource(
     "guest",
@@ -55,6 +56,23 @@ var customerapi = builder.AddProject<Projects.Customer_Api>("customer-api")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithEnvironment("ASPIRE_LOCAL", "true");
 
+var basketapi = builder.AddProject<Projects.Basket_Api>("basket-api")
+    .WithReference(cache)
+    .WithReference(basketdb_postgresWrite, "db-write")
+    .WithReference(rabbitmq)
+    .WaitFor(cache)
+    .WaitFor(rabbitmq)
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+    .WithEnvironment("ASPIRE_LOCAL", "true");
+
+var orderapi = builder.AddProject<Projects.Order_Api>("order-api")
+    .WithReference(basketapi)
+    .WithReference(catalogapi)
+    .WaitFor(basketapi)
+    .WaitFor(catalogapi)
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+    .WithEnvironment("ASPIRE_LOCAL", "true");
+
 var edgeGateway = builder.AddProject<Projects.Web_Public_Gateway>("web-public-gateway")
     .WithReference(cache)
     .WithReference(rabbitmq)
@@ -66,12 +84,19 @@ var adminGateway = builder.AddProject<Projects.Web_Admin_Gateway>("web-admin-gat
     .WithEnvironment("ASPIRE_LOCAL", "true");
 
 catalogapi.WithReference(customerapi).WaitFor(customerapi);
+basketapi.WithReference(catalogapi).WaitFor(catalogapi);
+orderapi.WithReference(catalogapi).WaitFor(catalogapi);
+orderapi.WithReference(basketapi).WaitFor(basketapi);
 edgeGateway.WithReference(customerapi).WaitFor(customerapi);
 edgeGateway.WithReference(catalogapi).WaitFor(catalogapi);
 adminGateway.WithReference(customerapi).WaitFor(customerapi);
 adminGateway.WithReference(catalogapi).WaitFor(catalogapi);
 
 catalogapi.WithEnvironment("Services__CustomerApi__Url", customerapi.GetEndpoint("https"));
+basketapi.WithEnvironment("Services__CatalogApi__Url", catalogapi.GetEndpoint("https"));
+orderapi
+    .WithEnvironment("Services__CatalogApi__Url", catalogapi.GetEndpoint("https"))
+    .WithEnvironment("Services__BasketBaseUrl", basketapi.GetEndpoint("http"));
 
 edgeGateway
     .WithEnvironment("Services__CustomerApi__Url", customerapi.GetEndpoint("https"))

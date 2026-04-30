@@ -45,8 +45,10 @@ Current app keys:
 
 1. `catalog-api`
 2. `customer-api`
-3. `aggregate-gateway`
-4. `yarp-gateway`
+3. `basket-api`
+4. `order-api`
+5. `aggregate-gateway`
+6. `yarp-gateway`
 
 Only services with owned relational schemas should get a `database/` folder. In the current repository that means `catalog-api` and `customer-api`.
 

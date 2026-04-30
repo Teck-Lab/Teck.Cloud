@@ -12,6 +12,13 @@ namespace Catalog.Domain.Entities.SupplierAggregate.Errors;
 public static class SupplierErrors
 {
     /// <summary>
+    /// Gets the error indicating that the supplier was not found.
+    /// </summary>
+    public static Error NotFound => Error.NotFound(
+        "Supplier.NotFound",
+        "The specified supplier was not found");
+
+    /// <summary>
     /// Gets the error indicating that the supplier name cannot be empty.
     /// </summary>
     public static Error EmptyName => Error.Validation(

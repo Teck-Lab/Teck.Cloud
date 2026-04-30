@@ -2,7 +2,6 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 #pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
-using Catalog.Application.Features.Products.GetProductById.V1;
 using Catalog.Application.Products.Features.GetProductById.V1;
 using Catalog.Application.Products.Responses;
 using ErrorOr;

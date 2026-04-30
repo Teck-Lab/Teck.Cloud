@@ -29,6 +29,11 @@ public partial class ProductReadModel : ReadModelBase<Guid>
     public string Sku { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets a value indicating whether the product is active.
+    /// </summary>
+    public bool IsActive { get; set; }
+
+    /// <summary>
     /// Gets or sets the brand ID of the product.
     /// </summary>
     public Guid? BrandId { get; set; }

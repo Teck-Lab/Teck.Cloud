@@ -3,7 +3,6 @@
 // </copyright>
 
 using Catalog.Application.Categories.Response;
-using Catalog.Application.Features.ProductPrices.Response;
 using Catalog.Application.Promotions.Response;
 
 namespace Catalog.Application.Products.Responses

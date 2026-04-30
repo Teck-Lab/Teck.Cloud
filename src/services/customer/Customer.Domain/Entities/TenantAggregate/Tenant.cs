@@ -117,6 +117,54 @@ public class Tenant : BaseEntity, IAggregateRoot
     }
 
     /// <summary>
+    /// Updates tenant profile fields.
+    /// </summary>
+    /// <param name="name">Optional updated display name.</param>
+    /// <param name="plan">Optional updated plan.</param>
+    /// <returns>An updated result, or validation errors.</returns>
+    public ErrorOr<Updated> UpdateProfile(string? name, string? plan)
+    {
+        List<Error> errors = [];
+
+        if (name is null && plan is null)
+        {
+            errors.Add(Error.Validation("Tenant.Profile", "At least one profile field must be provided"));
+            return errors;
+        }
+
+        if (name is not null)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errors.Add(NameRequiredError);
+            }
+            else
+            {
+                this.Name = name;
+            }
+        }
+
+        if (plan is not null)
+        {
+            if (string.IsNullOrWhiteSpace(plan))
+            {
+                errors.Add(PlanRequiredError);
+            }
+            else
+            {
+                this.Plan = plan;
+            }
+        }
+
+        if (errors.Count != 0)
+        {
+            return errors;
+        }
+
+        return Result.Updated;
+    }
+
+    /// <summary>
     /// Sets the external identity provider organization identifier.
     /// </summary>
     /// <param name="organizationId">The external organization identifier.</param>

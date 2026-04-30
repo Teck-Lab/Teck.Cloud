@@ -21,6 +21,14 @@ public interface IProductReadRepository : IGenericReadRepository<ProductReadMode
     Task<IReadOnlyList<ProductReadModel>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets products by IDs.
+    /// </summary>
+    /// <param name="ids">The product identifiers.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A collection of product read models.</returns>
+    Task<IReadOnlyList<ProductReadModel>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a product by ID.
     /// </summary>
     /// <param name="id">The product ID.</param>

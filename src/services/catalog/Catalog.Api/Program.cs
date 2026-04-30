@@ -4,6 +4,7 @@
 
 using System.Reflection;
 using Catalog.Api.Extensions;
+using Catalog.Api.Grpc.V1;
 using Catalog.Api.Infrastructure.Messaging.Tenants;
 using Catalog.Application;
 using Catalog.Infrastructure.DependencyInjection;
@@ -84,6 +85,7 @@ static void MapRemoteHandlers(WebApplication app)
 {
     app.MapHandlers(handlerRegistry =>
     {
+        handlerRegistry.Register<SharedKernel.Grpc.Contracts.Remote.V1.Catalog.ValidateProductsForBasketCommand, ValidateProductsForBasketCommandHandler, SharedKernel.Grpc.Contracts.Remote.V1.Catalog.ValidateProductsForBasketRpcResult>();
     });
 }
 

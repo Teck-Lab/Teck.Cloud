@@ -37,6 +37,14 @@
   <Folder Name="/src/services/">
     <File Path="src/services/Directory.Build.props" />
   </Folder>
+  <Folder Name="/src/services/basket/">
+    <File Path="src/services/basket/Directory.Build.props" />
+    <Project Path="src/services/basket/Basket.Api/Basket.Api.csproj" />
+    <Project Path="src/services/basket/Basket.Application/Basket.Application.csproj" />
+    <Project Path="src/services/basket/Basket.Domain/Basket.Domain.csproj" />
+    <Project Path="src/services/basket/Basket.Infrastructure/Basket.Infrastructure.csproj" />
+
+  </Folder>
   <Folder Name="/src/services/catalog/">
     <File Path="src/services/catalog/Directory.Build.props" />
     <Project Path="src/services/catalog/Catalog.Api/Catalog.Api.csproj" />
@@ -59,6 +67,14 @@
     <Project Path="src/services/customer/Customer.Infrastructure.Migrations.MySql/Customer.Infrastructure.Migrations.MySql.csproj" />
 
   </Folder>
+  <Folder Name="/src/services/order/">
+    <File Path="src/services/order/Directory.Build.props" />
+    <Project Path="src/services/order/Order.Api/Order.Api.csproj" />
+    <Project Path="src/services/order/Order.Application/Order.Application.csproj" />
+    <Project Path="src/services/order/Order.Domain/Order.Domain.csproj" />
+    <Project Path="src/services/order/Order.Infrastructure/Order.Infrastructure.csproj" />
+
+  </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
   </Folder>
@@ -73,6 +89,8 @@
   <Folder Name="/tests/functional/catalog/" />
   <Folder Name="/tests/integration/">
     <Project Path="tests/integration/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Customer.IntegrationTests/Customer.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Order.IntegrationTests/Order.IntegrationTests.csproj" />
     <Project Path="tests/integration/Web.Admin.Gateway.IntegrationTests/Web.Admin.Gateway.IntegrationTests.csproj" />
     <Project Path="tests/integration/Web.Public.Gateway.IntegrationTests/Web.Public.Gateway.IntegrationTests.csproj" />
   </Folder>

@@ -1,0 +1,32 @@
+// <copyright file="UpdateSupplierRequest.cs" company="TeckLab">
+// Copyright (c) TeckLab. All rights reserved.
+// </copyright>
+
+namespace Catalog.Application.Suppliers.Features.UpdateSupplier.V1
+{
+    /// <summary>
+    /// The update supplier request.
+    /// </summary>
+    public sealed class UpdateSupplierRequest
+    {
+        /// <summary>
+        /// Gets or sets the id.
+        /// </summary>
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the name.
+        /// </summary>
+        public string? Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets the description.
+        /// </summary>
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Gets or sets the website.
+        /// </summary>
+        public string? Website { get; set; }
+    }
+}

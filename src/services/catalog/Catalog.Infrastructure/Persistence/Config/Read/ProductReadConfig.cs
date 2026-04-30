@@ -39,6 +39,9 @@ public class ProductReadConfig : IEntityTypeConfiguration<ProductReadModel>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(product => product.IsActive)
+            .IsRequired();
+
         builder.HasIndex(product => product.Sku)
             .IsUnique();
 

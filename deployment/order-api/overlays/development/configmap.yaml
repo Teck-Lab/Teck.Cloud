@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-api-config
+data:
+  Services__BasketBaseUrl: http://basket-api
+  Services__CatalogApi__Url: http://catalog-api:81

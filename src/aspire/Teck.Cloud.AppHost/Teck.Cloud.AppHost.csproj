@@ -25,8 +25,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\migrations\Teck.Cloud.Migrations\Teck.Cloud.Migrations.csproj" />
+    <ProjectReference Include="..\..\services\basket\Basket.Api\Basket.Api.csproj" />
     <ProjectReference Include="..\..\services\catalog\Catalog.Api\Catalog.Api.csproj" />
     <ProjectReference Include="..\..\services\customer\Customer.Api\Customer.Api.csproj" />
+    <ProjectReference Include="..\..\services\order\Order.Api\Order.Api.csproj" />
     <ProjectReference Include="..\..\gateways\Web.Public.Gateway\Web.Public.Gateway.csproj" />
     <ProjectReference Include="..\..\gateways\Web.Admin.Gateway\Web.Admin.Gateway.csproj" />
   </ItemGroup>

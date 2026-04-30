@@ -2,7 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
-namespace Catalog.Application.Features.ProductPrices.Response
+namespace Catalog.Application.Products.Responses
 {
     /// <summary>
     /// The product price response.

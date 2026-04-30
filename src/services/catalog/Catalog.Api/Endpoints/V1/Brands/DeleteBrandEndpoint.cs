@@ -11,7 +11,7 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Brands;
 
-public sealed class DeleteBrandEndpoint(ISender sender) : Endpoint<DeleteBrandEndpoint.DeleteBrandRouteRequest, EmptyResponse>
+public sealed class DeleteBrandEndpoint(ISender sender) : Endpoint<DeleteBrandEndpoint.DeleteBrandRoute, EmptyResponse>
 {
     private readonly ISender sender = sender;
 
@@ -26,12 +26,12 @@ public sealed class DeleteBrandEndpoint(ISender sender) : Endpoint<DeleteBrandEn
         });
     }
 
-    public override async Task HandleAsync(DeleteBrandRouteRequest request, CancellationToken ct)
+    public override async Task HandleAsync(DeleteBrandRoute request, CancellationToken ct)
     {
         DeleteBrandCommand command = new(request.Id);
         var commandResponse = await sender.Send(command, ct).ConfigureAwait(false);
         await this.SendNoContentAsync(commandResponse, ct).ConfigureAwait(false);
     }
 
-    public sealed record DeleteBrandRouteRequest(Guid Id);
+    public sealed record DeleteBrandRoute(Guid Id);
 }

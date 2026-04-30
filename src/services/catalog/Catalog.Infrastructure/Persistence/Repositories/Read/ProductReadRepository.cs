@@ -34,6 +34,21 @@ public sealed class ProductReadRepository : GenericReadRepository<ProductReadMod
     }
 
     /// <inheritdoc/>
+    public async Task<IReadOnlyList<ProductReadModel>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await this.products
+            .AsNoTracking()
+            .Where(product => ids.Contains(product.Id))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
     public async Task<ProductReadModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await this.FindByIdAsync(id, cancellationToken).ConfigureAwait(false);
