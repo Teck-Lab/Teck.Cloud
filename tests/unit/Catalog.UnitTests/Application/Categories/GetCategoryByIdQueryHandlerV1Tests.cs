@@ -1,7 +1,7 @@
 using Catalog.Application.Categories.ReadModels;
 using Catalog.Application.Categories.Repositories;
 using Catalog.Application.Categories.Response;
-using Catalog.Application.Features.Categories.GetById.V1;
+using Catalog.Application.Categories.Features.GetCategoryById.V1;
 using ErrorOr;
 using NSubstitute;
 using Shouldly;

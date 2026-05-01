@@ -1,5 +1,4 @@
 using Catalog.Application.Categories.Response;
-using Catalog.Application.Features.ProductPrices.Response;
 using Catalog.Application.Products.Responses;
 using Catalog.Application.Promotions.Response;
 

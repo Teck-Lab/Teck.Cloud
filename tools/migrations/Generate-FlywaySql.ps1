@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $false)]
-    [string[]]$ServiceName = @("catalog", "customer"),
+    [string[]]$ServiceName = @("basket", "catalog", "customer"),
 
     [Parameter(Mandatory = $false)]
     [string[]]$Providers = @("postgres"),
@@ -22,6 +22,35 @@ if ($ChangeToSolutionDir -or -not $PSBoundParameters.ContainsKey("ChangeToSoluti
 $solutionRoot = (Get-Location).Path
 
 $serviceMap = @{
+    "basket" = @{
+        AppKey = "basket-api"
+        Providers = @{
+            "postgres" = @{
+                MigrationProject = "src/services/basket/Basket.Infrastructure.Migrations.PostgreSQL/Basket.Infrastructure.Migrations.PostgreSQL.csproj"
+                Context = "BasketPersistenceDbContext"
+                MigrationDirectory = "src/services/basket/Basket.Infrastructure.Migrations.PostgreSQL/Persistence/Migrations"
+                OutputDirectory = "deployment/basket-api/database/flyway/postgres"
+                ServerType = "postgres"
+                ConnectionString = "Host=localhost;Database=teck_basket;Username=postgres;Password=postgres;Search Path=public"
+            }
+            "sqlserver" = @{
+                MigrationProject = "src/services/basket/Basket.Infrastructure.Migrations.SqlServer/Basket.Infrastructure.Migrations.SqlServer.csproj"
+                Context = "BasketPersistenceDbContext"
+                MigrationDirectory = "src/services/basket/Basket.Infrastructure.Migrations.SqlServer/Persistence/Migrations"
+                OutputDirectory = "deployment/basket-api/database/flyway/sqlserver"
+                ServerType = "sqlserver"
+                ConnectionString = "Server=localhost;Database=Teck_basket;User Id=sa;Password=Password123!;TrustServerCertificate=True"
+            }
+            "mysql" = @{
+                MigrationProject = "src/services/basket/Basket.Infrastructure.Migrations.MySql/Basket.Infrastructure.Migrations.MySql.csproj"
+                Context = "BasketPersistenceDbContext"
+                MigrationDirectory = "src/services/basket/Basket.Infrastructure.Migrations.MySql/Persistence/Migrations"
+                OutputDirectory = "deployment/basket-api/database/flyway/mysql"
+                ServerType = "mysql"
+                ConnectionString = "Server=localhost;Database=teck_basket;User=root;Password=root"
+            }
+        }
+    }
     "catalog" = @{
         AppKey = "catalog-api"
         Providers = @{

@@ -6,6 +6,11 @@ Each service has one migration project per provider, and each provider project c
 
 ## Project layout
 
+Basket:
+- src/services/basket/Basket.Infrastructure.Migrations.PostgreSQL
+- src/services/basket/Basket.Infrastructure.Migrations.SqlServer
+- src/services/basket/Basket.Infrastructure.Migrations.MySql
+
 Catalog:
 - src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL
 - src/services/catalog/Catalog.Infrastructure.Migrations.SqlServer
@@ -16,13 +21,20 @@ Customer:
 - src/services/customer/Customer.Infrastructure.Migrations.SqlServer
 - src/services/customer/Customer.Infrastructure.Migrations.MySql
 
+Order:
+- src/services/order/Order.Infrastructure.Migrations.PostgreSQL
+- src/services/order/Order.Infrastructure.Migrations.SqlServer
+- src/services/order/Order.Infrastructure.Migrations.MySql
+
 Inside each migration project:
 - Persistence/Migrations
 
 ## Supported services
 
+- basket
 - catalog
 - customer
+- order
 
 ## Supported providers
 

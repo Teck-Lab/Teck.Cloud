@@ -1,4 +1,4 @@
-using Catalog.Application.Features.Products.GetProductById.V1;
+using Catalog.Application.Products.Features.GetProductById.V1;
 using Catalog.Application.Products.Features.CreateProduct.V1;
 
 namespace Catalog.UnitTests.Application.Products

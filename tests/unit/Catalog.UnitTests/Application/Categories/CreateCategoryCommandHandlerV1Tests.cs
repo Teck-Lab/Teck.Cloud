@@ -1,5 +1,5 @@
 using Catalog.Application.Categories.Response;
-using Catalog.Application.Features.Categories.Create.V1;
+using Catalog.Application.Categories.Features.CreateCategory.V1;
 using Catalog.Domain.Entities.CategoryAggregate;
 using Catalog.Domain.Entities.CategoryAggregate.Repositories;
 using ErrorOr;

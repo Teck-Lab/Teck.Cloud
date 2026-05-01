@@ -43,6 +43,9 @@
     <Project Path="src/services/basket/Basket.Application/Basket.Application.csproj" />
     <Project Path="src/services/basket/Basket.Domain/Basket.Domain.csproj" />
     <Project Path="src/services/basket/Basket.Infrastructure/Basket.Infrastructure.csproj" />
+    <Project Path="src/services/basket/Basket.Infrastructure.Migrations.PostgreSQL/Basket.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <Project Path="src/services/basket/Basket.Infrastructure.Migrations.SqlServer/Basket.Infrastructure.Migrations.SqlServer.csproj" />
+    <Project Path="src/services/basket/Basket.Infrastructure.Migrations.MySql/Basket.Infrastructure.Migrations.MySql.csproj" />
 
   </Folder>
   <Folder Name="/src/services/catalog/">
@@ -73,6 +76,9 @@
     <Project Path="src/services/order/Order.Application/Order.Application.csproj" />
     <Project Path="src/services/order/Order.Domain/Order.Domain.csproj" />
     <Project Path="src/services/order/Order.Infrastructure/Order.Infrastructure.csproj" />
+    <Project Path="src/services/order/Order.Infrastructure.Migrations.PostgreSQL/Order.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <Project Path="src/services/order/Order.Infrastructure.Migrations.SqlServer/Order.Infrastructure.Migrations.SqlServer.csproj" />
+    <Project Path="src/services/order/Order.Infrastructure.Migrations.MySql/Order.Infrastructure.Migrations.MySql.csproj" />
 
   </Folder>
   <Folder Name="/tests/">

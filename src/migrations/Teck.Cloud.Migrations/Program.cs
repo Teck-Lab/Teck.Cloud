@@ -1,3 +1,4 @@
+using Basket.Infrastructure.Persistence;
 using Catalog.Infrastructure.Persistence;
 using Customer.Infrastructure.Persistence;
 using JasperFx;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Order.Infrastructure.Persistence;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Persistence.Database.MultiTenant;
 using Wolverine;
@@ -31,7 +33,7 @@ for (int argIndex = 0; argIndex < args.Length - 1; argIndex++)
 
 if (string.IsNullOrWhiteSpace(service))
 {
-    await Console.Error.WriteLineAsync("ERROR: --service <catalog|customer> argument is required.");
+    await Console.Error.WriteLineAsync("ERROR: --service <basket|catalog|customer|order> argument is required.");
     return 1;
 }
 
@@ -62,10 +64,12 @@ if (mode is "shared" or "all")
 
     IHostBuilder hostBuilder = service.ToLowerInvariant() switch
     {
+        "basket" => CreateBasketHost(connectionString, provider),
         "catalog" => CreateCatalogHost(connectionString, provider),
         "customer" => CreateCustomerHost(connectionString, provider),
+        "order" => CreateOrderHost(connectionString, provider),
         _ => throw new InvalidOperationException(
-            $"Unknown service '{service}'. Valid values: catalog, customer.")
+            $"Unknown service '{service}'. Valid values: basket, catalog, customer, order.")
     };
 
     IHost host = hostBuilder.Build();
@@ -213,8 +217,10 @@ static async Task ApplyEfCoreMigrationsAsync(IHost host, string service, ILogger
 
     DbContext dbContext = service.ToLowerInvariant() switch
     {
+        "basket" => scope.ServiceProvider.GetRequiredService<BasketPersistenceDbContext>(),
         "catalog" => scope.ServiceProvider.GetRequiredService<ApplicationWriteDbContext>(),
         "customer" => scope.ServiceProvider.GetRequiredService<CustomerWriteDbContext>(),
+        "order" => scope.ServiceProvider.GetRequiredService<OrderPersistenceDbContext>(),
         _ => throw new InvalidOperationException(
             $"No DbContext registered for service '{service}'.")
     };
@@ -261,6 +267,19 @@ static IHostBuilder CreateCatalogHost(string connectionString, DatabaseProvider 
     return builder;
 }
 
+static IHostBuilder CreateBasketHost(string connectionString, DatabaseProvider provider)
+{
+    string migrationsAssembly = ResolveMigrationsAssembly("Basket", provider);
+
+    return Host.CreateDefaultBuilder()
+        .ConfigureServices(services =>
+        {
+            services.AddDbContext<BasketPersistenceDbContext>(
+                options => ConfigureDbContextOptions(options, connectionString, migrationsAssembly, provider),
+                optionsLifetime: ServiceLifetime.Singleton);
+        });
+}
+
 static IHostBuilder CreateCustomerHost(string connectionString, DatabaseProvider provider)
 {
     string migrationsAssembly = ResolveMigrationsAssembly("Customer", provider);
@@ -282,6 +301,19 @@ static IHostBuilder CreateCustomerHost(string connectionString, DatabaseProvider
     }
 
     return builder;
+}
+
+static IHostBuilder CreateOrderHost(string connectionString, DatabaseProvider provider)
+{
+    string migrationsAssembly = ResolveMigrationsAssembly("Order", provider);
+
+    return Host.CreateDefaultBuilder()
+        .ConfigureServices(services =>
+        {
+            services.AddDbContext<OrderPersistenceDbContext>(
+                options => ConfigureDbContextOptions(options, connectionString, migrationsAssembly, provider),
+                optionsLifetime: ServiceLifetime.Singleton);
+        });
 }
 
 /// <summary>
@@ -338,9 +370,17 @@ static async Task<int> MigrateDedicatedTenantsAsync(
             {
                 hostBuilder = CreateCatalogHost(writeConnectionString, tenantProvider);
             }
+            else if (string.Equals(service, "basket", StringComparison.OrdinalIgnoreCase))
+            {
+                hostBuilder = CreateBasketHost(writeConnectionString, tenantProvider);
+            }
             else if (string.Equals(service, "customer", StringComparison.OrdinalIgnoreCase))
             {
                 hostBuilder = CreateCustomerHost(writeConnectionString, tenantProvider);
+            }
+            else if (string.Equals(service, "order", StringComparison.OrdinalIgnoreCase))
+            {
+                hostBuilder = CreateOrderHost(writeConnectionString, tenantProvider);
             }
             else
             {

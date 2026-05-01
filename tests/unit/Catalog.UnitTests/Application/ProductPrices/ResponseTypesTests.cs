@@ -1,4 +1,4 @@
-using Catalog.Application.Features.ProductPrices.Response;
+using Catalog.Application.Products.Responses;
 
 namespace Catalog.UnitTests.Application.ProductPrices
 {

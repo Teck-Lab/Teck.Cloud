@@ -50,6 +50,12 @@ $providerConfigs = @{
 }
 
 $serviceMap = @{
+    "basket" = @{
+        StartupProject = "src/services/basket/Basket.Infrastructure/Basket.Infrastructure.csproj"
+        InfrastructureProject = "src/services/basket/Basket.Infrastructure/Basket.Infrastructure.csproj"
+        WriteContextType = "Basket.Infrastructure.Persistence.BasketPersistenceDbContext"
+        MigrationProjectPrefix = "src/services/basket/Basket.Infrastructure.Migrations"
+    }
     "catalog" = @{
         StartupProject = "src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj"
         InfrastructureProject = "src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj"
@@ -61,6 +67,12 @@ $serviceMap = @{
         InfrastructureProject = "src/services/customer/Customer.Infrastructure/Customer.Infrastructure.csproj"
         WriteContextType = "Customer.Infrastructure.Persistence.CustomerWriteDbContext"
         MigrationProjectPrefix = "src/services/customer/Customer.Infrastructure.Migrations"
+    }
+    "order" = @{
+        StartupProject = "src/services/order/Order.Infrastructure/Order.Infrastructure.csproj"
+        InfrastructureProject = "src/services/order/Order.Infrastructure/Order.Infrastructure.csproj"
+        WriteContextType = "Order.Infrastructure.Persistence.OrderPersistenceDbContext"
+        MigrationProjectPrefix = "src/services/order/Order.Infrastructure.Migrations"
     }
 }
 
@@ -278,6 +290,8 @@ if ($failedMigrations.Count -gt 0) {
 
 Write-Host "`n💡 Examples:" -ForegroundColor Cyan
 Write-Host ".\Add-Migration.ps1 -ServiceName customer -MigrationName Initial" -ForegroundColor Gray
+Write-Host ".\Add-Migration.ps1 -ServiceName basket -MigrationName InitialBasketDrafts" -ForegroundColor Gray
+Write-Host ".\Add-Migration.ps1 -ServiceName order -MigrationName InitialOrderDrafts" -ForegroundColor Gray
 Write-Host ".\Add-Migration.ps1 -ServiceName catalog -MigrationName AddTenantLookup -Providers @('postgres')" -ForegroundColor Gray
 Write-Host "Project layout: <Service>.Infrastructure.Migrations.<Provider>/Persistence\\Migrations" -ForegroundColor Gray
 

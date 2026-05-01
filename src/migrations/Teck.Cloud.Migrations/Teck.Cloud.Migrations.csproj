@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\services\basket\Basket.Infrastructure\Basket.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\basket\Basket.Infrastructure.Migrations.PostgreSQL\Basket.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\services\basket\Basket.Infrastructure.Migrations.SqlServer\Basket.Infrastructure.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\..\services\basket\Basket.Infrastructure.Migrations.MySql\Basket.Infrastructure.Migrations.MySql.csproj" />
     <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
     <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure.Migrations.PostgreSQL\Catalog.Infrastructure.Migrations.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure.Migrations.SqlServer\Catalog.Infrastructure.Migrations.SqlServer.csproj" />
@@ -28,6 +32,10 @@
     <ProjectReference Include="..\..\services\customer\Customer.Infrastructure.Migrations.PostgreSQL\Customer.Infrastructure.Migrations.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\services\customer\Customer.Infrastructure.Migrations.SqlServer\Customer.Infrastructure.Migrations.SqlServer.csproj" />
     <ProjectReference Include="..\..\services\customer\Customer.Infrastructure.Migrations.MySql\Customer.Infrastructure.Migrations.MySql.csproj" />
+    <ProjectReference Include="..\..\services\order\Order.Infrastructure\Order.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\order\Order.Infrastructure.Migrations.PostgreSQL\Order.Infrastructure.Migrations.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\services\order\Order.Infrastructure.Migrations.SqlServer\Order.Infrastructure.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\..\services\order\Order.Infrastructure.Migrations.MySql\Order.Infrastructure.Migrations.MySql.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1852,6 +1852,9 @@
         "dependencies": {
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "FastEndpoints.Messaging.Remote": "[8.1.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.7, )",
+          "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.7, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )",
           "Order.Application": "[0.1.0, )",
           "Order.Domain": "[0.1.0, )",
           "SharedKernel.Core": "[0.0.1, )",

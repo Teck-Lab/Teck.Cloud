@@ -1,6 +1,6 @@
 using Catalog.Application.Brands.Repositories;
 using Catalog.Application.Categories.Repositories;
-using Catalog.Application.Features.Products.GetProductById.V1;
+using Catalog.Application.Products.Features.GetProductById.V1;
 using Catalog.Application.Products.Features.CreateProduct.V1;
 using Catalog.Application.Products.Repositories;
 using NSubstitute;

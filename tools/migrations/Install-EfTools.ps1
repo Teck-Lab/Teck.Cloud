@@ -9,18 +9,26 @@ if (-not (Get-Command dotnet-ef -ErrorAction SilentlyContinue)) {
 
 # Infrastructure projects (contexts)
 $infrastructureProjects = @(
+    "src/services/basket/Basket.Infrastructure/Basket.Infrastructure.csproj",
     "src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj",
-    "src/services/customer/Customer.Infrastructure/Customer.Infrastructure.csproj"
+    "src/services/customer/Customer.Infrastructure/Customer.Infrastructure.csproj",
+    "src/services/order/Order.Infrastructure/Order.Infrastructure.csproj"
 )
 
 # Provider-specific migration projects
 $migrationProjects = @(
+    "src/services/basket/Basket.Infrastructure.Migrations.PostgreSQL/Basket.Infrastructure.Migrations.PostgreSQL.csproj",
+    "src/services/basket/Basket.Infrastructure.Migrations.SqlServer/Basket.Infrastructure.Migrations.SqlServer.csproj",
+    "src/services/basket/Basket.Infrastructure.Migrations.MySql/Basket.Infrastructure.Migrations.MySql.csproj",
     "src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL/Catalog.Infrastructure.Migrations.PostgreSQL.csproj",
     "src/services/catalog/Catalog.Infrastructure.Migrations.SqlServer/Catalog.Infrastructure.Migrations.SqlServer.csproj",
     "src/services/catalog/Catalog.Infrastructure.Migrations.MySql/Catalog.Infrastructure.Migrations.MySql.csproj",
     "src/services/customer/Customer.Infrastructure.Migrations.PostgreSQL/Customer.Infrastructure.Migrations.PostgreSQL.csproj",
     "src/services/customer/Customer.Infrastructure.Migrations.SqlServer/Customer.Infrastructure.Migrations.SqlServer.csproj",
-    "src/services/customer/Customer.Infrastructure.Migrations.MySql/Customer.Infrastructure.Migrations.MySql.csproj"
+    "src/services/customer/Customer.Infrastructure.Migrations.MySql/Customer.Infrastructure.Migrations.MySql.csproj",
+    "src/services/order/Order.Infrastructure.Migrations.PostgreSQL/Order.Infrastructure.Migrations.PostgreSQL.csproj",
+    "src/services/order/Order.Infrastructure.Migrations.SqlServer/Order.Infrastructure.Migrations.SqlServer.csproj",
+    "src/services/order/Order.Infrastructure.Migrations.MySql/Order.Infrastructure.Migrations.MySql.csproj"
 )
 
 foreach ($project in $infrastructureProjects) {
