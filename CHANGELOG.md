@@ -1,3 +1,15 @@
+# v0.22.23 (Fri May 01 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Skip tenant resolver during Wolverine codegen ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.22 (Fri May 01 2026)
 
 #### ⚠️ Pushed to `main`
