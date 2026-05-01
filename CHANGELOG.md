@@ -1,3 +1,18 @@
+# v0.22.22 (Fri May 01 2026)
+
+#### ⚠️ Pushed to `main`
+
+- Add EF Core migrations for basket and order ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Add basket & order services, infra, and tests ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Add tenant miss-resolution and new API endpoints ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+- Add Wolverine multi-tenant bootstrap and RPC ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+#### Authors: 1
+
+- CptPowerTurtle ([@CaptainPowerTurtle](https://github.com/CaptainPowerTurtle))
+
+---
+
 # v0.22.21 (Sun Apr 26 2026)
 
 #### ⚠️ Pushed to `main`
