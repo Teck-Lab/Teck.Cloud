@@ -141,6 +141,10 @@ public static class InfrastructureServiceExtensions
             {
                 IncludeHandlerAssemblies(options, applicationAssembly);
                 options.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
+
+                // Keep handler construction valid during codegen for infrastructure consumers.
+                options.Services.TryAddSingleton<IVaultTenantConnectionProvider>(_ => new NullVaultTenantConnectionProvider());
+                options.Services.TryAddSingleton(new WolverineTenantConnectionSource(settings.WriteConnectionString));
             });
 
             return;
