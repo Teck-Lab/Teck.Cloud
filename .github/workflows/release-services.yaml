@@ -40,15 +40,247 @@ jobs:
             echo "Release enabled for commit title: $COMMIT_TITLE"
           fi
 
+  compute-version:
+    name: Compute Release Version
+    needs: precheck
+    if: needs.precheck.outputs.should-run == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.compute.outputs.should-release }}
+      version: ${{ steps.compute.outputs.version }}
+      tag: ${{ steps.compute.outputs.tag }}
+    steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        with:
+          app-id: ${{ vars.AUTO_RELEASE_APP_ID }}
+          private-key: ${{ secrets.AUTO_RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Setup Auto
+        uses: auto-it/setup-auto@8088350955c4009f66570db1f401fa1e0adb5a38 # v2.0.0
+
+      - name: Compute version from bump and branch
+        id: compute
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # auto version is bump-only (major|minor|patch|skip), it does not mutate repo state.
+          # For version, omitting --from uses the latest GitHub release by default.
+          BUMP_RAW=$(auto version 2>/dev/null || true)
+          BUMP=$(echo "$BUMP_RAW" | tr -d '\r' | tail -n 1 | xargs)
+
+          if [ -z "$BUMP" ]; then
+            echo "::error::Unable to determine version bump from auto version"
+            exit 1
+          fi
+
+          if [ "$BUMP" = "skip" ]; then
+            echo "should-release=false" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "No release required for bump=skip"
+            exit 0
+          fi
+
+          LATEST_STABLE=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ -z "$LATEST_STABLE" ]; then
+            LATEST_STABLE="v0.0.0"
+          fi
+
+          CURRENT_VERSION="${LATEST_STABLE#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          case "$BUMP" in
+            major)
+              BASE_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            minor)
+              BASE_VERSION="${MAJOR}.$((MINOR + 1)).0"
+              ;;
+            patch|release)
+              BASE_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+            *)
+              echo "::error::Unsupported bump type from auto version: $BUMP"
+              exit 1
+              ;;
+          esac
+
+          if [ "$BRANCH_NAME" = "next" ]; then
+            MAX_NEXT=-1
+            while IFS= read -r existing_tag; do
+              [ -z "$existing_tag" ] && continue
+              suffix="${existing_tag#v${BASE_VERSION}-next.}"
+              if [[ "$suffix" =~ ^[0-9]+$ ]]; then
+                if [ "$suffix" -gt "$MAX_NEXT" ]; then
+                  MAX_NEXT="$suffix"
+                fi
+              fi
+            done < <(git tag --list "v${BASE_VERSION}-next.*")
+
+            NEXT_NUMBER=$((MAX_NEXT + 1))
+            RELEASE_VERSION="${BASE_VERSION}-next.${NEXT_NUMBER}"
+          else
+            RELEASE_VERSION="$BASE_VERSION"
+          fi
+
+          echo "should-release=true" >> "$GITHUB_OUTPUT"
+          echo "version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Computed release version: ${RELEASE_VERSION} (bump=${BUMP}, branch=${BRANCH_NAME})"
+
+  find-services:
+    name: Find Docker Staging Targets
+    needs: [precheck, compute-version]
+    if: needs.precheck.outputs.should-run == 'true' && needs.compute-version.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.find.outputs.targets }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Find all Docker staging targets
+        id: find
+        run: |
+          TARGETS_JSON=$(
+            {
+              for api_dir in src/services/*/*.Api; do
+                if [ -f "$api_dir/Containerfile" ]; then
+                  SERVICE_NAME=$(echo "$api_dir" | sed -n 's|src/services/\([^/]*\)/.*|\1|p')
+                  if [ -n "$SERVICE_NAME" ]; then
+                    jq -cn \
+                      --arg service_name "$SERVICE_NAME" \
+                      --arg dockerfile_path "$api_dir/Containerfile" \
+                      '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
+                  fi
+                fi
+              done
+
+              for gateway_dir in src/gateways/*; do
+                if [ -f "$gateway_dir/Containerfile" ]; then
+                  SERVICE_NAME=$(basename "$gateway_dir" | tr '[:upper:]' '[:lower:]' | sed 's/\./-/g')
+                  jq -cn \
+                    --arg service_name "$SERVICE_NAME" \
+                    --arg dockerfile_path "$gateway_dir/Containerfile" \
+                    '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
+                fi
+              done
+
+              if [ -f "src/migrations/Containerfile" ]; then
+                jq -cn \
+                  --arg service_name "migrations" \
+                  --arg dockerfile_path "src/migrations/Containerfile" \
+                  '{service_name:$service_name,dockerfile_path:$dockerfile_path}'
+              fi
+            } | jq -s -c 'sort_by(.service_name)'
+          )
+
+          if [ "$TARGETS_JSON" = "[]" ]; then
+            echo "ERROR: No Docker staging targets found"
+            exit 1
+          fi
+
+          echo "$TARGETS_JSON" | jq -r '.[] | "Found target: \(.service_name) -> \(.dockerfile_path)"'
+          echo "targets=$TARGETS_JSON" >> "$GITHUB_OUTPUT"
+
+  check-auth:
+    name: Check if auth Containerfile exists
+    needs: [precheck, compute-version]
+    if: needs.precheck.outputs.should-run == 'true' && needs.compute-version.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Check for auth Containerfile
+        id: check
+        run: |
+          if [ -f "src/auth/Containerfile" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Auth Containerfile found"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Auth Containerfile not found - skipping"
+          fi
+
+  build-staging-services:
+    name: Build staging - ${{ matrix.target.service_name }}
+    needs: [precheck, compute-version, find-services]
+    if: needs.precheck.outputs.should-run == 'true' && needs.compute-version.outputs.should-release == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.find-services.outputs.targets) }}
+      fail-fast: false
+    uses: ./.github/workflows/reusable-build-sign-sbom.yml
+    with:
+      service-name: ${{ matrix.target.service_name }}
+      version: ${{ needs.compute-version.outputs.version }}
+      dockerfile-path: ${{ matrix.target.dockerfile_path }}
+      docker-context: '.'
+      source-ref: ${{ github.sha }}
+      publish-mode: staging
+      staging-tag: staging-${{ github.sha }}
+      postgres-connection: 'Host=localhost;Port=5432;Database=tempdb;Username=postgres;Password=postgres'
+      rabbitmq-connection: 'amqp://guest:guest@localhost:5672/'
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build-staging-auth:
+    name: Build staging - auth
+    needs: [precheck, compute-version, check-auth]
+    if: needs.precheck.outputs.should-run == 'true' && needs.compute-version.outputs.should-release == 'true' && needs.check-auth.outputs.exists == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/reusable-build-sign-sbom.yml
+    with:
+      service-name: auth
+      version: ${{ needs.compute-version.outputs.version }}
+      dockerfile-path: src/auth/Containerfile
+      docker-context: '.'
+      source-ref: ${{ github.sha }}
+      publish-mode: staging
+      staging-tag: staging-${{ github.sha }}
+      postgres-connection: ''
+      rabbitmq-connection: ''
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+
   release:
     name: Create Release
-    needs: precheck
+    needs: [precheck, compute-version, build-staging-services, build-staging-auth]
     runs-on: ubuntu-latest
-    if: needs.precheck.outputs.should-run == 'true'
+    if: needs.precheck.outputs.should-run == 'true' && needs.compute-version.outputs.should-release == 'true' && needs.build-staging-services.result == 'success' && (needs.build-staging-auth.result == 'success' || needs.build-staging-auth.result == 'skipped')
     permissions:
       contents: write
       issues: write
       pull-requests: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Generate GitHub App Token
         id: generate-token
@@ -82,6 +314,124 @@ jobs:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Release
-        run: auto shipit
+        run: auto shipit --use-version "${{ needs.compute-version.outputs.version }}"
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+
+      - name: Capture release version
+        id: version
+        run: |
+          set -euo pipefail
+          TAG=$(git describe --tags --abbrev=0)
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  promote-services:
+    name: Promote release tags - ${{ matrix.target.service_name }}
+    needs: [release, find-services]
+    if: needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.find-services.outputs.targets) }}
+      fail-fast: false
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote staging manifest to release tags
+        env:
+          SERVICE_NAME: ${{ matrix.target.service_name }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          STAGING_TAG: staging-${{ github.sha }}
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          if [ "$SERVICE_NAME" = "migrations" ]; then
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud-migrations"
+          else
+            IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/${SERVICE_NAME}"
+          fi
+
+          SOURCE_REF="${IMAGE_NAME}:${STAGING_TAG}"
+          docker buildx imagetools inspect "$SOURCE_REF" > /dev/null
+
+          TARGETS=("${IMAGE_NAME}:${RELEASE_VERSION}")
+          if [[ "$RELEASE_VERSION" != *-* ]]; then
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$RELEASE_VERSION"
+            TARGETS+=("${IMAGE_NAME}:${MAJOR}.${MINOR}")
+            if [ "$MAJOR" != "0" ]; then
+              TARGETS+=("${IMAGE_NAME}:${MAJOR}")
+            fi
+            TARGETS+=("${IMAGE_NAME}:latest")
+          fi
+
+          for target in "${TARGETS[@]}"; do
+            echo "Promoting ${SOURCE_REF} -> ${target}"
+            docker buildx imagetools create -t "$target" "$SOURCE_REF"
+          done
+
+          docker buildx imagetools inspect "${IMAGE_NAME}:${RELEASE_VERSION}" > /dev/null
+
+  promote-auth:
+    name: Promote release tags - auth
+    needs: [release, check-auth, build-staging-auth]
+    if: needs.release.result == 'success' && needs.check-auth.outputs.exists == 'true' && needs.build-staging-auth.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote auth staging manifest to release tags
+        env:
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          STAGING_TAG: staging-${{ github.sha }}
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          REPO_OWNER_LOWER=$(echo "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${REPO_OWNER_LOWER}/teck-cloud/auth"
+
+          SOURCE_REF="${IMAGE_NAME}:${STAGING_TAG}"
+          docker buildx imagetools inspect "$SOURCE_REF" > /dev/null
+
+          TARGETS=("${IMAGE_NAME}:${RELEASE_VERSION}")
+          if [[ "$RELEASE_VERSION" != *-* ]]; then
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$RELEASE_VERSION"
+            TARGETS+=("${IMAGE_NAME}:${MAJOR}.${MINOR}")
+            if [ "$MAJOR" != "0" ]; then
+              TARGETS+=("${IMAGE_NAME}:${MAJOR}")
+            fi
+            TARGETS+=("${IMAGE_NAME}:latest")
+          fi
+
+          for target in "${TARGETS[@]}"; do
+            echo "Promoting ${SOURCE_REF} -> ${target}"
+            docker buildx imagetools create -t "$target" "$SOURCE_REF"
+          done
+
+          docker buildx imagetools inspect "${IMAGE_NAME}:${RELEASE_VERSION}" > /dev/null

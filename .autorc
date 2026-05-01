@@ -6,8 +6,10 @@
   "baseBranch": "main",
   "prereleaseBranches": ["next"],
   "noVersionPrefix": false,
+  "shipit": {
+    "noChangelog": true
+  },
   "plugins": [
-    ["upload-assets", { "assets": ["CHANGELOG.md"] }],
     "git-tag",
     [
       "all-contributors",
