@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Run Trivy filesystem scan (non-blocking)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
         continue-on-error: true
         with:
           version: 'v0.69.3'
@@ -78,7 +78,7 @@ jobs:
 
       - name: Upload Trivy filesystem SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        uses: github/codeql-action/upload-sarif@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
         with:
           sarif_file: trivy-fs-results.sarif
           category: trivy-filesystem
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload Semgrep SARIF
         if: always() && hashFiles('semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        uses: github/codeql-action/upload-sarif@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload Checkov workflow SARIF
         if: always() && steps.checkov_workflows_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        uses: github/codeql-action/upload-sarif@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
         with:
           sarif_file: checkov-workflows.sarif
           category: checkov-workflows
@@ -239,7 +239,7 @@ jobs:
 
       - name: Upload Checkov deployment SARIF
         if: always() && steps.checkov_deployment_sarif.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        uses: github/codeql-action/upload-sarif@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
         with:
           sarif_file: checkov-deployment.sarif
           category: checkov-deployment
@@ -274,7 +274,7 @@ jobs:
 
       - name: Upload Bandit SARIF
         if: always() && hashFiles('bandit.sarif') != ''
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        uses: github/codeql-action/upload-sarif@e46ed2cbd01164d986452f91f178727624ae40d7 # v4.35.3
         with:
           sarif_file: bandit.sarif
           category: bandit
