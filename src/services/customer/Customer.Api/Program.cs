@@ -32,7 +32,7 @@ internal static class Program
         bool isRunningWolverineCodeGeneration = CodeGenerationDetector.IsRunningWolverineCodeGeneration();
         Assembly applicationAssembly = typeof(ICustomerApplication).Assembly;
         AppOptions appOptions = BuildAppOptions(builder);
-        ConfigureServices(builder, applicationAssembly, appOptions);
+        ConfigureServices(builder, applicationAssembly, appOptions, isRunningWolverineCodeGeneration);
         WebApplication app = BuildApp(builder, appOptions, isRunningWolverineCodeGeneration);
         await app.RunJasperFxCommands(args).ConfigureAwait(false);
     }
@@ -54,12 +54,16 @@ internal static class Program
         return appOptions;
     }
 
-    private static void ConfigureServices(WebApplicationBuilder builder, Assembly applicationAssembly, AppOptions appOptions)
+    private static void ConfigureServices(WebApplicationBuilder builder, Assembly applicationAssembly, AppOptions appOptions, bool isRunningWolverineCodeGeneration)
     {
         Assembly apiAssembly = typeof(Program).Assembly;
         builder.AddBaseInfrastructure(appOptions);
         builder.AddInfrastructureServices(applicationAssembly);
-        builder.Services.AddSingleton<CustomerTenantConnectionMissResolver>();
+        if (!isRunningWolverineCodeGeneration)
+        {
+            builder.Services.AddSingleton<CustomerTenantConnectionMissResolver>();
+        }
+
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
         builder.AddOpenApiInfrastructure(appOptions);
         AddValidation(builder, applicationAssembly, apiAssembly);

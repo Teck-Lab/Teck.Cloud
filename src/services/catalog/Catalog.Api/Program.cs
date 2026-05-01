@@ -36,7 +36,10 @@ builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 builder.AddBaseInfrastructure(appOptions);
 builder.AddInfrastructureServices(applicationAssembly);
 builder.Services.AddSingleton<ICatalogTenantDatabaseInfoClient, CatalogTenantDatabaseInfoClient>();
-builder.Services.AddSingleton<CatalogTenantConnectionMissResolver>();
+if (!isRunningWolverineCodeGeneration)
+{
+    builder.Services.AddSingleton<CatalogTenantConnectionMissResolver>();
+}
 
 builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
 builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, typeof(Program).Assembly);
