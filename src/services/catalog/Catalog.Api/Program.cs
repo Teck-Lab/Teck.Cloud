@@ -52,6 +52,13 @@ builder.AddHandlerServer();
 
 WebApplication app = builder.Build();
 
+if (isRunningWolverineCodeGeneration)
+{
+    MapRemoteHandlers(app);
+    await app.RunJasperFxCommands(args).ConfigureAwait(false);
+    return;
+}
+
 string customerApiRemoteAddress = ResolveRemoteAddress(
     builder.Configuration,
     "Services:CustomerApi:Url");
@@ -62,13 +69,6 @@ app.MapRemote(
     {
         remote.Register<GetTenantDatabaseInfoCommand, TenantDatabaseInfoRpcResult>();
     });
-
-if (isRunningWolverineCodeGeneration)
-{
-    MapRemoteHandlers(app);
-    await app.RunJasperFxCommands(args).ConfigureAwait(false);
-    return;
-}
 
 ConfigureTenantMissResolution(app);
 
