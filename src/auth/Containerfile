@@ -1,6 +1,6 @@
 # Dockerfile for Teck Keycloak Auth
 # Based on official Keycloak distribution
-ARG KEYCLOAK_VERSION=26.5.3
+ARG KEYCLOAK_VERSION=26.6.1
 ARG VERSION=1.0.0
 
 FROM docker.io/keycloak/keycloak:${KEYCLOAK_VERSION} as builder
