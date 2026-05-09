@@ -10,6 +10,14 @@ WORKDIR /opt/keycloak
 
 ADD --chown=1000:0 https://github.com/emirhannaneli/keycloak-shadcn/releases/download/v1.0.25/keycloak-shadcn-26.2-and-above.jar /opt/keycloak/providers/keycloak-shadcn-theme.jar
 
+ADD --chown=1000:0 https://github.com/netzbegruenung/keycloak-mfa-plugins/releases/download/v26.6.2/netzbegruenung.app-authenticator-v26.6.2.jar /opt/keycloak/providers/netzbegruenung.app-authenticator-v26.6.2.jar
+ADD --chown=1000:0 https://github.com/netzbegruenung/keycloak-mfa-plugins/releases/download/v26.6.2/netzbegruenung.enforce-mfa-v26.6.2.jar /opt/keycloak/providers/netzbegruenung.enforce-mfa-v26.6.2.jar
+ADD --chown=1000:0 https://github.com/netzbegruenung/keycloak-mfa-plugins/releases/download/v26.6.2/netzbegruenung.sms-authenticator-v26.6.2.jar /opt/keycloak/providers/netzbegruenung.sms-authenticator-v26.6.2.jar
+
+ADD --chown=1000:0 https://github.com/HadleySo/keycloak-extension-qr-code-execution/releases/download/v0.3.1/keycloak-qr-code-login-0.3.1.jar /opt/keycloak/providers/keycloak-qr-code-login-0.3.1.jar
+
+ADD --chown=1000:0 https://github.com/FortuneN/kete/releases/download/2026.03.23.23.48/kete.jar /opt/keycloak/providers/kete.jar
+
 RUN /opt/keycloak/bin/kc.sh build
 
 FROM docker.io/keycloak/keycloak:${KEYCLOAK_VERSION}
