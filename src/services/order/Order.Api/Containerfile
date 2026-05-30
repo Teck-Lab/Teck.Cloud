@@ -31,7 +31,9 @@ COPY ["src/services/order/Order.Domain/Order.Domain.csproj", "src/services/order
 COPY ["src/services/order/Order.Infrastructure/Order.Infrastructure.csproj", "src/services/order/Order.Infrastructure/"]
 COPY ["src/aspire/Teck.Cloud.ServiceDefaults/Teck.Cloud.ServiceDefaults.csproj", "src/aspire/Teck.Cloud.ServiceDefaults/"]
 COPY ["src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj", "src/buildingblocks/SharedKernel.Core/"]
+COPY ["src/buildingblocks/SharedKernel.Grpc.Contracts/SharedKernel.Grpc.Contracts.csproj", "src/buildingblocks/SharedKernel.Grpc.Contracts/"]
 COPY ["src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj", "src/buildingblocks/SharedKernel.Infrastructure/"]
+COPY ["src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj", "src/buildingblocks/SharedKernel.Persistence/"]
 
 # Use Docker Buildx and TARGETPLATFORM to select the correct RID for multi-platform builds
 ARG TARGETPLATFORM

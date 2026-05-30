@@ -1,7 +1,6 @@
 using Customer.Application.Licenses.Features.GetLicenseById.V1;
 using Customer.Application.Licenses.Responses;
 using Customer.Domain.Entities.LicenseAggregate.Repositories;
-using ErrorOr;
 using NSubstitute;
 using Shouldly;
 using Xunit;
