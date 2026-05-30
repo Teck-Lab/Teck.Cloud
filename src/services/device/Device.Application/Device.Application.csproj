@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);SA1402;SA1518;SA1649</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Core\SharedKernel.Core.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Events\SharedKernel.Events.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\Device.Domain\Device.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MemoryPack" />
+    <PackageReference Include="Riok.Mapperly" ExcludeAssets="runtime" PrivateAssets="all">
+      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Device.Api" />
+    <InternalsVisibleTo Include="Device.UnitTests" />
+    <InternalsVisibleTo Include="Device.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

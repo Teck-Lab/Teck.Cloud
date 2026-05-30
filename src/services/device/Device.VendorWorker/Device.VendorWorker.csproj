@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <Product>Device.VendorWorker</Product>
+    <Description>Stateless vendor ESL dispatch worker. Subscribes to DisplayAssignmentRenderedIntegrationEvent and pushes rendered images to the matching ESL device server, then publishes EslDispatchCompleted/Failed back to Device.Api.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..\..\..</DockerfileContext>
+    <IsPublishable>true</IsPublishable>
+    <UserSecretsId>device-vendor-worker</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.RabbitMQ" />
+    <PackageReference Include="WolverineFx.MemoryPack" />
+    <PackageReference Include="ErrorOr" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\aspire\Teck.Cloud.ServiceDefaults\Teck.Cloud.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Events\SharedKernel.Events.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

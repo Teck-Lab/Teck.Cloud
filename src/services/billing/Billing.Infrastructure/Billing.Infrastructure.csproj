@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Persistence\Migrations\" />
+    <Folder Include="Persistence\Scripts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Persistence\Scripts\**\*.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="MySql.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Core\SharedKernel.Core.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Persistence\SharedKernel.Persistence.csproj" />
+    <ProjectReference Include="..\Billing.Application\Billing.Application.csproj" />
+    <ProjectReference Include="..\Billing.Domain\Billing.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

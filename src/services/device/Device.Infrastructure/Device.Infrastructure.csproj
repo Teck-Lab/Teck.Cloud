@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FastEndpoints.Messaging.Remote" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Device.UnitTests" />
+    <InternalsVisibleTo Include="Device.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Core\SharedKernel.Core.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Grpc.Contracts\SharedKernel.Grpc.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Persistence\SharedKernel.Persistence.csproj" />
+    <ProjectReference Include="..\Device.Application\Device.Application.csproj" />
+    <ProjectReference Include="..\Device.Domain\Device.Domain.csproj" />
+  </ItemGroup>
+</Project>

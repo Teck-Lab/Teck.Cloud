@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);S1186;S4581;NU1608;NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" VersionOverride="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\services\basket\Basket.Infrastructure\Basket.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\billing\Billing.Infrastructure\Billing.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\customer\Customer.Infrastructure\Customer.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\device\Device.Infrastructure\Device.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\location\Location.Infrastructure\Location.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\order\Order.Infrastructure\Order.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\product\Product.Infrastructure\Product.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
