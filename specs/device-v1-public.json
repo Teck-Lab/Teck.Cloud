@@ -1,0 +1,1306 @@
+{
+  "x-generator": "NSwag v14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))",
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Device Service Public API",
+    "description": "Open API Documentation of Device Service API.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5145"
+    }
+  ],
+  "paths": {
+    "/device/v1/Displays/Batch": {
+      "post": {
+        "tags": [
+          "Displays"
+        ],
+        "operationId": "DeviceApiEndpointsV1DisplaysAddDisplaysEndpoint",
+        "requestBody": {
+          "x-name": "AddDisplaysRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplaysRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplaysResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/device/v1/Displays": {
+      "get": {
+        "tags": [
+          "Displays"
+        ],
+        "operationId": "DeviceApiEndpointsV1DisplaysGetDisplaysEndpoint",
+        "parameters": [
+          {
+            "name": "locationNodeId",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the location node identifier to filter displays by.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceApplicationDisplaysFeaturesGetDisplaysV1GetDisplayItemResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/device/v1/Devices": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "operationId": "DeviceApiEndpointsV1DevicesGetDevicesEndpoint",
+        "parameters": [
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Gets or sets the sort column. Allowed values: deviceId, maxZoneCount, updatedAtUtc.\nDefaults to deviceId when omitted.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sortDescending",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets a value indicating whether to sort descending.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the page.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the size.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedKernelCorePaginationPagedListOfGetDeviceItemResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/v1/DeviceLayouts": {
+      "post": {
+        "tags": [
+          "Devicelayouts"
+        ],
+        "operationId": "DeviceApiEndpointsV1DeviceLayoutsCreateDeviceLayoutEndpoint",
+        "requestBody": {
+          "x-name": "CreateDeviceLayoutRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApplicationDeviceLayoutsFeaturesCreateDeviceLayoutV1CreateDeviceLayoutRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceApplicationDeviceLayoutsFeaturesCreateDeviceLayoutV1CreateDeviceLayoutResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Devicelayouts"
+        ],
+        "operationId": "DeviceApiEndpointsV1DeviceLayoutsGetDeviceLayoutsEndpoint",
+        "parameters": [
+          {
+            "name": "deviceDefinitionId",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the device definition identifier to retrieve layouts for.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceApplicationDeviceLayoutsFeaturesGetDeviceLayoutsV1GetDeviceLayoutItemResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/v1/DeviceDefinitions/{id}": {
+      "get": {
+        "tags": [
+          "Devicedefinitions"
+        ],
+        "operationId": "DeviceApiEndpointsV1DeviceDefinitionsGetDeviceDefinitionByIdEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the device definition identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceApplicationDeviceDefinitionsFeaturesGetDeviceDefinitionByIdV1GetDeviceDefinitionByIdResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/v1/DeviceDefinitions": {
+      "get": {
+        "tags": [
+          "Devicedefinitions"
+        ],
+        "operationId": "DeviceApiEndpointsV1DeviceDefinitionsGetDeviceDefinitionsEndpoint",
+        "parameters": [
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Gets or sets the sort column. Allowed values: modelId, name, eslProvider.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sortDescending",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets a value indicating whether to sort descending.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedKernelCorePaginationPagedListOfGetDeviceDefinitionItemResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Devicedefinitions"
+        ],
+        "operationId": "DeviceApiEndpointsV1DeviceDefinitionsRegisterDeviceDefinitionEndpoint",
+        "requestBody": {
+          "x-name": "RegisterDeviceDefinitionRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApplicationDeviceDefinitionsFeaturesRegisterDeviceDefinitionV1RegisterDeviceDefinitionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceApplicationDeviceDefinitionsFeaturesRegisterDeviceDefinitionV1RegisterDeviceDefinitionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/device/v1/AccessPoints": {
+      "get": {
+        "tags": [
+          "Accesspoints"
+        ],
+        "operationId": "DeviceApiEndpointsV1AccessPointsGetAccessPointsEndpoint",
+        "parameters": [
+          {
+            "name": "locationNodeId",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the location node identifier to filter access points by.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceApplicationAccessPointsFeaturesGetAccessPointsV1GetAccessPointItemResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/device/v1/AccessPoints/Register": {
+      "post": {
+        "tags": [
+          "Accesspoints"
+        ],
+        "operationId": "DeviceApiEndpointsV1AccessPointsRegisterAccessPointEndpoint",
+        "requestBody": {
+          "x-name": "RegisterAccessPointRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApplicationAccessPointsFeaturesRegisterAccessPointV1RegisterAccessPointRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceApplicationAccessPointsFeaturesRegisterAccessPointV1RegisterAccessPointResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/device/v1/AccessPoints/{serial}/Status": {
+      "post": {
+        "tags": [
+          "Accesspoints"
+        ],
+        "operationId": "DeviceApiEndpointsV1AccessPointsUpdateAccessPointStatusEndpoint",
+        "parameters": [
+          {
+            "name": "serial",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the serial number from the route.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "UpdateAccessPointStatusRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceApplicationAccessPointsFeaturesUpdateAccessPointStatusV1UpdateAccessPointStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceApplicationAccessPointsFeaturesUpdateAccessPointStatusV1UpdateAccessPointStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DeviceApplicationHanshowFeaturesHeartbeatV1HanshowHeartbeatRequest": {
+        "type": "object",
+        "description": "Incoming heartbeat payload from a Hanshow device.",
+        "additionalProperties": false,
+        "properties": {
+          "shortSerial": {
+            "type": "string",
+            "description": "Gets or sets the 4-byte serial in XX-XX-XX-XX format."
+          },
+          "longSerial": {
+            "type": "integer",
+            "description": "Gets or sets the decimal serial number reported by the device.",
+            "format": "int64"
+          }
+        }
+      },
+      "DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplaysResponse": {
+        "type": "object",
+        "description": "Response from a batch add displays operation.",
+        "additionalProperties": false,
+        "properties": {
+          "results": {
+            "type": "array",
+            "description": "Per-display outcomes.",
+            "items": {
+              "$ref": "#/components/schemas/DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplayResult"
+            }
+          },
+          "addedCount": {
+            "type": "integer",
+            "description": "Number of newly registered displays.",
+            "format": "int32"
+          },
+          "duplicateCount": {
+            "type": "integer",
+            "description": "Number of serials that were already registered.",
+            "format": "int32"
+          }
+        }
+      },
+      "DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplayResult": {
+        "type": "object",
+        "description": "Result for a single display in the batch add response.",
+        "additionalProperties": false,
+        "properties": {
+          "shortSerial": {
+            "type": "string",
+            "description": "The short serial that was processed."
+          },
+          "displayId": {
+            "type": "string",
+            "description": "The created display ID (null if duplicate/failed).",
+            "format": "guid",
+            "nullable": true
+          },
+          "duplicate": {
+            "type": "boolean",
+            "description": "Whether the serial was already registered."
+          }
+        }
+      },
+      "DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplaysRequest": {
+        "type": "object",
+        "description": "Request to register one or more displays to a location node.",
+        "additionalProperties": false,
+        "properties": {
+          "locationNodeId": {
+            "type": "string",
+            "description": "Gets or sets the location node the displays will be assigned to."
+          },
+          "displays": {
+            "type": "array",
+            "description": "Gets or sets the list of displays to register.",
+            "items": {
+              "$ref": "#/components/schemas/DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplayItem"
+            }
+          },
+          "deviceDefinitionId": {
+            "type": "string",
+            "description": "Gets or sets an optional device definition (model) to assign to all displays.",
+            "format": "guid",
+            "nullable": true
+          }
+        }
+      },
+      "DeviceApplicationDisplaysFeaturesAddDisplaysV1AddDisplayItem": {
+        "type": "object",
+        "description": "A single display entry in a batch add request.",
+        "additionalProperties": false,
+        "properties": {
+          "shortSerial": {
+            "type": "string",
+            "description": "4-byte serial in XX-XX-XX-XX format."
+          }
+        }
+      },
+      "DeviceApplicationDisplaysFeaturesGetDisplaysV1GetDisplayItemResponse": {
+        "type": "object",
+        "description": "Response item for a single display.",
+        "additionalProperties": false,
+        "properties": {
+          "displayId": {
+            "type": "string",
+            "description": "Primary key.",
+            "format": "guid"
+          },
+          "shortSerial": {
+            "type": "string",
+            "description": "4-byte serial in XX-XX-XX-XX format."
+          },
+          "longSerial": {
+            "type": "integer",
+            "description": "Decimal serial (null until first heartbeat).",
+            "format": "int64",
+            "nullable": true
+          },
+          "locationNodeId": {
+            "type": "string",
+            "description": "Assigned location node."
+          },
+          "deviceDefinitionId": {
+            "type": "string",
+            "description": "Optional device model.",
+            "format": "guid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Registration time (UTC).",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeviceApplicationDisplaysFeaturesGetDisplaysV1GetDisplaysRequest": {
+        "type": "object",
+        "description": "Request for listing displays by location node.",
+        "additionalProperties": false
+      },
+      "SharedKernelCorePaginationPagedListOfGetDeviceItemResponse": {
+        "type": "object",
+        "description": "Represents a paginated list of items with metadata about paging.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Gets the items on the current page.",
+            "items": {
+              "$ref": "#/components/schemas/DeviceApplicationDevicesFeaturesGetDevicesV1GetDeviceItemResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Gets the current page number (1-based).",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Gets the size of the page (number of items per page).",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Gets the total number of pages.",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "description": "Gets the total number of items across all pages.",
+            "format": "int32"
+          },
+          "isFirstPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the first page."
+          },
+          "isLastPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the last page."
+          }
+        }
+      },
+      "DeviceApplicationDevicesFeaturesGetDevicesV1GetDeviceItemResponse": {
+        "type": "object",
+        "description": "Response item for a single device definition.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier.",
+            "format": "guid"
+          },
+          "modelId": {
+            "type": "string",
+            "description": "Unique supplier model code."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable model name."
+          },
+          "eslProvider": {
+            "type": "string",
+            "description": "ESL vendor integration driver name."
+          }
+        }
+      },
+      "DeviceApplicationDevicesFeaturesGetDevicesV1GetDevicesRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedKernelCorePaginationPaginationParameters"
+          },
+          {
+            "type": "object",
+            "description": "Request model for paginated device queries.",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "SharedKernelCorePaginationPaginationParameters": {
+        "type": "object",
+        "description": "The pagination parameters.",
+        "x-abstract": true,
+        "additionalProperties": false
+      },
+      "DeviceApplicationDeviceLayoutsFeaturesCreateDeviceLayoutV1CreateDeviceLayoutResponse": {
+        "type": "object",
+        "description": "Response returned after a device layout is created.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The identifier of the newly created device layout.",
+            "format": "guid"
+          }
+        }
+      },
+      "DeviceApplicationDeviceLayoutsFeaturesCreateDeviceLayoutV1CreateDeviceLayoutRequest": {
+        "type": "object",
+        "description": "HTTP request body for creating a device layout.",
+        "additionalProperties": false,
+        "properties": {
+          "deviceDefinitionId": {
+            "type": "string",
+            "description": "Gets or sets the device definition this layout belongs to.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the human-readable layout name."
+          },
+          "maxZoneCount": {
+            "type": "integer",
+            "description": "Gets or sets the maximum number of content zones.",
+            "format": "int32"
+          }
+        }
+      },
+      "DeviceApplicationDeviceLayoutsFeaturesGetDeviceLayoutsV1GetDeviceLayoutItemResponse": {
+        "type": "object",
+        "description": "A single device layout item in a list response.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier.",
+            "format": "guid"
+          },
+          "deviceDefinitionId": {
+            "type": "string",
+            "description": "The device definition this layout belongs to.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable layout name."
+          },
+          "maxZoneCount": {
+            "type": "integer",
+            "description": "Maximum number of content zones.",
+            "format": "int32"
+          }
+        }
+      },
+      "DeviceApplicationDeviceLayoutsFeaturesGetDeviceLayoutsV1GetDeviceLayoutsRequest": {
+        "type": "object",
+        "description": "Request model for retrieving layouts for a specific device definition.",
+        "additionalProperties": false
+      },
+      "DeviceApplicationDeviceDefinitionsFeaturesGetDeviceDefinitionByIdV1GetDeviceDefinitionByIdResponse": {
+        "type": "object",
+        "description": "Response for a single device definition detail query.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier.",
+            "format": "guid"
+          },
+          "modelId": {
+            "type": "string",
+            "description": "Unique supplier model code."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable model name."
+          },
+          "widthPx": {
+            "type": "integer",
+            "description": "Screen width in pixels, if known.",
+            "format": "int32",
+            "nullable": true
+          },
+          "heightPx": {
+            "type": "integer",
+            "description": "Screen height in pixels, if known.",
+            "format": "int32",
+            "nullable": true
+          },
+          "supportedColors": {
+            "type": "integer",
+            "description": "Supported ink colour bitmask value.",
+            "format": "int32"
+          },
+          "supportsNfc": {
+            "type": "boolean",
+            "description": "Whether this model supports NFC."
+          },
+          "eslProvider": {
+            "type": "string",
+            "description": "ESL vendor integration driver name."
+          },
+          "catalogManufacturerId": {
+            "type": "string",
+            "description": "Optional soft-link to Catalog manufacturer.",
+            "format": "guid",
+            "nullable": true
+          },
+          "catalogSupplierId": {
+            "type": "string",
+            "description": "Optional soft-link to Catalog supplier.",
+            "format": "guid",
+            "nullable": true
+          },
+          "catalogProductId": {
+            "type": "string",
+            "description": "Optional soft-link to Catalog product.",
+            "format": "guid",
+            "nullable": true
+          }
+        }
+      },
+      "DeviceApplicationDeviceDefinitionsFeaturesGetDeviceDefinitionByIdV1GetDeviceDefinitionByIdRequest": {
+        "type": "object",
+        "description": "Route request for a single device definition by ID.",
+        "additionalProperties": false
+      },
+      "SharedKernelCorePaginationPagedListOfGetDeviceDefinitionItemResponse": {
+        "type": "object",
+        "description": "Represents a paginated list of items with metadata about paging.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Gets the items on the current page.",
+            "items": {
+              "$ref": "#/components/schemas/DeviceApplicationDeviceDefinitionsFeaturesGetDeviceDefinitionsV1GetDeviceDefinitionItemResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Gets the current page number (1-based).",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Gets the size of the page (number of items per page).",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Gets the total number of pages.",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "description": "Gets the total number of items across all pages.",
+            "format": "int32"
+          },
+          "isFirstPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the first page."
+          },
+          "isLastPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the last page."
+          }
+        }
+      },
+      "DeviceApplicationDeviceDefinitionsFeaturesGetDeviceDefinitionsV1GetDeviceDefinitionItemResponse": {
+        "type": "object",
+        "description": "A single device definition item in a paged list response.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier.",
+            "format": "guid"
+          },
+          "modelId": {
+            "type": "string",
+            "description": "Unique supplier model code."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable model name."
+          },
+          "widthPx": {
+            "type": "integer",
+            "description": "Screen width in pixels, if known.",
+            "format": "int32",
+            "nullable": true
+          },
+          "heightPx": {
+            "type": "integer",
+            "description": "Screen height in pixels, if known.",
+            "format": "int32",
+            "nullable": true
+          },
+          "supportedColors": {
+            "type": "integer",
+            "description": "Supported ink colour bitmask value.",
+            "format": "int32"
+          },
+          "supportsNfc": {
+            "type": "boolean",
+            "description": "Whether this model supports NFC."
+          },
+          "eslProvider": {
+            "type": "string",
+            "description": "ESL vendor integration driver name."
+          },
+          "catalogManufacturerId": {
+            "type": "string",
+            "description": "Optional soft-link to Catalog manufacturer.",
+            "format": "guid",
+            "nullable": true
+          },
+          "catalogSupplierId": {
+            "type": "string",
+            "description": "Optional soft-link to Catalog supplier.",
+            "format": "guid",
+            "nullable": true
+          },
+          "catalogProductId": {
+            "type": "string",
+            "description": "Optional soft-link to Catalog product.",
+            "format": "guid",
+            "nullable": true
+          }
+        }
+      },
+      "DeviceApplicationDeviceDefinitionsFeaturesGetDeviceDefinitionsV1GetDeviceDefinitionsRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedKernelCorePaginationPaginationParameters"
+          },
+          {
+            "type": "object",
+            "description": "Request model for paginated device definition queries.",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "DeviceApplicationDeviceDefinitionsFeaturesRegisterDeviceDefinitionV1RegisterDeviceDefinitionResponse": {
+        "type": "object",
+        "description": "Response returned after a device definition is registered.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The identifier of the newly registered device definition.",
+            "format": "guid"
+          }
+        }
+      },
+      "DeviceApplicationDeviceDefinitionsFeaturesRegisterDeviceDefinitionV1RegisterDeviceDefinitionRequest": {
+        "type": "object",
+        "description": "HTTP request body for registering a device definition.",
+        "additionalProperties": false,
+        "properties": {
+          "modelId": {
+            "type": "string",
+            "description": "Gets or sets the unique supplier model code (e.g. \"HS-SE2130R\")."
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the human-readable model name."
+          },
+          "eslProvider": {
+            "type": "string",
+            "description": "Gets or sets the ESL vendor integration driver name."
+          },
+          "supportedColors": {
+            "type": "integer",
+            "description": "Gets or sets the supported ink colour bitmask value.",
+            "format": "int32"
+          },
+          "supportsNfc": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether this model supports NFC."
+          },
+          "widthPx": {
+            "type": "integer",
+            "description": "Gets or sets the optional screen width in pixels.",
+            "format": "int32",
+            "nullable": true
+          },
+          "heightPx": {
+            "type": "integer",
+            "description": "Gets or sets the optional screen height in pixels.",
+            "format": "int32",
+            "nullable": true
+          },
+          "catalogManufacturerId": {
+            "type": "string",
+            "description": "Gets or sets the optional Catalog manufacturer ID.",
+            "format": "guid",
+            "nullable": true
+          },
+          "catalogSupplierId": {
+            "type": "string",
+            "description": "Gets or sets the optional Catalog supplier ID.",
+            "format": "guid",
+            "nullable": true
+          },
+          "catalogProductId": {
+            "type": "string",
+            "description": "Gets or sets the optional Catalog product ID.",
+            "format": "guid",
+            "nullable": true
+          }
+        }
+      },
+      "DeviceApplicationAssignmentsFeaturesApplyDeviceAssignmentV1ApplyDeviceAssignmentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string"
+          },
+          "locationNodeId": {
+            "type": "string"
+          },
+          "resolvedTemplateId": {
+            "type": "string"
+          },
+          "templateSource": {
+            "type": "string"
+          },
+          "zoneCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duplicateProductsAllowed": {
+            "type": "boolean"
+          },
+          "renderJobId": {
+            "type": "string",
+            "format": "guid"
+          },
+          "renderJobStatus": {
+            "type": "string"
+          },
+          "assignmentId": {
+            "type": "string",
+            "format": "guid"
+          },
+          "assignmentVersion": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DeviceApplicationAssignmentsFeaturesApplyDeviceAssignmentV1ApplyDeviceAssignmentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string"
+          },
+          "locationNodeId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceApplicationAssignmentsFeaturesApplyDeviceAssignmentV1ApplyDeviceAssignmentZoneRequest"
+            }
+          }
+        }
+      },
+      "DeviceApplicationAssignmentsFeaturesApplyDeviceAssignmentV1ApplyDeviceAssignmentZoneRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "zoneIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "productId": {
+            "type": "string"
+          }
+        }
+      },
+      "DeviceApplicationAssignmentsFeaturesPreviewDeviceAssignmentV1PreviewDeviceAssignmentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string"
+          },
+          "locationNodeId": {
+            "type": "string"
+          },
+          "resolvedTemplateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateSource": {
+            "type": "string"
+          },
+          "zoneCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duplicateProductsAllowed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DeviceApplicationAssignmentsFeaturesPreviewDeviceAssignmentV1PreviewDeviceAssignmentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string"
+          },
+          "locationNodeId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceApplicationAssignmentsFeaturesPreviewDeviceAssignmentV1PreviewDeviceAssignmentZoneRequest"
+            }
+          }
+        }
+      },
+      "DeviceApplicationAssignmentsFeaturesPreviewDeviceAssignmentV1PreviewDeviceAssignmentZoneRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "zoneIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "productId": {
+            "type": "string"
+          }
+        }
+      },
+      "DeviceApplicationAccessPointsFeaturesGetAccessPointsV1GetAccessPointItemResponse": {
+        "type": "object",
+        "description": "Response item for a single access point.",
+        "additionalProperties": false,
+        "properties": {
+          "accessPointId": {
+            "type": "string",
+            "description": "Primary key.",
+            "format": "guid"
+          },
+          "serialNumber": {
+            "type": "string",
+            "description": "Supplier serial number."
+          },
+          "vendor": {
+            "type": "string",
+            "description": "Vendor name."
+          },
+          "locationNodeId": {
+            "type": "string",
+            "description": "Assigned location node."
+          },
+          "status": {
+            "description": "Operational status.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeviceDomainAccessPointsAccessPointStatus"
+              }
+            ]
+          },
+          "maxCapacity": {
+            "type": "integer",
+            "description": "Maximum supported display count.",
+            "format": "int32"
+          },
+          "currentLoad": {
+            "type": "integer",
+            "description": "Current assigned display count.",
+            "format": "int32"
+          }
+        }
+      },
+      "DeviceDomainAccessPointsAccessPointStatus": {
+        "type": "integer",
+        "description": "Operational status for an ESL access point.",
+        "x-enumNames": [
+          "Online",
+          "Offline",
+          "Maintenance"
+        ],
+        "enum": [
+          0,
+          1,
+          2
+        ]
+      },
+      "DeviceApplicationAccessPointsFeaturesGetAccessPointsV1GetAccessPointsRequest": {
+        "type": "object",
+        "description": "Request for listing access points by location node.",
+        "additionalProperties": false
+      },
+      "DeviceApplicationAccessPointsFeaturesRegisterAccessPointV1RegisterAccessPointResponse": {
+        "type": "object",
+        "description": "Response from registering an access point.",
+        "additionalProperties": false,
+        "properties": {
+          "accessPointId": {
+            "type": "string",
+            "description": "Created access point identifier.",
+            "format": "guid"
+          }
+        }
+      },
+      "DeviceApplicationAccessPointsFeaturesRegisterAccessPointV1RegisterAccessPointRequest": {
+        "type": "object",
+        "description": "Request to register an access point to a location node.",
+        "additionalProperties": false,
+        "properties": {
+          "serialNumber": {
+            "type": "string",
+            "description": "Gets or sets the supplier serial number."
+          },
+          "vendor": {
+            "type": "string",
+            "description": "Gets or sets the vendor name."
+          },
+          "locationNodeId": {
+            "type": "string",
+            "description": "Gets or sets the location node identifier."
+          },
+          "maxCapacity": {
+            "type": "integer",
+            "description": "Gets or sets the maximum supported display count.",
+            "format": "int32"
+          }
+        }
+      },
+      "DeviceApplicationAccessPointsFeaturesUpdateAccessPointStatusV1UpdateAccessPointStatusResponse": {
+        "type": "object",
+        "description": "Response from updating access point status.",
+        "additionalProperties": false,
+        "properties": {
+          "accessPointId": {
+            "type": "string",
+            "description": "Updated access point identifier.",
+            "format": "guid"
+          },
+          "status": {
+            "description": "Current operational status.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeviceDomainAccessPointsAccessPointStatus"
+              }
+            ]
+          }
+        }
+      },
+      "DeviceApplicationAccessPointsFeaturesUpdateAccessPointStatusV1UpdateAccessPointStatusRequest": {
+        "type": "object",
+        "description": "Request to update an access point status.",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Gets or sets the new operational status."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oAuth2": {
+        "type": "oauth2",
+        "in": "header",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/auth",
+            "tokenUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "refreshUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "scopes": {
+              "organization": "Org"
+            }
+          }
+        }
+      }
+    }
+  }
+}

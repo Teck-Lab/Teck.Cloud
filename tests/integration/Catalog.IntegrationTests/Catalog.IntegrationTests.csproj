@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Shouldly" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <PackageReference Include="Testcontainers" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Testcontainers.Redis" />
@@ -30,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Api\Catalog.Api.csproj" />
     <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Domain\Catalog.Domain.csproj" />
     <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
   </ItemGroup>

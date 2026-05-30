@@ -9,4 +9,8 @@
     <ProjectReference Include="..\SharedKernel.Core\SharedKernel.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MemoryPack" />
+  </ItemGroup>
+
 </Project>

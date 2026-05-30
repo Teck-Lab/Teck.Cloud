@@ -5,8 +5,11 @@
 using System.Reflection;
 using Customer.Application.Common.Interfaces;
 using Customer.Application.Tenants.Repositories;
+using Customer.Domain.Entities.LicenseAggregate.Repositories;
 using Customer.Domain.Entities.TenantAggregate.Repositories;
 using Customer.Infrastructure.Identity;
+using Customer.Infrastructure.Licensing;
+using Customer.Infrastructure.Licensing.Abstractions;
 using Customer.Infrastructure.Persistence;
 using Customer.Infrastructure.Persistence.Repositories.Read;
 using Customer.Infrastructure.Persistence.Repositories.Write;
@@ -93,6 +96,9 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddHttpClient();
         services.AddScoped<ITenantIdentityProvisioningService, KeycloakTenantIdentityProvisioningService>();
+        services.AddScoped<ILicenseWriteRepository, LicenseWriteRepository>();
+        services.AddScoped<ILicenseKeyProvider, EnvironmentVariableKeyProvider>();
+        services.AddScoped<ILicenseIssuer, LicenseIssuer>();
     }
 
     private static void ConfigureDbContexts(WebApplicationBuilder builder, ConnectionSettings connectionSettings)

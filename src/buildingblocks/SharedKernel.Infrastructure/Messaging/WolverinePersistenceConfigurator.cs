@@ -75,6 +75,31 @@ public static class WolverinePersistenceConfigurator
     }
 
     /// <summary>
+    /// Configures a stateless Wolverine runtime (no durable persistence) with RabbitMQ transport only.
+    /// Suitable for stateless services such as image-generator, statistic, and worker processes that do not
+    /// require outbox or saga persistence.
+    /// </summary>
+    /// <param name="options">The Wolverine options.</param>
+    /// <param name="isDevelopment">Whether the hosting environment is development.</param>
+    /// <param name="rabbitConnectionString">The normalized RabbitMQ connection string.</param>
+    public static void ConfigureStatelessRuntime(
+        WolverineOptions options,
+        bool isDevelopment,
+        string rabbitConnectionString)
+    {
+        options.CodeGeneration.TypeLoadMode = isDevelopment
+            ? TypeLoadMode.Dynamic
+            : TypeLoadMode.Static;
+
+        options.UseMemoryPackSerialization();
+
+        var rabbit = options.UseRabbitMq(new Uri(rabbitConnectionString, UriKind.Absolute));
+        rabbit.AutoProvision();
+        rabbit.EnableWolverineControlQueues();
+        rabbit.UseConventionalRouting();
+    }
+
+    /// <summary>
     /// Configures Wolverine message persistence with the selected provider.
     /// </summary>
     /// <param name="options">The Wolverine options.</param>

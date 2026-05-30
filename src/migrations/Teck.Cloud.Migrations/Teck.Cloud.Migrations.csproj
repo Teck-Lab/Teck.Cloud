@@ -36,6 +36,11 @@
     <ProjectReference Include="..\..\services\order\Order.Infrastructure.Migrations.PostgreSQL\Order.Infrastructure.Migrations.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\services\order\Order.Infrastructure.Migrations.SqlServer\Order.Infrastructure.Migrations.SqlServer.csproj" />
     <ProjectReference Include="..\..\services\order\Order.Infrastructure.Migrations.MySql\Order.Infrastructure.Migrations.MySql.csproj" />
+    <ProjectReference Include="..\..\services\device\Device.Infrastructure\Device.Infrastructure.csproj" />
+    <ProjectReference Include="..\Teck.Cloud.Migrations.PostgreSQL\Teck.Cloud.Migrations.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\services\billing\Billing.Infrastructure\Billing.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\location\Location.Infrastructure\Location.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\services\product\Product.Infrastructure\Product.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

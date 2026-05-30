@@ -90,6 +90,24 @@ public static class FastEndpointErrorOrExtensions
     }
 
     /// <summary>
+    /// Sends either a 200 OK (empty body) or problem details for an ErrorOr Success result.
+    /// </summary>
+    public static async Task SendSuccessAsync<TRequest, TResponse>(
+        this Endpoint<TRequest, TResponse> endpoint,
+        ErrorOr<Success> result,
+        CancellationToken cancellation = default)
+        where TRequest : notnull
+    {
+        if (!result.IsError)
+        {
+            await endpoint.HttpContext.Response.SendOkAsync(cancellation).ConfigureAwait(false);
+            return;
+        }
+
+        await SendProblemAsync(endpoint.HttpContext, result.Errors, cancellation).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Sends either a created response or problem details for an ErrorOr result.
     /// </summary>
     public static async Task SendCreatedAsync<TRequest, TResponse>(

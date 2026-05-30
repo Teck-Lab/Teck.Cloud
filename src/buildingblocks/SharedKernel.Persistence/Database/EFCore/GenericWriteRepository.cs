@@ -195,7 +195,7 @@ namespace SharedKernel.Persistence.Database.EFCore
         /// <returns>The entity if found; otherwise <c>null</c>.</returns>
         public async Task<TEntity?> FindByIdAsync(TId id, CancellationToken cancellationToken = default)
         {
-            var result = await _dbSet.FindAsync(new object[] { id! }, cancellationToken);
+            var result = await _dbSet.FirstOrDefaultAsync(entity => entity.Id!.Equals(id!), cancellationToken);
             return result;
         }
 

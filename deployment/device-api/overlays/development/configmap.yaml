@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: device-api-config
+data:
+  ConnectionStrings__redis: >-
+    redis-shared-s-hl.redis-system.svc.cluster.local:26379,serviceName=mymaster,abortConnect=false

@@ -15,6 +15,7 @@ using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Auth;
 using SharedKernel.Infrastructure.Caching;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 using SharedKernel.Infrastructure.Options;
 
 namespace Basket.Api;
@@ -41,6 +42,7 @@ internal static class Program
         builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
         builder.AddMediatorInfrastructure(applicationAssembly);
         builder.Services.AddInfrastructureServices(builder.Configuration);
+        builder.AddOpenApiInfrastructure(appOptions);
 
         WebApplication app = builder.Build();
         string catalogApiRemoteAddress = ResolveRemoteAddress(builder.Configuration, "Services:CatalogApi:Url");
@@ -54,6 +56,7 @@ internal static class Program
 
         app.UseBaseInfrastructure();
         app.UseFastEndpointsInfrastructure("basket");
+        app.UseOpenApiInfrastructure(appOptions);
         app.MapDefaultEndpoints();
 
         await app.RunAsync().ConfigureAwait(false);

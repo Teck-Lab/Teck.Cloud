@@ -8,6 +8,7 @@ using ErrorOr;
 using FastEndpoints;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Basket.Api.Endpoints.V1.Basket.AddItem;
 
@@ -25,6 +26,7 @@ public sealed class AddBasketItemEndpoint(ISender sender)
         Post("/Basket/items");
         Version(1);
         Validator<AddBasketItemValidator>();
+        Options(endpoint => endpoint.WithMetadata(new OpenApiAudienceMetadata("public")));
     }
 
     /// <inheritdoc/>

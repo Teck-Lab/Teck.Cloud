@@ -1,0 +1,94 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "order",
+      "ownerManagedAccess": false,
+      "displayName": "Order",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "create"
+        },
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "Is Platform Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"platform-admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-order/tenant:admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Member",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-order/tenant:admin\",\"required\":false},{\"id\":\"teck-order/tenant:member\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Create order",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"order\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    },
+    {
+      "name": "List orders",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"order\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "create",
+      "iconUri": "",
+      "displayName": "Create"
+    },
+    {
+      "name": "list",
+      "iconUri": "",
+      "displayName": "List"
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}

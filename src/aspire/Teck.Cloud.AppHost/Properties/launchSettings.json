@@ -12,7 +12,7 @@
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:19035",
         "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20108",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true",
-        "DOTNET_ASPIRE_CONTAINER_RUNTIME": "podman"
+        "DOTNET_ASPIRE_CONTAINER_RUNTIME": "docker"
       }
     },
     "http": {
@@ -26,7 +26,22 @@
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:19035",
         "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20108",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true",
-        "DOTNET_ASPIRE_CONTAINER_RUNTIME": "podman"
+        "DOTNET_ASPIRE_CONTAINER_RUNTIME": "docker"
+      }
+    },
+    "https-reset-migrations": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:17089;http://localhost:15081",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:19035",
+        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20108",
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true",
+        "DOTNET_ASPIRE_CONTAINER_RUNTIME": "docker",
+        "MIGRATIONS_DEV_RESET_ON_CONFLICT": "true"
       }
     }
   }

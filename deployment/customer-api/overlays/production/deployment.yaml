@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    reloader.stakater.com/search: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: customer-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: customer-api
+    spec:
+      imagePullSecrets:
+        - name: github-pull-secret
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: customer-api
+          image: ghcr.io/teck-lab/teck-cloud/customer:production
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          envFrom:
+            - configMapRef:
+                name: customer-api-config
+            - secretRef:
+                name: customer-api-keycloak
+          env:
+            - name: Kestrel__Endpoints__Http__Url
+              value: http://+:8080
+            - name: Kestrel__Endpoints__Http__Protocols
+              value: Http1
+            - name: Kestrel__Endpoints__Grpc__Url
+              value: http://+:8081
+            - name: Kestrel__Endpoints__Grpc__Protocols
+              value: Http2
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 8081
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

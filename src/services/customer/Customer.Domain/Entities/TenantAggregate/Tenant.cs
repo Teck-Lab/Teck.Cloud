@@ -70,6 +70,16 @@ public class Tenant : BaseEntity, IAggregateRoot
     public IReadOnlyList<TenantDatabaseMetadata> Databases => this.databases.AsReadOnly();
 
     /// <summary>
+    /// Gets the default payment method identifier used for tenant billing.
+    /// </summary>
+    public string? DefaultPaymentMethodId { get; private set; }
+
+    /// <summary>
+    /// Gets the currently assigned tenant-level license identifier.
+    /// </summary>
+    public Guid? CurrentLicenseId { get; private set; }
+
+    /// <summary>
     /// Creates a new tenant.
     /// </summary>
     /// <param name="args">Tenant creation arguments.</param>
@@ -172,6 +182,54 @@ public class Tenant : BaseEntity, IAggregateRoot
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(organizationId);
         this.KeycloakOrganizationId = organizationId;
+    }
+
+    /// <summary>
+    /// Assigns a tenant-level license to this tenant.
+    /// </summary>
+    /// <param name="licenseId">The license identifier.</param>
+    public void AssignLicense(Guid licenseId)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(licenseId, Guid.Empty);
+        this.CurrentLicenseId = licenseId;
+    }
+
+    /// <summary>
+    /// Sets the default payment method identifier for this tenant.
+    /// </summary>
+    /// <param name="paymentMethodId">The payment method identifier, or null to clear the value.</param>
+    public void SetDefaultPaymentMethod(string? paymentMethodId)
+    {
+        this.DefaultPaymentMethodId = paymentMethodId;
+    }
+
+    /// <summary>
+    /// Sets the default payment method identifier for this tenant.
+    /// </summary>
+    /// <param name="paymentMethodId">The payment method identifier, or null to clear the value.</param>
+    public void SetPaymentMethod(string? paymentMethodId)
+    {
+        this.SetDefaultPaymentMethod(paymentMethodId);
+    }
+
+    /// <summary>
+    /// Upgrades this tenant to a new plan.
+    /// </summary>
+    /// <param name="newPlan">The target plan name.</param>
+    public void UpgradePlan(string newPlan)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(newPlan);
+        this.Plan = newPlan;
+    }
+
+    /// <summary>
+    /// Upgrades this tenant to a new plan.
+    /// </summary>
+    /// <param name="newPlan">The target plan.</param>
+    public void UpgradePlan(TenantPlan newPlan)
+    {
+        ArgumentNullException.ThrowIfNull(newPlan);
+        this.UpgradePlan(newPlan.Name);
     }
 
     private static void EnsureRequiredArguments(TenantCreateArgs args)

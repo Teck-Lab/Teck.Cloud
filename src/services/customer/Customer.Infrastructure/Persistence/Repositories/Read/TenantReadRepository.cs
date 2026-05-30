@@ -4,7 +4,6 @@
 
 using Customer.Application.Tenants.ReadModels;
 using Customer.Application.Tenants.Repositories;
-using Customer.Infrastructure.Persistence.ReadModels;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Core.Pagination;
 

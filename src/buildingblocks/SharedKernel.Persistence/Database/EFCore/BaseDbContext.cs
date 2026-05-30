@@ -62,8 +62,12 @@ namespace SharedKernel.Persistence.Database.EFCore
             IMultiTenantContextAccessor<TenantDetails>? tenantAccessor = null)
             : base(options)
         {
-            // Prefer explicit tenantDetails, otherwise resolve from accessor if available
-            TenantDetails = tenantDetails ?? tenantAccessor?.MultiTenantContext.TenantInfo;
+            // Prefer explicit tenantDetails, then accessor, then TenantDbContextOptionsExtension embedded in options
+            // (used when Wolverine constructs the context via Activator.CreateInstance with a single options argument).
+            var tenantId = options.FindExtension<TenantDbContextOptionsExtension>()?.TenantId;
+            TenantDetails = tenantDetails
+                ?? tenantAccessor?.MultiTenantContext.TenantInfo
+                ?? (tenantId is not null ? new TenantDetails { Id = tenantId, Identifier = tenantId, Name = tenantId, IsActive = true } : null);
             _tenantStrategy = tenantStrategy ?? DatabaseStrategy.Shared;
         }
 

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-generator-config
+data:
+  ConnectionStrings__redis: >-
+    redis-shared-s-hl.redis-system.svc.cluster.local:26379,serviceName=mymaster,abortConnect=false
+  RenderProcessing__MaxConcurrentRenders: "2"
+  RenderProcessing__QueueTimeoutMilliseconds: "8000"
+  RenderProcessing__EnableRenderCache: "true"
+  RenderProcessing__RenderCacheDurationSeconds: "300"
+  RenderProcessing__MaxCachePayloadBytes: "3145728"
+  RenderProcessing__PaletteCancellationCheckStridePixels: "4096"
+  RenderFonts__EnableTenantFonts: "true"
+  RenderFonts__TenantFontTemplate: ""
+  RenderFonts__DownloadTimeoutSeconds: "10"
+  RenderFonts__MaxFontBytes: "5242880"

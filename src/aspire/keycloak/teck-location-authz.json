@@ -1,0 +1,139 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "font",
+      "ownerManagedAccess": false,
+      "displayName": "Font",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "create"
+        },
+        {
+          "name": "list"
+        },
+        {
+          "name": "delete"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "template",
+      "ownerManagedAccess": false,
+      "displayName": "Template",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "Is Platform Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"platform-admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-location/tenant:admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Member",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-location/tenant:admin\",\"required\":false},{\"id\":\"teck-location/tenant:member\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Upload font",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"font\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "List fonts",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"font\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    },
+    {
+      "name": "Delete font",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"font\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "List templates",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"template\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "create",
+      "iconUri": "",
+      "displayName": "Create"
+    },
+    {
+      "name": "list",
+      "iconUri": "",
+      "displayName": "List"
+    },
+    {
+      "name": "delete",
+      "iconUri": "",
+      "displayName": "Delete"
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}

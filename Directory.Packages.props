@@ -38,7 +38,7 @@
     <!-- SQL Server -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
     <!-- MySQL -->
-    <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="10.0.0" />
     <PackageVersion Include="MySql.EntityFrameworkCore" Version="10.0.1" />
     <!-- Oracle -->
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="10.23.26000" />
@@ -111,6 +111,7 @@
     <PackageVersion Include="Ardalis.Specification" Version="9.3.1" />
     <PackageVersion Include="Ardalis.Specification.EntityFrameworkCore" Version="9.3.1" />
     <PackageVersion Include="Ardalis.GuardClauses" Version="5.0.0" />
+    <PackageVersion Include="Standard.Licensing" Version="1.2.1" />
     <PackageVersion Include="ErrorOr" Version="2.0.1" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
@@ -143,6 +144,7 @@
     <PackageVersion Include="AsyncAwaitBestPractices" Version="10.0.0" />
     <PackageVersion Include="Polly" Version="8.6.5" />
     <PackageVersion Include="Scrutor" Version="7.0.0" />
+    <PackageVersion Include="CsvHelper" Version="33.1.0" />
   </ItemGroup>
   <!-- ================================================== -->
   <!-- STORAGE & FILE HANDLING                            -->
@@ -151,6 +153,16 @@
     <PackageVersion Include="FluentStorage" Version="6.0.3" />
     <PackageVersion Include="FluentStorage.AWS" Version="6.0.3" />
     <PackageVersion Include="AWSSDK.Core" Version="4.0.3.8" />
+  </ItemGroup>
+  <!-- ================================================== -->
+  <!-- IMAGE PROCESSING                                   -->
+  <!-- ================================================== -->
+  <ItemGroup Label="Image Processing">
+    <PackageVersion Include="Magick.NET-Q8-AnyCPU" Version="14.13.1" />
+    <PackageVersion Include="SkiaSharp" Version="3.119.2" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.2" />
+    <PackageVersion Include="ZXing.Net" Version="0.16.11" />
+    <PackageVersion Include="ZXing.Net.Bindings.SkiaSharp" Version="0.16.22" />
   </ItemGroup>
   <!-- ================================================== -->
   <!-- SECRETS MANAGEMENT                                 -->
@@ -272,11 +284,7 @@
   <!-- .NET ASPIRE                                        -->
   <!-- ================================================== -->
   <ItemGroup Label=".NET Aspire">
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.2.4" />
-    <PackageVersion Include="Aspire.Dashboard.Sdk.win-x64" Version="13.2.4" />
-    <PackageVersion Include="Aspire.Dashboard.Sdk.linux-x64" Version="13.2.4" />
-    <PackageVersion Include="Aspire.Hosting.Orchestration.win-x64" Version="13.2.4" />
-    <PackageVersion Include="Aspire.Hosting.Orchestration.linux-x64" Version="13.2.4" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Bun" Version="13.1.1" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.1.2" />
     <PackageVersion Include="Aspire.Hosting.Keycloak" Version="13.1.2-preview.1.26105.8" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.2.4" />

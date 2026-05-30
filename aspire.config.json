@@ -1,0 +1,5 @@
+{
+    "appHost": {
+        "path": "src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj"
+    }
+}

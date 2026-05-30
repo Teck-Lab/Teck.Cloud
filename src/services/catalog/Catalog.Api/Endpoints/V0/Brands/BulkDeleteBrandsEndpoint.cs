@@ -21,7 +21,7 @@ public sealed class BulkDeleteBrandsEndpoint(ISender sender) : Endpoint<DeleteBr
         Version(0);
         Options(endpoint =>
         {
-            endpoint.RequireProtectedResource("brands", "update");
+            endpoint.RequireProtectedResource("brand", "update");
             endpoint.WithMetadata(new OpenApiAudienceMetadata("public"));
         });
         Summary(summary => summary.Summary = "Bulk delete brands");

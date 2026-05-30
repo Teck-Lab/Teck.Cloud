@@ -8,12 +8,6 @@
         "resolved": "13.2.4",
         "contentHash": "9/Nl+3Hc/oK8upfYl7swUy5MEkwMPUtWpQkUJZcs1F0XvROI48V5ZXaPycDxxyNMAn/DYXgpOvU+QLdr2uTjCg=="
       },
-      "Aspire.Dashboard.Sdk.win-x64": {
-        "type": "Direct",
-        "requested": "[13.2.4, )",
-        "resolved": "13.2.4",
-        "contentHash": "9PjR4aGeEgxe4H4+Ix19Ps7+LxNaT7+ykWVG1XlaBVBqg7LSbflBWr8eg+TD692BV7wBVC+6yW+uBSK3wWkw2Q=="
-      },
       "Aspire.Hosting.AppHost": {
         "type": "Direct",
         "requested": "[13.2.4, )",
@@ -53,12 +47,6 @@
         "requested": "[13.2.4, )",
         "resolved": "13.2.4",
         "contentHash": "/OzUdJUKWDVbK2igP+X3r455Y8SV+5Y7WaTur7fPcS6FalTFtNvfR2NZWiwd9UjY3M7ytdIS4PKHnReWyX7rLg=="
-      },
-      "Aspire.Hosting.Orchestration.win-x64": {
-        "type": "Direct",
-        "requested": "[13.2.4, )",
-        "resolved": "13.2.4",
-        "contentHash": "jQ67V8hG78O2Ok0DR0rBvWb5409NEDiVSPIO5viA+NEU+69Z85i4sUfEMc4AGfK9d2sj6fUl7ZdwUJyGZRFgBA=="
       },
       "Aspire.Hosting.PostgreSQL": {
         "type": "Direct",
@@ -173,6 +161,15 @@
         "resolved": "10.0.0",
         "contentHash": "HRK/K4MSlx0b3FZ+LMP3ZvbTS+Ts361lhwp47CQZaESX/9cl5UIKOC0fWb5AbGNZxj96pKRvl7/Wrxj/J8LG/g=="
       },
+      "CommunityToolkit.Aspire.Hosting.Bun": {
+        "type": "Direct",
+        "requested": "[13.1.1, )",
+        "resolved": "13.1.1",
+        "contentHash": "5Jv4TNAClOCCfCxxWpaHY9n8p8hyboNiNNUO/ZtPwrUvMhO4avkZNNtmqonK7Z6dfCGh83SqlkZ4XEJl9Sjt6Q==",
+        "dependencies": {
+          "Aspire.Hosting": "13.1.0"
+        }
+      },
       "CSharpGuidelinesAnalyzer": {
         "type": "Direct",
         "requested": "[3.8.5, )",
@@ -193,9 +190,9 @@
       },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[10.0.5, )",
-        "resolved": "10.0.5",
-        "contentHash": "A+5ZuQ0f449tM+MQrhf6R9ZX7lYpjk/ODEwLYKrnF6111rtARx8fVsm4YznUnQiKnnXfaXNBqgxmil6RW3L3SA=="
+        "requested": "[10.0.8, )",
+        "resolved": "10.0.8",
+        "contentHash": "dVbSXGIFNR5nZcv2tOLoWI+a9T4jtFd77IYjuND+QVe360qWgAF7H0WtoopYhRw/+SgpGUTyrkrh+65+ClNnfw=="
       },
       "Microsoft.SourceLink.GitHub": {
         "type": "Direct",

@@ -1,6 +1,5 @@
 using Customer.Application.Tenants.ReadModels;
 using Customer.Infrastructure.Persistence;
-using Customer.Infrastructure.Persistence.ReadModels;
 using Customer.Infrastructure.Persistence.Repositories.Read;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;

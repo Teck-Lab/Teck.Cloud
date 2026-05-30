@@ -3,6 +3,7 @@
 // </copyright>
 
 using System.Diagnostics.CodeAnalysis;
+using Customer.Domain.Entities.LicenseAggregate;
 using Customer.Domain.Entities.TenantAggregate;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Persistence.Database.EFCore;
@@ -28,6 +29,11 @@ public class CustomerWriteDbContext : BaseDbContext
     /// Gets or sets the tenants.
     /// </summary>
     public DbSet<Tenant> Tenants { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the licenses.
+    /// </summary>
+    public DbSet<License> Licenses { get; set; } = null!;
 
     /// <summary>
     /// On model creating.

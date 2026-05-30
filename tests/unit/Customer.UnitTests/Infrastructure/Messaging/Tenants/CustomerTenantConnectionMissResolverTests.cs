@@ -1,11 +1,11 @@
 using Customer.Api.Infrastructure.Messaging.Tenants;
 using Customer.Application.Tenants.ReadModels;
 using Customer.Application.Tenants.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using SharedKernel.Persistence.Database.MultiTenant;
 using Shouldly;
-
 namespace Customer.UnitTests.Infrastructure.Messaging.Tenants;
 
 public sealed class CustomerTenantConnectionMissResolverTests
@@ -13,6 +13,7 @@ public sealed class CustomerTenantConnectionMissResolverTests
     private readonly ITenantReadRepository tenantReadRepository;
     private readonly IVaultTenantConnectionProvider vaultTenantConnectionProvider;
     private readonly WolverineTenantConnectionSource tenantConnectionSource;
+    private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly CustomerTenantConnectionMissResolver sut;
 
     public CustomerTenantConnectionMissResolverTests()
@@ -21,9 +22,16 @@ public sealed class CustomerTenantConnectionMissResolverTests
         this.vaultTenantConnectionProvider = Substitute.For<IVaultTenantConnectionProvider>();
         this.tenantConnectionSource = new WolverineTenantConnectionSource("Host=customer-shared-write;");
 
+        IServiceScope scope = Substitute.For<IServiceScope>();
+        IServiceProvider serviceProvider = Substitute.For<IServiceProvider>();
+        serviceProvider.GetService(typeof(ITenantReadRepository)).Returns(this.tenantReadRepository);
+        scope.ServiceProvider.Returns(serviceProvider);
+        this.serviceScopeFactory = Substitute.For<IServiceScopeFactory>();
+        this.serviceScopeFactory.CreateScope().Returns(scope);
+
         this.sut = new CustomerTenantConnectionMissResolver(
             NullLogger<CustomerTenantConnectionMissResolver>.Instance,
-            this.tenantReadRepository,
+            this.serviceScopeFactory,
             this.tenantConnectionSource,
             this.vaultTenantConnectionProvider);
     }

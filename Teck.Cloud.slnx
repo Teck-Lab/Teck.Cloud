@@ -15,6 +15,9 @@
   <Folder Name="/src/" />
   <Folder Name="/src/migrations/">
     <Project Path="src/migrations/Teck.Cloud.Migrations/Teck.Cloud.Migrations.csproj" />
+    <Project Path="src/migrations/Teck.Cloud.Migrations.MySql/Teck.Cloud.Migrations.MySql.csproj" />
+    <Project Path="src/migrations/Teck.Cloud.Migrations.PostgreSQL/Teck.Cloud.Migrations.PostgreSQL.csproj" />
+    <Project Path="src/migrations/Teck.Cloud.Migrations.SqlServer/Teck.Cloud.Migrations.SqlServer.csproj" />
   </Folder>
   <Folder Name="/src/aspire/">
     <Project Path="src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj" />
@@ -26,9 +29,7 @@
     <Project Path="src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Grpc.Contracts/SharedKernel.Grpc.Contracts.csproj" />
     <Project Path="src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
-
     <Project Path="src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
-
   </Folder>
   <Folder Name="/src/gateways/">
     <Project Path="src/gateways/Web.Admin.Gateway/Web.Admin.Gateway.csproj" />
@@ -46,7 +47,12 @@
     <Project Path="src/services/basket/Basket.Infrastructure.Migrations.PostgreSQL/Basket.Infrastructure.Migrations.PostgreSQL.csproj" />
     <Project Path="src/services/basket/Basket.Infrastructure.Migrations.SqlServer/Basket.Infrastructure.Migrations.SqlServer.csproj" />
     <Project Path="src/services/basket/Basket.Infrastructure.Migrations.MySql/Basket.Infrastructure.Migrations.MySql.csproj" />
-
+  </Folder>
+  <Folder Name="/src/services/billing/">
+    <Project Path="src/services/billing/Billing.Api/Billing.Api.csproj" />
+    <Project Path="src/services/billing/Billing.Application/Billing.Application.csproj" />
+    <Project Path="src/services/billing/Billing.Domain/Billing.Domain.csproj" />
+    <Project Path="src/services/billing/Billing.Infrastructure/Billing.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/services/catalog/">
     <File Path="src/services/catalog/Directory.Build.props" />
@@ -57,7 +63,6 @@
     <Project Path="src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL/Catalog.Infrastructure.Migrations.PostgreSQL.csproj" />
     <Project Path="src/services/catalog/Catalog.Infrastructure.Migrations.SqlServer/Catalog.Infrastructure.Migrations.SqlServer.csproj" />
     <Project Path="src/services/catalog/Catalog.Infrastructure.Migrations.MySql/Catalog.Infrastructure.Migrations.MySql.csproj" />
-
   </Folder>
   <Folder Name="/src/services/customer/">
     <File Path="src/services/customer/Directory.Build.props" />
@@ -68,7 +73,23 @@
     <Project Path="src/services/customer/Customer.Infrastructure.Migrations.PostgreSQL/Customer.Infrastructure.Migrations.PostgreSQL.csproj" />
     <Project Path="src/services/customer/Customer.Infrastructure.Migrations.SqlServer/Customer.Infrastructure.Migrations.SqlServer.csproj" />
     <Project Path="src/services/customer/Customer.Infrastructure.Migrations.MySql/Customer.Infrastructure.Migrations.MySql.csproj" />
-
+  </Folder>
+  <Folder Name="/src/services/device/">
+    <Project Path="src/services/device/Device.Api/Device.Api.csproj" />
+    <Project Path="src/services/device/Device.Application/Device.Application.csproj" />
+    <Project Path="src/services/device/Device.Domain/Device.Domain.csproj" />
+    <Project Path="src/services/device/Device.Infrastructure/Device.Infrastructure.csproj" />
+    <Project Path="src/services/device/Device.VendorWorker/Device.VendorWorker.csproj" />
+  </Folder>
+  <Folder Name="/src/services/image-generator/">
+    <Project Path="src/services/image-generator/Image.Generator.Api/Image.Generator.Api.csproj" />
+    <Project Path="src/services/image-generator/Image.Generator.Application/Image.Generator.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/services/location/">
+    <Project Path="src/services/location/Location.Api/Location.Api.csproj" />
+    <Project Path="src/services/location/Location.Application/Location.Application.csproj" />
+    <Project Path="src/services/location/Location.Domain/Location.Domain.csproj" />
+    <Project Path="src/services/location/Location.Infrastructure/Location.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/services/order/">
     <File Path="src/services/order/Directory.Build.props" />
@@ -79,34 +100,90 @@
     <Project Path="src/services/order/Order.Infrastructure.Migrations.PostgreSQL/Order.Infrastructure.Migrations.PostgreSQL.csproj" />
     <Project Path="src/services/order/Order.Infrastructure.Migrations.SqlServer/Order.Infrastructure.Migrations.SqlServer.csproj" />
     <Project Path="src/services/order/Order.Infrastructure.Migrations.MySql/Order.Infrastructure.Migrations.MySql.csproj" />
-
+  </Folder>
+  <Folder Name="/src/services/product/">
+    <Project Path="src/services/product/Product.Api/Product.Api.csproj" />
+    <Project Path="src/services/product/Product.Application/Product.Application.csproj" />
+    <Project Path="src/services/product/Product.Domain/Product.Domain.csproj" />
+    <Project Path="src/services/product/Product.Infrastructure/Product.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/services/statistic/">
+    <Project Path="src/services/statistic/Statistic.Api/Statistic.Api.csproj" />
+    <Project Path="src/services/statistic/Statistic.Application/Statistic.Application.csproj" />
+    <Project Path="src/services/statistic/Statistic.Domain/Statistic.Domain.csproj" />
+    <Project Path="src/services/statistic/Statistic.Infrastructure/Statistic.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <File Path="tests/Directory.Build.props" />
   </Folder>
   <Folder Name="/tests/architecture/" />
+  <Folder Name="/tests/architecture/basket/">
+    <Project Path="tests/architecture/basket/Basket.Architecture.UnitTests/Basket.Arch.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/tests/architecture/catalog/">
     <Project Path="tests/architecture/catalog/Catalog.Architecture.UnitTests/Catalog.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/customer/">
+    <Project Path="tests/architecture/customer/Customer.Architecture.UnitTests/Customer.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/device/">
+    <Project Path="tests/architecture/device/Device.Architecture.UnitTests/Device.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/image-generator/">
+    <Project Path="tests/architecture/image-generator/Image.Generator.Architecture.UnitTests/Image.Generator.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/location/">
+    <Project Path="tests/architecture/location/Location.Architecture.UnitTests/Location.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/order/">
+    <Project Path="tests/architecture/order/Order.Architecture.UnitTests/Order.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/product/">
+    <Project Path="tests/architecture/product/Product.Architecture.UnitTests/Product.Arch.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tests/architecture/shared/">
     <Project Path="tests/architecture/shared/Teck.Cloud.Arch.Tests/Teck.Cloud.Arch.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/architecture/statistic/">
+    <Project Path="tests/architecture/statistic/Statistic.Architecture.UnitTests/Statistic.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/web-admin-gateway/">
+    <Project Path="tests/architecture/web-admin-gateway/Web.Admin.Gateway.Architecture.UnitTests/Web.Admin.Gateway.Arch.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/architecture/web-public-gateway/">
+    <Project Path="tests/architecture/web-public-gateway/Web.Public.Gateway.Architecture.UnitTests/Web.Public.Gateway.Arch.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/tests/functional/" />
   <Folder Name="/tests/functional/catalog/" />
   <Folder Name="/tests/integration/">
+    <Project Path="tests/integration/Basket.IntegrationTests/Basket.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Billing.IntegrationTests/Billing.IntegrationTests.csproj" />
     <Project Path="tests/integration/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
     <Project Path="tests/integration/Customer.IntegrationTests/Customer.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Device.IntegrationTests/Device.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Image.Generator.IntegrationTests/Image.Generator.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Location.IntegrationTests/Location.IntegrationTests.csproj" />
     <Project Path="tests/integration/Order.IntegrationTests/Order.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Product.IntegrationTests/Product.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Statistic.IntegrationTests/Statistic.IntegrationTests.csproj" />
     <Project Path="tests/integration/Web.Admin.Gateway.IntegrationTests/Web.Admin.Gateway.IntegrationTests.csproj" />
     <Project Path="tests/integration/Web.Public.Gateway.IntegrationTests/Web.Public.Gateway.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/unit/">
+    <Project Path="tests/unit/Billing.UnitTests/Billing.UnitTests.csproj" />
+    <Project Path="tests/unit/Basket.UnitTests/Basket.UnitTests.csproj" />
     <Project Path="tests/unit/Catalog.UnitTests/Catalog.UnitTests.csproj" />
     <Project Path="tests/unit/Customer.UnitTests/Customer.UnitTests.csproj" />
+    <Project Path="tests/unit/Device.UnitTests/Device.UnitTests.csproj" />
+    <Project Path="tests/unit/Image.Generator.UnitTests/Image.Generator.UnitTests.csproj" />
+    <Project Path="tests/unit/Location.UnitTests/Location.UnitTests.csproj" />
+    <Project Path="tests/unit/Order.UnitTests/Order.UnitTests.csproj" />
+    <Project Path="tests/unit/Product.UnitTests/Product.UnitTests.csproj" />
     <Project Path="tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj" />
-    <Project Path="tests/unit/Web.Public.Gateway.UnitTests/Web.Public.Gateway.UnitTests.csproj" />
-    <Project Path="tests/unit/Web.Admin.Gateway.UnitTests/Web.Admin.Gateway.UnitTests.csproj" />
     <Project Path="tests/unit/SharedKernel.Persistence.UnitTests/SharedKernel.Persistence.UnitTests.csproj" />
+    <Project Path="tests/unit/Statistic.UnitTests/Statistic.UnitTests.csproj" />
+    <Project Path="tests/unit/Web.Admin.Gateway.UnitTests/Web.Admin.Gateway.UnitTests.csproj" />
+    <Project Path="tests/unit/Web.Public.Gateway.UnitTests/Web.Public.Gateway.UnitTests.csproj" />
   </Folder>
   <Folder Name="/tools/" />
 </Solution>

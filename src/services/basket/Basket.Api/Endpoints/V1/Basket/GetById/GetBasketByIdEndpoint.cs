@@ -9,6 +9,7 @@ using ErrorOr;
 using FastEndpoints;
 using Mediator;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
 
 namespace Basket.Api.Endpoints.V1.Basket.GetById;
 
@@ -26,6 +27,7 @@ public sealed class GetBasketByIdEndpoint(ISender sender)
         Get("/Basket/{BasketId:guid}");
         Version(1);
         Validator<GetBasketByIdValidator>();
+        Options(endpoint => endpoint.WithMetadata(new OpenApiAudienceMetadata("public")));
     }
 
     /// <inheritdoc/>

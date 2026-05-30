@@ -14,12 +14,12 @@ namespace Customer.Api.Infrastructure.Messaging.Tenants;
 /// </summary>
 internal sealed class CustomerTenantConnectionMissResolver(
     ILogger<CustomerTenantConnectionMissResolver> logger,
-    ITenantReadRepository tenantReadRepository,
+    IServiceScopeFactory serviceScopeFactory,
     WolverineTenantConnectionSource tenantConnectionSource,
     IVaultTenantConnectionProvider vaultTenantConnectionProvider)
 {
     private readonly ILogger<CustomerTenantConnectionMissResolver> logger = logger;
-    private readonly ITenantReadRepository tenantReadRepository = tenantReadRepository;
+    private readonly IServiceScopeFactory serviceScopeFactory = serviceScopeFactory;
     private readonly WolverineTenantConnectionSource tenantConnectionSource = tenantConnectionSource;
     private readonly IVaultTenantConnectionProvider vaultTenantConnectionProvider = vaultTenantConnectionProvider;
 
@@ -36,7 +36,10 @@ internal sealed class CustomerTenantConnectionMissResolver(
             return null;
         }
 
-        TenantDatabaseInfoReadModel? tenantInfo = await this.tenantReadRepository
+        using IServiceScope scope = this.serviceScopeFactory.CreateScope();
+        ITenantReadRepository tenantReadRepository = scope.ServiceProvider.GetRequiredService<ITenantReadRepository>();
+
+        TenantDatabaseInfoReadModel? tenantInfo = await tenantReadRepository
             .GetDatabaseInfoByIdAsync(parsedTenantId, "customer", cancellationToken)
             .ConfigureAwait(false);
 

@@ -8,13 +8,7 @@ internal static class EdgeGatewayHelpers
     public const string ExchangedAccessTokenItemKey = "Edge:ExchangedAccessToken";
     public const string ResolvedTenantIdItemKey = "ResolvedTenantId";
     public const string TenantDbStrategyHeaderName = "X-Tenant-DbStrategy";
-    public const string EdgeAccessPolicyMetadataKey = "EdgeAccessPolicy";
     public const string EdgeTenantPolicyMetadataKey = "EdgeTenantPolicy";
-    public const string EmployeeOnlyPolicyValue = "EmployeeOnly";
-    public const string AdminOnlyPolicyValue = "AdminOnly";
-    public const string PublicPolicyValue = "Public";
-    public const string AuthenticatedPolicyValue = "Authenticated";
-    public const string TenantUserPolicyValue = "TenantUser";
     public const string TenantPolicyNoneValue = "None";
     public const string TenantPolicyRequiredValue = "Required";
 
@@ -43,28 +37,7 @@ internal static class EdgeGatewayHelpers
         return string.Equals(routeConfig.AuthorizationPolicy, "anonymous", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static bool IsEmployeeOnlyRoute(RouteConfig? routeConfig, PathString requestPath, string adminPathSegment)
-    {
-        if (TryGetRouteMetadataValue(routeConfig, EdgeAccessPolicyMetadataKey, out string accessPolicy))
-        {
-            if (string.Equals(accessPolicy, EmployeeOnlyPolicyValue, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(accessPolicy, AdminOnlyPolicyValue, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(adminPathSegment))
-        {
-            return false;
-        }
-
-        return HasPathSegment(requestPath, adminPathSegment);
-    }
-
-    public static bool ShouldSkipTenantResolution(RouteConfig? routeConfig, PathString requestPath, string adminPathSegment)
+    public static bool ShouldSkipTenantResolution(RouteConfig? routeConfig)
     {
         if (TryGetRouteMetadataValue(routeConfig, EdgeTenantPolicyMetadataKey, out string tenantPolicy))
         {
@@ -79,31 +52,7 @@ internal static class EdgeGatewayHelpers
             }
         }
 
-        return IsEmployeeOnlyRoute(routeConfig, requestPath, adminPathSegment);
-    }
-
-    private static bool HasPathSegment(PathString requestPath, string segment)
-    {
-        string? path = requestPath.Value;
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return false;
-        }
-
-        string trimmedSegment = segment.Trim().Trim('/');
-        if (string.IsNullOrWhiteSpace(trimmedSegment))
-        {
-            return false;
-        }
-
-        string normalizedPath = path.Trim('/');
-        if (string.IsNullOrWhiteSpace(normalizedPath))
-        {
-            return false;
-        }
-
-        string[] segments = normalizedPath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return segments.Any(pathSegment => string.Equals(pathSegment, trimmedSegment, StringComparison.OrdinalIgnoreCase));
+        return false;
     }
 
     private static bool TryGetRouteMetadataValue(RouteConfig? routeConfig, string key, out string value)

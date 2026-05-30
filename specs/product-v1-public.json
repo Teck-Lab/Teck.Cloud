@@ -1,0 +1,405 @@
+{
+  "x-generator": "NSwag v14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))",
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Product Service Public API",
+    "description": "Open API Documentation of Product Service API.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5145"
+    }
+  ],
+  "paths": {
+    "/product/v1/Service/Readiness/Summary": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "ProductApiEndpointsV1ServiceGetProductReadinessSummaryEndpoint",
+        "parameters": [
+          {
+            "name": "includeDiagnostics",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductApplicationServiceFeaturesGetProductReadinessSummaryV1GetProductReadinessSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/product/v1/Products/Bulk": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Bulk creates products from CSV text.",
+        "operationId": "ProductApiEndpointsV1ProductsBulkCreateProductsEndpoint",
+        "requestBody": {
+          "x-name": "BulkCreateProductsCommand",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductApplicationProductFeaturesBulkCreateProductsV1BulkCreateProductsCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductApplicationProductFeaturesBulkCreateProductsV1BulkCreateProductsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/product/v1/Products": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Creates a new product.",
+        "operationId": "ProductApiEndpointsV1ProductsCreateProductEndpoint",
+        "requestBody": {
+          "x-name": "CreateProductCommand",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductApplicationProductFeaturesCreateProductV1CreateProductCommand"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductApplicationProductFeaturesCreateProductV1CreateProductResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "operationId": "ProductApiEndpointsV1ProductsGetProductsEndpoint",
+        "parameters": [
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Gets or sets the sort column. Allowed values: productId, name, sku.\nDefaults to productId when omitted.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sortDescending",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets a value indicating whether to sort descending.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the page.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the size.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedKernelCorePaginationPagedListOfGetProductItemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProductApplicationServiceFeaturesGetProductReadinessSummaryV1GetProductReadinessSummaryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "productCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "renderReadyProductCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProductApplicationServiceFeaturesGetProductReadinessSummaryV1GetProductReadinessSummaryRequest": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ProductApplicationProductFeaturesBulkCreateProductsV1BulkCreateProductsResponse": {
+        "type": "object",
+        "description": "Response for a bulk product creation.",
+        "additionalProperties": false,
+        "properties": {
+          "createdCount": {
+            "type": "integer",
+            "description": "Number of products successfully created.",
+            "format": "int32"
+          },
+          "totalRows": {
+            "type": "integer",
+            "description": "Total data rows processed.",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "array",
+            "description": "List of per-row errors.",
+            "items": {
+              "$ref": "#/components/schemas/ProductApplicationProductFeaturesBulkCreateProductsV1BulkCreateError"
+            }
+          }
+        }
+      },
+      "ProductApplicationProductFeaturesBulkCreateProductsV1BulkCreateError": {
+        "type": "object",
+        "description": "Describes a single row-level error during bulk creation.",
+        "additionalProperties": false,
+        "properties": {
+          "row": {
+            "type": "integer",
+            "description": "The 1-based row number.",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string",
+            "description": "The error message."
+          }
+        }
+      },
+      "ProductApplicationProductFeaturesBulkCreateProductsV1BulkCreateProductsCommand": {
+        "type": "object",
+        "description": "Command to bulk-create products from CSV text.",
+        "additionalProperties": false,
+        "properties": {
+          "csvText": {
+            "type": "string",
+            "description": "Raw CSV text with header row."
+          }
+        }
+      },
+      "ProductApplicationProductFeaturesCreateProductV1CreateProductResponse": {
+        "type": "object",
+        "description": "Response for a successful product creation.",
+        "additionalProperties": false,
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "The created product identifier.",
+            "format": "guid"
+          }
+        }
+      },
+      "ProductApplicationProductFeaturesCreateProductV1CreateProductCommand": {
+        "type": "object",
+        "description": "Command to create a new product.",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Product display name."
+          },
+          "sku": {
+            "type": "string",
+            "description": "Stock-keeping unit code."
+          },
+          "barcode": {
+            "type": "string",
+            "description": "Optional product barcode.",
+            "nullable": true
+          }
+        }
+      },
+      "SharedKernelCorePaginationPagedListOfGetProductItemResponse": {
+        "type": "object",
+        "description": "Represents a paginated list of items with metadata about paging.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Gets the items on the current page.",
+            "items": {
+              "$ref": "#/components/schemas/ProductApplicationProductFeaturesGetProductsV1GetProductItemResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Gets the current page number (1-based).",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Gets the size of the page (number of items per page).",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Gets the total number of pages.",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "description": "Gets the total number of items across all pages.",
+            "format": "int32"
+          },
+          "isFirstPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the first page."
+          },
+          "isLastPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the last page."
+          }
+        }
+      },
+      "ProductApplicationProductFeaturesGetProductsV1GetProductItemResponse": {
+        "type": "object",
+        "description": "Response item for a single product.",
+        "additionalProperties": false,
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Unique product identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product display name."
+          },
+          "sku": {
+            "type": "string",
+            "description": "Stock-keeping unit code."
+          },
+          "barcode": {
+            "type": "string",
+            "description": "Product barcode."
+          }
+        }
+      },
+      "ProductApplicationProductFeaturesGetProductsV1GetProductsRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedKernelCorePaginationPaginationParameters"
+          },
+          {
+            "type": "object",
+            "description": "Request model for paginated product queries.",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "SharedKernelCorePaginationPaginationParameters": {
+        "type": "object",
+        "description": "The pagination parameters.",
+        "x-abstract": true,
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "oAuth2": {
+        "type": "oauth2",
+        "in": "header",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/auth",
+            "tokenUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "refreshUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "scopes": {
+              "organization": "Org"
+            }
+          }
+        }
+      }
+    }
+  }
+}

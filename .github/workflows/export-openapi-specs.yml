@@ -1,0 +1,87 @@
+name: Export OpenAPI Specs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/services/**"
+      - "src/gateways/**"
+      - "src/buildingblocks/SharedKernel.Infrastructure/OpenApi/**"
+  workflow_dispatch:
+
+jobs:
+  export-specs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore workloads
+        run: dotnet workload restore
+
+      - name: Build AppHost
+        run: dotnet build src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj --configuration Release
+
+      - name: Export OpenAPI specs
+        run: |
+          mkdir -p specs
+          # Start Aspire AppHost in background with minimal infrastructure
+          # Note: this is a simplified approach; production CI may use WebApplicationFactory
+          # or dedicated test host to avoid full infrastructure requirements
+          dotnet run --project src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj &
+          APP_PID=$!
+          
+          # Wait for services to be ready
+          sleep 30
+          
+          # Fetch specs from each service via the public gateway
+          SERVICES=(
+            "basket-api"
+            "catalog-api"
+            "customer-api"
+            "device-api"
+            "location-api"
+            "order-api"
+            "product-api"
+            "statistic-api"
+            "image-generator"
+            "yarp-gateway"
+            "admin-gateway"
+          )
+          
+          for service in "${SERVICES[@]}"; do
+            echo "Fetching spec for $service..."
+            curl -sf "http://localhost:15000/openapi/$service/v1/openapi.json" \
+              -o "specs/${service}.openapi.json" \
+              --retry 3 --retry-delay 5 || echo "⚠️ Failed to fetch $service"
+          done
+          
+          kill $APP_PID || true
+        timeout-minutes: 10
+
+      - name: Commit specs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add specs/
+          if git diff --cached --quiet; then
+            echo "No spec changes to commit"
+          else
+            git commit -m "chore: export OpenAPI specs [skip ci]"
+            git push
+          fi
+
+      - name: Trigger Teck.Web regeneration
+        if: github.ref == 'refs/heads/main'
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.TECK_WEB_PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository_owner }}/Teck.Web/dispatches \
+            -d '{"event_type":"openapi-specs-updated","client_payload":{"ref":"${{ github.sha }}"}}'
+        continue-on-error: true

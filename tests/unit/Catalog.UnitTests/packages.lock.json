@@ -1762,6 +1762,7 @@
         "type": "Project",
         "dependencies": {
           "AsyncAwaitBestPractices": "[10.0.0, )",
+          "MemoryPack": "[1.21.4, )",
           "SharedKernel.Core": "[0.0.1, )"
         }
       },

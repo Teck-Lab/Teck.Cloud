@@ -1,4 +1,4 @@
-using Customer.Infrastructure.Persistence.ReadModels;
+using Customer.Application.Tenants.ReadModels;
 using Shouldly;
 
 namespace Customer.UnitTests.Infrastructure.Persistence.ReadModels;

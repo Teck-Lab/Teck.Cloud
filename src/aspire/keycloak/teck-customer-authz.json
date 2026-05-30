@@ -1,0 +1,204 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "license",
+      "ownerManagedAccess": false,
+      "displayName": "License",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        },
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "tenant",
+      "ownerManagedAccess": false,
+      "displayName": "Tenant",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "create"
+        },
+        {
+          "name": "list"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "Is Platform Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"platform-admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-customer/tenant:admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Member",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-customer/tenant:admin\",\"required\":false},{\"id\":\"teck-customer/tenant:member\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Create license",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"license\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "List licenses",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"license\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    },
+    {
+      "name": "Update license",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"license\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "Delete license",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"license\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "Create tenant",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "resources": "[\"tenant\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is Platform Admin\"]"
+      }
+    },
+    {
+      "name": "List tenants",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"tenant\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "Update tenant",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "resources": "[\"tenant\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"Is Platform Admin\"]"
+      }
+    },
+    {
+      "name": "Delete tenant",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "resources": "[\"tenant\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Is Platform Admin\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "create",
+      "iconUri": "",
+      "displayName": "Create"
+    },
+    {
+      "name": "list",
+      "iconUri": "",
+      "displayName": "List"
+    },
+    {
+      "name": "update",
+      "iconUri": "",
+      "displayName": "Update"
+    },
+    {
+      "name": "delete",
+      "iconUri": "",
+      "displayName": "Delete"
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}

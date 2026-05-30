@@ -9,7 +9,10 @@ using Order.Api.Extensions;
 using Order.Application;
 using Order.Infrastructure.DependencyInjection;
 using SharedKernel.Grpc.Contracts.Remote.V1.Catalog;
+using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Endpoints;
+using SharedKernel.Infrastructure.OpenApi;
+using SharedKernel.Infrastructure.Options;
 
 namespace Order.Api;
 
@@ -25,7 +28,11 @@ internal static class Program
         Assembly apiAssembly = typeof(Program).Assembly;
 
         builder.AddServiceDefaults();
+        AppOptions appOptions = new();
+        builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
+        builder.AddBaseInfrastructure(appOptions);
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
+        builder.AddOpenApiInfrastructure(appOptions);
         builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
         builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
         builder.AddMediatorInfrastructure(applicationAssembly);
@@ -41,7 +48,9 @@ internal static class Program
                 remote.Register<ValidateProductsForBasketCommand, ValidateProductsForBasketRpcResult>();
             });
 
+        app.UseBaseInfrastructure();
         app.UseFastEndpointsInfrastructure("order");
+        app.UseOpenApiInfrastructure(appOptions);
         app.MapDefaultEndpoints();
 
         await app.RunAsync().ConfigureAwait(false);

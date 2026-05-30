@@ -1,0 +1,74 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "statistic",
+      "ownerManagedAccess": false,
+      "displayName": "Statistic",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "list"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "Is Platform Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"platform-admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-statistic/tenant:admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Member",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-statistic/tenant:admin\",\"required\":false},{\"id\":\"teck-statistic/tenant:member\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "List statistics",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"statistic\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "list",
+      "iconUri": "",
+      "displayName": "List"
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}

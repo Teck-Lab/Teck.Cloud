@@ -43,7 +43,7 @@ public static class MultiTenantDbExtensions
     /// </param>
     public static void AddHybridMultiTenantDbContexts<TWriteContext, TReadContext>(
         this WebApplicationBuilder builder,
-        Assembly migrationsAssembly,
+        Assembly? migrationsAssembly,
         string defaultWriteConnectionString,
         string defaultReadConnectionString,
         DatabaseProvider? defaultProvider = null,
@@ -103,14 +103,12 @@ public static class MultiTenantDbExtensions
             client.Timeout = TimeSpan.FromSeconds(5);
         });
 
-        // Register context factories for use with ICurrentTenantDbContext and other consumers
-        // Use AddDbContextFactory with explicit options configuration to avoid constructor ambiguity
+        // Register factories for IDbContextFactory<T> consumers (e.g. repositories using CreateDbContextAsync)
         builder.Services.AddDbContextFactory<TWriteContext>((serviceProvider, options) =>
         {
-            // Configure the factory to use basic DbContext options - tenant resolution happens at runtime
             ConfigureTenantDbContext(
                 options,
-                serviceProvider,
+                null,
                 defaultWriteConnectionString,
                 migrationsAssembly,
                 effectiveProvider,
@@ -123,26 +121,12 @@ public static class MultiTenantDbExtensions
             // Configure the factory to use basic DbContext options - tenant resolution happens at runtime
             ConfigureTenantDbContext(
                 options,
-                serviceProvider,
+                null,
                 defaultReadConnectionString,
                 migrationsAssembly: null,
                 effectiveProvider,
                 DatabaseStrategy.Shared,
                 true);
-        });
-
-        // Register single-parameter constructor for EF tooling and MassTransit outbox
-        builder.Services.AddDbContext<TWriteContext>((sp, options) =>
-        {
-            // Use the default write connection string and provider for tooling/outbox
-            ConfigureTenantDbContext(
-                options,
-                null,
-                defaultWriteConnectionString,
-                migrationsAssembly,
-                effectiveProvider,
-                DatabaseStrategy.Shared,
-                isReadOnly: false);
         });
 
         // Runtime-tenant-aware write context registration

@@ -15,7 +15,6 @@ internal sealed class TenantEnforcementMiddleware
 
     private readonly RequestDelegate _next;
     private readonly EdgeTenantOptions _tenantOptions;
-    private readonly EdgeRouteSecurityOptions _routeSecurityOptions;
     private readonly ITenantTokenContextResolver _tenantTokenContextResolver;
     private readonly IServiceTokenExchangeService _tokenExchangeService;
     private readonly ITenantDatabaseStrategyResolver _tenantDatabaseStrategyResolver;
@@ -25,7 +24,6 @@ internal sealed class TenantEnforcementMiddleware
     public TenantEnforcementMiddleware(
         RequestDelegate next,
         EdgeTenantOptions tenantOptions,
-        EdgeRouteSecurityOptions routeSecurityOptions,
         ITenantTokenContextResolver tenantTokenContextResolver,
         IServiceTokenExchangeService tokenExchangeService,
         ITenantDatabaseStrategyResolver tenantDatabaseStrategyResolver,
@@ -34,7 +32,6 @@ internal sealed class TenantEnforcementMiddleware
     {
         _next = next;
         _tenantOptions = tenantOptions;
-        _routeSecurityOptions = routeSecurityOptions;
         _tenantTokenContextResolver = tenantTokenContextResolver;
         _tokenExchangeService = tokenExchangeService;
         _tenantDatabaseStrategyResolver = tenantDatabaseStrategyResolver;
@@ -68,7 +65,7 @@ internal sealed class TenantEnforcementMiddleware
             return;
         }
 
-        if (EdgeGatewayHelpers.ShouldSkipTenantResolution(routeConfig, context.Request.Path, _routeSecurityOptions.AdminPathSegment))
+        if (EdgeGatewayHelpers.ShouldSkipTenantResolution(routeConfig))
         {
             context.Request.Headers.Remove(_tenantOptions.TenantIdHeaderName);
             context.Request.Headers.Remove(EdgeGatewayHelpers.TenantDbStrategyHeaderName);

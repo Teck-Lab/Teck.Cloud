@@ -1,0 +1,154 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "display",
+      "ownerManagedAccess": false,
+      "displayName": "Display",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "list"
+        },
+        {
+          "name": "create"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "access-point",
+      "ownerManagedAccess": false,
+      "displayName": "Access Point",
+      "attributes": {},
+      "uris": [],
+      "scopes": [
+        {
+          "name": "list"
+        },
+        {
+          "name": "create"
+        },
+        {
+          "name": "update"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "Is Platform Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"platform-admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-device/tenant:admin\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "Is Tenant Member",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"teck-device/tenant:admin\",\"required\":false},{\"id\":\"teck-device/tenant:member\",\"required\":false}]"
+      }
+    },
+    {
+      "name": "List displays",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"display\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    },
+    {
+      "name": "Create display",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"display\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "List access points",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"access-point\"]",
+        "scopes": "[\"list\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Member\"]"
+      }
+    },
+    {
+      "name": "Create access point",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"access-point\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    },
+    {
+      "name": "Update access point",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"access-point\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"Is Platform Admin\",\"Is Tenant Admin\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "create",
+      "iconUri": "",
+      "displayName": "Create"
+    },
+    {
+      "name": "list",
+      "iconUri": "",
+      "displayName": "List"
+    },
+    {
+      "name": "update",
+      "iconUri": "",
+      "displayName": "Update"
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}

@@ -58,9 +58,9 @@
       },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[10.0.5, )",
-        "resolved": "10.0.5",
-        "contentHash": "A+5ZuQ0f449tM+MQrhf6R9ZX7lYpjk/ODEwLYKrnF6111rtARx8fVsm4YznUnQiKnnXfaXNBqgxmil6RW3L3SA=="
+        "requested": "[10.0.8, )",
+        "resolved": "10.0.8",
+        "contentHash": "dVbSXGIFNR5nZcv2tOLoWI+a9T4jtFd77IYjuND+QVe360qWgAF7H0WtoopYhRw/+SgpGUTyrkrh+65+ClNnfw=="
       },
       "Microsoft.SourceLink.GitHub": {
         "type": "Direct",
@@ -1485,6 +1485,7 @@
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )",
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )",
           "ZiggyCreatures.FusionCache": "[2.6.0, )"
         }
       },
@@ -1510,6 +1511,45 @@
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "Basket.Infrastructure": "[0.1.0, )",
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.7, )"
+        }
+      },
+      "billing.application": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Billing.Domain": "[1.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "FluentValidation": "[12.1.1, )",
+          "MemoryPack": "[1.21.4, )",
+          "Microsoft.AspNetCore.OpenApi": "[10.0.7, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "WolverineFx": "[5.32.1, )"
+        }
+      },
+      "billing.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ardalis.GuardClauses": "[5.0.0, )",
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )"
+        }
+      },
+      "billing.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Billing.Application": "[1.0.0, )",
+          "Billing.Domain": "[1.0.0, )",
+          "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.7, )",
+          "MySql.EntityFrameworkCore": "[10.0.1, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )"
         }
       },
       "catalog.application": {
@@ -1597,7 +1637,8 @@
           "Customer.Domain": "[1.0.0, )",
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Infrastructure": "[0.0.1, )",
-          "SharedKernel.Persistence": "[0.0.1, )"
+          "SharedKernel.Persistence": "[0.0.1, )",
+          "Standard.Licensing": "[1.2.1, )"
         }
       },
       "customer.infrastructure.migrations.mysql": {
@@ -1619,6 +1660,74 @@
         "dependencies": {
           "AsyncAwaitBestPractices": "[10.0.0, )",
           "Customer.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "device.application": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Device.Domain": "[0.1.0, )",
+          "MemoryPack": "[1.21.4, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )"
+        }
+      },
+      "device.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Ardalis.GuardClauses": "[5.0.0, )",
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )"
+        }
+      },
+      "device.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Device.Application": "[0.1.0, )",
+          "Device.Domain": "[0.1.0, )",
+          "FastEndpoints.Messaging.Remote": "[8.1.0, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )"
+        }
+      },
+      "location.application": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Location.Domain": "[0.1.0, )",
+          "MemoryPack": "[1.21.4, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )"
+        }
+      },
+      "location.domain": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )"
+        }
+      },
+      "location.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Location.Application": "[0.1.0, )",
+          "Location.Domain": "[0.1.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.7, )",
+          "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.7, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )"
         }
       },
       "order.application": {
@@ -1649,7 +1758,8 @@
           "Order.Application": "[0.1.0, )",
           "Order.Domain": "[0.1.0, )",
           "SharedKernel.Core": "[0.0.1, )",
-          "SharedKernel.Grpc.Contracts": "[0.0.1, )"
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )"
         }
       },
       "order.infrastructure.migrations.mysql": {
@@ -1676,6 +1786,39 @@
           "Order.Infrastructure": "[0.1.0, )"
         }
       },
+      "product.application": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "CsvHelper": "[33.1.0, )",
+          "MemoryPack": "[1.21.4, )",
+          "Product.Domain": "[0.1.0, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )"
+        }
+      },
+      "product.domain": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "ErrorOr": "[2.0.1, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Events": "[0.0.1, )"
+        }
+      },
+      "product.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "CsvHelper": "[33.1.0, )",
+          "Product.Application": "[0.1.0, )",
+          "Product.Domain": "[0.1.0, )",
+          "SharedKernel.Core": "[0.0.1, )",
+          "SharedKernel.Infrastructure": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )"
+        }
+      },
       "sharedkernel.core": {
         "type": "Project",
         "dependencies": {
@@ -1693,6 +1836,7 @@
         "type": "Project",
         "dependencies": {
           "AsyncAwaitBestPractices": "[10.0.0, )",
+          "MemoryPack": "[1.21.4, )",
           "SharedKernel.Core": "[0.0.1, )"
         }
       },
@@ -1820,6 +1964,20 @@
           "SharedKernel.Grpc.Contracts": "[0.0.1, )",
           "SharedKernel.Infrastructure": "[0.0.1, )",
           "VaultSharp": "[1.17.5.1, )"
+        }
+      },
+      "teck.cloud.migrations.postgresql": {
+        "type": "Project",
+        "dependencies": {
+          "AsyncAwaitBestPractices": "[10.0.0, )",
+          "Basket.Infrastructure": "[0.1.0, )",
+          "Billing.Infrastructure": "[1.0.0, )",
+          "Catalog.Infrastructure": "[0.1.0, )",
+          "Customer.Infrastructure": "[1.0.0, )",
+          "Device.Infrastructure": "[0.1.0, )",
+          "Location.Infrastructure": "[0.1.0, )",
+          "Order.Infrastructure": "[0.1.0, )",
+          "Product.Infrastructure": "[0.1.0, )"
         }
       },
       "Ardalis.GuardClauses": {
@@ -2041,6 +2199,12 @@
         "requested": "[4.0.3.8, )",
         "resolved": "4.0.3.8",
         "contentHash": "nJyNzaz3pcD8c8hZvtJXuziJm1dkd3/BYmZvhf1TPNfMo3G3lsesGFZl1UVyQhGEfmQOS+efT0H8tf00PMmjug=="
+      },
+      "CsvHelper": {
+        "type": "CentralTransitive",
+        "requested": "[33.1.0, )",
+        "resolved": "33.1.0",
+        "contentHash": "kqfTOZGrn7NarNeXgjh86JcpTHUoeQDMB8t9NVa/ZtlSYiV1rxfRnQ49WaJsob4AiGrbK0XDzpyKkBwai4F8eg=="
       },
       "DistributedLock.Redis": {
         "type": "CentralTransitive",
@@ -3041,6 +3205,15 @@
           "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
           "Pipelines.Sockets.Unofficial": "2.2.8",
           "System.IO.Hashing": "10.0.2"
+        }
+      },
+      "Standard.Licensing": {
+        "type": "CentralTransitive",
+        "requested": "[1.2.1, )",
+        "resolved": "1.2.1",
+        "contentHash": "CX+4J2kvbHBYAqVt6K+uAU95rL9dDRYD83jagVPerKM4cW2SJaN1t95uhyDdWa7N9AnHPJQkRSGKqlDew1QiTA==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.4.0"
         }
       },
       "System.IdentityModel.Tokens.Jwt": {

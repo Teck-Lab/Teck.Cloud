@@ -1,14 +1,18 @@
 using Basket.Infrastructure.Persistence;
+using Billing.Infrastructure.Persistence;
 using Catalog.Infrastructure.Persistence;
 using Customer.Infrastructure.Persistence;
+using Device.Infrastructure.Persistence;
 using JasperFx;
 using JasperFx.Resources;
+using Location.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Order.Infrastructure.Persistence;
+using Product.Infrastructure.Persistence;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Persistence.Database.MultiTenant;
 using Wolverine;
@@ -33,7 +37,7 @@ for (int argIndex = 0; argIndex < args.Length - 1; argIndex++)
 
 if (string.IsNullOrWhiteSpace(service))
 {
-    await Console.Error.WriteLineAsync("ERROR: --service <basket|catalog|customer|order> argument is required.");
+    await Console.Error.WriteLineAsync("ERROR: --service <basket|billing|catalog|customer|device|location|order|product> argument is required.");
     return 1;
 }
 
@@ -65,11 +69,15 @@ if (mode is "shared" or "all")
     IHostBuilder hostBuilder = service.ToLowerInvariant() switch
     {
         "basket" => CreateBasketHost(connectionString, provider),
+        "billing" => CreateBillingHost(connectionString, provider),
         "catalog" => CreateCatalogHost(connectionString, provider),
         "customer" => CreateCustomerHost(connectionString, provider),
+        "device" => CreateDeviceHost(connectionString, provider),
+        "location" => CreateLocationHost(connectionString, provider),
         "order" => CreateOrderHost(connectionString, provider),
+        "product" => CreateProductHost(connectionString, provider),
         _ => throw new InvalidOperationException(
-            $"Unknown service '{service}'. Valid values: basket, catalog, customer, order.")
+            $"Unknown service '{service}'. Valid values: basket, billing, catalog, customer, device, location, order, product.")
     };
 
     IHost host = hostBuilder.Build();
@@ -218,9 +226,13 @@ static async Task ApplyEfCoreMigrationsAsync(IHost host, string service, ILogger
     DbContext dbContext = service.ToLowerInvariant() switch
     {
         "basket" => scope.ServiceProvider.GetRequiredService<BasketPersistenceDbContext>(),
+        "billing" => scope.ServiceProvider.GetRequiredService<BillingDbContext>(),
         "catalog" => scope.ServiceProvider.GetRequiredService<ApplicationWriteDbContext>(),
         "customer" => scope.ServiceProvider.GetRequiredService<CustomerWriteDbContext>(),
+        "device" => scope.ServiceProvider.GetRequiredService<DeviceWriteDbContext>(),
+        "location" => scope.ServiceProvider.GetRequiredService<TemplateFontMetadataDbContext>(),
         "order" => scope.ServiceProvider.GetRequiredService<OrderPersistenceDbContext>(),
+        "product" => scope.ServiceProvider.GetRequiredService<ProductWriteDbContext>(),
         _ => throw new InvalidOperationException(
             $"No DbContext registered for service '{service}'.")
     };
@@ -316,6 +328,91 @@ static IHostBuilder CreateOrderHost(string connectionString, DatabaseProvider pr
         });
 }
 
+static IHostBuilder CreateDeviceHost(string connectionString, DatabaseProvider provider)
+{
+    // Device migrations live in the consolidated Teck.Cloud.Migrations.PostgreSQL project,
+    // not in a per-service Device.Infrastructure.Migrations.* project.
+    string migrationsAssembly = provider == DatabaseProvider.PostgreSQL
+        ? "Teck.Cloud.Migrations.PostgreSQL"
+        : ResolveMigrationsAssembly("Device", provider);
+
+    IHostBuilder builder = Host.CreateDefaultBuilder()
+        .ConfigureServices(services =>
+        {
+            services.AddDbContext<DeviceWriteDbContext>(
+                options => ConfigureDbContextOptions(options, connectionString, migrationsAssembly, provider),
+                optionsLifetime: ServiceLifetime.Singleton);
+        });
+
+    if (provider != DatabaseProvider.MySQL)
+    {
+        builder = builder.UseWolverine(opts =>
+        {
+            ConfigureWolverinePersistence(opts, connectionString, provider);
+        });
+    }
+
+    return builder;
+}
+
+static IHostBuilder CreateLocationHost(string connectionString, DatabaseProvider provider)
+{
+    // Location migrations are in the consolidated Teck.Cloud.Migrations.PostgreSQL project.
+    string migrationsAssembly = provider == DatabaseProvider.PostgreSQL
+        ? "Teck.Cloud.Migrations.PostgreSQL"
+        : ResolveMigrationsAssembly("Location", provider);
+
+    return Host.CreateDefaultBuilder()
+        .ConfigureServices(services =>
+        {
+            services.AddDbContext<TemplateFontMetadataDbContext>(
+                options => ConfigureDbContextOptions(options, connectionString, migrationsAssembly, provider),
+                optionsLifetime: ServiceLifetime.Singleton);
+        });
+}
+
+static IHostBuilder CreateProductHost(string connectionString, DatabaseProvider provider)
+{
+    // Product migrations are in the consolidated Teck.Cloud.Migrations.PostgreSQL project.
+    string migrationsAssembly = provider == DatabaseProvider.PostgreSQL
+        ? "Teck.Cloud.Migrations.PostgreSQL"
+        : ResolveMigrationsAssembly("Product", provider);
+
+    IHostBuilder builder = Host.CreateDefaultBuilder()
+        .ConfigureServices(services =>
+        {
+            services.AddDbContext<ProductWriteDbContext>(
+                options => ConfigureDbContextOptions(options, connectionString, migrationsAssembly, provider),
+                optionsLifetime: ServiceLifetime.Singleton);
+        });
+
+    if (provider != DatabaseProvider.MySQL)
+    {
+        builder = builder.UseWolverine(opts =>
+        {
+            ConfigureWolverinePersistence(opts, connectionString, provider);
+        });
+    }
+
+    return builder;
+}
+
+static IHostBuilder CreateBillingHost(string connectionString, DatabaseProvider provider)
+{
+    // Billing migrations are in the consolidated Teck.Cloud.Migrations.PostgreSQL project.
+    string migrationsAssembly = provider == DatabaseProvider.PostgreSQL
+        ? "Teck.Cloud.Migrations.PostgreSQL"
+        : ResolveMigrationsAssembly("Billing", provider);
+
+    return Host.CreateDefaultBuilder()
+        .ConfigureServices(services =>
+        {
+            services.AddDbContext<BillingDbContext>(
+                options => ConfigureDbContextOptions(options, connectionString, migrationsAssembly, provider),
+                optionsLifetime: ServiceLifetime.Singleton);
+        });
+}
+
 /// <summary>
 /// Runs EF Core migrations for every active dedicated tenant that has a
 /// database entry for the given service. Vault is queried for each tenant's
@@ -366,21 +463,37 @@ static async Task<int> MigrateDedicatedTenantsAsync(
             }
 
             IHostBuilder hostBuilder;
-            if (string.Equals(service, "catalog", StringComparison.OrdinalIgnoreCase))
-            {
-                hostBuilder = CreateCatalogHost(writeConnectionString, tenantProvider);
-            }
-            else if (string.Equals(service, "basket", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(service, "basket", StringComparison.OrdinalIgnoreCase))
             {
                 hostBuilder = CreateBasketHost(writeConnectionString, tenantProvider);
+            }
+            else if (string.Equals(service, "billing", StringComparison.OrdinalIgnoreCase))
+            {
+                hostBuilder = CreateBillingHost(writeConnectionString, tenantProvider);
+            }
+            else if (string.Equals(service, "catalog", StringComparison.OrdinalIgnoreCase))
+            {
+                hostBuilder = CreateCatalogHost(writeConnectionString, tenantProvider);
             }
             else if (string.Equals(service, "customer", StringComparison.OrdinalIgnoreCase))
             {
                 hostBuilder = CreateCustomerHost(writeConnectionString, tenantProvider);
             }
+            else if (string.Equals(service, "device", StringComparison.OrdinalIgnoreCase))
+            {
+                hostBuilder = CreateDeviceHost(writeConnectionString, tenantProvider);
+            }
+            else if (string.Equals(service, "location", StringComparison.OrdinalIgnoreCase))
+            {
+                hostBuilder = CreateLocationHost(writeConnectionString, tenantProvider);
+            }
             else if (string.Equals(service, "order", StringComparison.OrdinalIgnoreCase))
             {
                 hostBuilder = CreateOrderHost(writeConnectionString, tenantProvider);
+            }
+            else if (string.Equals(service, "product", StringComparison.OrdinalIgnoreCase))
+            {
+                hostBuilder = CreateProductHost(writeConnectionString, tenantProvider);
             }
             else
             {

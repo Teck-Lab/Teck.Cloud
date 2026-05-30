@@ -1,0 +1,1158 @@
+{
+  "x-generator": "NSwag v14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))",
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Customer Service Public API",
+    "description": "Open API Documentation of Customer Service API - Tenant Management & Multi-Tenant Database Provisioning.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5145"
+    }
+  ],
+  "paths": {
+    "/customer/v1/Tenants/me": {
+      "patch": {
+        "tags": [
+          "Tenants"
+        ],
+        "operationId": "CustomerApiEndpointsV1TenantsPatchCurrentTenantProfilePatchCurrentTenantProfileEndpoint",
+        "requestBody": {
+          "x-name": "PatchCurrentTenantProfileRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerApplicationTenantsFeaturesPatchCurrentTenantProfileV1PatchCurrentTenantProfileRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationTenantsResponsesTenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Tenants"
+        ],
+        "operationId": "CustomerApiEndpointsV1TenantsGetCurrentTenantProfileGetCurrentTenantProfileEndpoint",
+        "parameters": [
+          {
+            "name": "includeDiagnostics",
+            "in": "query",
+            "required": true,
+            "description": "Gets a value indicating whether diagnostics should be included.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationTenantsResponsesTenantResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Tenants/me/database-info": {
+      "get": {
+        "tags": [
+          "Tenants"
+        ],
+        "operationId": "CustomerApiEndpointsV1TenantsGetCurrentTenantDatabaseInfoGetCurrentTenantDatabaseInfoEndpoint",
+        "parameters": [
+          {
+            "name": "serviceName",
+            "in": "query",
+            "description": "Gets the optional service name used for read replica evaluation.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationTenantsFeaturesGetCurrentTenantDatabaseInfoV1GetCurrentTenantDatabaseInfoResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Tenants/me/Services/{serviceName}/Readiness": {
+      "get": {
+        "tags": [
+          "Tenants"
+        ],
+        "operationId": "CustomerApiEndpointsV1TenantsCheckServiceReadinessCheckCurrentTenantServiceReadinessEndpoint",
+        "parameters": [
+          {
+            "name": "serviceName",
+            "in": "path",
+            "required": true,
+            "description": "Gets the service name.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApiEndpointsV1TenantsCheckServiceReadinessServiceReadinessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Licenses/{id}/revoke": {
+      "put": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesRevokeLicenseRevokeLicenseEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the license identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Licenses/{id}/renew": {
+      "put": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesRenewLicenseRenewLicenseEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the license identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "RenewLicenseRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerApplicationLicensesFeaturesRenewLicenseV1RenewLicenseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Tenants/{tenantId}/licenses/{licenseId}/limits": {
+      "post": {
+        "tags": [
+          "Tenants"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesIncreaseLicenseLimitsIncreaseLicenseLimitsEndpoint",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "description": "Gets the tenant identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          },
+          {
+            "name": "licenseId",
+            "in": "path",
+            "required": true,
+            "description": "Gets the license identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "IncreaseLicenseLimitsRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerApplicationLicensesFeaturesIncreaseLicenseLimitsV1IncreaseLicenseLimitsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Licenses": {
+      "get": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesGetLicensesByTenantIdGetLicensesByTenantIdEndpoint",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": true,
+            "description": "Gets the tenant identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesCreateLicenseCreateLicenseEndpoint",
+        "requestBody": {
+          "x-name": "CreateLicenseRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerApplicationLicensesFeaturesCreateLicenseV1CreateLicenseRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Licenses/{id}": {
+      "get": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesGetLicenseByIdGetLicenseByIdEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the license identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Licenses/{id}/expire": {
+      "put": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesExpireLicenseExpireLicenseEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the license identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Licenses/{Id}/Location": {
+      "post": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesAssignLicenseLocationAssignLicenseLocationEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "AssignLicenseLocationRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerApplicationLicensesFeaturesAssignLicenseLocationV1AssignLicenseLocationRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/customer/v1/Licenses/{id}/activate": {
+      "put": {
+        "tags": [
+          "Licenses"
+        ],
+        "operationId": "CustomerApiEndpointsV1LicensesActivateLicenseActivateLicenseEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the license identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerApplicationLicensesResponsesLicenseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CustomerApplicationTenantsFeaturesUpgradeTenantPlanV1UpgradeTenantPlanRequest": {
+        "type": "object",
+        "description": "Gets the HTTP request model for upgrading a tenant's plan.",
+        "additionalProperties": false,
+        "properties": {
+          "targetPlan": {
+            "type": "string",
+            "description": "Gets the target plan name."
+          },
+          "currency": {
+            "type": "string",
+            "description": "Gets the billing currency code."
+          }
+        }
+      },
+      "CustomerApplicationTenantsResponsesTenantResponse": {
+        "type": "object",
+        "description": "Response model for Tenant.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the tenant identifier.",
+            "format": "guid"
+          },
+          "identifier": {
+            "type": "string",
+            "description": "Gets the tenant identifier (unique name/slug)."
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the tenant display name."
+          },
+          "plan": {
+            "type": "string",
+            "description": "Gets the tenant plan."
+          },
+          "keycloakOrganizationId": {
+            "type": "string",
+            "description": "Gets the associated Keycloak organization identifier.",
+            "nullable": true
+          },
+          "databaseStrategy": {
+            "type": "string",
+            "description": "Gets the database strategy."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the tenant is active."
+          },
+          "databases": {
+            "type": "array",
+            "description": "Gets the database metadata for each service.",
+            "items": {
+              "$ref": "#/components/schemas/CustomerApplicationTenantsResponsesTenantDatabaseMetadataResponse"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the creation date.",
+            "format": "date-time"
+          },
+          "updatedOn": {
+            "type": "string",
+            "description": "Gets the last update date.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CustomerApplicationTenantsResponsesTenantDatabaseMetadataResponse": {
+        "type": "object",
+        "description": "Response model for tenant database metadata.",
+        "additionalProperties": false,
+        "properties": {
+          "serviceName": {
+            "type": "string",
+            "description": "Gets the service name."
+          },
+          "writeEnvVarKey": {
+            "type": "string",
+            "description": "Gets the environment variable key for write database connection string.\nExample: ConnectionStrings__Tenants__{tenantId}__Write."
+          },
+          "readEnvVarKey": {
+            "type": "string",
+            "description": "Gets the environment variable key for read database connection string.",
+            "nullable": true
+          },
+          "hasSeparateReadDatabase": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this service has a separate read database."
+          }
+        }
+      },
+      "CustomerApplicationTenantsFeaturesUpdateTenantProfileV1UpdateTenantProfileRequest": {
+        "type": "object",
+        "description": "Request to patch tenant profile fields.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "plan"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets the optional updated tenant display name.",
+            "minLength": 1,
+            "nullable": false
+          },
+          "plan": {
+            "type": "string",
+            "description": "Gets the optional updated tenant plan.",
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "FastEndpointsErrorResponse": {
+        "type": "object",
+        "description": "the dto used to send an error response to the client",
+        "additionalProperties": false,
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "description": "the http status code sent to the client. default is 400.",
+            "format": "int32",
+            "default": 400
+          },
+          "message": {
+            "type": "string",
+            "description": "the message for the error response",
+            "default": "One or more errors occurred!"
+          },
+          "errors": {
+            "type": "object",
+            "description": "the collection of errors for the current context",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CustomerApplicationTenantsFeaturesPatchCurrentTenantProfileV1PatchCurrentTenantProfileRequest": {
+        "type": "object",
+        "description": "Request to patch the current tenant profile fields.",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "plan"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets the optional updated tenant display name.",
+            "minLength": 1,
+            "nullable": false
+          },
+          "plan": {
+            "type": "string",
+            "description": "Gets the optional updated tenant plan.",
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "CustomerApplicationTenantsFeaturesGetCurrentTenantDatabaseInfoV1GetCurrentTenantDatabaseInfoResponse": {
+        "type": "object",
+        "description": "Response for current tenant database metadata.",
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "description": "Gets or sets the tenant identifier.",
+            "format": "guid"
+          },
+          "identifier": {
+            "type": "string",
+            "description": "Gets or sets the tenant slug/identifier."
+          },
+          "databaseStrategy": {
+            "type": "string",
+            "description": "Gets or sets the tenant database strategy."
+          },
+          "databaseProvider": {
+            "type": "string",
+            "description": "Gets or sets the tenant database provider."
+          },
+          "hasReadReplicas": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether the tenant has read replicas."
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Gets or sets the optional service name used for replica evaluation.",
+            "nullable": true
+          }
+        }
+      },
+      "CustomerApplicationTenantsFeaturesGetCurrentTenantDatabaseInfoV1GetTenantDatabaseInfoRequest": {
+        "type": "object",
+        "description": "Request to get tenant database info for a specific service.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationTenantsFeaturesGetTenantByIdV1GetTenantByIdRequest": {
+        "type": "object",
+        "description": "Request to get a tenant by id.",
+        "additionalProperties": false
+      },
+      "SharedKernelCorePaginationPagedListOfGetPaginatedTenantsResponse": {
+        "type": "object",
+        "description": "Represents a paginated list of items with metadata about paging.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Gets the items on the current page.",
+            "items": {
+              "$ref": "#/components/schemas/CustomerApplicationTenantsFeaturesGetPaginatedTenantsV1GetPaginatedTenantsResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Gets the current page number (1-based).",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Gets the size of the page (number of items per page).",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Gets the total number of pages.",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "description": "Gets the total number of items across all pages.",
+            "format": "int32"
+          },
+          "isFirstPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the first page."
+          },
+          "isLastPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the last page."
+          }
+        }
+      },
+      "CustomerApplicationTenantsFeaturesGetPaginatedTenantsV1GetPaginatedTenantsResponse": {
+        "type": "object",
+        "description": "Response item for paginated tenants endpoint.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the tenant identifier.",
+            "format": "guid"
+          },
+          "identifier": {
+            "type": "string",
+            "description": "Gets the tenant slug."
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the tenant display name."
+          },
+          "plan": {
+            "type": "string",
+            "description": "Gets the tenant plan."
+          },
+          "databaseStrategy": {
+            "type": "string",
+            "description": "Gets the tenant database strategy."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the tenant is active."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the creation date.",
+            "format": "date-time"
+          },
+          "updatedOn": {
+            "type": "string",
+            "description": "Gets the last update date.",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CustomerApplicationTenantsFeaturesGetPaginatedTenantsV1GetPaginatedTenantsRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedKernelCorePaginationPaginationParameters"
+          },
+          {
+            "type": "object",
+            "description": "Request model for paginated tenant listing.",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "SharedKernelCorePaginationPaginationParameters": {
+        "type": "object",
+        "description": "The pagination parameters.",
+        "x-abstract": true,
+        "additionalProperties": false
+      },
+      "CustomerApplicationTenantsFeaturesGetCurrentTenantProfileV1GetCurrentTenantProfileRequest": {
+        "type": "object",
+        "description": "Request model for retrieving the current tenant profile.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationTenantsFeaturesGetCurrentTenantDatabaseInfoV1GetCurrentTenantDatabaseInfoRequest": {
+        "type": "object",
+        "description": "Request model for current tenant database metadata.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationTenantsFeaturesDeactivateTenantV1DeactivateTenantRequest": {
+        "type": "object",
+        "description": "Request to deactivate a tenant.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationTenantsFeaturesCreateTenantV1CreateTenantRequest": {
+        "type": "object",
+        "description": "Request to create a new tenant.",
+        "additionalProperties": false,
+        "required": [
+          "identifier",
+          "name",
+          "plan",
+          "databaseStrategy"
+        ],
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "description": "Gets the unique identifier for the tenant.",
+            "maxLength": 100,
+            "minLength": 0,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the tenant name.",
+            "maxLength": 255,
+            "minLength": 0,
+            "nullable": false
+          },
+          "plan": {
+            "type": "string",
+            "description": "Gets the subscription plan.",
+            "minLength": 1,
+            "nullable": false
+          },
+          "databaseStrategy": {
+            "type": "string",
+            "description": "Gets the database strategy.",
+            "minLength": 1,
+            "nullable": false
+          }
+        }
+      },
+      "CustomerApiEndpointsV1TenantsCheckServiceReadinessServiceReadinessResponse": {
+        "type": "object",
+        "description": "Response for service readiness check.",
+        "additionalProperties": false,
+        "properties": {
+          "ready": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the service is ready."
+          }
+        }
+      },
+      "CustomerApplicationTenantsFeaturesCheckServiceReadinessV1CheckCurrentTenantServiceReadinessRequest": {
+        "type": "object",
+        "description": "Request to check service readiness for the current tenant.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationTenantsFeaturesCheckServiceReadinessV1CheckServiceReadinessRequest": {
+        "type": "object",
+        "description": "Request to check if a service is ready for a tenant.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationTenantsFeaturesActivateTenantV1ActivateTenantRequest": {
+        "type": "object",
+        "description": "Request to activate a tenant.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationLicensesResponsesLicenseResponse": {
+        "type": "object",
+        "description": "Response model for license operations.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the license identifier.",
+            "format": "guid"
+          },
+          "tenantId": {
+            "type": "string",
+            "description": "Gets or sets the tenant identifier."
+          },
+          "locationId": {
+            "type": "string",
+            "description": "Gets or sets the location identifier, or null for tenant-level.",
+            "nullable": true
+          },
+          "plan": {
+            "type": "string",
+            "description": "Gets or sets the plan name."
+          },
+          "status": {
+            "type": "string",
+            "description": "Gets or sets the license status."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Gets or sets the expiration date.",
+            "format": "date-time"
+          },
+          "gracePeriodEndsAt": {
+            "type": "string",
+            "description": "Gets or sets the grace period end date, or null.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "description": "Gets or sets the payment method identifier.",
+            "nullable": true
+          },
+          "paymentScope": {
+            "type": "string",
+            "description": "Gets or sets the payment scope."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets or sets the creation date.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets or sets the last updated date.",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerApplicationLicensesFeaturesRevokeLicenseV1RevokeLicenseRequest": {
+        "type": "object",
+        "description": "Request to revoke a license.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationLicensesFeaturesRenewLicenseV1RenewLicenseRequest": {
+        "type": "object",
+        "description": "Request to renew a license.",
+        "additionalProperties": false,
+        "properties": {
+          "newPlan": {
+            "type": "string",
+            "description": "Gets or sets the new plan name."
+          },
+          "newExpiry": {
+            "type": "string",
+            "description": "Gets or sets the new expiration date.",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerApplicationLicensesFeaturesIncreaseLicenseLimitsV1IncreaseLicenseLimitsRequest": {
+        "type": "object",
+        "description": "Request to increase the limits on an existing license.",
+        "additionalProperties": false,
+        "properties": {
+          "featureKey": {
+            "type": "string",
+            "description": "Gets the feature key whose limit should be increased."
+          },
+          "newLimit": {
+            "type": "integer",
+            "description": "Gets the new limit value.",
+            "format": "int32"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Gets the currency code."
+          }
+        }
+      },
+      "CustomerApplicationLicensesFeaturesGetLicensesByTenantIdV1GetLicensesByTenantIdRequest": {
+        "type": "object",
+        "description": "Request for getting licenses by tenant ID.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationLicensesFeaturesGetLicenseByIdV1GetLicenseByIdRequest": {
+        "type": "object",
+        "description": "Request to get a license by its identifier.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationLicensesFeaturesExpireLicenseV1ExpireLicenseRequest": {
+        "type": "object",
+        "description": "Request to expire a license.",
+        "additionalProperties": false
+      },
+      "CustomerApplicationLicensesFeaturesCreateLicenseV1CreateLicenseRequest": {
+        "type": "object",
+        "description": "Request to create a new license.",
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "description": "Gets or sets the tenant identifier."
+          },
+          "locationId": {
+            "type": "string",
+            "description": "Gets or sets the location identifier, or null for tenant-level.",
+            "nullable": true
+          },
+          "plan": {
+            "type": "string",
+            "description": "Gets or sets the plan name."
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "description": "Gets or sets the payment method identifier.",
+            "nullable": true
+          },
+          "paymentScope": {
+            "type": "string",
+            "description": "Gets or sets the payment scope."
+          }
+        }
+      },
+      "CustomerApplicationLicensesFeaturesAssignLicenseLocationV1AssignLicenseLocationRequest": {
+        "type": "object",
+        "description": "Request for assigning a license to a location.",
+        "additionalProperties": false,
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "description": "Gets the location identifier, or null to unassign.",
+            "nullable": true
+          }
+        }
+      },
+      "CustomerApplicationLicensesFeaturesActivateLicenseV1ActivateLicenseRequest": {
+        "type": "object",
+        "description": "Request to activate a license.",
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "oAuth2": {
+        "type": "oauth2",
+        "in": "header",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/auth",
+            "tokenUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "refreshUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "scopes": {
+              "organization": "Org"
+            }
+          }
+        }
+      }
+    }
+  }
+}

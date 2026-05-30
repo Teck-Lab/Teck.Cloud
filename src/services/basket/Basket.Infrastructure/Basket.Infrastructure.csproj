@@ -16,10 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Persistence\SharedKernel.Persistence.csproj" />
     <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Core\SharedKernel.Core.csproj" />
     <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Grpc.Contracts\SharedKernel.Grpc.Contracts.csproj" />
     <ProjectReference Include="..\Basket.Application\Basket.Application.csproj" />
     <ProjectReference Include="..\Basket.Domain\Basket.Domain.csproj" />
   </ItemGroup>
+
 
 </Project>

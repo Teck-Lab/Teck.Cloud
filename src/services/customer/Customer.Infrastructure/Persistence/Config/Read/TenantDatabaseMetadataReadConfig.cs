@@ -2,7 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
-using Customer.Infrastructure.Persistence.ReadModels;
+using Customer.Application.Tenants.ReadModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

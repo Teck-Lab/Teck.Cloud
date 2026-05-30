@@ -1,0 +1,983 @@
+{
+  "x-generator": "NSwag v14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))",
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Location Service Public API",
+    "description": "Open API Documentation of Location Service API.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5145"
+    }
+  ],
+  "paths": {
+    "/location/v1/Service/LocationNodes": {
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceCreateLocationNodeEndpoint",
+        "requestBody": {
+          "x-name": "CreateLocationNodeRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApplicationServiceFeaturesCreateLocationNodeV1CreateLocationNodeRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesCreateLocationNodeV1CreateLocationNodeResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceGetLocationNodesEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetLocationNodesV1GetLocationNodeItemResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/Templates/{templateId}/Fonts/{**FontKey}": {
+      "delete": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceDeleteTemplateFontEndpoint",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "**FontKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "DeleteTemplateFontRoute",
+          "description": "",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApiEndpointsV1ServiceDeleteTemplateFontEndpoint_DeleteTemplateFontRoute"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApiEndpointsV1ServiceDeleteTemplateFontEndpoint_DeleteTemplateFontRoute"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceUploadTemplateFontEndpoint",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "**FontKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "UploadTemplateFontInput",
+          "description": "",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApiEndpointsV1ServiceUploadTemplateFontEndpoint_UploadTemplateFontInput"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceAbstractionsTemplateFontUploadResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/Displays": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceGetDisplayModelsEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetDisplayModelsV1GetDisplayModelsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/LocationNodes/{locationNodeId}/Ancestors": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceGetLocationNodeAncestorsEndpoint",
+        "parameters": [
+          {
+            "name": "locationNodeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/TemplateContext": {
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceGetLocationTemplateContextEndpoint",
+        "requestBody": {
+          "x-name": "GetLocationTemplateContextRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetLocationTemplateContextV1GetLocationTemplateContextRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetLocationTemplateContextV1GetLocationTemplateContextResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/ResolvedTemplate": {
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceGetResolvedTemplateEndpoint",
+        "requestBody": {
+          "x-name": "GetResolvedTemplateRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetResolvedTemplateV1GetResolvedTemplateRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetResolvedTemplateV1GetResolvedTemplateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/LocationGroups": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceListLocationGroupsEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesListLocationGroupsV1ListLocationGroupsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceUpsertLocationGroupEndpoint",
+        "requestBody": {
+          "x-name": "UpsertLocationGroupRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApplicationServiceFeaturesUpsertLocationGroupV1UpsertLocationGroupRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesUpsertLocationGroupV1UpsertLocationGroupResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/TemplateDesigns": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceListTemplateDesignsEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesListTemplateDesignsV1ListTemplateDesignsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceUpsertTemplateDesignEndpoint",
+        "requestBody": {
+          "x-name": "UpsertTemplateDesignRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApplicationServiceFeaturesUpsertTemplateDesignV1UpsertTemplateDesignRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesUpsertTemplateDesignV1UpsertTemplateDesignResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/Templates/{templateId}/Fonts": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceListTemplateFontsEndpoint",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceAbstractionsTemplateFontListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location/v1/Service/TemplateScopeSettings": {
+      "post": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "LocationApiEndpointsV1ServiceUpsertTemplateScopeSettingsEndpoint",
+        "requestBody": {
+          "x-name": "UpsertTemplateScopeSettingsRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationApplicationServiceFeaturesUpsertTemplateScopeSettingsV1UpsertTemplateScopeSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationApplicationServiceFeaturesUpsertTemplateScopeSettingsV1UpsertTemplateScopeSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LocationApplicationServiceFeaturesCreateLocationNodeV1CreateLocationNodeResponse": {
+        "type": "object",
+        "description": "Response returned after creating a location node.",
+        "additionalProperties": false,
+        "properties": {
+          "locationNodeId": {
+            "type": "string",
+            "description": "Gets the identifier of the created location node."
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the human-readable name of the created location node."
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesCreateLocationNodeV1CreateLocationNodeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parentLocationNodeId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "LocationApiEndpointsV1ServiceDeleteTemplateFontEndpoint_DeleteTemplateFontRoute": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fontKey": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetDisplayModelsV1GetDisplayModelsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayModels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetDisplayModelsV1GetDisplayModelItemResponse"
+            }
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetDisplayModelsV1GetDisplayModelItemResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayModelId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetLocationNodesV1GetLocationNodeItemResponse": {
+        "type": "object",
+        "description": "Response item for a single location node.",
+        "additionalProperties": false,
+        "properties": {
+          "locationNodeId": {
+            "type": "string",
+            "description": "Unique location node identifier."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name (null if not set).",
+            "nullable": true
+          },
+          "parentLocationNodeId": {
+            "type": "string",
+            "description": "Parent node identifier (null if root).",
+            "nullable": true
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetLocationTemplateContextV1GetLocationTemplateContextResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "locationNodeId": {
+            "type": "string"
+          },
+          "resolvedTemplateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateSource": {
+            "type": "string"
+          },
+          "ancestorDepthScanned": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetLocationTemplateContextV1GetLocationTemplateContextRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "locationNodeId": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetResolvedTemplateV1GetResolvedTemplateResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "locationNodeId": {
+            "type": "string"
+          },
+          "resolvedTemplateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateSource": {
+            "type": "string"
+          },
+          "templateDesign": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetResolvedTemplateV1TemplateDesignResponse"
+              }
+            ]
+          },
+          "effectiveSettings": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetResolvedTemplateV1EffectiveSettingResponse"
+            }
+          },
+          "inheritanceChain": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetResolvedTemplateV1InheritanceSourceResponse"
+            }
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetResolvedTemplateV1TemplateDesignResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backgroundColor": {
+            "type": "string"
+          },
+          "elementsJson": {
+            "type": "string"
+          },
+          "defaultsJson": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetResolvedTemplateV1EffectiveSettingResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "settingName": {
+            "type": "string"
+          },
+          "value": {
+            "nullable": true
+          },
+          "sourceScopeType": {
+            "type": "string"
+          },
+          "sourceScopeKey": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetResolvedTemplateV1InheritanceSourceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scopeType": {
+            "type": "string"
+          },
+          "scopeKey": {
+            "type": "string"
+          },
+          "scopeName": {
+            "type": "string"
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LocationApplicationServiceFeaturesGetResolvedTemplateV1ScopedSettingResponse"
+            }
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetResolvedTemplateV1ScopedSettingResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "value": {
+            "nullable": true
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesGetResolvedTemplateV1GetResolvedTemplateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "locationNodeId": {
+            "type": "string"
+          },
+          "explicitTemplateId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesListLocationGroupsV1ListLocationGroupsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationApplicationServiceFeaturesListLocationGroupsV1LocationGroupListItem"
+            }
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesListLocationGroupsV1LocationGroupListItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "locationGroupId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesListTemplateDesignsV1ListTemplateDesignsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "designs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationApplicationServiceFeaturesListTemplateDesignsV1TemplateDesignListItem"
+            }
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesListTemplateDesignsV1TemplateDesignListItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "templateId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backgroundColor": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceAbstractionsTemplateFontListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "fonts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationApplicationServiceAbstractionsTemplateFontItemResponse"
+            }
+          }
+        }
+      },
+      "LocationApplicationServiceAbstractionsTemplateFontItemResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fontKey": {
+            "type": "string"
+          },
+          "fontFamilyToken": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "objectKey": {
+            "type": "string"
+          },
+          "originalFileName": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "checksumSha256": {
+            "type": "string"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LocationApiEndpointsV1ServiceListTemplateFontsEndpoint_ListTemplateFontsRoute": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "LocationApplicationServiceAbstractionsTemplateFontUploadResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "fontKey": {
+            "type": "string"
+          },
+          "fontFamilyToken": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "objectKey": {
+            "type": "string"
+          },
+          "originalFileName": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "checksumSha256": {
+            "type": "string"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LocationApiEndpointsV1ServiceUploadTemplateFontEndpoint_UploadTemplateFontInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fontKey": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "nullable": true
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesUpsertLocationGroupV1UpsertLocationGroupResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "locationGroupId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesUpsertLocationGroupV1UpsertLocationGroupRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "locationGroupId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesUpsertTemplateDesignV1UpsertTemplateDesignResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "templateId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesUpsertTemplateDesignV1UpsertTemplateDesignRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "templateId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backgroundColor": {
+            "type": "string"
+          },
+          "elementsJson": {
+            "type": "string"
+          },
+          "defaultsJson": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesUpsertTemplateScopeSettingsV1UpsertTemplateScopeSettingsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scopeType": {
+            "type": "string"
+          },
+          "scopeKey": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationApplicationServiceFeaturesUpsertTemplateScopeSettingsV1UpsertTemplateScopeSettingsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scopeType": {
+            "type": "string"
+          },
+          "scopeKey": {
+            "type": "string"
+          },
+          "settingsJson": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oAuth2": {
+        "type": "oauth2",
+        "in": "header",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/auth",
+            "tokenUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "refreshUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "scopes": {
+              "organization": "Org"
+            }
+          }
+        }
+      }
+    }
+  }
+}

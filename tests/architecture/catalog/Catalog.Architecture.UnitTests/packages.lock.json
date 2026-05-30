@@ -1660,6 +1660,7 @@
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )",
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )",
           "ZiggyCreatures.FusionCache": "[2.6.0, )"
         }
       },
@@ -1790,7 +1791,8 @@
           "Customer.Domain": "[1.0.0, )",
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Infrastructure": "[0.0.1, )",
-          "SharedKernel.Persistence": "[0.0.1, )"
+          "SharedKernel.Persistence": "[0.0.1, )",
+          "Standard.Licensing": "[1.2.1, )"
         }
       },
       "customer.infrastructure.migrations.mysql": {
@@ -1858,7 +1860,8 @@
           "Order.Application": "[0.1.0, )",
           "Order.Domain": "[0.1.0, )",
           "SharedKernel.Core": "[0.0.1, )",
-          "SharedKernel.Grpc.Contracts": "[0.0.1, )"
+          "SharedKernel.Grpc.Contracts": "[0.0.1, )",
+          "SharedKernel.Persistence": "[0.0.1, )"
         }
       },
       "sharedkernel.core": {
@@ -1878,6 +1881,7 @@
         "type": "Project",
         "dependencies": {
           "AsyncAwaitBestPractices": "[10.0.0, )",
+          "MemoryPack": "[1.21.4, )",
           "SharedKernel.Core": "[0.0.1, )"
         }
       },
@@ -3382,6 +3386,15 @@
           "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
           "Pipelines.Sockets.Unofficial": "2.2.8",
           "System.IO.Hashing": "10.0.2"
+        }
+      },
+      "Standard.Licensing": {
+        "type": "CentralTransitive",
+        "requested": "[1.2.1, )",
+        "resolved": "1.2.1",
+        "contentHash": "CX+4J2kvbHBYAqVt6K+uAU95rL9dDRYD83jagVPerKM4cW2SJaN1t95uhyDdWa7N9AnHPJQkRSGKqlDew1QiTA==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.4.0"
         }
       },
       "System.IdentityModel.Tokens.Jwt": {

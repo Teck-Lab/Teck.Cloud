@@ -1,0 +1,1506 @@
+{
+  "x-generator": "NSwag v14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))",
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Catalog Service Public API",
+    "description": "Open API Documentation of Catalog Service API.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5145"
+    }
+  ],
+  "paths": {
+    "/catalog/v1/Suppliers": {
+      "post": {
+        "tags": [
+          "Suppliers"
+        ],
+        "operationId": "CatalogApiEndpointsV1SuppliersCreateSupplierEndpoint",
+        "requestBody": {
+          "x-name": "CreateSupplierRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogApplicationSuppliersFeaturesCreateSupplierV1CreateSupplierRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogApplicationSuppliersFeaturesCreateSupplierV1CreateSupplierResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "operationId": "CatalogApiEndpointsV1SuppliersGetPaginatedSuppliersEndpoint",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "Gets or sets the keyword.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the page.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "description": "Gets or sets the size.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedKernelCorePaginationPagedListOfGetPaginatedSuppliersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/catalog/v1/Suppliers/{id}": {
+      "delete": {
+        "tags": [
+          "Suppliers"
+        ],
+        "operationId": "CatalogApiEndpointsV1SuppliersDeleteSupplierEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "operationId": "CatalogApiEndpointsV1SuppliersGetSupplierByIdEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the id.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogApplicationSuppliersFeaturesGetSupplierByIdV1GetByIdSupplierResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/v1/Service/Readiness/Summary": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "operationId": "CatalogApiEndpointsV1ServiceGetCatalogReadinessSummaryEndpoint",
+        "parameters": [
+          {
+            "name": "includeDiagnostics",
+            "in": "query",
+            "required": true,
+            "description": "Gets a value indicating whether optional diagnostics should be included.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogApplicationServiceFeaturesGetCatalogReadinessSummaryV1GetCatalogReadinessSummaryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/catalog/v1/Products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "operationId": "CatalogApiEndpointsV1ProductsGetPaginatedProductsEndpoint",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "Gets or sets optional keyword filter for name/description.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedKernelCorePaginationPagedListOfGetPaginatedProductsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/catalog/v1/Brands/{brandId}/Products": {
+      "get": {
+        "tags": [
+          "Brands"
+        ],
+        "operationId": "CatalogApiEndpointsV1ProductsGetProductsByBrandEndpoint",
+        "parameters": [
+          {
+            "name": "brandId",
+            "in": "path",
+            "required": true,
+            "description": "Brand identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogApplicationProductsFeaturesGetPaginatedProductsV1GetPaginatedProductsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/catalog/v1/Categories/{categoryId}/Products": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "operationId": "CatalogApiEndpointsV1ProductsGetProductsByCategoryEndpoint",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "path",
+            "required": true,
+            "description": "Category identifier.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogApplicationProductsFeaturesGetPaginatedProductsV1GetPaginatedProductsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/catalog/v1/categories/{id}": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "operationId": "CatalogApiEndpointsV1CategoriesGetCategoryByIdEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The category ID.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogApplicationCategoriesResponseCategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/v1/Brands": {
+      "post": {
+        "tags": [
+          "Brands"
+        ],
+        "operationId": "CatalogApiEndpointsV1BrandsCreateBrandEndpoint",
+        "requestBody": {
+          "x-name": "CreateBrandRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogApplicationBrandsFeaturesCreateBrandV1CreateBrandRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogApplicationBrandsFeaturesCreateBrandV1CreateBrandResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Brands"
+        ],
+        "operationId": "CatalogApiEndpointsV1BrandsGetPaginatedBrandsEndpoint",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "Gets or sets the keyword.",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedKernelCorePaginationPagedListOfGetPaginatedBrandsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    },
+    "/catalog/v1/Brands/{id}": {
+      "delete": {
+        "tags": [
+          "Brands"
+        ],
+        "operationId": "CatalogApiEndpointsV1BrandsDeleteBrandEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Brands"
+        ],
+        "operationId": "CatalogApiEndpointsV1BrandsGetBrandByIdEndpoint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the id.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogApplicationBrandsFeaturesGetBrandByIdV1GetByIdBrandResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/v1/Products/{productId}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "operationId": "CatalogApiEndpointsV0ProductsGetProductByIdEndpoint",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "description": "Gets or sets the product id.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogApplicationProductsResponsesProductResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/v1/Brands/bulk/delete": {
+      "post": {
+        "tags": [
+          "Brands"
+        ],
+        "summary": "Bulk delete brands",
+        "operationId": "CatalogApiEndpointsV0BrandsBulkDeleteBrandsEndpoint",
+        "requestBody": {
+          "x-name": "DeleteBrandsRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogApplicationBrandsFeaturesDeleteBrandsV1DeleteBrandsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "oAuth2": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CatalogApplicationBrandsFeaturesCreateBrandV1CreateBrandResponse": {
+        "type": "object",
+        "description": "Response DTO for create brand feature.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the brand identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the brand name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the brand description.",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand logo URL.",
+            "format": "uri",
+            "nullable": true
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand website URL.",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationBrandsFeaturesCreateBrandV1CreateBrandRequest": {
+        "type": "object",
+        "description": "The create brand request.",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the description.",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "description": "Gets or sets the website.",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationSuppliersFeaturesCreateSupplierV1CreateSupplierResponse": {
+        "type": "object",
+        "description": "Response DTO for create supplier feature.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the supplier identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the supplier name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the supplier description.",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "description": "Gets or sets the supplier website.",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationSuppliersFeaturesCreateSupplierV1CreateSupplierRequest": {
+        "type": "object",
+        "description": "The create supplier request.",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the supplier name.",
+            "maxLength": 100,
+            "minLength": 0,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the supplier description.",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "description": "Gets or sets the supplier website.",
+            "nullable": true
+          }
+        }
+      },
+      "FastEndpointsErrorResponse": {
+        "type": "object",
+        "description": "the dto used to send an error response to the client",
+        "additionalProperties": false,
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "description": "the http status code sent to the client. default is 400.",
+            "format": "int32",
+            "default": 400
+          },
+          "message": {
+            "type": "string",
+            "description": "the message for the error response",
+            "default": "One or more errors occurred!"
+          },
+          "errors": {
+            "type": "object",
+            "description": "the collection of errors for the current context",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CatalogApiEndpointsV1SuppliersDeleteSupplierEndpoint_DeleteSupplierRoute": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "SharedKernelCorePaginationPagedListOfGetPaginatedSuppliersResponse": {
+        "type": "object",
+        "description": "Represents a paginated list of items with metadata about paging.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Gets the items on the current page.",
+            "items": {
+              "$ref": "#/components/schemas/CatalogApplicationSuppliersFeaturesGetPaginatedSuppliersV1GetPaginatedSuppliersResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Gets the current page number (1-based).",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Gets the size of the page (number of items per page).",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Gets the total number of pages.",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "description": "Gets the total number of items across all pages.",
+            "format": "int32"
+          },
+          "isFirstPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the first page."
+          },
+          "isLastPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the last page."
+          }
+        }
+      },
+      "CatalogApplicationSuppliersFeaturesGetPaginatedSuppliersV1GetPaginatedSuppliersResponse": {
+        "type": "object",
+        "description": "Response DTO for paginated suppliers query.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the supplier identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the supplier name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the supplier description.",
+            "nullable": true
+          },
+          "contactEmail": {
+            "type": "string",
+            "description": "Gets or sets the supplier contact email.",
+            "nullable": true
+          },
+          "contactPhone": {
+            "type": "string",
+            "description": "Gets or sets the supplier contact phone.",
+            "nullable": true
+          },
+          "contactName": {
+            "type": "string",
+            "description": "Gets or sets the supplier contact name.",
+            "nullable": true
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Gets or sets the supplier website URL.",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationSuppliersFeaturesGetPaginatedSuppliersV1GetPaginatedSuppliersRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedKernelCorePaginationPaginationParameters"
+          },
+          {
+            "type": "object",
+            "description": "The get paginated suppliers request.",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "SharedKernelCorePaginationPaginationParameters": {
+        "type": "object",
+        "description": "The pagination parameters.",
+        "x-abstract": true,
+        "additionalProperties": false
+      },
+      "CatalogApplicationSuppliersFeaturesGetSupplierByIdV1GetByIdSupplierResponse": {
+        "type": "object",
+        "description": "Response DTO for get supplier by id feature.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the supplier identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the supplier name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the supplier description.",
+            "nullable": true
+          },
+          "contactEmail": {
+            "type": "string",
+            "description": "Gets or sets the supplier contact email.",
+            "nullable": true
+          },
+          "contactPhone": {
+            "type": "string",
+            "description": "Gets or sets the supplier contact phone.",
+            "nullable": true
+          },
+          "contactName": {
+            "type": "string",
+            "description": "Gets or sets the supplier contact name.",
+            "nullable": true
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Gets or sets the supplier website URL.",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationSuppliersFeaturesGetSupplierByIdV1GetSupplierByIdRequest": {
+        "type": "object",
+        "description": "The get supplier by id request.",
+        "additionalProperties": false
+      },
+      "CatalogApplicationSuppliersFeaturesUpdateSupplierV1UpdateSupplierRequest": {
+        "type": "object",
+        "description": "The update supplier request.",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the id.",
+            "format": "guid",
+            "minLength": 1,
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name.",
+            "maxLength": 100,
+            "minLength": 0,
+            "nullable": false
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the description.",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "description": "Gets or sets the website.",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationServiceFeaturesGetCatalogReadinessSummaryV1GetCatalogReadinessSummaryResponse": {
+        "type": "object",
+        "description": "Readiness summary for catalog discovery footprint.",
+        "additionalProperties": false,
+        "properties": {
+          "brandCount": {
+            "type": "integer",
+            "description": "Gets or sets total brand count.",
+            "format": "int32"
+          },
+          "productCount": {
+            "type": "integer",
+            "description": "Gets or sets total product count.",
+            "format": "int32"
+          },
+          "activePromotionCount": {
+            "type": "integer",
+            "description": "Gets or sets active promotion count.",
+            "format": "int32"
+          },
+          "generatedAtUtc": {
+            "type": "string",
+            "description": "Gets or sets generated timestamp in UTC.",
+            "format": "date-time"
+          }
+        }
+      },
+      "CatalogApplicationServiceFeaturesGetCatalogReadinessSummaryV1GetCatalogReadinessSummaryRequest": {
+        "type": "object",
+        "description": "Request for catalog readiness summary.",
+        "additionalProperties": false
+      },
+      "SharedKernelCorePaginationPagedListOfGetPaginatedProductsResponse": {
+        "type": "object",
+        "description": "Represents a paginated list of items with metadata about paging.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Gets the items on the current page.",
+            "items": {
+              "$ref": "#/components/schemas/CatalogApplicationProductsFeaturesGetPaginatedProductsV1GetPaginatedProductsResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Gets the current page number (1-based).",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Gets the size of the page (number of items per page).",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Gets the total number of pages.",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "description": "Gets the total number of items across all pages.",
+            "format": "int32"
+          },
+          "isFirstPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the first page."
+          },
+          "isLastPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the last page."
+          }
+        }
+      },
+      "CatalogApplicationProductsFeaturesGetPaginatedProductsV1GetPaginatedProductsResponse": {
+        "type": "object",
+        "description": "Response model for paginated product list items.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the product identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the product name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the product description.",
+            "nullable": true
+          },
+          "sku": {
+            "type": "string",
+            "description": "Gets or sets the product SKU."
+          },
+          "brandId": {
+            "type": "string",
+            "description": "Gets or sets the brand identifier.",
+            "format": "guid",
+            "nullable": true
+          },
+          "brandName": {
+            "type": "string",
+            "description": "Gets or sets the brand name.",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Gets or sets the category identifier.",
+            "format": "guid",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "Gets or sets the category name.",
+            "nullable": true
+          },
+          "supplierId": {
+            "type": "string",
+            "description": "Gets or sets the supplier identifier.",
+            "format": "guid",
+            "nullable": true
+          },
+          "supplierName": {
+            "type": "string",
+            "description": "Gets or sets the supplier name.",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Gets or sets the product image URL.",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationProductsFeaturesGetPaginatedProductsV1GetPaginatedProductsRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedKernelCorePaginationPaginationParameters"
+          },
+          {
+            "type": "object",
+            "description": "Request model for paginated product queries.",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CatalogApplicationProductsFeaturesGetProductsByBrandV1GetProductsByBrandRequest": {
+        "type": "object",
+        "description": "Request for fetching products by brand.",
+        "additionalProperties": false
+      },
+      "CatalogApplicationProductsFeaturesGetProductsByCategoryV1GetProductsByCategoryRequest": {
+        "type": "object",
+        "description": "Request for fetching products by category.",
+        "additionalProperties": false
+      },
+      "CatalogApplicationCategoriesResponseCategoryResponse": {
+        "type": "object",
+        "description": "The category response.",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name.",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the description.",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationCategoriesFeaturesGetCategoryByIdV1GetCategoryByIdRequest": {
+        "type": "object",
+        "description": "Request model for getting a category by ID.",
+        "additionalProperties": false
+      },
+      "CatalogApiEndpointsV1BrandsDeleteBrandEndpoint_DeleteBrandRoute": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "CatalogApplicationBrandsFeaturesGetBrandByIdV1GetByIdBrandResponse": {
+        "type": "object",
+        "description": "Response DTO for get brand by id feature.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the brand identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the brand name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the brand description.",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand logo URL.",
+            "format": "uri",
+            "nullable": true
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand website URL.",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationBrandsFeaturesGetBrandByIdV1GetBrandByIdRequest": {
+        "type": "object",
+        "description": "The get brand request.",
+        "additionalProperties": false
+      },
+      "SharedKernelCorePaginationPagedListOfGetPaginatedBrandsResponse": {
+        "type": "object",
+        "description": "Represents a paginated list of items with metadata about paging.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Gets the items on the current page.",
+            "items": {
+              "$ref": "#/components/schemas/CatalogApplicationBrandsFeaturesGetPaginatedBrandsV1GetPaginatedBrandsResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Gets the current page number (1-based).",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "description": "Gets the size of the page (number of items per page).",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Gets the total number of pages.",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "description": "Gets the total number of items across all pages.",
+            "format": "int32"
+          },
+          "isFirstPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the first page."
+          },
+          "isLastPage": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether this is the last page."
+          }
+        }
+      },
+      "CatalogApplicationBrandsFeaturesGetPaginatedBrandsV1GetPaginatedBrandsResponse": {
+        "type": "object",
+        "description": "Response DTO for get paginated brands feature.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the brand identifier.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the brand name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the brand description.",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand logo URL.",
+            "format": "uri",
+            "nullable": true
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand website URL.",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationBrandsFeaturesGetPaginatedBrandsV1GetPaginatedBrandsRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedKernelCorePaginationPaginationParameters"
+          },
+          {
+            "type": "object",
+            "description": "The get paginated brands request.",
+            "additionalProperties": false
+          }
+        ]
+      },
+      "CatalogApplicationBrandsFeaturesUpdateBrandV1UpdateBrandRequest": {
+        "type": "object",
+        "description": "The update brand request.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the id.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name.",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the description.",
+            "nullable": true
+          },
+          "website": {
+            "type": "string",
+            "description": "Gets or sets the website.",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationProductsResponsesProductResponse": {
+        "type": "object",
+        "description": "The product response.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the id.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the description.",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string",
+            "description": "Gets or sets the slug."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether active."
+          },
+          "productSKU": {
+            "type": "string",
+            "description": "Gets or sets the product SKU."
+          },
+          "gtin": {
+            "type": "string",
+            "description": "Gets or sets the GTIN.",
+            "nullable": true
+          },
+          "brandId": {
+            "type": "string",
+            "description": "Gets or sets the brand id.",
+            "format": "guid",
+            "nullable": true
+          },
+          "brand": {
+            "description": "Gets or sets the brand.",
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CatalogApplicationProductsResponsesProductBrandResponse"
+              }
+            ]
+          },
+          "categories": {
+            "type": "array",
+            "description": "Gets the categories.",
+            "items": {
+              "$ref": "#/components/schemas/CatalogApplicationCategoriesResponseCategoryResponse"
+            }
+          },
+          "productPrices": {
+            "type": "array",
+            "description": "Gets the product prices.",
+            "items": {
+              "$ref": "#/components/schemas/CatalogApplicationProductsResponsesProductPriceResponse"
+            }
+          },
+          "promotions": {
+            "type": "array",
+            "description": "Gets the promotions.",
+            "items": {
+              "$ref": "#/components/schemas/CatalogApplicationPromotionsResponsePromotionResponse"
+            }
+          }
+        }
+      },
+      "CatalogApplicationProductsResponsesProductBrandResponse": {
+        "type": "object",
+        "description": "Brand DTO embedded within product responses.",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets or sets the brand ID.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the brand name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the brand description.",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand logo URL.",
+            "format": "uri",
+            "nullable": true
+          },
+          "websiteUrl": {
+            "type": "string",
+            "description": "Gets or sets the brand website URL.",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationProductsResponsesProductPriceResponse": {
+        "type": "object",
+        "description": "The product price response.",
+        "additionalProperties": false,
+        "properties": {
+          "salePrice": {
+            "type": "number",
+            "description": "Gets or sets the sale price.",
+            "format": "decimal"
+          },
+          "currencyCode": {
+            "type": "string",
+            "description": "Gets or sets the currency code.",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogApplicationPromotionsResponsePromotionResponse": {
+        "type": "object",
+        "description": "The promotion response.",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name."
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the description.",
+            "nullable": true
+          },
+          "validFrom": {
+            "type": "string",
+            "description": "Gets the valid from.",
+            "format": "date-time"
+          },
+          "validTo": {
+            "type": "string",
+            "description": "Gets or sets the valid converts to.",
+            "format": "date-time"
+          }
+        }
+      },
+      "CatalogApplicationProductsFeaturesGetProductByIdV1GetProductByIdRequest": {
+        "type": "object",
+        "description": "The get product by id request.",
+        "additionalProperties": false
+      },
+      "CatalogApplicationBrandsFeaturesDeleteBrandsV1DeleteBrandsRequest": {
+        "type": "object",
+        "description": "The delete brands request.",
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "type": "array",
+            "description": "Gets or sets the ids.",
+            "items": {
+              "type": "string",
+              "format": "guid"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oAuth2": {
+        "type": "oauth2",
+        "in": "header",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/auth",
+            "tokenUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "refreshUrl": "https://auth.tecklab.dk/realms/teck-cloud-development/protocol/openid-connect/token",
+            "scopes": {
+              "organization": "Org"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -11,8 +11,10 @@ namespace Catalog.IntegrationTests.TestSupport
 {
     public class TestAuthHandlerOptions : AuthenticationSchemeOptions { }
 
-    public class TestAuthHandler : AuthenticationHandler<TestAuthHandlerOptions>
-    {
+public class TestAuthHandler : AuthenticationHandler<TestAuthHandlerOptions>
+{
+    public const string SchemeName = "Test";
+
         public TestAuthHandler(IOptionsMonitor<TestAuthHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
             : base(options, logger, encoder, clock)
         { }
