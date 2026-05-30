@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Core\SharedKernel.Core.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\buildingblocks\SharedKernel.Persistence\SharedKernel.Persistence.csproj" />
+    <ProjectReference Include="..\Location.Application\Location.Application.csproj" />
+    <ProjectReference Include="..\Location.Domain\Location.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Location.UnitTests" />
+    <InternalsVisibleTo Include="Teck.Cloud.Migrations.MySql" />
+    <InternalsVisibleTo Include="Teck.Cloud.Migrations.PostgreSQL" />
+    <InternalsVisibleTo Include="Teck.Cloud.Migrations.SqlServer" />
+    <InternalsVisibleTo Include="Teck.Cloud.Migrations" />
+  </ItemGroup>
+</Project>
