@@ -81,8 +81,8 @@ jobs:
           BUMP=$(echo "$BUMP_RAW" | tr -d '\r' | tail -n 1 | xargs)
 
           if [ -z "$BUMP" ]; then
-            echo "::error::Unable to determine version bump from auto version"
-            exit 1
+            echo "::warning::auto version returned empty, defaulting to patch"
+            BUMP="patch"
           fi
 
           if [ "$BUMP" = "skip" ]; then

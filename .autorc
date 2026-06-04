@@ -29,7 +29,7 @@
   "labels": [
     { "name": "major", "changelogTitle": "💥 Breaking Changes", "description": "Increment the major version when merged", "releaseType": "major", "color": "#C5000B" },
     { "name": "minor", "changelogTitle": "✨ Features", "description": "Increment the minor version when merged", "releaseType": "minor", "color": "#F1A60E" },
-    { "name": "patch", "changelogTitle": "🐛 Bug Fixes", "description": "Increment the patch version when merged", "releaseType": "patch", "color": "#870048" },
+    { "name": "patch", "changelogTitle": "🐛 Bug Fixes", "description": "Increment the patch version when merged", "releaseType": "patch", "color": "#870048", "default": true },
     { "name": "skip-release", "description": "Preserve the current version when merged", "releaseType": "skip", "color": "#bf5416" },
     { "name": "release", "description": "Create a release when this PR is merged", "releaseType": "release", "color": "#007f70" },
     { "name": "internal", "changelogTitle": "🏠 Internal", "description": "Changes only affect the internal API", "releaseType": "none", "color": "#696969" },
