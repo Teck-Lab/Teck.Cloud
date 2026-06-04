@@ -13,7 +13,7 @@ namespace Location.IntegrationTests.Endpoints.Service;
 
 [Collection("LocationIntegrationTests")]
 public sealed class TemplateFontEndpointsIntegrationTests
-
+public sealed class TemplateFontEndpointsIntegrationTests
 public sealed class TemplateFontEndpointsIntegrationTests
 {
     [Fact]

@@ -4,6 +4,7 @@ using Customer.Domain.Entities.LicenseAggregate.Repositories;
 using NSubstitute;
 using Shouldly;
 using Xunit;
+using ErrorOr;
 
 namespace Customer.UnitTests.Application.Queries;
 

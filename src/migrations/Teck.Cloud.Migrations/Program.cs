@@ -154,11 +154,6 @@ if (mode is "dedicated" or "all")
 
 return 0;
 
-/// <summary>
-/// Resolves the database provider from the DATABASE_PROVIDER environment variable.
-/// Accepts the same values as the Database__Provider configuration key used by service hosts.
-/// Defaults to PostgreSQL when the variable is absent or unrecognised.
-/// </summary>
 static DatabaseProvider ResolveProvider(string? envValue) =>
     envValue?.Trim().ToLowerInvariant() switch
     {
@@ -167,9 +162,6 @@ static DatabaseProvider ResolveProvider(string? envValue) =>
         _ => DatabaseProvider.PostgreSQL
     };
 
-/// <summary>
-/// Returns the EF Core migrations assembly name for the given service prefix and provider.
-/// </summary>
 static string ResolveMigrationsAssembly(string servicePrefix, DatabaseProvider provider) =>
     provider.Name switch
     {
@@ -178,9 +170,6 @@ static string ResolveMigrationsAssembly(string servicePrefix, DatabaseProvider p
         _ => $"{servicePrefix}.Infrastructure.Migrations.PostgreSQL"
     };
 
-/// <summary>
-/// Applies EF Core provider-specific options to a <see cref="DbContextOptionsBuilder"/>.
-/// </summary>
 static void ConfigureDbContextOptions(
     DbContextOptionsBuilder options,
     string connectionString,
@@ -201,10 +190,6 @@ static void ConfigureDbContextOptions(
     }
 }
 
-/// <summary>
-/// Configures Wolverine durable message persistence for providers that support it.
-/// MySQL is intentionally skipped because WolverineFx does not ship a MySQL transport.
-/// </summary>
 static void ConfigureWolverinePersistence(WolverineOptions opts, string connectionString, DatabaseProvider provider)
 {
     if (provider == DatabaseProvider.PostgreSQL)
@@ -413,11 +398,6 @@ static IHostBuilder CreateBillingHost(string connectionString, DatabaseProvider 
         });
 }
 
-/// <summary>
-/// Runs EF Core migrations for every active dedicated tenant that has a
-/// database entry for the given service. Vault is queried for each tenant's
-/// connection string; failures are logged but do not abort remaining tenants.
-/// </summary>
 static async Task<int> MigrateDedicatedTenantsAsync(
     string service,
     VaultTenantConnectionProvider vaultProvider,
@@ -529,10 +509,6 @@ static async Task<int> MigrateDedicatedTenantsAsync(
     return failedCount;
 }
 
-/// <summary>
-/// Queries the Customer database for active tenants that have a dedicated database
-/// for the specified service. PostgreSQL-specific (used only by *.postgres.yaml migration jobs).
-/// </summary>
 static async Task<IReadOnlyList<(string Identifier, string Provider)>> DiscoverDedicatedTenantsAsync(
     string customerConnectionString,
     string serviceName,

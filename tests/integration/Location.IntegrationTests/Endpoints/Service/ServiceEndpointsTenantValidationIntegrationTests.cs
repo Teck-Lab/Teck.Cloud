@@ -8,7 +8,7 @@ namespace Location.IntegrationTests.Endpoints.Service;
 
 [Collection("LocationIntegrationTests")]
 public sealed class ServiceEndpointsTenantValidationIntegrationTests
-
+public sealed class ServiceEndpointsTenantValidationIntegrationTests
 public sealed class ServiceEndpointsTenantValidationIntegrationTests
 {
     [Fact]

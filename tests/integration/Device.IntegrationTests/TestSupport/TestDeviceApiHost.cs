@@ -90,7 +90,7 @@ internal sealed class TestDeviceApiHost : IAsyncDisposable
 
         var locationTemplateContextRunner = Substitute.For<ILocationTemplateContextRunner>();
         locationTemplateContextRunner.ResolveTemplateContextAsync("zone-b", Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new LocationTemplateContextSnapshot("zone-b", "template-zone-b", "Location", 1)));
+            .Returns(ValueTask.FromResult(new LocationTemplateContextSnapshot("zone-b", "template-zone-b", "Location", 1)));
         builder.Services.AddSingleton<ILocationTemplateContextRunner>(_ => locationTemplateContextRunner);
 
         builder.Services.AddSingleton<IDeviceDefinitionReadRepository>(
