@@ -3,6 +3,8 @@
 // </copyright>
 
 namespace Catalog.Application.Categories.Features.GetCategoryById.V1;
+
+/// <summary>
 /// <summary>
 /// Request model for getting a category by ID.
 /// </summary>

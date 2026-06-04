@@ -26,12 +26,23 @@ public partial class TenantPlanUpgradeFailedIntegrationEvent : IntegrationEvent
     /// <summary>Gets or sets the plan the tenant attempted to upgrade to.</summary>
     public string ToPlan { get; set; } = default!;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TenantPlanUpgradeFailedIntegrationEvent"/> class.
+    /// </summary>
     [MemoryPackConstructor]
     public TenantPlanUpgradeFailedIntegrationEvent()
     {
         // Required for MemoryPack deserialization
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TenantPlanUpgradeFailedIntegrationEvent"/> class.
+    /// </summary>
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="correlationId">The correlation identifier for the operation.</param>
+    /// <param name="reason">The reason the upgrade failed.</param>
+    /// <param name="fromPlan">The current plan before the attempted upgrade.</param>
+    /// <param name="toPlan">The target plan for the attempted upgrade.</param>
     public TenantPlanUpgradeFailedIntegrationEvent(Guid tenantId, Guid correlationId, string reason, string fromPlan, string toPlan)
     {
         TenantId = tenantId;

@@ -1,7 +1,7 @@
 // <copyright file="UpgradeTenantPlanEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Customer.Application.Tenants.Features.UpgradeTenantPlan.V1;
 using ErrorOr;
 using FastEndpoints;
@@ -12,10 +12,16 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Customer.Api.Endpoints.V1.Tenants.UpgradeTenantPlan;
 
+/// <summary>
+/// Handles upgrade tenant plan requests.
+/// </summary>
 public sealed class UpgradeTenantPlanEndpoint(ISender sender) : Endpoint<UpgradeTenantPlanRequest, EmptyResponse>
 {
     private readonly ISender sender = sender;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Post("/admin/Tenants/{Id:guid}/plan/upgrade");
@@ -27,6 +33,11 @@ public sealed class UpgradeTenantPlanEndpoint(ISender sender) : Endpoint<Upgrade
         });
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(UpgradeTenantPlanRequest request, CancellationToken ct)
     {
         UpgradeTenantPlanCommand command = new(request.Id, request.TargetPlan, request.Currency);

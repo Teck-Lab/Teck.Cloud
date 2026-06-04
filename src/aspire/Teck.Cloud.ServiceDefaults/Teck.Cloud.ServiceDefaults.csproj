@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireSharedProject>true</IsAspireSharedProject>
-    <NoWarn>1591</NoWarn>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>1591;IDE0005</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

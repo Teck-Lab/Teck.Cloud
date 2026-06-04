@@ -1,7 +1,7 @@
 // <copyright file="CheckCurrentTenantServiceReadinessEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Customer.Api.Infrastructure.MultiTenant;
 using Customer.Application.Tenants.Features.CheckServiceReadiness.V1;
 using Customer.Application.Tenants.Features.GetTenantById.V1;
@@ -17,6 +17,9 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Customer.Api.Endpoints.V1.Tenants.CheckServiceReadiness;
 
+/// <summary>
+/// Handles check current tenant service readiness requests.
+/// </summary>
 public sealed class CheckCurrentTenantServiceReadinessEndpoint(
     ISender sender,
     IMultiTenantContextAccessor<TenantDetails>? tenantContextAccessor = null)
@@ -25,6 +28,9 @@ public sealed class CheckCurrentTenantServiceReadinessEndpoint(
     private readonly ISender sender = sender;
     private readonly IMultiTenantContextAccessor<TenantDetails>? tenantContextAccessor = tenantContextAccessor;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Get("/Tenants/me/Services/{ServiceName}/Readiness");
@@ -36,6 +42,11 @@ public sealed class CheckCurrentTenantServiceReadinessEndpoint(
         });
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(CheckCurrentTenantServiceReadinessRequest request, CancellationToken ct)
     {
         if (!CurrentTenantResolver.TryResolveTenantId(this.HttpContext, this.tenantContextAccessor, out Guid tenantId))

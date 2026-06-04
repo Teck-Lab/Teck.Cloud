@@ -1,7 +1,7 @@
 // <copyright file="CheckServiceReadinessEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Customer.Application.Tenants.Features.CheckServiceReadiness.V1;
 using Customer.Application.Tenants.Features.GetTenantById.V1;
 using Customer.Application.Tenants.Responses;
@@ -14,11 +14,17 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Customer.Api.Endpoints.V1.Tenants.CheckServiceReadiness;
 
+/// <summary>
+/// Handles check service readiness requests.
+/// </summary>
 public sealed class CheckServiceReadinessEndpoint(ISender sender)
     : Endpoint<CheckServiceReadinessRequest, ServiceReadinessResponse>
 {
     private readonly ISender sender = sender;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Get("/admin/Tenants/{TenantId:guid}/Services/{ServiceName}/Readiness");
@@ -30,6 +36,11 @@ public sealed class CheckServiceReadinessEndpoint(ISender sender)
         });
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(CheckServiceReadinessRequest request, CancellationToken ct)
     {
         GetTenantByIdQuery query = new(request.TenantId);

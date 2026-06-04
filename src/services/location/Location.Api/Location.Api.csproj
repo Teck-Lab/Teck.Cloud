@@ -27,4 +27,7 @@
     <ProjectReference Include="..\Location.Application\Location.Application.csproj" />
     <ProjectReference Include="..\Location.Infrastructure\Location.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
+  </ItemGroup>
 </Project>

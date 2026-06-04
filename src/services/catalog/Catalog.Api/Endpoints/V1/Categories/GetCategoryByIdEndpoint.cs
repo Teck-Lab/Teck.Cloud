@@ -1,7 +1,7 @@
 // <copyright file="GetCategoryByIdEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Catalog.Application.Categories.Features.GetCategoryById.V1;
 using Catalog.Application.Categories.Response;
 using ErrorOr;
@@ -12,10 +12,16 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Categories;
 
+/// <summary>
+/// Handles get category by id requests.
+/// </summary>
 public sealed class GetCategoryByIdEndpoint(IMediator mediator) : Endpoint<GetCategoryByIdRequest, CategoryResponse>
 {
     private readonly IMediator mediator = mediator;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Get("/categories/{Id:guid}");
@@ -24,6 +30,11 @@ public sealed class GetCategoryByIdEndpoint(IMediator mediator) : Endpoint<GetCa
         Options(endpoint => endpoint.WithMetadata(new OpenApiAudienceMetadata("public")));
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(GetCategoryByIdRequest request, CancellationToken ct)
     {
         GetCategoryByIdQuery query = new(request.Id);

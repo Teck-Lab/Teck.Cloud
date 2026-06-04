@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     <AnalysisMode>Default</AnalysisMode>
     <NoWarn>SA1633;SA1600;SA1601;SA1518;CS1591;CA1873;AV1706</NoWarn>
@@ -41,6 +41,9 @@
     <ProjectReference Include="..\..\services\billing\Billing.Infrastructure\Billing.Infrastructure.csproj" />
     <ProjectReference Include="..\..\services\location\Location.Infrastructure\Location.Infrastructure.csproj" />
     <ProjectReference Include="..\..\services\product\Product.Infrastructure\Product.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
   </ItemGroup>
 
 </Project>

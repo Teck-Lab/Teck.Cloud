@@ -40,5 +40,8 @@
     <InternalsVisibleTo Include="Billing.UnitTests" />
     <InternalsVisibleTo Include="Billing.Arch.UnitTests" />
   </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
+  </ItemGroup>
 
 </Project>

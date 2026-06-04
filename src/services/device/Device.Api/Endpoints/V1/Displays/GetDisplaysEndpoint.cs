@@ -1,7 +1,7 @@
 // <copyright file="GetDisplaysEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Device.Application.Displays.Features.GetDisplays.V1;
 using ErrorOr;
 using FastEndpoints;
@@ -12,11 +12,17 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Device.Api.Endpoints.V1.Displays;
 
+/// <summary>
+/// Handles get displays requests.
+/// </summary>
 public sealed class GetDisplaysEndpoint(ISender sender)
     : Endpoint<GetDisplaysRequest, IReadOnlyList<GetDisplayItemResponse>>
 {
     private readonly ISender sender = sender;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Get("/Displays");
@@ -28,6 +34,11 @@ public sealed class GetDisplaysEndpoint(ISender sender)
         });
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(GetDisplaysRequest request, CancellationToken ct)
     {
         GetDisplaysQuery query = new(request.LocationNodeId);

@@ -26,12 +26,23 @@ public partial class TenantPlanUpgradeSucceededIntegrationEvent : IntegrationEve
     /// <summary>Gets or sets the charge identifier from the billing provider.</summary>
     public string ChargeId { get; set; } = default!;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TenantPlanUpgradeSucceededIntegrationEvent"/> class.
+    /// </summary>
     [MemoryPackConstructor]
     public TenantPlanUpgradeSucceededIntegrationEvent()
     {
         // Required for MemoryPack deserialization
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TenantPlanUpgradeSucceededIntegrationEvent"/> class.
+    /// </summary>
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="correlationId">The correlation identifier for the operation.</param>
+    /// <param name="newPlan">The new tenant plan.</param>
+    /// <param name="newLicenseId">The new license identifier issued for the tenant.</param>
+    /// <param name="chargeId">The billing provider charge identifier.</param>
     public TenantPlanUpgradeSucceededIntegrationEvent(Guid tenantId, Guid correlationId, string newPlan, Guid newLicenseId, string chargeId)
     {
         TenantId = tenantId;

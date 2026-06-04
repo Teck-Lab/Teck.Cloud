@@ -8,6 +8,13 @@ using SharedKernel.Core.CQRS;
 
 namespace Device.Application.Assignments.Features.PreviewDeviceAssignment.V1;
 
+/// <summary>
+/// Query to preview a device assignment without persisting it.
+/// </summary>
+/// <param name="DeviceId">The target device identifier.</param>
+/// <param name="LocationNodeId">The location node identifier.</param>
+/// <param name="TemplateId">The optional explicit template identifier.</param>
+/// <param name="Zones">The requested zone assignments.</param>
 public sealed record PreviewDeviceAssignmentQuery(
     string DeviceId,
     string LocationNodeId,
@@ -15,6 +22,9 @@ public sealed record PreviewDeviceAssignmentQuery(
     IReadOnlyList<PreviewDeviceAssignmentZoneRequest> Zones)
     : IQuery<ErrorOr<PreviewDeviceAssignmentResponse>>;
 
+/// <summary>
+/// Handles <see cref="PreviewDeviceAssignmentQuery"/>.
+/// </summary>
 public sealed class PreviewDeviceAssignmentQueryHandler(
     IDeviceDefinitionReadRepository deviceDefinitionReadRepository,
     ILocationTemplateContextRunner locationTemplateContextRunner)
@@ -23,6 +33,7 @@ public sealed class PreviewDeviceAssignmentQueryHandler(
     private readonly IDeviceDefinitionReadRepository deviceDefinitionReadRepository = deviceDefinitionReadRepository;
     private readonly ILocationTemplateContextRunner locationTemplateContextRunner = locationTemplateContextRunner;
 
+    /// <inheritdoc/>
     public async ValueTask<ErrorOr<PreviewDeviceAssignmentResponse>> Handle(
         PreviewDeviceAssignmentQuery request,
         CancellationToken cancellationToken)

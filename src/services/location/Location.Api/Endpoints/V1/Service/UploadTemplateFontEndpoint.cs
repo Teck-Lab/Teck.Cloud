@@ -1,7 +1,7 @@
 // <copyright file="UploadTemplateFontEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591,CA1034
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CA1034
 using ErrorOr;
 using FastEndpoints;
 using Location.Application.Service.Abstractions;
@@ -10,11 +10,17 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Location.Api.Endpoints.V1.Service;
 
+/// <summary>
+/// Handles upload template font requests.
+/// </summary>
 public sealed class UploadTemplateFontEndpoint(ITemplateFontAssetService templateFontAssetService)
     : Endpoint<UploadTemplateFontEndpoint.UploadTemplateFontInput, TemplateFontUploadResponse>
 {
     private readonly ITemplateFontAssetService templateFontAssetService = templateFontAssetService;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Post("/Service/Templates/{TemplateId}/Fonts/{**FontKey}");
@@ -24,6 +30,11 @@ public sealed class UploadTemplateFontEndpoint(ITemplateFontAssetService templat
         Options(endpoint => endpoint.WithMetadata(new OpenApiAudienceMetadata("public")));
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(UploadTemplateFontInput request, CancellationToken ct)
     {
         ErrorOr<string> tenantIdResult = ResolveTenantId(this.HttpContext);
@@ -75,12 +86,24 @@ public sealed class UploadTemplateFontEndpoint(ITemplateFontAssetService templat
         return tenantId;
     }
 
+    /// <summary>
+    /// Represents upload template font data.
+    /// </summary>
     public sealed class UploadTemplateFontInput
     {
+        /// <summary>
+        /// Gets template id.
+        /// </summary>
         public string TemplateId { get; init; } = string.Empty;
 
+        /// <summary>
+        /// Gets font key.
+        /// </summary>
         public string FontKey { get; init; } = string.Empty;
 
+        /// <summary>
+        /// Gets file.
+        /// </summary>
         public IFormFile? File { get; init; }
     }
 }

@@ -1,7 +1,7 @@
 // <copyright file="BulkDeleteBrandsEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Catalog.Application.Brands.Features.DeleteBrands.V1;
 using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
@@ -11,10 +11,16 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V0.Brands;
 
+/// <summary>
+/// Handles bulk delete brands requests.
+/// </summary>
 public sealed class BulkDeleteBrandsEndpoint(ISender sender) : Endpoint<DeleteBrandsRequest, EmptyResponse>
 {
     private readonly ISender sender = sender;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Post("/Brands/bulk/delete");
@@ -27,6 +33,11 @@ public sealed class BulkDeleteBrandsEndpoint(ISender sender) : Endpoint<DeleteBr
         Summary(summary => summary.Summary = "Bulk delete brands");
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(DeleteBrandsRequest request, CancellationToken ct)
     {
         DeleteBrandsCommand command = new(request.Ids);

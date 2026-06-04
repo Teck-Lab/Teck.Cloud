@@ -4,7 +4,13 @@
 
 namespace Location.Application.Service.Features.GetLocationTemplateContext.V1;
 
+/// <summary>
+/// Request payload for retrieving template context by location node.
+/// </summary>
 public sealed record GetLocationTemplateContextRequest
 {
+    /// <summary>
+    /// Gets the location node identifier.
+    /// </summary>
     public string LocationNodeId { get; init; } = string.Empty;
 }

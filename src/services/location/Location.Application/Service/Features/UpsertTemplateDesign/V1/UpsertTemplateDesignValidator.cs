@@ -6,8 +6,14 @@ using FluentValidation;
 
 namespace Location.Application.Service.Features.UpsertTemplateDesign.V1;
 
+/// <summary>
+/// Validator for <see cref="UpsertTemplateDesignCommand"/>.
+/// </summary>
 public sealed class UpsertTemplateDesignValidator : AbstractValidator<UpsertTemplateDesignCommand>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpsertTemplateDesignValidator"/> class.
+    /// </summary>
     public UpsertTemplateDesignValidator()
     {
         RuleFor(command => command.TemplateId)

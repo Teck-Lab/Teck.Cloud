@@ -6,8 +6,14 @@ using FluentValidation;
 
 namespace Device.Application.Assignments.Features.ApplyDeviceAssignment.V1;
 
+/// <summary>
+/// Validates <see cref="ApplyDeviceAssignmentRequest"/>.
+/// </summary>
 public sealed class ApplyDeviceAssignmentValidator : AbstractValidator<ApplyDeviceAssignmentRequest>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ApplyDeviceAssignmentValidator"/> class.
+    /// </summary>
     public ApplyDeviceAssignmentValidator()
     {
         RuleFor(request => request.DeviceId)

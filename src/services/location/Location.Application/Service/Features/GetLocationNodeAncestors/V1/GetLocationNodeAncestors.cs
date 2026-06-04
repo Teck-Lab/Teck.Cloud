@@ -8,6 +8,10 @@ using SharedKernel.Core.CQRS;
 
 namespace Location.Application.Service.Features.GetLocationNodeAncestors.V1;
 
+/// <summary>
+/// Query for retrieving ancestor node identifiers of a location node.
+/// </summary>
+/// <param name="LocationNodeId">The location node identifier.</param>
 public sealed record GetLocationNodeAncestorsQuery(string LocationNodeId)
     : IQuery<ErrorOr<IReadOnlyList<string>>>;
 

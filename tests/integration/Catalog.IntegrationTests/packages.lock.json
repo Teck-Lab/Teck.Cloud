@@ -1783,7 +1783,8 @@
           "SharedKernel.Core": "[0.0.1, )",
           "SharedKernel.Grpc.Contracts": "[0.0.1, )",
           "SharedKernel.Infrastructure": "[0.0.1, )",
-          "Teck.Cloud.ServiceDefaults": "[1.0.0, )"
+          "Teck.Cloud.ServiceDefaults": "[1.0.0, )",
+          "WolverineFx.RuntimeCompilation": "[6.2.2, )"
         }
       },
       "catalog.application": {

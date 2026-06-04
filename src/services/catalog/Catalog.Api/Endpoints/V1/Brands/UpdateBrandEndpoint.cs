@@ -1,7 +1,7 @@
 // <copyright file="UpdateBrandEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Catalog.Application.Brands.Features.UpdateBrand.V1;
 using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
@@ -11,10 +11,16 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Brands;
 
+/// <summary>
+/// Handles update brand requests.
+/// </summary>
 public sealed class UpdateBrandEndpoint(ISender sender) : Endpoint<UpdateBrandRequest, EmptyResponse>
 {
     private readonly ISender sender = sender;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Put("/Brands");
@@ -26,6 +32,11 @@ public sealed class UpdateBrandEndpoint(ISender sender) : Endpoint<UpdateBrandRe
         });
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(UpdateBrandRequest request, CancellationToken ct)
     {
         UpdateBrandCommand command = new(request.Id, request.Name, request.Description, request.Website);

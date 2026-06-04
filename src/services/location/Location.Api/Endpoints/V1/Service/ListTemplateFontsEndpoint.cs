@@ -1,7 +1,7 @@
 // <copyright file="ListTemplateFontsEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591,CA1034
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CA1034
 using ErrorOr;
 using FastEndpoints;
 using Location.Application.Service.Abstractions;
@@ -10,11 +10,17 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Location.Api.Endpoints.V1.Service;
 
+/// <summary>
+/// Handles list template fonts requests.
+/// </summary>
 public sealed class ListTemplateFontsEndpoint(ITemplateFontAssetService templateFontAssetService)
     : Endpoint<ListTemplateFontsEndpoint.ListTemplateFontsRoute, TemplateFontListResponse>
 {
     private readonly ITemplateFontAssetService templateFontAssetService = templateFontAssetService;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Get("/Service/Templates/{TemplateId}/Fonts");
@@ -23,6 +29,11 @@ public sealed class ListTemplateFontsEndpoint(ITemplateFontAssetService template
         Options(endpoint => endpoint.WithMetadata(new OpenApiAudienceMetadata("public")));
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(ListTemplateFontsRoute request, CancellationToken ct)
     {
         ErrorOr<string> tenantIdResult = ResolveTenantId(this.HttpContext);
@@ -56,5 +67,8 @@ public sealed class ListTemplateFontsEndpoint(ITemplateFontAssetService template
         return tenantId;
     }
 
+    /// <summary>
+    /// Represents list template fonts data.
+    /// </summary>
     public sealed record ListTemplateFontsRoute(string TemplateId);
 }

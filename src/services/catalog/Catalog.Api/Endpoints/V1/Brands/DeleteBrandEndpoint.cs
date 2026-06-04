@@ -1,7 +1,7 @@
 // <copyright file="DeleteBrandEndpoint.cs" company="TeckLab">
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591,CA1034
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CA1034
 using Catalog.Application.Brands.Features.DeleteBrand.V1;
 using FastEndpoints;
 using Keycloak.AuthServices.Authorization;
@@ -11,10 +11,16 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Catalog.Api.Endpoints.V1.Brands;
 
+/// <summary>
+/// Handles delete brand requests.
+/// </summary>
 public sealed class DeleteBrandEndpoint(ISender sender) : Endpoint<DeleteBrandEndpoint.DeleteBrandRoute, EmptyResponse>
 {
     private readonly ISender sender = sender;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Delete("/Brands/{Id:guid}");
@@ -26,6 +32,11 @@ public sealed class DeleteBrandEndpoint(ISender sender) : Endpoint<DeleteBrandEn
         });
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(DeleteBrandRoute request, CancellationToken ct)
     {
         DeleteBrandCommand command = new(request.Id);
@@ -33,5 +44,8 @@ public sealed class DeleteBrandEndpoint(ISender sender) : Endpoint<DeleteBrandEn
         await this.SendNoContentAsync(commandResponse, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Represents delete brand data.
+    /// </summary>
     public sealed record DeleteBrandRoute(Guid Id);
 }

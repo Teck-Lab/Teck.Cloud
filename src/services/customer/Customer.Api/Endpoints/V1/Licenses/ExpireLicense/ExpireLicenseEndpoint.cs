@@ -2,7 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
-#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062,CS1591
+#pragma warning disable SA1633,SA1101,AV2305,IDE0005,CA1515,CA1062
 using Customer.Application.Licenses.Features.ExpireLicense.V1;
 using Customer.Application.Licenses.Responses;
 using ErrorOr;
@@ -14,10 +14,16 @@ using SharedKernel.Infrastructure.OpenApi;
 
 namespace Customer.Api.Endpoints.V1.Licenses.ExpireLicense;
 
+/// <summary>
+/// Handles expire license requests.
+/// </summary>
 public sealed class ExpireLicenseEndpoint(ISender sender) : Endpoint<ExpireLicenseRequest, LicenseResponse>
 {
     private readonly ISender sender = sender;
 
+    /// <summary>
+    /// Configures the endpoint route, version, and access rules.
+    /// </summary>
     public override void Configure()
     {
         Put("/Licenses/{Id:guid}/expire");
@@ -29,6 +35,11 @@ public sealed class ExpireLicenseEndpoint(ISender sender) : Endpoint<ExpireLicen
         });
     }
 
+    /// <summary>
+    /// Handles the incoming request and writes the HTTP response.
+    /// </summary>
+    /// <param name="request">The request payload.</param>
+    /// <param name="ct">The cancellation token.</param>
     public override async Task HandleAsync(ExpireLicenseRequest request, CancellationToken ct)
     {
         ExpireLicenseCommand command = new(request.Id);

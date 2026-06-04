@@ -21,4 +21,7 @@
     <ProjectReference Include="..\Statistic.Infrastructure\Statistic.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
+  </ItemGroup>
 </Project>

@@ -12,6 +12,13 @@ using SharedKernel.Core.Database;
 
 namespace Device.Application.Assignments.Features.ApplyDeviceAssignment.V1;
 
+/// <summary>
+/// Command to apply and persist a device assignment.
+/// </summary>
+/// <param name="DeviceId">The target device identifier.</param>
+/// <param name="LocationNodeId">The location node identifier.</param>
+/// <param name="TemplateId">The optional explicit template identifier.</param>
+/// <param name="Zones">The requested zone assignments.</param>
 public sealed record ApplyDeviceAssignmentCommand(
     string DeviceId,
     string LocationNodeId,
@@ -19,6 +26,9 @@ public sealed record ApplyDeviceAssignmentCommand(
     IReadOnlyList<ApplyDeviceAssignmentZoneRequest> Zones)
     : ICommand<ErrorOr<ApplyDeviceAssignmentResponse>>;
 
+/// <summary>
+/// Handles <see cref="ApplyDeviceAssignmentCommand"/>.
+/// </summary>
 public sealed class ApplyDeviceAssignmentCommandHandler(
     IDeviceDefinitionReadRepository deviceDefinitionReadRepository,
     IDisplayWriteRepository displayWriteRepository,
@@ -37,6 +47,7 @@ public sealed class ApplyDeviceAssignmentCommandHandler(
     private readonly ILabelRenderJobRunner labelRenderJobRunner = labelRenderJobRunner;
     private readonly IUnitOfWork unitOfWork = unitOfWork;
 
+    /// <inheritdoc/>
     public async ValueTask<ErrorOr<ApplyDeviceAssignmentResponse>> Handle(
         ApplyDeviceAssignmentCommand request,
         CancellationToken cancellationToken)

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Sdk Name="Aspire.AppHost.Sdk" />
   <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -8,8 +9,7 @@
     <IsAspireHost>true</IsAspireHost>
     <SkipAddAspireDefaultReferences>true</SkipAddAspireDefaultReferences>
     <UserSecretsId>3c3551a0-fd47-4d4c-ac7c-d3905f723cd8</UserSecretsId>
-	  <NoWarn>1591</NoWarn>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>1591;IDE0005</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
