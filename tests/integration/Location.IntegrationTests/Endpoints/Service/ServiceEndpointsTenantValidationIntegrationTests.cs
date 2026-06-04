@@ -8,8 +8,6 @@ namespace Location.IntegrationTests.Endpoints.Service;
 
 [Collection("LocationIntegrationTests")]
 public sealed class ServiceEndpointsTenantValidationIntegrationTests
-public sealed class ServiceEndpointsTenantValidationIntegrationTests
-public sealed class ServiceEndpointsTenantValidationIntegrationTests
 {
     [Fact]
     public async Task CreateLocationNode_ShouldReturnBadRequest_WhenTenantHeaderIsMissing()
