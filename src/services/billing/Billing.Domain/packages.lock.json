@@ -202,7 +202,6 @@
           "ErrorOr": "[2.0.1, )",
           "Finbuckle.MultiTenant": "[10.0.6, )",
           "Mediator.Abstractions": "[3.0.2, )",
-          "MemoryPack": "[1.21.4, )",
           "Nanoid": "[3.1.0, )",
           "NewId": "[4.0.1, )"
         }
