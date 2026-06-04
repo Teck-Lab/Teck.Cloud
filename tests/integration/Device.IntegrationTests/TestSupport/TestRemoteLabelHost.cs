@@ -76,7 +76,7 @@ internal sealed class TestRemoteLabelHost : IAsyncDisposable
         return port;
     }
 
-    private sealed class LabelRemoteHealthEndpoint : EndpointWithoutRequest
+    public sealed class LabelRemoteHealthEndpoint : EndpointWithoutRequest
     {
         public override void Configure()
         {
@@ -91,7 +91,7 @@ internal sealed class TestRemoteLabelHost : IAsyncDisposable
         }
     }
 
-    private sealed class TestRemoteLabelState(Guid jobId, string status)
+    public sealed class TestRemoteLabelState(Guid jobId, string status)
     {
         private int callCount;
 
@@ -107,7 +107,7 @@ internal sealed class TestRemoteLabelHost : IAsyncDisposable
         }
     }
 
-    private sealed class TestEnqueueRenderJobCommandHandler(TestRemoteLabelState state)
+    public sealed class TestEnqueueRenderJobCommandHandler(TestRemoteLabelState state)
         : ICommandHandler<EnqueueRenderJobCommand, EnqueueRenderJobRpcResult>
     {
         private readonly TestRemoteLabelState state = state;

@@ -76,7 +76,7 @@ internal sealed class TestRemoteProductHost : IAsyncDisposable
         return port;
     }
 
-    private sealed class ProductRemoteHealthEndpoint : EndpointWithoutRequest
+    public sealed class ProductRemoteHealthEndpoint : EndpointWithoutRequest
     {
         public override void Configure()
         {
@@ -91,7 +91,7 @@ internal sealed class TestRemoteProductHost : IAsyncDisposable
         }
     }
 
-    private sealed class TestRemoteProductState(Guid productId, string productName)
+    public sealed class TestRemoteProductState(Guid productId, string productName)
     {
         private int callCount;
 
@@ -107,7 +107,7 @@ internal sealed class TestRemoteProductHost : IAsyncDisposable
         }
     }
 
-    private sealed class TestGetProductSnapshotsCommandHandler(TestRemoteProductState state)
+    public sealed class TestGetProductSnapshotsCommandHandler(TestRemoteProductState state)
         : ICommandHandler<GetProductSnapshotsCommand, GetProductSnapshotsRpcResult>
     {
         private readonly TestRemoteProductState state = state;
