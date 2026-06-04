@@ -118,11 +118,4 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);**/*.g.cs</DefaultItemExcludes>
   </PropertyGroup>
 
-  <!-- Exclude generated files in obj/ from XML documentation -->
-  <Target Name="RemoveObjFromDocFile" BeforeTargets="CoreCompile">
-    <ItemGroup>
-      <DocFileItem Remove="@(DocFileItem)" Condition="$([System.String]::new('%(FullPath)').Contains('\obj\'))" />
-      <DocFileItem Remove="@(DocFileItem)" Condition="$([System.String]::new('%(FullPath)').Contains('/obj/'))" />
-    </ItemGroup>
-  </Target>
 </Project>
