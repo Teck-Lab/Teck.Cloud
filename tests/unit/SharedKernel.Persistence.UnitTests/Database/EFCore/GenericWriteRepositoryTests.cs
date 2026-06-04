@@ -7,6 +7,7 @@ using Shouldly;
 
 namespace SharedKernel.Persistence.UnitTests.Database.EFCore;
 
+[Collection("PostgreSql")]
 public sealed class GenericWriteRepositoryTests : IAsyncLifetime
 {
     private readonly PostgreSqlTestFixture<TestDbContext> _fixture;

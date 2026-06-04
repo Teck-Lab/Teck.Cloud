@@ -3,13 +3,17 @@
   <Product>Catalog.Api</Product>
   <Description>API for managing catalog products.</Description>
   <GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-	<DockerfileContext>..\..\..\..</DockerfileContext>
+ 	<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+ 	<DockerfileContext>..\..\..\..</DockerfileContext>
   <IsPublishable>true</IsPublishable>
+  <GenerateSerializerContexts>true</GenerateSerializerContexts>
+  <PublishTrimmed>true</PublishTrimmed>
+  <TrimMode>partial</TrimMode>
 </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FastEndpoints" />
+    <PackageReference Include="FastEndpoints.Generator" />
     <PackageReference Include="FastEndpoints.Swagger" />
     <PackageReference Include="FastEndpoints.Messaging.Remote" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />

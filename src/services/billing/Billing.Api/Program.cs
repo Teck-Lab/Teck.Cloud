@@ -7,7 +7,6 @@ using Billing.Api.Extensions;
 using Billing.Application;
 using Billing.Infrastructure.DependencyInjection;
 using FastEndpoints;
-using FluentValidation;
 using JasperFx;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Endpoints;
@@ -56,8 +55,8 @@ internal static class Program
         builder.AddInfrastructureServices(applicationAssembly);
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
         builder.AddOpenApiInfrastructure(appOptions);
-        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+
+        // Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
         builder.AddMediatorInfrastructure(applicationAssembly);
         builder.Services.AddRequestTimeouts();
         builder.AddHandlerServer();

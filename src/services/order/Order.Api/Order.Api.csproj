@@ -5,13 +5,14 @@
     <Description>API for order creation and checkout orchestration from basket drafts.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPublishable>true</IsPublishable>
+    <GenerateSerializerContexts>true</GenerateSerializerContexts>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FastEndpoints" />
+    <PackageReference Include="FastEndpoints.Generator" />
     <PackageReference Include="FastEndpoints.Messaging.Remote" />
     <PackageReference Include="FastEndpoints.Swagger" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Mediator.SourceGenerator">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

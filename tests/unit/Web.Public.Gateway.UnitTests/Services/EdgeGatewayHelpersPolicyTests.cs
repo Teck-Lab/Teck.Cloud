@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Shouldly;
 using Yarp.ReverseProxy.Configuration;
@@ -10,37 +9,8 @@ public sealed class EdgeGatewayHelpersPolicyTests
     private const string NoTenantPolicy = "<none>";
 
     [Theory]
-    [MemberData(nameof(EmployeeOnlyMetadataCases))]
-    public void IsEmployeeOnlyRoute_ShouldRespectMetadataCases(string policyValue, string path, bool expected)
-    {
-        RouteConfig routeConfig = CreateRouteConfig(new Dictionary<string, string>
-        {
-            ["EdgeAccessPolicy"] = policyValue,
-        });
-
-        bool result = InvokeIsEmployeeOnlyRoute(routeConfig, path, "admin");
-
-        result.ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData("/catalog/admin", true)]
-    [InlineData("/catalog/v1/admin/products", true)]
-    [InlineData("/catalog/ADMIN/products", true)]
-    [InlineData("/catalog/myadministrator/products", false)]
-    [InlineData("/catalog/super-admin-area", false)]
-    public void IsEmployeeOnlyRoute_ShouldUseSegmentAwareFallback(string path, bool expected)
-    {
-        RouteConfig routeConfig = CreateRouteConfig();
-
-        bool result = InvokeIsEmployeeOnlyRoute(routeConfig, path, "admin");
-
-        result.ShouldBe(expected);
-    }
-
-    [Theory]
     [MemberData(nameof(TenantSkipCases))]
-    public void ShouldSkipTenantResolution_ShouldRespectPolicyAndFallback(string tenantPolicy, string path, bool expected)
+    public void ShouldSkipTenantResolution_ShouldRespectPolicyAndFallback(string tenantPolicy, bool expected)
     {
         Dictionary<string, string>? metadata = string.Equals(tenantPolicy, NoTenantPolicy, StringComparison.Ordinal)
             ? null
@@ -51,7 +21,7 @@ public sealed class EdgeGatewayHelpersPolicyTests
 
         RouteConfig routeConfig = CreateRouteConfig(metadata);
 
-        bool result = InvokeShouldSkipTenantResolution(routeConfig, path, "admin");
+        bool result = InvokeShouldSkipTenantResolution(routeConfig);
 
         result.ShouldBe(expected);
     }
@@ -86,20 +56,12 @@ public sealed class EdgeGatewayHelpersPolicyTests
         };
     }
 
-    private static bool InvokeIsEmployeeOnlyRoute(RouteConfig routeConfig, string path, string adminPathSegment)
-    {
-        Type helperType = GetEdgeGatewayHelpersType();
-        return (bool)helperType
-            .GetMethod("IsEmployeeOnlyRoute")!
-            .Invoke(null, [routeConfig, new PathString(path), adminPathSegment])!;
-    }
-
-    private static bool InvokeShouldSkipTenantResolution(RouteConfig routeConfig, string path, string adminPathSegment)
+    private static bool InvokeShouldSkipTenantResolution(RouteConfig routeConfig)
     {
         Type helperType = GetEdgeGatewayHelpersType();
         return (bool)helperType
             .GetMethod("ShouldSkipTenantResolution")!
-            .Invoke(null, [routeConfig, new PathString(path), adminPathSegment])!;
+            .Invoke(null, [routeConfig])!;
     }
 
     private static object InvokeGetEdgeRouteSecurityOptions(IConfiguration configuration)
@@ -115,18 +77,10 @@ public sealed class EdgeGatewayHelpersPolicyTests
         return Type.GetType("Web.Public.Gateway.Services.EdgeGatewayHelpers, Web.Public.Gateway", throwOnError: true)!;
     }
 
-    public static IEnumerable<object[]> EmployeeOnlyMetadataCases()
-    {
-        yield return ["EmployeeOnly", "/catalog/v1/products", true];
-        yield return ["AdminOnly", "/catalog/v1/products", true];
-        yield return ["Public", "/catalog/admin/products", false];
-    }
-
     public static IEnumerable<object[]> TenantSkipCases()
     {
-        yield return new object[] { NoTenantPolicy, "/catalog/v1/products", false };
-        yield return new object[] { NoTenantPolicy, "/catalog/admin/products", true };
-        yield return new object[] { "Required", "/catalog/admin/products", false };
-        yield return new object[] { "None", "/catalog/v1/products", true };
+        yield return new object[] { NoTenantPolicy, false };
+        yield return new object[] { "Required", false };
+        yield return new object[] { "None", true };
     }
 }

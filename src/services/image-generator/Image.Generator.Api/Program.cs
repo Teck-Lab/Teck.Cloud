@@ -5,7 +5,6 @@
 using System.Reflection;
 using FastEndpoints;
 using Finbuckle.MultiTenant.AspNetCore.Extensions;
-using FluentValidation;
 using Image.Generator.Api.Extensions;
 using Image.Generator.Api.Grpc.V1;
 using Image.Generator.Application;
@@ -26,8 +25,8 @@ internal static class Program
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
         Assembly applicationAssembly = typeof(IImageGeneratorApplication).Assembly;
-        Assembly apiAssembly = typeof(Program).Assembly;
 
+        // Assembly apiAssembly = typeof(Program).Assembly; // not needed after removing explicit validator registration
         AppOptions appOptions = new();
         builder.Configuration.GetSection(AppOptions.Section).Bind(appOptions);
 
@@ -42,8 +41,7 @@ internal static class Program
         builder.Services.AddHttpClient<ITenantFontAssetStore, TenantFontAssetStore>();
         builder.Services.AddFluentImageStorage(builder.Configuration);
 
-        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+        // Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
         builder.AddMediatorInfrastructure(applicationAssembly);
         builder.AddHandlerServer();
 

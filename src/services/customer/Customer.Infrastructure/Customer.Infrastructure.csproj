@@ -29,5 +29,9 @@
     <ProjectReference Include="..\Customer.Domain\Customer.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ServiceScan.SourceGenerator" PrivateAssets="all" />
+  </ItemGroup>
+
 </Project>
 

@@ -6,10 +6,12 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..\..\..</DockerfileContext>
     <IsPublishable>true</IsPublishable>
+    <GenerateSerializerContexts>true</GenerateSerializerContexts>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FastEndpoints" />
+    <PackageReference Include="FastEndpoints.Generator" />
     <PackageReference Include="FastEndpoints.Messaging.Remote" />
     <PackageReference Include="FastEndpoints.Swagger" />
     <PackageReference Include="Finbuckle.MultiTenant.AspNetCore" />

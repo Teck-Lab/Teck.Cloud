@@ -10,7 +10,6 @@ using Catalog.Application;
 using Catalog.Infrastructure.DependencyInjection;
 using FastEndpoints;
 using Finbuckle.MultiTenant.AspNetCore.Extensions;
-using FluentValidation;
 using JasperFx;
 using SharedKernel.Grpc.Contracts.Remote.V1.Tenants;
 using SharedKernel.Infrastructure;
@@ -41,7 +40,7 @@ if (!isRunningWolverineCodeGeneration)
     builder.Services.AddSingleton<CatalogTenantConnectionMissResolver>();
 }
 
-builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
+// Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
 builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, typeof(Program).Assembly);
 builder.AddOpenApiInfrastructure(appOptions);
 

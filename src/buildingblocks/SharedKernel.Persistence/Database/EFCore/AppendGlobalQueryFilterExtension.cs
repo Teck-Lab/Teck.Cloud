@@ -9,7 +9,9 @@ namespace SharedKernel.Persistence.Database.EFCore
         private const string SoftDeleteFilterName = "SoftDeleteFilter";
 
         [RequiresDynamicCode("Calls System.Linq.Expressions.Expression.Lambda(Expression, params ParameterExpression[])")]
-        public static ModelBuilder AppendGlobalQueryFilter<TInterface>(this ModelBuilder modelBuilder, Expression<Func<TInterface, bool>> filter)
+        [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "Entity types are registered with EF Core via model builder and are preserved.")]
+        public static ModelBuilder AppendGlobalQueryFilter<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.Interfaces)] TInterface>(this ModelBuilder modelBuilder, Expression<Func<TInterface, bool>> filter)
         {
             // get root, non-owned entities that implement the interface TInterface
             var entities = modelBuilder.Model.GetEntityTypes()

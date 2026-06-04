@@ -10,7 +10,8 @@ using Customer.Api.Infrastructure.Messaging.Tenants;
 using Customer.Application;
 using Customer.Infrastructure.DependencyInjection;
 using FastEndpoints;
-using FluentValidation;
+
+// using FluentValidation; // removed: validators are auto-discovered by FastEndpoints
 using JasperFx;
 using SharedKernel.Grpc.Contracts.Remote.V1.Tenants;
 using SharedKernel.Infrastructure;
@@ -73,8 +74,7 @@ internal static class Program
 
     private static void AddValidation(WebApplicationBuilder builder, Assembly applicationAssembly, Assembly apiAssembly)
     {
-        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+        // Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
     }
 
     private static void AddCoreServices(WebApplicationBuilder builder)

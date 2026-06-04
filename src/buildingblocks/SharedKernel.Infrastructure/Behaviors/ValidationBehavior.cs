@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using ErrorOr;
@@ -13,7 +14,7 @@ namespace SharedKernel.Infrastructure.Behaviors
     /// </summary>
     /// <typeparam name="TRequest">The incoming request type.</typeparam>
     /// <typeparam name="TResponse">The response type implementing <see cref="IErrorOr"/>.</typeparam>
-    public sealed class ValidationBehavior<TRequest, TResponse>(
+    public sealed class ValidationBehavior<TRequest, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TResponse>(
         IEnumerable<IValidator<TRequest>> validators)
         : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>

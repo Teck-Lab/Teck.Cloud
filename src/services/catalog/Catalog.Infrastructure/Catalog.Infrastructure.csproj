@@ -24,4 +24,8 @@
     <ProjectReference Include="..\Catalog.Domain\Catalog.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ServiceScan.SourceGenerator" PrivateAssets="all" />
+  </ItemGroup>
+
 </Project>

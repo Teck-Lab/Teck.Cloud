@@ -53,7 +53,7 @@ namespace SharedKernel.Infrastructure.Options
         /// <typeparam name="T"/>
         /// <param name="services">The services.</param>
         [RequiresDynamicCode("Binding strongly typed objects to configuration values may require generating dynamic code at runtime.")]
-        public static void BindValidate<T>(this IServiceCollection services)
+        public static void BindValidate<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(this IServiceCollection services)
             where T : class, IOptionsRoot
         {
             services.AddOptions<T>()

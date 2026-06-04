@@ -5,16 +5,11 @@
 using System.Reflection;
 using Device.Application.AccessPoints;
 using Device.Application.Assignments.Abstractions;
-using Device.Application.DeviceDefinitions.Abstractions;
-using Device.Application.DeviceLayouts.Abstractions;
 using Device.Application.Hanshow.Abstractions;
 using Device.Application.Operations.Saga;
-using Device.Domain.AccessPoints;
 using Device.Infrastructure.AccessPoints;
 using Device.Infrastructure.Assignments;
 using Device.Infrastructure.Persistence;
-using Device.Infrastructure.Persistence.Repositories.Read;
-using Device.Infrastructure.Persistence.Repositories.Write;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -72,16 +67,8 @@ public static class InfrastructureServiceExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddScoped<Device.Application.Assignments.Abstractions.IDeviceDefinitionReadRepository, DbDisplayLayoutContextRepository>();
-        services.AddScoped<Device.Application.DeviceDefinitions.Abstractions.IDeviceDefinitionReadRepository, DbDeviceDefinitionReadRepository>();
-        services.AddScoped<IDeviceDefinitionWriteRepository, DbDeviceDefinitionWriteRepository>();
-        services.AddScoped<IDeviceLayoutReadRepository, DbDeviceLayoutReadRepository>();
-        services.AddScoped<IDeviceLayoutWriteRepository, DbDeviceLayoutWriteRepository>();
+        services.AddDeviceInfrastructureRepositories();
         services.AddScoped<Device.Application.AccessPoints.EffectiveAccessPointResolver>();
-        services.AddScoped<Device.Application.Assignments.Abstractions.IDisplayAssignmentWriteRepository, DbDisplayAssignmentWriteRepository>();
-        services.AddScoped<Device.Application.Assignments.Abstractions.IDisplayAssignmentReadRepository, DbDisplayAssignmentReadRepository>();
-        services.AddScoped<IAccessPointReadRepository, DbAccessPointReadRepository>();
-        services.AddScoped<IAccessPointWriteRepository, DbAccessPointWriteRepository>();
         services.AddSingleton<ILocationNodeResolver, HttpLocationNodeResolver>();
         services.AddSingleton<ILocationTemplateContextRunner, HttpLocationTemplateContextRunner>();
         services.AddSingleton<IProductSnapshotRunner, InMemoryProductSnapshotRunner>();

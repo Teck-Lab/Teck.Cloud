@@ -3,7 +3,6 @@
 // </copyright>
 
 using System.Reflection;
-using FluentValidation;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Location.Api.Extensions;
@@ -34,8 +33,8 @@ internal static class Program
         builder.Services.Configure<TemplateFontStorageOptions>(builder.Configuration.GetSection(TemplateFontStorageOptions.Section));
         builder.AddInfrastructureServices(applicationAssembly);
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
-        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+
+        // Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
         builder.AddMediatorInfrastructure(applicationAssembly);
         builder.AddOpenApiInfrastructure(appOptions);
         ConfigureIdentity(builder);

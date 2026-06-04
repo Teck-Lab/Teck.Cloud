@@ -4,6 +4,7 @@ using Shouldly;
 
 namespace SharedKernel.Persistence.UnitTests.Database.EFCore;
 
+[Collection("PostgreSql")]
 public sealed class GenericReadRepositoryTests : IAsyncLifetime
 {
     private readonly PostgreSqlTestFixture<TestReadDbContext> _fixture;

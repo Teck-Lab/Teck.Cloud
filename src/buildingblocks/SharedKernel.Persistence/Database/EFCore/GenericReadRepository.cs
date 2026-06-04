@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Ardalis.Specification;
 using Ardalis.Specification.EntityFrameworkCore;
@@ -13,7 +14,7 @@ namespace SharedKernel.Persistence.Database.EFCore
     /// <typeparam name="TReadModel">The read model type.</typeparam>
     /// <typeparam name="TId">The model ID type.</typeparam>
     /// <typeparam name="TContext">The database context type.</typeparam>
-    public class GenericReadRepository<TReadModel, TId, TContext> : IGenericReadRepository<TReadModel, TId>
+    public class GenericReadRepository<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.Interfaces)] TReadModel, TId, TContext> : IGenericReadRepository<TReadModel, TId>
         where TReadModel : class, IReadModel<TId>
         where TContext : BaseDbContext
     {

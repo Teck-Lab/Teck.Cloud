@@ -2,15 +2,14 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+// Suppress IDE0005 (unused using) here because repository types are registered via source-generated
+// methods and their namespaces may appear unused to the analyzer.
 using System.Reflection;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
-using Product.Application.Product.Abstractions;
 using Product.Infrastructure.Persistence;
-using Product.Infrastructure.Persistence.Repositories.Read;
-using Product.Infrastructure.Persistence.Repositories.Write;
 using SharedKernel.Core.Database;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
@@ -40,9 +39,11 @@ public static class InfrastructureServiceExtensions
         ConfigureDatabase(builder, connectionSettings);
         ConfigureIdentity(builder);
 
-        builder.Services.AddScoped<IProductWriteRepository, DbProductWriteRepository>();
-        builder.Services.AddScoped<IProductReadRepository, DbProductReadRepository>();
+        // Register repositories via source-generated registrations (replaces manual AddScoped registrations)
+        builder.Services.AddProductInfrastructureRepositories();
     }
+
+#pragma warning restore IDE0005
 
     /// <summary>
     /// Adds Product infrastructure middleware.

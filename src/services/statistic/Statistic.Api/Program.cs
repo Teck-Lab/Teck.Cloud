@@ -2,12 +2,13 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Text.Json.Serialization;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using SharedKernel.Infrastructure;
 using SharedKernel.Infrastructure.Auth;
-
 using SharedKernel.Infrastructure.Options;
+using Statistic.Api.Serialization;
 using Statistic.Application;
 using Statistic.Infrastructure.DependencyInjection;
 using Statistic.Infrastructure.Hubs;
@@ -23,6 +24,7 @@ builder.AddBaseInfrastructure(appOptions);
 
 builder.Host.UseWolverine(options => builder.ConfigureWolverine(options));
 builder.AddInfrastructureServices(typeof(IStatisticApplication).Assembly);
+builder.Services.AddSingleton<JsonSerializerContext, StatisticJsonSerializerContext>();
 ConfigureIdentity(builder);
 
 const string SignalRCorsPolicy = "SignalRCors";

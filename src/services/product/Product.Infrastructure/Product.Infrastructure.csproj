@@ -20,5 +20,6 @@
 
   <ItemGroup>
     <PackageReference Include="CsvHelper" />
+    <PackageReference Include="ServiceScan.SourceGenerator" PrivateAssets="all" />
   </ItemGroup>
 </Project>

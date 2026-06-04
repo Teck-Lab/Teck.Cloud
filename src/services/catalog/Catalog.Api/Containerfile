@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1.7
-
+#
 # Multi-stage Dockerfile for Catalog.Api
 # Optimized for multi-platform, Docker cache, and best practices
+#
 
 # Build arguments for .NET image version support
 ARG DOTNET_SDK_VERSION=10.0.103
@@ -21,6 +22,7 @@ COPY ["global.json", "."]
 COPY ["nuget.config", "."]
 COPY ["Directory.Packages.props", "."]
 COPY ["Directory.Build.props", "."]
+COPY ["src/Directory.Build.props", "src/"]
 COPY ["src/services/Directory.Build.props", "src/services/"]
 COPY ["src/services/catalog/Directory.Build.props", "src/services/catalog/"]
 COPY ["src/buildingblocks/Directory.Build.props", "src/buildingblocks/"]
@@ -29,10 +31,13 @@ COPY ["src/aspire/Teck.Cloud.ServiceDefaults/Teck.Cloud.ServiceDefaults.csproj",
 COPY ["src/buildingblocks/SharedKernel.Core/SharedKernel.Core.csproj", "src/buildingblocks/SharedKernel.Core/"]
 COPY ["src/buildingblocks/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj", "src/buildingblocks/SharedKernel.Infrastructure/"]
 COPY ["src/buildingblocks/SharedKernel.Persistence/SharedKernel.Persistence.csproj", "src/buildingblocks/SharedKernel.Persistence/"]
-COPY ["src/services/catalog/Catalog.Application/Catalog.Application.csproj", "src/services/catalog/Catalog.Application/"]
 COPY ["src/buildingblocks/SharedKernel.Events/SharedKernel.Events.csproj", "src/buildingblocks/SharedKernel.Events/"]
+COPY ["src/services/catalog/Catalog.Application/Catalog.Application.csproj", "src/services/catalog/Catalog.Application/"]
 COPY ["src/services/catalog/Catalog.Domain/Catalog.Domain.csproj", "src/services/catalog/Catalog.Domain/"]
 COPY ["src/services/catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj", "src/services/catalog/Catalog.Infrastructure/"]
+COPY ["src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL/Catalog.Infrastructure.Migrations.PostgreSQL.csproj", "src/services/catalog/Catalog.Infrastructure.Migrations.PostgreSQL/"]
+COPY ["src/services/catalog/Catalog.Infrastructure.Migrations.SqlServer/Catalog.Infrastructure.Migrations.SqlServer.csproj", "src/services/catalog/Catalog.Infrastructure.Migrations.SqlServer/"]
+COPY ["src/services/catalog/Catalog.Infrastructure.Migrations.MySql/Catalog.Infrastructure.Migrations.MySql.csproj", "src/services/catalog/Catalog.Infrastructure.Migrations.MySql/"]
 
 # Use Docker Buildx and TARGETPLATFORM to select the correct RID for multi-platform builds
 ARG TARGETPLATFORM
@@ -77,7 +82,7 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
         /p:EnforceCodeStyleInBuild=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_ALPINE_VERSION}-composite AS final
+FROM dhi.io/dotnet:10-alpine3.23 AS final
 ARG DOTNET_SDK_VERSION
 ARG DOTNET_RUNTIME_VERSION
 ARG DOTNET_ALPINE_VERSION
@@ -94,28 +99,34 @@ LABEL org.opencontainers.image.title="Catalog API" \
       org.opencontainers.image.authors="Teck Team" \
       org.opencontainers.image.vendor="Teck" \
       org.opencontainers.image.licenses="MIT" \
-    org.opencontainers.image.base.name="mcr.microsoft.com/dotnet/aspnet:${DOTNET_RUNTIME_VERSION}-alpine${DOTNET_ALPINE_VERSION}-composite"
+      org.opencontainers.image.base.name="dhi.io/dotnet:10-alpine3.23"
 
 # Additional custom labels
 LABEL com.teck.service.name="catalog" \
-    com.teck.service.type="api" \
-    com.teck.service.tier="backend" \
-    com.teck.dotnet.version="${DOTNET_RUNTIME_VERSION}" \
-    com.teck.dotnet.sdk.version="${DOTNET_SDK_VERSION}" \
-    com.teck.build.configuration="Release"
+      com.teck.service.type="api" \
+      com.teck.service.tier="backend" \
+      com.teck.dotnet.version="${DOTNET_RUNTIME_VERSION}" \
+      com.teck.dotnet.sdk.version="${DOTNET_SDK_VERSION}" \
+      com.teck.build.configuration="Release"
 
 # Environment variables for .NET running in container
 ENV APP_UID=1000 \
     DOTNET_RUNNING_IN_CONTAINER=true \
     ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
-    ASPNETCORE_HTTP_PORTS=8080
+    ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_GCServer=1 \
+    DOTNET_GCHeapHardLimitPercent=65 \
+    DOTNET_GCConserveMemory=9 \
+    DOTNET_GCLatencyLevel=Batch \
+    DOTNET_EnableDiagnostics=0 \
+    DOTNET_TieredPGO=1 \
+    DOTNET_TC_QuickJitForLoops=1
 
 WORKDIR /app
-RUN apk add --no-cache icu-libs=${ICU_LIBS_VERSION}
 COPY --from=publish /app/publish .
 EXPOSE 8080
 
-# Set user only in final stage (if needed)
-USER $APP_UID
+# DHI images are non-root by default (UID 65532) - using that user
+USER 65532
 ENTRYPOINT ["dotnet", "Catalog.Api.dll"]

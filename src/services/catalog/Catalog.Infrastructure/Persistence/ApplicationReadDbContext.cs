@@ -82,5 +82,5 @@ public sealed class ApplicationReadDbContext : BaseDbContext
     }
 
     private static bool ReadConfigFilter(Type type) =>
-        type.FullName?.Contains("Config.Read") ?? false;
+        type.FullName?.Contains("Config.Read", StringComparison.Ordinal) ?? false;
 }

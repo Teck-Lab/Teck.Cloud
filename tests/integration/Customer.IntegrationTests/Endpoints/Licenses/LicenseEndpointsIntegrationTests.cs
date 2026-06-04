@@ -24,7 +24,7 @@ public sealed class LicenseEndpointsIntegrationTests
         ISender sender = Substitute.For<ISender>();
         await using TestCustomerApiHost host = await TestCustomerApiHost.StartAsync(sender);
 
-        using HttpRequestMessage request = new(HttpMethod.Post, "/customer/v1/admin/Licenses")
+        using HttpRequestMessage request = new(HttpMethod.Post, "/customer/v1/Licenses")
         {
             Content = JsonContent.Create(new { tenantId = "tenant-1", plan = "Business", paymentScope = "TenantDefault" }),
         };
@@ -43,7 +43,7 @@ public sealed class LicenseEndpointsIntegrationTests
 
         await using TestCustomerApiHost host = await TestCustomerApiHost.StartAsync(sender);
 
-        using HttpRequestMessage request = new(HttpMethod.Post, "/customer/v1/admin/Licenses")
+        using HttpRequestMessage request = new(HttpMethod.Post, "/customer/v1/Licenses")
         {
             Content = JsonContent.Create(new { tenantId = "", plan = "", paymentScope = "" }),
         };
@@ -66,7 +66,7 @@ public sealed class LicenseEndpointsIntegrationTests
             .Returns(new ValueTask<ErrorOr<LicenseResponse>>(expected));
 
         await using TestCustomerApiHost host = await TestCustomerApiHost.StartAsync(sender);
-        using HttpRequestMessage request = new(HttpMethod.Put, $"/customer/v1/admin/Licenses/{licenseId:D}/activate")
+        using HttpRequestMessage request = new(HttpMethod.Put, $"/customer/v1/Licenses/{licenseId:D}/activate")
         {
             Content = JsonContent.Create(new { id = licenseId }),
         };
@@ -86,7 +86,7 @@ public sealed class LicenseEndpointsIntegrationTests
             .Returns(new ValueTask<ErrorOr<LicenseResponse>>(Error.NotFound("License.NotFound", "missing")));
 
         await using TestCustomerApiHost host = await TestCustomerApiHost.StartAsync(sender);
-        using HttpRequestMessage request = new(HttpMethod.Put, $"/customer/v1/admin/Licenses/{licenseId:D}/renew")
+        using HttpRequestMessage request = new(HttpMethod.Put, $"/customer/v1/Licenses/{licenseId:D}/renew")
         {
             Content = JsonContent.Create(new { newPlan = "Business", newExpiry = DateTimeOffset.UtcNow.AddYears(1) }),
         };
@@ -113,7 +113,7 @@ public sealed class LicenseEndpointsIntegrationTests
             });
 
         await using TestCustomerApiHost host = await TestCustomerApiHost.StartAsync(sender);
-        using HttpRequestMessage request = new(HttpMethod.Get, $"/customer/v1/admin/Licenses/{licenseId:D}");
+        using HttpRequestMessage request = new(HttpMethod.Get, $"/customer/v1/Licenses/{licenseId:D}");
         request.WithAuthenticatedUser().WithTenantIdClaim(Guid.NewGuid()).WithScopes("license:list");
 
         HttpResponseMessage response = await host.Client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -138,7 +138,7 @@ public sealed class LicenseEndpointsIntegrationTests
             });
 
         await using TestCustomerApiHost host = await TestCustomerApiHost.StartAsync(sender);
-        using HttpRequestMessage request = new(HttpMethod.Get, "/customer/v1/admin/Licenses?tenantId=tenant-123");
+        using HttpRequestMessage request = new(HttpMethod.Get, "/customer/v1/Licenses?tenantId=tenant-123");
         request.WithAuthenticatedUser().WithTenantIdClaim(Guid.NewGuid()).WithScopes("license:list");
 
         HttpResponseMessage response = await host.Client.SendAsync(request, TestContext.Current.CancellationToken);
@@ -158,7 +158,7 @@ public sealed class LicenseEndpointsIntegrationTests
             .Returns(new ValueTask<ErrorOr<LicenseResponse>>(Error.NotFound("License.NotFound", "missing")));
 
         await using TestCustomerApiHost host = await TestCustomerApiHost.StartAsync(sender);
-        using HttpRequestMessage request = new(HttpMethod.Post, $"/customer/v1/admin/Licenses/{licenseId:D}/Location")
+        using HttpRequestMessage request = new(HttpMethod.Post, $"/customer/v1/Licenses/{licenseId:D}/Location")
         {
             Content = JsonContent.Create(new { locationId = "loc-1" }),
         };

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -42,6 +43,7 @@ internal sealed class ProviderFilteredMigrationsAssembly : IMigrationsAssembly
 
     public Assembly Assembly => _assembly;
 
+    [UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "EF Core passes migration types that have public parameterless constructors; migrationClass comes from known assemblies.")]
     public Migration CreateMigration(TypeInfo migrationClass, string activeProvider)
     {
         _ = activeProvider;
@@ -72,6 +74,7 @@ internal sealed class ProviderFilteredMigrationsAssembly : IMigrationsAssembly
         return null;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "Migration types are discovered from the migrations assembly and will have required members at runtime.")]
     private IReadOnlyDictionary<string, TypeInfo> CreateMigrations()
     {
         Type contextType = _currentContext.GetType();
@@ -101,6 +104,7 @@ internal sealed class ProviderFilteredMigrationsAssembly : IMigrationsAssembly
         return migrations;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "ModelSnapshot types are discovered from the migrations assembly and will have required members at runtime.")]
     private ModelSnapshot? CreateModelSnapshot()
     {
         Type contextType = _currentContext.GetType();

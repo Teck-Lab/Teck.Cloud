@@ -4,14 +4,11 @@
 
 using System.Reflection;
 using Customer.Application.Common.Interfaces;
-using Customer.Application.Tenants.Repositories;
 using Customer.Domain.Entities.LicenseAggregate.Repositories;
-using Customer.Domain.Entities.TenantAggregate.Repositories;
 using Customer.Infrastructure.Identity;
 using Customer.Infrastructure.Licensing;
 using Customer.Infrastructure.Licensing.Abstractions;
 using Customer.Infrastructure.Persistence;
-using Customer.Infrastructure.Persistence.Repositories.Read;
 using Customer.Infrastructure.Persistence.Repositories.Write;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
@@ -91,8 +88,7 @@ public static class InfrastructureServiceExtensions
 
     private static void RegisterRepositories(IServiceCollection services)
     {
-        services.AddScoped<ITenantReadRepository, TenantReadRepository>();
-        services.AddScoped<ITenantWriteRepository, TenantWriteRepository>();
+        services.AddCustomerInfrastructureRepositories();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddHttpClient();
         services.AddScoped<ITenantIdentityProvisioningService, KeycloakTenantIdentityProvisioningService>();

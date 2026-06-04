@@ -23,7 +23,7 @@ internal sealed class PostgreSqlTestFixture<TContext> : IAsyncLifetime
         try
         {
             _container = new PostgreSqlBuilder("postgres:17-alpine")
-                .WithDatabase("testdb")
+                .WithDatabase($"testdb_{Guid.NewGuid():N}")
                 .WithUsername("postgres")
                 .WithPassword("postgres")
                 .WithCleanUp(true)
@@ -66,7 +66,7 @@ internal sealed class PostgreSqlTestFixture<TContext> : IAsyncLifetime
 
         try
         {
-            await _container!.StartAsync();
+            await RetryAsync(async () => await _container!.StartAsync(), 5, TimeSpan.FromSeconds(3));
             await WaitUntilReadyAsync(CancellationToken.None);
         }
         catch (Exception exception) when (IsDockerUnavailable(exception))
@@ -110,6 +110,25 @@ internal sealed class PostgreSqlTestFixture<TContext> : IAsyncLifetime
             catch (Exception ex) when (attempt < maxAttempts && IsTransientFailure(ex))
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), cancellationToken);
+            }
+        }
+    }
+
+    private static async Task RetryAsync(Func<Task> action, int maxAttempts, TimeSpan delay)
+    {
+        var attempt = 0;
+        while (true)
+        {
+            try
+            {
+                attempt++;
+                await action();
+                return;
+            }
+            catch when (attempt < maxAttempts)
+            {
+                Console.WriteLine($"[Testcontainers] Attempt {attempt} failed; retrying after {delay.TotalSeconds}s...");
+                await Task.Delay(delay);
             }
         }
     }

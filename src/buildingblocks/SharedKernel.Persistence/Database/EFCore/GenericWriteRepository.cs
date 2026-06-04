@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Security.Claims;
 using Ardalis.Specification;
@@ -17,7 +18,7 @@ namespace SharedKernel.Persistence.Database.EFCore
     /// <typeparam name="TEntity">The entity type.</typeparam>
     /// <typeparam name="TId">The entity ID type.</typeparam>
     /// <typeparam name="TContext">The database context type.</typeparam>
-    public class GenericWriteRepository<TEntity, TId, TContext> : IGenericWriteRepository<TEntity, TId>
+    public class GenericWriteRepository<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.Interfaces)] TEntity, TId, TContext> : IGenericWriteRepository<TEntity, TId>
         where TEntity : BaseEntity
         where TContext : BaseDbContext
     {

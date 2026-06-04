@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,9 @@ namespace SharedKernel.Persistence.Database
         /// <param name="defaultWriteConnectionString"></param>
         /// <param name="defaultReadConnectionString"></param>
         /// <param name="provider">The database provider to use (defaults to PostgreSQL).</param>
-        public static void AddCustomDbContexts<TWriteContext, TReadContext>(
+        public static void AddCustomDbContexts<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TWriteContext,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TReadContext>(
             this WebApplicationBuilder builder,
             Assembly assembly,
             string defaultWriteConnectionString,
@@ -61,7 +64,7 @@ namespace SharedKernel.Persistence.Database
         /// <summary>
         /// Adds a write database context with all required interceptors.
         /// </summary>
-        private static void AddWriteDbContext<TContext>(
+        private static void AddWriteDbContext<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(
             WebApplicationBuilder builder,
             Assembly assembly,
             string connectionString,
@@ -93,7 +96,7 @@ namespace SharedKernel.Persistence.Database
         /// <summary>
         /// Adds a read-only database context with minimal interceptors.
         /// </summary>
-        private static void AddReadDbContext<TContext>(
+        private static void AddReadDbContext<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(
             WebApplicationBuilder builder,
             string connectionString,
             DatabaseProvider provider)
@@ -200,7 +203,7 @@ namespace SharedKernel.Persistence.Database
         /// <summary>
         /// Enriches the DbContext with provider-specific settings.
         /// </summary>
-        private static void EnrichDbContext<TContext>(
+        private static void EnrichDbContext<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(
             WebApplicationBuilder builder,
             DatabaseProvider provider)
             where TContext : BaseDbContext

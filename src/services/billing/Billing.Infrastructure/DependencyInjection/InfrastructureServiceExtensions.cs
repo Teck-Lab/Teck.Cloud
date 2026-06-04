@@ -3,11 +3,9 @@
 // </copyright>
 
 using System.Reflection;
-using Billing.Application.Billing.Repositories;
 using Billing.Application.Common.Interfaces;
 using Billing.Infrastructure.Payment;
 using Billing.Infrastructure.Persistence;
-using Billing.Infrastructure.Persistence.Repositories.Read;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using SharedKernel.Core.Exceptions;
@@ -43,7 +41,7 @@ public static class InfrastructureServiceExtensions
             defaultReadConnectionString: readConnectionString,
             provider: databaseProvider);
 
-        builder.Services.AddScoped<IBillingTransactionReadRepository, BillingTransactionReadRepository>();
+        builder.Services.AddBillingInfrastructureRepositories();
         builder.Services.AddScoped<IPaymentGateway, StripePaymentGateway>();
     }
 

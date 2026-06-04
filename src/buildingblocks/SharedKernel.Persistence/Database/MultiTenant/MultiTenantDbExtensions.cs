@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Finbuckle.MultiTenant.Abstractions;
 using Microsoft.AspNetCore.Builder;
@@ -41,7 +42,7 @@ public static class MultiTenantDbExtensions
     /// The Vault path segment for this service (e.g. <c>catalog</c>).
     /// Used to locate tenant secrets at <c>teck-cloud/tenants/{tenantId}/{serviceName}</c>.
     /// </param>
-    public static void AddHybridMultiTenantDbContexts<TWriteContext, TReadContext>(
+    public static void AddHybridMultiTenantDbContexts<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TWriteContext, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TReadContext>(
         this WebApplicationBuilder builder,
         Assembly? migrationsAssembly,
         string defaultWriteConnectionString,

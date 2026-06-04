@@ -8,7 +8,6 @@ using Device.Application;
 using Device.Infrastructure.DependencyInjection;
 using FastEndpoints;
 using Finbuckle.MultiTenant.AspNetCore.Extensions;
-using FluentValidation;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using SharedKernel.Grpc.Contracts.Remote.V1.Labels;
@@ -37,8 +36,8 @@ internal static class Program
         builder.AddBaseInfrastructure(appOptions);
         builder.AddInfrastructureServices(applicationAssembly);
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
-        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+
+        // Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
         builder.AddMediatorInfrastructure(applicationAssembly);
         builder.AddOpenApiInfrastructure(appOptions);
         ConfigureIdentity(builder);

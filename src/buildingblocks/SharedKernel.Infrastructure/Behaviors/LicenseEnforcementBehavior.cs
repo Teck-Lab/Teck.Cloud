@@ -2,6 +2,7 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using ErrorOr;
@@ -14,7 +15,7 @@ namespace SharedKernel.Infrastructure.Behaviors;
 /// A pipeline behavior that enforces license validation for requests
 /// that implement <see cref="ILicenseGatedRequest"/>.
 /// </summary>
-public sealed class LicenseEnforcementBehavior<TRequest, TResponse>(
+public sealed class LicenseEnforcementBehavior<TRequest, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TResponse>(
     ILicenseValidator licenseValidator)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>

@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Scrutor;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure;
@@ -45,7 +44,7 @@ public static class InfrastructureServiceExtensions
         ConfigureDatabase(builder, connectionSettings);
         ConfigureWolverine(builder, applicationAssembly, connectionSettings, isRunningGeneration);
         ConfigureHealthChecks(builder, connectionSettings, isRunningGeneration);
-        RegisterServices(builder.Services, applicationAssembly);
+        RegisterServices(builder.Services);
     }
 
     /// <summary>
@@ -218,18 +217,9 @@ public static class InfrastructureServiceExtensions
         builder.AddRabbitMqHealthCheck(settings.RabbitConnectionString);
     }
 
-    private static void RegisterServices(IServiceCollection services, Assembly applicationAssembly)
+    private static void RegisterServices(IServiceCollection services)
     {
-        Assembly dbContextAssembly = typeof(ApplicationWriteDbContext).Assembly;
-
-        services.Scan(selector => selector
-            .FromAssemblies(applicationAssembly, dbContextAssembly)
-            .AddClasses(classes => classes.Where(type =>
-                type != typeof(ApplicationReadDbContext) &&
-                type != typeof(ApplicationWriteDbContext)))
-            .UsingRegistrationStrategy(RegistrationStrategy.Skip)
-            .AsMatchingInterface()
-            .WithScopedLifetime());
+        services.AddCatalogInfrastructureRepositories();
     }
 
     private static CatalogConnectionSettings ResolveConnectionSettings(IConfiguration configuration, bool isRunningGeneration)

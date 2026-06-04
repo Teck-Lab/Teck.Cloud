@@ -6,8 +6,6 @@ using System.Diagnostics;
 using System.Reflection;
 using Location.Application.Service.Abstractions;
 using Location.Infrastructure.Persistence;
-using Location.Infrastructure.Persistence.Repositories.Read;
-using Location.Infrastructure.Persistence.Repositories.Write;
 using Location.Infrastructure.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -123,15 +121,10 @@ public static class InfrastructureServiceExtensions
 
     private static void RegisterServices(IServiceCollection services)
     {
-        services.AddScoped<IDisplayModelReadRepository, DbDisplayModelReadRepository>();
-        services.AddScoped<ILocationNodeReadRepository, DbLocationNodeReadRepository>();
-        services.AddScoped<ILocationNodeWriteRepository, DbLocationNodeWriteRepository>();
-        services.AddScoped<ITemplateDesignReadRepository, DbTemplateDesignReadRepository>();
-        services.AddScoped<ITemplateDesignWriteRepository, DbTemplateDesignWriteRepository>();
-        services.AddScoped<ITemplateScopeSettingsReadRepository, DbTemplateScopeSettingsReadRepository>();
-        services.AddScoped<ITemplateScopeSettingsWriteRepository, DbTemplateScopeSettingsWriteRepository>();
-        services.AddScoped<ILocationGroupReadRepository, DbLocationGroupReadRepository>();
-        services.AddScoped<ILocationGroupWriteRepository, DbLocationGroupWriteRepository>();
+        // Register repositories via generated ServiceScan source generator
+        services.AddLocationInfrastructureRepositories();
+
+        // Non-repository infrastructure services
         services.AddScoped<ITemplateInheritanceResolver, TemplateInheritanceResolver>();
         services.AddSingleton<ITemplateFontAssetService, TemplateFontAssetService>();
     }

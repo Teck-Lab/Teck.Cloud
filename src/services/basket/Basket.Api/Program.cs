@@ -7,7 +7,6 @@ using Basket.Api.Extensions;
 using Basket.Application;
 using Basket.Infrastructure.DependencyInjection;
 using FastEndpoints;
-using FluentValidation;
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Common;
 using SharedKernel.Grpc.Contracts.Remote.V1.Catalog;
@@ -38,8 +37,8 @@ internal static class Program
         ConfigureIdentity(builder);
         builder.AddCachingInfrastructure();
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
-        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+
+        // Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
         builder.AddMediatorInfrastructure(applicationAssembly);
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.AddOpenApiInfrastructure(appOptions);

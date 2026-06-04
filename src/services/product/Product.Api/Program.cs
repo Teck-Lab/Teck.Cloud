@@ -4,7 +4,6 @@
 
 using System.Reflection;
 using FastEndpoints;
-using FluentValidation;
 using Product.Api.Extensions;
 using Product.Api.Grpc.V1;
 using Product.Application;
@@ -33,8 +32,8 @@ internal static class Program
         builder.AddBaseInfrastructure(appOptions);
         builder.AddInfrastructureServices(applicationAssembly);
         builder.Services.AddFastEndpointsInfrastructure(applicationAssembly, apiAssembly);
-        builder.Services.AddValidatorsFromAssembly(applicationAssembly, includeInternalTypes: true);
-        builder.Services.AddValidatorsFromAssembly(apiAssembly, includeInternalTypes: true);
+
+        // Validators are auto-discovered by FastEndpoints; explicit registration removed for AOT compatibility
         builder.AddMediatorInfrastructure(applicationAssembly);
         builder.AddOpenApiInfrastructure(appOptions);
         builder.AddHandlerServer();

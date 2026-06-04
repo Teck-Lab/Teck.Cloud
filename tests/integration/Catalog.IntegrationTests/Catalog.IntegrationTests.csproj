@@ -27,6 +27,7 @@
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="Testcontainers.RabbitMq" />
     <PackageReference Include="ZiggyCreatures.FusionCache" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
     <PackageReference Include="ZiggyCreatures.FusionCache.Backplane.Memory" />
   </ItemGroup>
 
