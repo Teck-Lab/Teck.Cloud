@@ -21,4 +21,25 @@ public sealed class DeviceLayoutReadModel
 
     /// <summary>Gets or sets the maximum number of zones supported by this layout.</summary>
     public int MaxZoneCount { get; set; }
+
+    /// <summary>Gets or sets the creation timestamp.</summary>
+    public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Gets or sets the creator identifier.</summary>
+    public string? CreatedBy { get; set; }
+
+    /// <summary>Gets or sets the last update timestamp.</summary>
+    public DateTimeOffset? UpdatedOn { get; set; }
+
+    /// <summary>Gets or sets the last updater identifier.</summary>
+    public string? UpdatedBy { get; set; }
+
+    /// <summary>Gets or sets the soft-delete timestamp.</summary>
+    public DateTimeOffset? DeletedOn { get; set; }
+
+    /// <summary>Gets or sets the soft-delete user identifier.</summary>
+    public string? DeletedBy { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether this record is soft-deleted.</summary>
+    public bool IsDeleted { get; set; }
 }

@@ -11,36 +11,35 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Core.Devices;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.Infrastructure.Repositories;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DbDeviceDefinitionWriteRepositoryTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
+    private readonly SharedTestcontainersFixture _fixture;
     private DeviceWriteDbContext? _dbContext;
     private IDeviceDefinitionWriteRepository? _repository;
+    private string? _connectionString;
 
-    public DbDeviceDefinitionWriteRepositoryTests(SharedDeviceTestcontainersFixture fixture)
+    public DbDeviceDefinitionWriteRepositoryTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
         var options = new DbContextOptionsBuilder<DeviceWriteDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
 
         _dbContext = new DeviceWriteDbContext(options);
-
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         _repository = new DbDeviceDefinitionWriteRepository(_dbContext, new TestHttpContextAccessor());
     }
@@ -52,17 +51,17 @@ public sealed class DbDeviceDefinitionWriteRepositoryTests : IAsyncLifetime
             await _dbContext.DisposeAsync();
         }
 
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
+        }
+
         GC.SuppressFinalize(this);
     }
 
     [Fact]
     public async Task AddAsync_ShouldPersistDeviceDefinition()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<DeviceDefinition> created = DeviceDefinition.Create(
             modelId: "HS-WRITE-001",
@@ -94,11 +93,6 @@ public sealed class DbDeviceDefinitionWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByIdAsync_ShouldReturnDefinition_WhenExists()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<DeviceDefinition> created = DeviceDefinition.Create(
             modelId: "HS-WRITE-002",
@@ -128,11 +122,6 @@ public sealed class DbDeviceDefinitionWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByIdAsync_ShouldReturnNull_WhenDoesNotExist()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Act
         DeviceDefinition? result = await _repository!.GetByIdAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -143,11 +132,6 @@ public sealed class DbDeviceDefinitionWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task ExistsWithModelIdAsync_ShouldReturnTrue_WhenModelIdExists()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<DeviceDefinition> created = DeviceDefinition.Create(
             modelId: "HS-WRITE-003",
@@ -174,11 +158,6 @@ public sealed class DbDeviceDefinitionWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task ExistsWithModelIdAsync_ShouldReturnFalse_WhenModelIdDoesNotExist()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Act
         bool exists = await _repository!.ExistsWithModelIdAsync("DOES-NOT-EXIST", TestContext.Current.CancellationToken);
 
@@ -189,11 +168,6 @@ public sealed class DbDeviceDefinitionWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task AddAsync_ShouldPersistMultipleDefinitions()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<DeviceDefinition> def1 = DeviceDefinition.Create(
             modelId: "HS-MULTI-001",

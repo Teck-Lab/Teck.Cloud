@@ -7,7 +7,7 @@ using SharedKernel.Persistence.Database.EFCore;
 
 namespace Device.Infrastructure.Persistence.Repositories.Write;
 
-internal sealed class DbAccessPointWriteRepository(
+public sealed class DbAccessPointWriteRepository(
     DeviceWriteDbContext dbContext,
     IHttpContextAccessor httpContextAccessor)
     : GenericWriteRepository<Device.Domain.AccessPoints.AccessPoint, Guid, DeviceWriteDbContext>(dbContext, httpContextAccessor),

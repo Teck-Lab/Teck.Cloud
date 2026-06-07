@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using SharedKernel.Core.Database;
 using SharedKernel.Core.Exceptions;
 using SharedKernel.Core.Pricing;
 using SharedKernel.Infrastructure;
@@ -109,6 +110,9 @@ public static class InfrastructureServiceExtensions
             {
                 IncludeHandlerAssemblies(options, applicationAssembly);
                 options.AddSagaType<DisplayOperationSaga>();
+
+                // Allow service location for IUnitOfWork since it is registered with a lambda factory
+                options.CodeGeneration.AlwaysUseServiceLocationFor<IUnitOfWork>();
                 options.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
 
                 options.Services.TryAddSingleton<IVaultTenantConnectionProvider>(_ => new NullVaultTenantConnectionProvider());
@@ -122,6 +126,9 @@ public static class InfrastructureServiceExtensions
         {
             IncludeHandlerAssemblies(options, applicationAssembly);
             options.AddSagaType<DisplayOperationSaga>();
+
+            // Allow service location for IUnitOfWork since it is registered with a lambda factory
+            options.CodeGeneration.AlwaysUseServiceLocationFor<IUnitOfWork>();
 
             OpenBaoOptions openBaoOptions = builder.Configuration
                 .GetSection(OpenBaoOptions.Section)

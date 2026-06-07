@@ -10,7 +10,7 @@ using SharedKernel.Core.Pagination;
 
 namespace Device.Infrastructure.Persistence.Repositories.Read;
 
-internal sealed class DbDeviceDefinitionReadRepository(
+public sealed class DbDeviceDefinitionReadRepository(
     IDbContextFactory<DeviceReadDbContext> dbContextFactory)
     : IDeviceDefinitionReadRepository
 {

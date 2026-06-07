@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Device.Infrastructure.Persistence.Repositories.Read;
 
-internal sealed class DbAccessPointReadRepository(DeviceReadDbContext dbContext) : Device.Domain.AccessPoints.IAccessPointReadRepository
+public sealed class DbAccessPointReadRepository(DeviceReadDbContext dbContext) : Device.Domain.AccessPoints.IAccessPointReadRepository
 {
     private readonly DeviceReadDbContext dbContext = dbContext;
 

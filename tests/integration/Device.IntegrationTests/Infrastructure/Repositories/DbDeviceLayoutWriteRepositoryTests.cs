@@ -10,36 +10,35 @@ using Device.IntegrationTests.TestSupport;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.Infrastructure.Repositories;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DbDeviceLayoutWriteRepositoryTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
+    private readonly SharedTestcontainersFixture _fixture;
     private DeviceWriteDbContext? _dbContext;
     private IDeviceLayoutWriteRepository? _repository;
+    private string? _connectionString;
 
-    public DbDeviceLayoutWriteRepositoryTests(SharedDeviceTestcontainersFixture fixture)
+    public DbDeviceLayoutWriteRepositoryTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
         var options = new DbContextOptionsBuilder<DeviceWriteDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
 
         _dbContext = new DeviceWriteDbContext(options);
-
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         _repository = new DbDeviceLayoutWriteRepository(_dbContext, new TestHttpContextAccessor());
     }
@@ -51,17 +50,17 @@ public sealed class DbDeviceLayoutWriteRepositoryTests : IAsyncLifetime
             await _dbContext.DisposeAsync();
         }
 
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
+        }
+
         GC.SuppressFinalize(this);
     }
 
     [Fact]
     public async Task AddAsync_ShouldPersistDeviceLayout()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         var definitionId = Guid.NewGuid();
         global::ErrorOr.ErrorOr<DeviceLayout> created = DeviceLayout.Create(
@@ -88,11 +87,6 @@ public sealed class DbDeviceLayoutWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByIdAsync_ShouldReturnLayout_WhenExists()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<DeviceLayout> created = DeviceLayout.Create(
             deviceDefinitionId: Guid.NewGuid(),
@@ -115,11 +109,6 @@ public sealed class DbDeviceLayoutWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByIdAsync_ShouldReturnNull_WhenDoesNotExist()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Act
         DeviceLayout? result = await _repository!.GetByIdAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
@@ -130,11 +119,6 @@ public sealed class DbDeviceLayoutWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task AddAsync_ShouldPersistMultipleLayouts()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         var definitionId = Guid.NewGuid();
         global::ErrorOr.ErrorOr<DeviceLayout> layout1 = DeviceLayout.Create(

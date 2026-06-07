@@ -13,7 +13,7 @@ namespace Device.Infrastructure.Persistence.Repositories.Read;
 /// Resolves the layout context for a display — used by the assignment handler to
 /// determine zone-count constraints for label rendering.
 /// </summary>
-internal sealed class DbDisplayLayoutContextRepository(
+public sealed class DbDisplayLayoutContextRepository(
     IDbContextFactory<DeviceReadDbContext> dbContextFactory)
     : IDeviceDefinitionReadRepository
 {

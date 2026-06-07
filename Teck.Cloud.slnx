@@ -166,6 +166,7 @@
     <Project Path="tests/integration/Order.IntegrationTests/Order.IntegrationTests.csproj" />
     <Project Path="tests/integration/Product.IntegrationTests/Product.IntegrationTests.csproj" />
     <Project Path="tests/integration/Statistic.IntegrationTests/Statistic.IntegrationTests.csproj" />
+    <Project Path="tests/integration/Teck.Cloud.IntegrationTests.Shared/Teck.Cloud.IntegrationTests.Shared.csproj" />
     <Project Path="tests/integration/Web.Admin.Gateway.IntegrationTests/Web.Admin.Gateway.IntegrationTests.csproj" />
     <Project Path="tests/integration/Web.Public.Gateway.IntegrationTests/Web.Public.Gateway.IntegrationTests.csproj" />
   </Folder>

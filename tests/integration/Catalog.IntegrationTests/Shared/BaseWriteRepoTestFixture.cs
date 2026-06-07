@@ -6,13 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Core.Database;
 using SharedKernel.Infrastructure.MultiTenant;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
-using Wolverine;
-using Wolverine.RabbitMQ;
 
 namespace Catalog.IntegrationTests.Shared
 {
     /// <summary>
-    /// Base test fixture for testing write repositories
+    /// Base test fixture for testing write repositories with shared-database table-truncation isolation.
     /// </summary>
     public abstract class BaseWriteRepoTestFixture<TContext, TUnitOfWork> : IAsyncLifetime
         where TContext : DbContext
@@ -24,6 +22,7 @@ namespace Catalog.IntegrationTests.Shared
         protected SoftDeleteInterceptor SoftDeleteInterceptor = null!;
         protected AuditingInterceptor AuditingInterceptor = null!;
         protected IServiceProvider ServiceProvider = null!;
+        protected string? ConnectionString;
 
         protected BaseWriteRepoTestFixture(SharedTestcontainersFixture sharedFixture)
         {
@@ -32,32 +31,22 @@ namespace Catalog.IntegrationTests.Shared
 
         public virtual async ValueTask InitializeAsync()
         {
-            // Containers are already started by the shared fixture
             var httpContextAccessor = new HttpContextAccessor();
             var services = new ServiceCollection();
             services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
-            services.AddWolverine(x =>
-            {
-                if (!SharedFixture.UseSqliteFallback)
-                {
-                    x.UseRabbitMq(SharedFixture.RabbitMqContainer!.GetConnectionString());
-                }
-            });
             ServiceProvider = services.BuildServiceProvider();
             SoftDeleteInterceptor = new SoftDeleteInterceptor(httpContextAccessor);
             AuditingInterceptor = new AuditingInterceptor(httpContextAccessor);
 
-            var optionsBuilder = new DbContextOptionsBuilder<TContext>()
-                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor);
+            // Create or reuse a shared test database using shared fixture
+            ConnectionString = await SharedFixture.CreateSharedTestDatabaseAsync(
+                typeof(TContext),
+                "Catalog.Infrastructure.Migrations.PostgreSQL",
+                TestContext.Current.CancellationToken);
 
-            if (SharedFixture.UseSqliteFallback)
-            {
-                optionsBuilder.UseSqlite(SharedFixture.SqliteConnection!);
-            }
-            else
-            {
-                optionsBuilder.UseNpgsql(SharedFixture.DbContainer!.GetConnectionString());
-            }
+            var optionsBuilder = new DbContextOptionsBuilder<TContext>()
+                .UseNpgsql(ConnectionString)
+                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor);
 
             var options = optionsBuilder.Options;
             var tenantAccessor = new FixedTenantContextAccessor();
@@ -65,22 +54,21 @@ namespace Catalog.IntegrationTests.Shared
 
             UnitOfWork = CreateUnitOfWork(WriteDbContext);
 
-            // For ephemeral testcontainers we recreate the database so schema matches the current model.
-            await WriteDbContext.Database.EnsureDeletedAsync();
-            await WriteDbContext.Database.EnsureCreatedAsync();
-
             await SeedAsync();
         }
 
         public virtual async ValueTask DisposeAsync()
         {
-            // Delete the test database to keep containers clean (containers themselves are disposed by the shared fixture)
             try
             {
                 if (WriteDbContext != null)
                 {
-                    await WriteDbContext.Database.EnsureDeletedAsync();
                     await WriteDbContext.DisposeAsync();
+                }
+
+                if (ConnectionString is not null)
+                {
+                    await SharedFixture.TruncateAllTablesAsync(ConnectionString, TestContext.Current.CancellationToken);
                 }
             }
             catch

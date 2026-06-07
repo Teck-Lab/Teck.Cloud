@@ -10,7 +10,7 @@ using SharedKernel.Persistence.Database.EFCore;
 
 namespace Device.Infrastructure.Persistence.Repositories.Write;
 
-internal sealed class DbDisplayWriteRepository(
+public sealed class DbDisplayWriteRepository(
     DeviceWriteDbContext dbContext,
     IHttpContextAccessor httpContextAccessor)
     : GenericWriteRepository<Display, Guid, DeviceWriteDbContext>(dbContext, httpContextAccessor),

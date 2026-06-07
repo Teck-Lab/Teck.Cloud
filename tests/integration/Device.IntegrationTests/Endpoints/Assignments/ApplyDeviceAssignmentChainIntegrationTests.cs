@@ -5,25 +5,34 @@
 using System.Net;
 using System.Net.Http.Json;
 using Device.Application.Assignments.Features.ApplyDeviceAssignment.V1;
+using Device.Application.Operations.Saga;
 using Device.Domain.AccessPoints;
 using Device.Domain.Entities.DisplayAggregate;
 using Device.Domain.Entities.DisplayAssignmentAggregate;
 using Device.Infrastructure.Persistence;
 using Device.IntegrationTests.TestSupport;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using SharedKernel.Events;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
+using Wolverine;
+using Wolverine.Persistence.Sagas;
+using Wolverine.RDBMS.Sagas;
+using Wolverine.Runtime;
 
 namespace Device.IntegrationTests.Endpoints.Assignments;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class ApplyDeviceAssignmentChainIntegrationTests
 {
     private const string TenantId = "test-tenant";
 
-    private readonly SharedDeviceTestcontainersFixture fixture;
+    private readonly SharedTestcontainersFixture fixture;
 
-    public ApplyDeviceAssignmentChainIntegrationTests(SharedDeviceTestcontainersFixture fixture)
+    public ApplyDeviceAssignmentChainIntegrationTests(SharedTestcontainersFixture fixture)
     {
         this.fixture = fixture;
     }
@@ -31,11 +40,6 @@ public sealed class ApplyDeviceAssignmentChainIntegrationTests
     [Fact]
     public async Task ApplyAssignment_ShouldTransitionPendingToRenderedToDelivered_WhenRenderAndDispatchEventsArrive()
     {
-        if (!this.fixture.IsAvailable)
-        {
-            return;
-        }
-
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         Guid customProductId = Guid.NewGuid();
         Guid expectedRenderJobId = Guid.NewGuid();
@@ -50,15 +54,15 @@ public sealed class ApplyDeviceAssignmentChainIntegrationTests
             "queued",
             cancellationToken);
 
-        string postgresConn = this.fixture.DbContainer!.GetConnectionString();
-        string rabbitConn = this.fixture.RabbitContainer!.GetConnectionString();
-
         await using TestDeviceApiHostWithMessaging deviceHost = await TestDeviceApiHostWithMessaging.StartAsync(
-            postgresConn,
-            rabbitConn,
+            this.fixture,
             productHost.BaseAddress,
             labelHost.BaseAddress,
             cancellationToken);
+
+        // Get the connection string from the host that was created for this test
+        IConfiguration config = deviceHost.Services.GetRequiredService<IConfiguration>();
+        string postgresConn = config["ConnectionStrings:db-write"]!;
 
         Guid displayId = await SeedDisplayAsync(postgresConn, cancellationToken);
 
@@ -96,6 +100,14 @@ public sealed class ApplyDeviceAssignmentChainIntegrationTests
         Guid assignmentId = payload.AssignmentId;
         Guid renderJobId = await GetPersistedRenderJobIdAsync(postgresConn, assignmentId, cancellationToken);
 
+        // The test host overrides the Wolverine-managed DbContext to ensure proper tenant
+        // resolution for HTTP-scoped requests. This override bypasses Wolverine's
+        // PublishDomainEventsFromEntityFrameworkCore integration, so domain events raised
+        // by the ApplyDeviceAssignment handler (e.g. DisplayAssignmentCreatedEvent) are not
+        // automatically dispatched. Manually seed the saga that the domain event handler
+        // would have created.
+        await SeedSagaAsync(deviceHost.Services, displayId, "zone-b", TenantId, cancellationToken);
+
         await deviceHost.MessageBus.PublishAsync(new RenderJobCompletedIntegrationEvent(
             renderJobId,
             displayId,
@@ -130,13 +142,13 @@ public sealed class ApplyDeviceAssignmentChainIntegrationTests
             .Options;
 
         await using DeviceWriteDbContext dbContext = new(options, new FixedTenantContextAccessor(TenantId));
-        ErrorOr.ErrorOr<Display> created = Display.Create(
+        global::ErrorOr.ErrorOr<Display> created = Display.Create(
             shortSerial: "C7-A1-N0-01",
             locationNodeId: "zone-b",
             deviceDefinitionId: null);
 
         Display display = created.Value;
-        ErrorOr.ErrorOr<AccessPoint> accessPoint = AccessPoint.Create(
+        global::ErrorOr.ErrorOr<AccessPoint> accessPoint = AccessPoint.Create(
             serialNumber: "AP-STUB-001",
             vendor: "Stub",
             locationNodeId: "zone-b",
@@ -205,5 +217,32 @@ public sealed class ApplyDeviceAssignmentChainIntegrationTests
 
         throw new Xunit.Sdk.XunitException(
             $"Timed out waiting for DisplayAssignment {assignmentId} to reach status {expectedStatus}. Last observed: {lastSeen?.ToString() ?? "<not found>"}.");
+    }
+
+    private static async Task SeedSagaAsync(
+        IServiceProvider services,
+        Guid displayId,
+        string locationNodeId,
+        string tenantId,
+        CancellationToken cancellationToken)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        IWolverineRuntime runtime = scope.ServiceProvider.GetRequiredService<IWolverineRuntime>();
+        IMessageBus messageBus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+        ISagaStorage<Guid, DisplayOperationSaga> sagaStorage = await ((ISagaSupport)runtime.Storage)
+            .EnrollAndFetchSagaStorage<Guid, DisplayOperationSaga>((MessageContext)messageBus)
+            .ConfigureAwait(false);
+
+        StartDisplayOperation startOperation = new(
+            displayId,
+            locationNodeId,
+            tenantId,
+            "Assign",
+            "{}",
+            DateTimeOffset.UtcNow);
+
+        (DisplayOperationSaga saga, _, _, _) = DisplayOperationSaga.Start(startOperation, NullLogger<DisplayOperationSaga>.Instance);
+        await sagaStorage.InsertAsync(saga, cancellationToken).ConfigureAwait(false);
+        await sagaStorage.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -17,39 +17,38 @@ using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using SharedKernel.Core.Database;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.CrossService;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class ZoneConstraintIntegrationTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
+    private readonly SharedTestcontainersFixture _fixture;
     private DeviceReadDbContext? _dbContext;
     private IDeviceDefinitionReadRepository? _displayLayoutRepository;
+    private string? _connectionString;
 
-    public ZoneConstraintIntegrationTests(SharedDeviceTestcontainersFixture fixture)
+    public ZoneConstraintIntegrationTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
         var options = new DbContextOptionsBuilder<DeviceReadDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
 
         var tenantAccessor = new FixedTenantContextAccessor();
         _dbContext = new DeviceReadDbContext(options, tenantAccessor);
 
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-
-        var factory = new TestDbContextFactory(_fixture.DbContainer!.GetConnectionString(), tenantAccessor);
+        var factory = new TestDbContextFactory(_connectionString, tenantAccessor);
         _displayLayoutRepository = new DbDisplayLayoutContextRepository(factory);
     }
 
@@ -60,17 +59,17 @@ public sealed class ZoneConstraintIntegrationTests : IAsyncLifetime
             await _dbContext.DisposeAsync();
         }
 
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
+        }
+
         GC.SuppressFinalize(this);
     }
 
     [Fact]
     public async Task ApplyDeviceAssignment_ShouldReturnZoneCountExceeded_WhenZonesExceedMaxZoneCount()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange — seed a definition, layout (maxZoneCount=2), and a display pointing at that layout.
         var definitionId = Guid.NewGuid();
         var layoutId = Guid.NewGuid();
@@ -141,11 +140,6 @@ public sealed class ZoneConstraintIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task ApplyDeviceAssignment_ShouldProceedPastZoneCheck_WhenZonesAreWithinMaxZoneCount()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         var definitionId = Guid.NewGuid();
         var layoutId = Guid.NewGuid();

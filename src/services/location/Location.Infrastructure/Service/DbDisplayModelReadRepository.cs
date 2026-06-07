@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Location.Infrastructure.Service;
 
-internal sealed class DbDisplayModelReadRepository(
+public sealed class DbDisplayModelReadRepository(
     IDbContextFactory<TemplateFontMetadataDbContext> dbContextFactory)
     : IDisplayModelReadRepository
 {

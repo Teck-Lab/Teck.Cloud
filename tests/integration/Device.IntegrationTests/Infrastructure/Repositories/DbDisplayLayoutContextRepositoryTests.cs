@@ -3,56 +3,61 @@
 // </copyright>
 
 using Device.Application.Assignments.Abstractions;
-using Device.Application.DeviceDefinitions.ReadModels;
-using Device.Application.DeviceLayouts.ReadModels;
 using Device.Domain.Entities.DeviceDefinitionAggregate;
+using Device.Domain.Entities.DeviceLayoutAggregate;
 using Device.Domain.Entities.DisplayAggregate;
 using Device.Infrastructure.Persistence;
 using Device.Infrastructure.Persistence.Repositories.Read;
 using Device.IntegrationTests.TestSupport;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.Infrastructure.Repositories;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DbDisplayLayoutContextRepositoryTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
-    private DeviceReadDbContext? _dbContext;
+    private readonly SharedTestcontainersFixture _fixture;
+    private DeviceWriteDbContext? _writeDbContext;
     private IDeviceDefinitionReadRepository? _repository;
+    private string? _connectionString;
 
-    public DbDisplayLayoutContextRepositoryTests(SharedDeviceTestcontainersFixture fixture)
+    public DbDisplayLayoutContextRepositoryTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        // Create database using write context migrations (has all tables)
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
-        var options = new DbContextOptionsBuilder<DeviceReadDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+        // Create write context for seeding data
+        var writeOptions = new DbContextOptionsBuilder<DeviceWriteDbContext>()
+            .UseNpgsql(_connectionString)
             .Options;
 
         var tenantAccessor = new FixedTenantContextAccessor();
-        _dbContext = new DeviceReadDbContext(options, tenantAccessor);
+        _writeDbContext = new DeviceWriteDbContext(writeOptions, tenantAccessor);
 
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-
-        var factory = new TestDbContextFactory(_fixture.DbContainer!.GetConnectionString());
+        var factory = new TestDbContextFactory(_connectionString);
         _repository = new DbDisplayLayoutContextRepository(factory);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_dbContext is not null)
+        if (_writeDbContext is not null)
         {
-            await _dbContext.DisposeAsync();
+            await _writeDbContext.DisposeAsync();
+        }
+
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
         }
 
         GC.SuppressFinalize(this);
@@ -61,42 +66,40 @@ public sealed class DbDisplayLayoutContextRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetLayoutContextByDisplayIdAsync_ShouldReturnContext_WhenDisplayHasLayout()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange — seed definition, layout, and a display pointing at that layout
-        var definitionId = Guid.NewGuid();
-        var layoutId = Guid.NewGuid();
+        var definitionResult = DeviceDefinition.Create(
+            modelId: "DLCR-DEF-001",
+            name: "Layout Context Definition",
+            eslProvider: SharedKernel.Core.Devices.EslProvider.Hanshow,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: false,
+            widthPx: null,
+            heightPx: null,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
 
-        _dbContext!.DeviceDefinitions.Add(new DeviceDefinitionReadModel
-        {
-            Id = definitionId,
-            ModelId = "DLCR-DEF-001",
-            Name = "Layout Context Definition",
-            EslProvider = "Hanshow",
-            SupportedColors = (int)DisplayInkColor.Black,
-        });
+        definitionResult.IsError.ShouldBeFalse();
+        _writeDbContext!.DeviceDefinitions.Add(definitionResult.Value);
 
-        _dbContext.DeviceLayouts.Add(new DeviceLayoutReadModel
-        {
-            Id = layoutId,
-            DeviceDefinitionId = definitionId,
-            Name = "Three-Zone Layout",
-            MaxZoneCount = 3,
-        });
+        var layoutResult = DeviceLayout.Create(
+            deviceDefinitionId: definitionResult.Value.Id,
+            name: "Three-Zone Layout",
+            maxZoneCount: 3);
+
+        layoutResult.IsError.ShouldBeFalse();
+        _writeDbContext.DeviceLayouts.Add(layoutResult.Value);
 
         var displayResult = Display.Create(
             shortSerial: "DC-AB-CD-EF",
             locationNodeId: "shelf-dlcr",
-            deviceDefinitionId: definitionId,
-            deviceLayoutId: layoutId);
+            deviceDefinitionId: definitionResult.Value.Id,
+            deviceLayoutId: layoutResult.Value.Id);
 
         displayResult.IsError.ShouldBeFalse();
-        _dbContext.Displays.Add(displayResult.Value);
+        _writeDbContext.Displays.Add(displayResult.Value);
 
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         DisplayLayoutContext? context = await _repository!.GetLayoutContextByDisplayIdAsync(
@@ -106,18 +109,13 @@ public sealed class DbDisplayLayoutContextRepositoryTests : IAsyncLifetime
         // Assert
         context.ShouldNotBeNull();
         context!.DisplayId.ShouldBe(displayResult.Value.Id);
-        context.DeviceLayoutId.ShouldBe(layoutId);
+        context.DeviceLayoutId.ShouldBe(layoutResult.Value.Id);
         context.MaxZoneCount.ShouldBe(3);
     }
 
     [Fact]
     public async Task GetLayoutContextByDisplayIdAsync_ShouldReturnNull_WhenDisplayHasNoLayout()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange — seed a display without a DeviceLayoutId
         var displayResult = Display.Create(
             shortSerial: "NO-LA-YO-UT",
@@ -126,13 +124,25 @@ public sealed class DbDisplayLayoutContextRepositoryTests : IAsyncLifetime
             deviceLayoutId: null);
 
         displayResult.IsError.ShouldBeFalse();
-        _dbContext!.Displays.Add(displayResult.Value);
+        _writeDbContext!.Displays.Add(displayResult.Value);
 
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         DisplayLayoutContext? context = await _repository!.GetLayoutContextByDisplayIdAsync(
             displayResult.Value.Id,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        context.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetLayoutContextByDisplayIdAsync_ShouldReturnNull_WhenDisplayDoesNotExist()
+    {
+        // Act
+        DisplayLayoutContext? context = await _repository!.GetLayoutContextByDisplayIdAsync(
+            Guid.NewGuid(),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -152,24 +162,8 @@ public sealed class DbDisplayLayoutContextRepositoryTests : IAsyncLifetime
                 .UseNpgsql(this.connectionString)
                 .Options;
 
-            return new DeviceReadDbContext(options);
+            var tenantAccessor = new FixedTenantContextAccessor();
+            return new DeviceReadDbContext(options, tenantAccessor);
         }
-    }
-
-    [Fact]
-    public async Task GetLayoutContextByDisplayIdAsync_ShouldReturnNull_WhenDisplayDoesNotExist()
-    {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
-        // Act
-        DisplayLayoutContext? context = await _repository!.GetLayoutContextByDisplayIdAsync(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        context.ShouldBeNull();
     }
 }

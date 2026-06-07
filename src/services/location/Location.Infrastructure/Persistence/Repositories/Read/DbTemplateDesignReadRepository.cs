@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Location.Infrastructure.Persistence.Repositories.Read;
 
-internal sealed class DbTemplateDesignReadRepository(LocationReadDbContext dbContext) : ITemplateDesignReadRepository
+public sealed class DbTemplateDesignReadRepository(LocationReadDbContext dbContext) : ITemplateDesignReadRepository
 {
     private readonly LocationReadDbContext dbContext = dbContext;
 

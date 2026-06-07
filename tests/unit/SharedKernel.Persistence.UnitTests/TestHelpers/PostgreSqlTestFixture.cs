@@ -8,34 +8,57 @@ namespace SharedKernel.Persistence.UnitTests.TestHelpers;
 
 /// <summary>
 /// Provides a PostgreSQL test container for database tests.
-/// Uses xUnit's IAsyncLifetime for proper async initialization and cleanup.
+/// Uses a shared container instance across all tests to avoid container startup overhead.
+/// Each test gets its own database for isolation.
 /// </summary>
-/// <typeparam name="TContext">The DbContext type to test</typeparam>
+/// <typeref name="TContext">The DbContext type to test</typeref>
 internal sealed class PostgreSqlTestFixture<TContext> : IAsyncLifetime
     where TContext : DbContext
 {
-    private readonly PostgreSqlContainer? _container;
+    // Static shared container - initialized once across all test instances
+    private static PostgreSqlContainer? _sharedContainer;
+    private static readonly SemaphoreSlim _containerLock = new(1, 1);
+    private static bool _containerInitialized;
+
     private SqliteConnection? _sqliteConnection;
     private bool _useSqliteFallback;
+    private string? _databaseName;
+
+    public string ConnectionString
+    {
+        get
+        {
+            if (_useSqliteFallback)
+            {
+                return _sqliteConnection?.ConnectionString ?? string.Empty;
+            }
+
+            if (_sharedContainer is null || _databaseName is null)
+            {
+                return string.Empty;
+            }
+
+            var builder = new NpgsqlConnectionStringBuilder(_sharedContainer.GetConnectionString())
+            {
+                Database = _databaseName,
+                Pooling = true,
+                MaxPoolSize = 20,
+            };
+            return builder.ConnectionString;
+        }
+    }
 
     public PostgreSqlTestFixture()
     {
         try
         {
-            _container = new PostgreSqlBuilder("postgres:17-alpine")
-                .WithDatabase($"testdb_{Guid.NewGuid():N}")
-                .WithUsername("postgres")
-                .WithPassword("postgres")
-                .WithCleanUp(true)
-                .Build();
+            // Don't build container here - do it lazily in InitializeAsync
         }
         catch (Exception exception) when (IsDockerUnavailable(exception))
         {
             _useSqliteFallback = true;
         }
     }
-
-    public string ConnectionString => _container?.GetConnectionString() ?? string.Empty;
 
     public DbContextOptions<TContext> CreateDbContextOptions()
     {
@@ -66,14 +89,55 @@ internal sealed class PostgreSqlTestFixture<TContext> : IAsyncLifetime
 
         try
         {
-            await RetryAsync(async () => await _container!.StartAsync(), 5, TimeSpan.FromSeconds(3));
-            await WaitUntilReadyAsync(CancellationToken.None);
+            // Ensure shared container is started (only once)
+            await InitializeSharedContainerAsync();
+
+            // Create a unique database for this test
+            _databaseName = $"testdb_{Guid.NewGuid():N}";
+            await using var adminConnection = new NpgsqlConnection(_sharedContainer!.GetConnectionString());
+            await adminConnection.OpenAsync(CancellationToken.None);
+            await using var createCommand = adminConnection.CreateCommand();
+            createCommand.CommandText = $"CREATE DATABASE \"{_databaseName}\"";
+            await createCommand.ExecuteNonQueryAsync(CancellationToken.None);
         }
         catch (Exception exception) when (IsDockerUnavailable(exception))
         {
             _useSqliteFallback = true;
             _sqliteConnection = new SqliteConnection("Data Source=:memory:");
             await _sqliteConnection.OpenAsync(CancellationToken.None);
+        }
+    }
+
+    private static async Task InitializeSharedContainerAsync()
+    {
+        if (_containerInitialized)
+        {
+            return;
+        }
+
+        await _containerLock.WaitAsync();
+        try
+        {
+            if (_containerInitialized)
+            {
+                return;
+            }
+
+            _sharedContainer = new PostgreSqlBuilder("postgres:17-alpine")
+                .WithDatabase("postgres")
+                .WithUsername("postgres")
+                .WithPassword("postgres")
+                .WithCommand("-c", "max_connections=500")
+                .Build();
+
+            await RetryAsync(async () => await _sharedContainer.StartAsync(), 5, TimeSpan.FromSeconds(3));
+            await WaitUntilReadyAsync(CancellationToken.None);
+
+            _containerInitialized = true;
+        }
+        finally
+        {
+            _containerLock.Release();
         }
     }
 
@@ -85,13 +149,34 @@ internal sealed class PostgreSqlTestFixture<TContext> : IAsyncLifetime
             return;
         }
 
-        if (_container is not null)
+        // Drop the test database
+        if (_sharedContainer is not null && _databaseName is not null)
         {
-            await _container.DisposeAsync();
+            try
+            {
+                await using var adminConnection = new NpgsqlConnection(_sharedContainer.GetConnectionString());
+                await adminConnection.OpenAsync(CancellationToken.None);
+
+                await using var terminateCommand = adminConnection.CreateCommand();
+                terminateCommand.CommandText = $@"
+                    SELECT pg_terminate_backend(pid) 
+                    FROM pg_stat_activity 
+                    WHERE datname = '{_databaseName}' 
+                    AND pid <> pg_backend_pid()";
+                await terminateCommand.ExecuteNonQueryAsync(CancellationToken.None);
+
+                await using var dropCommand = adminConnection.CreateCommand();
+                dropCommand.CommandText = $"DROP DATABASE IF EXISTS \"{_databaseName}\"";
+                await dropCommand.ExecuteNonQueryAsync(CancellationToken.None);
+            }
+            catch
+            {
+                // Best effort cleanup
+            }
         }
     }
 
-    private async Task WaitUntilReadyAsync(CancellationToken cancellationToken)
+    private static async Task WaitUntilReadyAsync(CancellationToken cancellationToken)
     {
         const int maxAttempts = 10;
 
@@ -99,7 +184,7 @@ internal sealed class PostgreSqlTestFixture<TContext> : IAsyncLifetime
         {
             try
             {
-                await using var connection = new NpgsqlConnection(ConnectionString);
+                await using var connection = new NpgsqlConnection(_sharedContainer!.GetConnectionString());
                 await connection.OpenAsync(cancellationToken);
 
                 await using var command = new NpgsqlCommand("SELECT 1", connection);

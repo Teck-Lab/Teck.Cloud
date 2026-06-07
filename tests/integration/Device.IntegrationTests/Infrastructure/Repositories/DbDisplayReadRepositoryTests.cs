@@ -9,46 +9,65 @@ using Device.Infrastructure.Persistence.Repositories.Read;
 using Device.IntegrationTests.TestSupport;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.Infrastructure.Repositories;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DbDisplayReadRepositoryTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
-    private DeviceReadDbContext? _dbContext;
+    private readonly SharedTestcontainersFixture _fixture;
+    private DeviceReadDbContext? _readDbContext;
+    private DeviceWriteDbContext? _writeDbContext;
     private IDisplayReadRepository? _repository;
+    private string? _connectionString;
 
-    public DbDisplayReadRepositoryTests(SharedDeviceTestcontainersFixture fixture)
+    public DbDisplayReadRepositoryTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        // Create database using write context migrations (has all tables)
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
-        var options = new DbContextOptionsBuilder<DeviceReadDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+        // Create write context for seeding data
+        var writeOptions = new DbContextOptionsBuilder<DeviceWriteDbContext>()
+            .UseNpgsql(_connectionString)
             .Options;
 
         var tenantAccessor = new FixedTenantContextAccessor();
-        _dbContext = new DeviceReadDbContext(options, tenantAccessor);
+        _writeDbContext = new DeviceWriteDbContext(writeOptions, tenantAccessor);
 
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        // Create read context for the repository
+        var readOptions = new DbContextOptionsBuilder<DeviceReadDbContext>()
+            .UseNpgsql(_connectionString)
+            .Options;
 
-        _repository = new DbDisplayReadRepository(_dbContext);
+        _readDbContext = new DeviceReadDbContext(readOptions, tenantAccessor);
+
+        _repository = new DbDisplayReadRepository(_readDbContext);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_dbContext is not null)
+        if (_readDbContext is not null)
         {
-            await _dbContext.DisposeAsync();
+            await _readDbContext.DisposeAsync();
+        }
+
+        if (_writeDbContext is not null)
+        {
+            await _writeDbContext.DisposeAsync();
+        }
+
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
         }
 
         GC.SuppressFinalize(this);
@@ -57,18 +76,13 @@ public sealed class DbDisplayReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByLocationAsync_ShouldReturnDisplays_WhenLocationHasDisplays()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> display1 = Display.Create("AE-6F-B8-87", "shelf-a1", null);
         global::ErrorOr.ErrorOr<Display> display2 = Display.Create("00-11-22-33", "shelf-a1", null);
         global::ErrorOr.ErrorOr<Display> display3 = Display.Create("FF-FF-FF-FF", "shelf-b2", null);
 
-        _dbContext!.Set<Display>().AddRange(display1.Value, display2.Value, display3.Value);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _writeDbContext!.Set<Display>().AddRange(display1.Value, display2.Value, display3.Value);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         IReadOnlyList<DisplaySnapshot> results = await _repository!.GetByLocationAsync(
@@ -84,15 +98,10 @@ public sealed class DbDisplayReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByLocationAsync_ShouldReturnEmptyList_WhenLocationHasNoDisplays()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> display = Display.Create("AE-6F-B8-87", "shelf-a1", null);
-        _dbContext!.Set<Display>().Add(display.Value);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _writeDbContext!.Set<Display>().Add(display.Value);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         IReadOnlyList<DisplaySnapshot> results = await _repository!.GetByLocationAsync(
@@ -106,18 +115,13 @@ public sealed class DbDisplayReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByLocationAsync_ShouldOrderByShortSerial()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> display1 = Display.Create("ZZ-ZZ-ZZ-ZZ", "shelf-a1", null);
         global::ErrorOr.ErrorOr<Display> display2 = Display.Create("AA-AA-AA-AA", "shelf-a1", null);
         global::ErrorOr.ErrorOr<Display> display3 = Display.Create("MM-MM-MM-MM", "shelf-a1", null);
 
-        _dbContext!.Set<Display>().AddRange(display1.Value, display2.Value, display3.Value);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _writeDbContext!.Set<Display>().AddRange(display1.Value, display2.Value, display3.Value);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         IReadOnlyList<DisplaySnapshot> results = await _repository!.GetByLocationAsync(
@@ -134,17 +138,12 @@ public sealed class DbDisplayReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByLocationAsync_ShouldIncludeOptionalDeviceDefinitionId()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         var definitionId = Guid.NewGuid();
         global::ErrorOr.ErrorOr<Display> display = Display.Create("AE-6F-B8-87", "shelf-a1", definitionId);
 
-        _dbContext!.Set<Display>().Add(display.Value);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _writeDbContext!.Set<Display>().Add(display.Value);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         IReadOnlyList<DisplaySnapshot> results = await _repository!.GetByLocationAsync(
@@ -159,15 +158,10 @@ public sealed class DbDisplayReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByLocationAsync_ShouldIncludeNullLongSerial_WhenNotSet()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> display = Display.Create("AE-6F-B8-87", "shelf-a1", null);
-        _dbContext!.Set<Display>().Add(display.Value);
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _writeDbContext!.Set<Display>().Add(display.Value);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         IReadOnlyList<DisplaySnapshot> results = await _repository!.GetByLocationAsync(

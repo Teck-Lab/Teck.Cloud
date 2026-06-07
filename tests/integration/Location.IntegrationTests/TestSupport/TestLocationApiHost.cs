@@ -17,46 +17,36 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using SharedKernel.Infrastructure.Endpoints;
 using SharedKernel.Persistence.Database.EFCore.Interceptors;
-using Testcontainers.PostgreSql;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Location.IntegrationTests.TestSupport;
 
 internal sealed class TestLocationApiHost : IAsyncDisposable
 {
     private readonly WebApplication app;
-    private readonly PostgreSqlContainer dbContainer;
+    private readonly string dbConnectionString;
+    private readonly SharedTestcontainersFixture sharedFixture;
 
-    private TestLocationApiHost(WebApplication app, HttpClient client, string localStorageDirectory, PostgreSqlContainer dbContainer)
+    private TestLocationApiHost(WebApplication app, HttpClient client, string localStorageDirectory, string dbConnectionString, SharedTestcontainersFixture sharedFixture)
     {
         this.app = app;
         this.Client = client;
         this.LocalStorageDirectory = localStorageDirectory;
-        this.dbContainer = dbContainer;
+        this.dbConnectionString = dbConnectionString;
+        this.sharedFixture = sharedFixture;
     }
 
     public HttpClient Client { get; }
 
     public string LocalStorageDirectory { get; }
 
-    public static async Task<TestLocationApiHost> StartAsync()
+    public static async Task<TestLocationApiHost> StartAsync(SharedTestcontainersFixture sharedFixture)
     {
-        PostgreSqlContainer dbContainer = new PostgreSqlBuilder("postgres:latest")
-            .WithDatabase("location_testdb")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-        await dbContainer.StartAsync(TestContext.Current.CancellationToken);
-
-        string dbConnectionString = dbContainer.GetConnectionString();
-
-        var migrationOptions = new DbContextOptionsBuilder<TemplateFontMetadataDbContext>()
-            .UseNpgsql(dbConnectionString, npgsql => npgsql.MigrationsAssembly("Teck.Cloud.Migrations.PostgreSQL"))
-            .Options;
-        await using (var migrationContext = new TemplateFontMetadataDbContext(migrationOptions, null))
-        {
-            await migrationContext.Database.MigrateAsync(TestContext.Current.CancellationToken);
-        }
+        // Create or reuse a shared test database for this host
+        string dbConnectionString = await sharedFixture.CreateSharedTestDatabaseAsync(
+            typeof(TemplateFontMetadataDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
         string localStorageDirectory = Path.Combine(
             Path.GetTempPath(),
@@ -75,6 +65,7 @@ internal sealed class TestLocationApiHost : IAsyncDisposable
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["ConnectionStrings:db-write"] = dbConnectionString,
+            ["ConnectionStrings:db-read"] = dbConnectionString,
             ["Database:Provider"] = "postgres",
             [$"{TemplateFontStorageOptions.Section}:LocalDirectory"] = localStorageDirectory,
             [$"{TemplateFontStorageOptions.Section}:ObjectKeyTemplate"] = "tenant-fonts/{tenantId}/{fontKey}",
@@ -112,14 +103,23 @@ internal sealed class TestLocationApiHost : IAsyncDisposable
         app.UseFastEndpointsInfrastructure("location");
 
         await app.StartAsync(TestContext.Current.CancellationToken);
-        return new TestLocationApiHost(app, app.GetTestClient(), localStorageDirectory, dbContainer);
+        return new TestLocationApiHost(app, app.GetTestClient(), localStorageDirectory, dbConnectionString, sharedFixture);
     }
 
     public async ValueTask DisposeAsync()
     {
         this.Client.Dispose();
         await this.app.DisposeAsync();
-        await this.dbContainer.DisposeAsync();
+
+        // Truncate the shared test database for isolation
+        try
+        {
+            await this.sharedFixture.TruncateAllTablesAsync(this.dbConnectionString, TestContext.Current.CancellationToken);
+        }
+        catch
+        {
+            // Best effort cleanup
+        }
 
         if (Directory.Exists(this.LocalStorageDirectory))
         {

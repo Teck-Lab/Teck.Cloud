@@ -1613,14 +1613,6 @@
           "xunit.v3.runner.inproc.console": "[3.2.2]"
         }
       },
-      "xunit.v3.extensibility.core": {
-        "type": "Transitive",
-        "resolved": "3.2.2",
-        "contentHash": "srY8z/oMPvh/t8axtO2DwrHajhFMH7tnqKildvYrVQIfICi8fOn3yIBWkVPAcrKmHMwvXRJ/XsQM3VMR6DOYfQ==",
-        "dependencies": {
-          "xunit.v3.common": "[3.2.2]"
-        }
-      },
       "xunit.v3.mtp-v1": {
         "type": "Transitive",
         "resolved": "3.2.2",
@@ -2092,6 +2084,16 @@
           "SharedKernel.Grpc.Contracts": "[0.0.1, )",
           "SharedKernel.Infrastructure": "[0.0.1, )",
           "VaultSharp": "[1.17.5.1, )"
+        }
+      },
+      "teck.cloud.integrationtests.shared": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "[10.0.7, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.1, )",
+          "Testcontainers.PostgreSql": "[4.11.0, )",
+          "Testcontainers.RabbitMq": "[4.11.0, )",
+          "xunit.v3.extensibility.core": "[3.2.2, )"
         }
       },
       "teck.cloud.migrations.postgresql": {
@@ -3487,6 +3489,15 @@
           "SharpZipLib": "1.4.2"
         }
       },
+      "Testcontainers.RabbitMq": {
+        "type": "CentralTransitive",
+        "requested": "[4.11.0, )",
+        "resolved": "4.11.0",
+        "contentHash": "+4rDOXdjwwDx11vUpSAAK/gDOPtZ/LC+qj02RiulHtIMEAzC4KjyP5hEactvwSuGfcomFnmtJqYn1Pwyh+pPDw==",
+        "dependencies": {
+          "Testcontainers": "4.11.0"
+        }
+      },
       "VaultSharp": {
         "type": "CentralTransitive",
         "requested": "[1.17.5.1, )",
@@ -3608,6 +3619,15 @@
         "dependencies": {
           "Weasel.SqlServer": "9.0.1",
           "WolverineFx.RDBMS": "6.2.2"
+        }
+      },
+      "xunit.v3.extensibility.core": {
+        "type": "CentralTransitive",
+        "requested": "[3.2.2, )",
+        "resolved": "3.2.2",
+        "contentHash": "srY8z/oMPvh/t8axtO2DwrHajhFMH7tnqKildvYrVQIfICi8fOn3yIBWkVPAcrKmHMwvXRJ/XsQM3VMR6DOYfQ==",
+        "dependencies": {
+          "xunit.v3.common": "[3.2.2]"
         }
       },
       "Yarp.ReverseProxy": {

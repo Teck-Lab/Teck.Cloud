@@ -12,7 +12,7 @@ namespace Product.Infrastructure.Persistence.Repositories.Read;
 /// <summary>
 /// EF Core read repository for product queries.
 /// </summary>
-internal sealed class DbProductReadRepository(ProductReadDbContext dbContext) : IProductReadRepository
+public sealed class DbProductReadRepository(ProductReadDbContext dbContext) : IProductReadRepository
 {
     /// <inheritdoc/>
     public async Task<PagedList<GetProductItemResponse>> GetPagedAsync(

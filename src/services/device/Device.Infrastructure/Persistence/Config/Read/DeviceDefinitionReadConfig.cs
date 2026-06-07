@@ -49,5 +49,25 @@ internal sealed class DeviceDefinitionReadConfig : IEntityTypeConfiguration<Devi
         builder.Property(model => model.CatalogSupplierId);
 
         builder.Property(model => model.CatalogProductId);
+
+        builder.Property(model => model.CreatedAt)
+            .IsRequired();
+
+        builder.Property(model => model.CreatedBy)
+            .HasMaxLength(100);
+
+        builder.Property(model => model.UpdatedOn);
+
+        builder.Property(model => model.UpdatedBy)
+            .HasMaxLength(100);
+
+        builder.Property(model => model.DeletedOn);
+
+        builder.Property(model => model.DeletedBy)
+            .HasMaxLength(100);
+
+        builder.Property(model => model.IsDeleted)
+            .IsRequired()
+            .HasDefaultValue(false);
     }
 }

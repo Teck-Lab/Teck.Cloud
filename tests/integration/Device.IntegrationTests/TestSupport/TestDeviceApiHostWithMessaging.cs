@@ -21,24 +21,24 @@ using SharedKernel.Grpc.Contracts.Remote.V1.Products;
 using SharedKernel.Infrastructure.Behaviors;
 using SharedKernel.Infrastructure.Endpoints;
 using SharedKernel.Infrastructure.MultiTenant;
+using Teck.Cloud.IntegrationTests.Shared;
 using Wolverine;
 
 namespace Device.IntegrationTests.TestSupport;
 
 internal sealed class TestDeviceApiHostWithMessaging : IAsyncDisposable
 {
-    // Serializes concurrent MigrateAsync calls across test hosts sharing the same Postgres container.
-    // Repository tests in the same collection call EnsureDeletedAsync which wipes the schema;
-    // without serialization two StartAsync calls can race to apply InitialDeviceSchema simultaneously.
-    private static readonly SemaphoreSlim MigrationGate = new(1, 1);
-
     private readonly WebApplication app;
     private readonly List<IServiceScope> scopes = new();
+    private readonly string dbConnectionString;
+    private readonly SharedTestcontainersFixture sharedFixture;
 
-    private TestDeviceApiHostWithMessaging(WebApplication app, HttpClient client)
+    private TestDeviceApiHostWithMessaging(WebApplication app, HttpClient client, string dbConnectionString, SharedTestcontainersFixture sharedFixture)
     {
         this.app = app;
         this.Client = client;
+        this.dbConnectionString = dbConnectionString;
+        this.sharedFixture = sharedFixture;
     }
 
     public HttpClient Client { get; }
@@ -58,16 +58,21 @@ internal sealed class TestDeviceApiHostWithMessaging : IAsyncDisposable
     }
 
     public static async Task<TestDeviceApiHostWithMessaging> StartAsync(
-        string postgresConnectionString,
-        string rabbitConnectionString,
+        SharedTestcontainersFixture sharedFixture,
         string productApiRemoteAddress,
         string labelGeneratorApiRemoteAddress,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(postgresConnectionString);
-        ArgumentException.ThrowIfNullOrWhiteSpace(rabbitConnectionString);
         ArgumentException.ThrowIfNullOrWhiteSpace(productApiRemoteAddress);
         ArgumentException.ThrowIfNullOrWhiteSpace(labelGeneratorApiRemoteAddress);
+
+        // Create or reuse a shared test database for this host
+        string dbConnectionString = await sharedFixture.CreateSharedTestDatabaseAsync(
+            typeof(Device.Infrastructure.Persistence.DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            cancellationToken);
+
+        string rabbitConnectionString = sharedFixture.RabbitMqConnectionString;
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -80,8 +85,8 @@ internal sealed class TestDeviceApiHostWithMessaging : IAsyncDisposable
         {
             ["Services:ProductApi:Url"] = productApiRemoteAddress,
             ["Services:LabelGeneratorApi:Url"] = labelGeneratorApiRemoteAddress,
-            ["ConnectionStrings:db-write"] = postgresConnectionString,
-            ["ConnectionStrings:db-read"] = postgresConnectionString,
+            ["ConnectionStrings:db-write"] = dbConnectionString,
+            ["ConnectionStrings:db-read"] = dbConnectionString,
             ["ConnectionStrings:rabbitmq"] = rabbitConnectionString,
             ["Database:Provider"] = "postgres",
         });
@@ -115,7 +120,7 @@ internal sealed class TestDeviceApiHostWithMessaging : IAsyncDisposable
         {
             var accessor = sp.GetRequiredService<IMultiTenantContextAccessor<TenantDetails>>();
             var opts = new DbContextOptionsBuilder<Device.Infrastructure.Persistence.DeviceWriteDbContext>()
-                .UseNpgsql(postgresConnectionString, npgsql => npgsql.MigrationsAssembly("Teck.Cloud.Migrations.PostgreSQL"))
+                .UseNpgsql(dbConnectionString, npgsql => npgsql.MigrationsAssembly("Teck.Cloud.Migrations.PostgreSQL"))
                 .Options;
             return new Device.Infrastructure.Persistence.DeviceWriteDbContext(opts, accessor);
         });
@@ -150,55 +155,15 @@ internal sealed class TestDeviceApiHostWithMessaging : IAsyncDisposable
         app.UseRouting();
         app.UseFastEndpointsInfrastructure("device");
 
-        // Re-apply EF schema as a safety net after schema wipes by EnsureDeletedAsync / EnsureCreatedAsync
-        // in repo tests.  MUST run before store.Admin.MigrateAsync() so that EnsureDeletedAsync (in the
-        // else branch) does not terminate Wolverine's already-open connections.
-        //   Case 1: DB is clean (migrations ran) → MigrateAsync is a no-op.
-        //   Case 2: A repo test called EnsureCreatedAsync on the *read* context so __EFMigrationsHistory
-        //      does not exist and only read-model tables are present.  EnsureDeletedAsync + MigrateAsync
-        //      tears down the partial schema and rebuilds it fully from migrations.
-        await MigrationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var dbContextOptions = new DbContextOptionsBuilder<Device.Infrastructure.Persistence.DeviceWriteDbContext>()
-                .UseNpgsql(postgresConnectionString, npgsql => npgsql.MigrationsAssembly("Teck.Cloud.Migrations.PostgreSQL"))
-                .Options;
-            await using var dbContext = new Device.Infrastructure.Persistence.DeviceWriteDbContext(dbContextOptions);
-
-            // GetAppliedMigrationsAsync queries __EFMigrationsHistory; it returns an empty
-            // enumerable (not an exception) when the table does not exist.
-            IEnumerable<string> applied = await dbContext.Database
-                .GetAppliedMigrationsAsync(cancellationToken)
-                .ConfigureAwait(false);
-            if (applied.Any())
-            {
-                await dbContext.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                // No migration history: a repo test called EnsureCreatedAsync on the read context,
-                // leaving the DB in a partial EnsureCreated state (only read-model tables present).
-                // EnsureCreatedAsync on the write context would be a no-op because the DB already
-                // exists with tables, so EF Core assumes the schema is current.
-                // Delete and re-migrate to get a fully correct write-model schema.
-                await dbContext.Database.EnsureDeletedAsync(cancellationToken).ConfigureAwait(false);
-                await dbContext.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            MigrationGate.Release();
-        }
-
         var store = app.Services.GetRequiredService<Wolverine.Persistence.Durability.IMessageStore>();
-        await store.Admin.MigrateAsync().ConfigureAwait(false);
+        await store.Admin.MigrateAsync();
 
-        await app.StartAsync(cancellationToken).ConfigureAwait(false);
+        await app.StartAsync(cancellationToken);
 
         return new TestDeviceApiHostWithMessaging(app, new HttpClient
         {
             BaseAddress = new Uri(app.Urls.Single()),
-        });
+        }, dbConnectionString, sharedFixture);
     }
 
     public async ValueTask DisposeAsync()
@@ -210,7 +175,17 @@ internal sealed class TestDeviceApiHostWithMessaging : IAsyncDisposable
 
         this.scopes.Clear();
         this.Client.Dispose();
-        await this.app.DisposeAsync().ConfigureAwait(false);
+        await this.app.DisposeAsync();
+
+        // Truncate the shared test database for isolation
+        try
+        {
+            await this.sharedFixture.TruncateAllTablesAsync(this.dbConnectionString, TestContext.Current.CancellationToken);
+        }
+        catch
+        {
+            // Best effort cleanup
+        }
     }
 
     private static int GetFreeTcpPort()

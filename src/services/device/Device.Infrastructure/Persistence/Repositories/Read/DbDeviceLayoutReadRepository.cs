@@ -9,7 +9,7 @@ using SharedKernel.Core.Pagination;
 
 namespace Device.Infrastructure.Persistence.Repositories.Read;
 
-internal sealed class DbDeviceLayoutReadRepository(
+public sealed class DbDeviceLayoutReadRepository(
     IDbContextFactory<DeviceReadDbContext> dbContextFactory)
     : IDeviceLayoutReadRepository
 {

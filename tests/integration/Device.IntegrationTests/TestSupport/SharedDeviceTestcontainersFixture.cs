@@ -3,6 +3,7 @@
 // </copyright>
 
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
 
@@ -10,6 +11,7 @@ namespace Device.IntegrationTests.TestSupport;
 
 public sealed class SharedDeviceTestcontainersFixture : IAsyncLifetime
 {
+    private readonly SemaphoreSlim databaseLock = new(1, 1);
     public PostgreSqlContainer? DbContainer { get; private set; }
 
     public RabbitMqContainer? RabbitContainer { get; private set; }
@@ -22,6 +24,7 @@ public sealed class SharedDeviceTestcontainersFixture : IAsyncLifetime
                 .WithDatabase("device_testdb")
                 .WithUsername("postgres")
                 .WithPassword("postgres")
+                .WithCommand("-c", "max_connections=500")
                 .Build();
 
             this.RabbitContainer = new RabbitMqBuilder("rabbitmq:3-management")
@@ -72,6 +75,110 @@ public sealed class SharedDeviceTestcontainersFixture : IAsyncLifetime
         if (this.RabbitContainer is not null)
         {
             await this.RabbitContainer.DisposeAsync();
+        }
+
+        this.databaseLock.Dispose();
+    }
+
+    public string GetDatabaseConnectionString(string databaseName)
+    {
+        if (this.DbContainer is null)
+        {
+            throw new InvalidOperationException("PostgreSQL container is not available.");
+        }
+
+        var builder = new NpgsqlConnectionStringBuilder(this.DbContainer.GetConnectionString())
+        {
+            Database = databaseName,
+            Pooling = true,
+            MaxPoolSize = 50,
+            ConnectionLifetime = 300,
+        };
+
+        return builder.ConnectionString;
+    }
+
+    public async Task<string> CreateSharedTestDatabaseAsync(
+        Type dbContextType,
+        string migrationsAssembly,
+        CancellationToken cancellationToken = default)
+    {
+        if (this.DbContainer is null)
+        {
+            throw new InvalidOperationException("PostgreSQL container is not available.");
+        }
+
+        await this.databaseLock.WaitAsync(cancellationToken);
+        try
+        {
+            string databaseName = $"testdb_{dbContextType.Name.ToLowerInvariant()}";
+
+            await using var adminConnection = new NpgsqlConnection(this.DbContainer.GetConnectionString());
+            await adminConnection.OpenAsync(cancellationToken);
+            await using var checkCommand = adminConnection.CreateCommand();
+            checkCommand.CommandText = $"SELECT 1 FROM pg_database WHERE datname = '{databaseName}'";
+            var exists = await checkCommand.ExecuteScalarAsync(cancellationToken) is not null;
+
+            if (!exists)
+            {
+                await using var createCommand = adminConnection.CreateCommand();
+                createCommand.CommandText = $"CREATE DATABASE \"{databaseName}\"";
+                await createCommand.ExecuteNonQueryAsync(cancellationToken);
+
+                string testConnectionString = GetDatabaseConnectionString(databaseName);
+                var optionsBuilderType = typeof(DbContextOptionsBuilder<>).MakeGenericType(dbContextType);
+                var optionsBuilder = (DbContextOptionsBuilder)Activator.CreateInstance(optionsBuilderType)!;
+                optionsBuilder.UseNpgsql(testConnectionString, npgsql => npgsql.MigrationsAssembly(migrationsAssembly));
+
+                var dbContext = (DbContext)Activator.CreateInstance(dbContextType, optionsBuilder.Options, null)!;
+                await using (dbContext)
+                {
+                    await dbContext.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            return GetDatabaseConnectionString(databaseName);
+        }
+        finally
+        {
+            this.databaseLock.Release();
+        }
+    }
+
+    public async Task TruncateAllTablesAsync(string connectionString, CancellationToken cancellationToken = default)
+    {
+        await this.databaseLock.WaitAsync(cancellationToken);
+        try
+        {
+            var cleanupConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
+            {
+                Pooling = false,
+            }.ConnectionString;
+
+            await using var connection = new NpgsqlConnection(cleanupConnectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            await using var truncateCommand = connection.CreateCommand();
+            truncateCommand.CommandText = @"
+                DO $$
+                DECLARE
+                    table_names text;
+                BEGIN
+                    SELECT string_agg(quote_ident(tablename), ', ')
+                    INTO table_names
+                    FROM pg_tables
+                    WHERE schemaname = 'public'
+                    AND tablename != '__EFMigrationsHistory';
+
+                    IF table_names IS NOT NULL THEN
+                        EXECUTE 'TRUNCATE TABLE ' || table_names || ' RESTART IDENTITY CASCADE';
+                    END IF;
+                END $$;";
+            await truncateCommand.ExecuteNonQueryAsync(cancellationToken);
+        }
+        finally
+        {
+            this.databaseLock.Release();
         }
     }
 

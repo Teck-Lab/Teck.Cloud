@@ -7,8 +7,8 @@ using Device.Application.Operations.Saga;
 using Device.IntegrationTests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Npgsql;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 using Wolverine;
 using Wolverine.Persistence.Sagas;
 using Wolverine.RDBMS.Sagas;
@@ -16,15 +16,15 @@ using Wolverine.Runtime;
 
 namespace Device.IntegrationTests.Operations.Saga;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DisplayOperationSagaIntegrationTests
 {
     private const string ProductApiRemoteAddress = "http://127.0.0.1:1";
     private const string LabelGeneratorApiRemoteAddress = "http://127.0.0.1:2";
 
-    private readonly SharedDeviceTestcontainersFixture fixture;
+    private readonly SharedTestcontainersFixture fixture;
 
-    public DisplayOperationSagaIntegrationTests(SharedDeviceTestcontainersFixture fixture)
+    public DisplayOperationSagaIntegrationTests(SharedTestcontainersFixture fixture)
     {
         this.fixture = fixture;
     }
@@ -32,11 +32,6 @@ public sealed class DisplayOperationSagaIntegrationTests
     [Fact]
     public async Task PublishStartOperation_ShouldCreateSagaAndEmitStartedEvent()
     {
-        if (!this.fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         await using TestDeviceApiHostWithMessaging host = await StartHostAsync(cancellationToken);
@@ -57,11 +52,6 @@ public sealed class DisplayOperationSagaIntegrationTests
     [Fact]
     public async Task PublishMultipleStartOperations_ShouldQueueSubsequentOperations()
     {
-        if (!this.fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         await using TestDeviceApiHostWithMessaging host = await StartHostAsync(cancellationToken);
@@ -86,11 +76,6 @@ public sealed class DisplayOperationSagaIntegrationTests
     [Fact]
     public async Task PublishCompleted_ShouldAdvanceQueueAndStartNext()
     {
-        if (!this.fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         await using TestDeviceApiHostWithMessaging host = await StartHostAsync(cancellationToken);
@@ -118,11 +103,6 @@ public sealed class DisplayOperationSagaIntegrationTests
     [Fact]
     public async Task PublishFailed_ShouldRetryNextPendingOperation()
     {
-        if (!this.fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         await using TestDeviceApiHostWithMessaging host = await StartHostAsync(cancellationToken);
@@ -149,40 +129,11 @@ public sealed class DisplayOperationSagaIntegrationTests
 
     private async Task<TestDeviceApiHostWithMessaging> StartHostAsync(CancellationToken cancellationToken)
     {
-        string postgresConnectionString = await CreateIsolatedPostgresConnectionStringAsync(cancellationToken).ConfigureAwait(false);
-
         return await TestDeviceApiHostWithMessaging.StartAsync(
-            postgresConnectionString,
-            this.fixture.RabbitContainer!.GetConnectionString(),
+            this.fixture,
             ProductApiRemoteAddress,
             LabelGeneratorApiRemoteAddress,
             cancellationToken);
-    }
-
-    [SuppressMessage(
-        "Security",
-        "CA2100:Review SQL queries for security vulnerabilities",
-        Justification = "Database name is generated from a GUID inside the test and quoted by NpgsqlCommandBuilder.")]
-    private async Task<string> CreateIsolatedPostgresConnectionStringAsync(CancellationToken cancellationToken)
-    {
-        NpgsqlConnectionStringBuilder databaseBuilder = new(this.fixture.DbContainer!.GetConnectionString())
-        {
-            Database = $"device_saga_{Guid.NewGuid():N}",
-        };
-
-        NpgsqlConnectionStringBuilder adminBuilder = new(databaseBuilder.ConnectionString)
-        {
-            Database = "postgres",
-        };
-
-        await using NpgsqlConnection connection = new(adminBuilder.ConnectionString);
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await using NpgsqlCommand command = connection.CreateCommand();
-        using NpgsqlCommandBuilder commandBuilder = new();
-        command.CommandText = $"CREATE DATABASE {commandBuilder.QuoteIdentifier(databaseBuilder.Database!)}";
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-
-        return databaseBuilder.ConnectionString;
     }
 
     private static async Task InsertSagaAsync(IServiceProvider services, DisplayOperationSaga saga, CancellationToken cancellationToken)

@@ -38,6 +38,7 @@
     <ProjectReference Include="..\..\..\src\migrations\Teck.Cloud.Migrations.PostgreSQL\Teck.Cloud.Migrations.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\..\src\buildingblocks\SharedKernel.Grpc.Contracts\SharedKernel.Grpc.Contracts.csproj" />
     <ProjectReference Include="..\..\..\src\buildingblocks\SharedKernel.Infrastructure\SharedKernel.Infrastructure.csproj" />
+    <ProjectReference Include="..\Teck.Cloud.IntegrationTests.Shared\Teck.Cloud.IntegrationTests.Shared.csproj" />
   </ItemGroup>
 
 </Project>

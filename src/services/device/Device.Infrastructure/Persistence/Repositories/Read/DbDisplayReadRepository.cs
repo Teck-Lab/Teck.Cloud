@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Device.Infrastructure.Persistence.Repositories.Read;
 
-internal sealed class DbDisplayReadRepository(DeviceReadDbContext dbContext) : IDisplayReadRepository
+public sealed class DbDisplayReadRepository(DeviceReadDbContext dbContext) : IDisplayReadRepository
 {
     private readonly DeviceReadDbContext dbContext = dbContext;
 

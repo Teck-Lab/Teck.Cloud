@@ -9,7 +9,7 @@ using SharedKernel.Persistence.Database.EFCore.Interceptors;
 namespace Catalog.IntegrationTests.Shared
 {
     /// <summary>
-    /// Base test fixture for testing read repositories
+    /// Base test fixture for testing read repositories with shared-database table-truncation isolation.
     /// </summary>
     public abstract class BaseReadRepoTestFixture<TContext> : IAsyncLifetime where TContext : DbContext
     {
@@ -18,6 +18,7 @@ namespace Catalog.IntegrationTests.Shared
         protected SoftDeleteInterceptor SoftDeleteInterceptor = null!;
         protected AuditingInterceptor AuditingInterceptor = null!;
         protected IServiceProvider ServiceProvider = null!;
+        protected string? ConnectionString;
 
         protected BaseReadRepoTestFixture(SharedTestcontainersFixture sharedFixture)
         {
@@ -26,7 +27,6 @@ namespace Catalog.IntegrationTests.Shared
 
         public virtual async ValueTask InitializeAsync()
         {
-            // Containers are already started by the shared fixture
             var httpContextAccessor = new HttpContextAccessor();
             var services = new ServiceCollection();
             services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
@@ -35,29 +35,41 @@ namespace Catalog.IntegrationTests.Shared
             SoftDeleteInterceptor = new SoftDeleteInterceptor(httpContextAccessor);
             AuditingInterceptor = new AuditingInterceptor(httpContextAccessor);
 
-            var optionsBuilder = new DbContextOptionsBuilder<TContext>()
-                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor);
+            // Create or reuse a shared test database using shared fixture
+            ConnectionString = await SharedFixture.CreateSharedTestDatabaseAsync(
+                typeof(TContext),
+                "Catalog.Infrastructure.Migrations.PostgreSQL",
+                TestContext.Current.CancellationToken);
 
-            if (SharedFixture.UseSqliteFallback)
-            {
-                optionsBuilder.UseSqlite(SharedFixture.SqliteConnection!);
-            }
-            else
-            {
-                optionsBuilder.UseNpgsql(SharedFixture.DbContainer!.GetConnectionString());
-            }
+            var optionsBuilder = new DbContextOptionsBuilder<TContext>()
+                .UseNpgsql(ConnectionString)
+                .AddInterceptors(SoftDeleteInterceptor, AuditingInterceptor);
 
             var options = optionsBuilder.Options;
             var tenantAccessor = new FixedTenantContextAccessor();
             ReadDbContext = CreateReadDbContext(options, tenantAccessor);
 
-            await ReadDbContext.Database.EnsureCreatedAsync();
             await SeedAsync();
         }
 
         public virtual async ValueTask DisposeAsync()
         {
-            // Do NOT dispose containers here; handled by shared fixture
+            try
+            {
+                if (ReadDbContext != null)
+                {
+                    await ReadDbContext.DisposeAsync();
+                }
+
+                if (ConnectionString is not null)
+                {
+                    await SharedFixture.TruncateAllTablesAsync(ConnectionString, TestContext.Current.CancellationToken);
+                }
+            }
+            catch
+            {
+                // best-effort cleanup
+            }
         }
 
         protected abstract TContext CreateReadDbContext(DbContextOptions<TContext> options, IMultiTenantContextAccessor<TenantDetails> tenantAccessor);

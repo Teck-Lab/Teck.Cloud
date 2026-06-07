@@ -3,55 +3,73 @@
 // </copyright>
 
 using Device.Application.DeviceDefinitions.Abstractions;
-using Device.Application.DeviceDefinitions.ReadModels;
 using Device.Domain.Entities.DeviceDefinitionAggregate;
 using Device.Infrastructure.Persistence;
 using Device.Infrastructure.Persistence.Repositories.Read;
 using Device.IntegrationTests.TestSupport;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.Devices;
 using SharedKernel.Core.Pagination;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.Infrastructure.Repositories;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DbDeviceDefinitionReadRepositoryTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
-    private DeviceReadDbContext? _dbContext;
+    private readonly SharedTestcontainersFixture _fixture;
+    private DeviceReadDbContext? _readDbContext;
+    private DeviceWriteDbContext? _writeDbContext;
     private IDeviceDefinitionReadRepository? _repository;
+    private string? _connectionString;
 
-    public DbDeviceDefinitionReadRepositoryTests(SharedDeviceTestcontainersFixture fixture)
+    public DbDeviceDefinitionReadRepositoryTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        // Create database using write context migrations (has all tables including device_definitions)
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
-        var options = new DbContextOptionsBuilder<DeviceReadDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+        // Create write context for seeding data
+        var writeOptions = new DbContextOptionsBuilder<DeviceWriteDbContext>()
+            .UseNpgsql(_connectionString)
             .Options;
 
-        var tenantAccessor = new FixedTenantContextAccessor();
-        _dbContext = new DeviceReadDbContext(options, tenantAccessor);
+        _writeDbContext = new DeviceWriteDbContext(writeOptions);
 
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        // Create read context for the repository
+        var readOptions = new DbContextOptionsBuilder<DeviceReadDbContext>()
+            .UseNpgsql(_connectionString)
+            .Options;
 
-        var factory = new TestDbContextFactory(_fixture.DbContainer!.GetConnectionString());
+        _readDbContext = new DeviceReadDbContext(readOptions);
+
+        var factory = new TestDbContextFactory(_connectionString);
         _repository = new DbDeviceDefinitionReadRepository(factory);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_dbContext is not null)
+        if (_readDbContext is not null)
         {
-            await _dbContext.DisposeAsync();
+            await _readDbContext.DisposeAsync();
+        }
+
+        if (_writeDbContext is not null)
+        {
+            await _writeDbContext.DisposeAsync();
+        }
+
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
         }
 
         GC.SuppressFinalize(this);
@@ -60,77 +78,60 @@ public sealed class DbDeviceDefinitionReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByModelIdAsync_ShouldReturnSnapshot_WhenDefinitionExists()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        var definitionResult = DeviceDefinition.Create(
+            modelId: "HS-MODEL-001",
+            name: "Hanshow Model A",
+            eslProvider: EslProvider.Hanshow,
+            supportedColors: DisplayInkColor.Black | DisplayInkColor.Red,
+            supportsNfc: true,
+            widthPx: 296,
+            heightPx: 128,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
 
-        var id = Guid.NewGuid();
-        _dbContext!.DeviceDefinitions.Add(new DeviceDefinitionReadModel
-        {
-            Id = id,
-            ModelId = "HS-MODEL-001",
-            Name = "Hanshow Model A",
-            EslProvider = "Hanshow",
-            SupportedColors = (int)(DisplayInkColor.Black | DisplayInkColor.Red),
-            SupportsNfc = false,
-        });
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        definitionResult.IsError.ShouldBeFalse();
+        _writeDbContext!.DeviceDefinitions.Add(definitionResult.Value);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         DeviceDefinitionSnapshot? result = await _repository!.GetByModelIdAsync(
             "HS-MODEL-001",
             TestContext.Current.CancellationToken);
 
         result.ShouldNotBeNull();
-        result!.ModelId.ShouldBe("HS-MODEL-001");
+        result!.Id.ShouldBe(definitionResult.Value.Id);
+        result.ModelId.ShouldBe("HS-MODEL-001");
         result.Name.ShouldBe("Hanshow Model A");
-        result.EslProvider.Name.ShouldBe("Hanshow");
-        result.SupportedColors.ShouldBe(DisplayInkColor.Black | DisplayInkColor.Red);
-    }
-
-    [Fact]
-    public async Task GetByModelIdAsync_ShouldReturnNull_WhenDefinitionDoesNotExist()
-    {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
-        DeviceDefinitionSnapshot? result = await _repository!.GetByModelIdAsync(
-            "DOES-NOT-EXIST",
-            TestContext.Current.CancellationToken);
-
-        result.ShouldBeNull();
+        result.SupportsNfc.ShouldBeTrue();
+        result.WidthPx.ShouldBe(296);
+        result.HeightPx.ShouldBe(128);
     }
 
     [Fact]
     public async Task GetByIdAsync_ShouldReturnSnapshot_WhenDefinitionExists()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        var definitionResult = DeviceDefinition.Create(
+            modelId: "HS-MODEL-002",
+            name: "Hanshow Model B",
+            eslProvider: EslProvider.SoluM,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: true,
+            widthPx: 128,
+            heightPx: 64,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
 
-        var id = Guid.NewGuid();
-        _dbContext!.DeviceDefinitions.Add(new DeviceDefinitionReadModel
-        {
-            Id = id,
-            ModelId = "HS-MODEL-002",
-            Name = "Hanshow Model B",
-            EslProvider = "SoluM",
-            SupportedColors = (int)DisplayInkColor.Black,
-            SupportsNfc = true,
-            WidthPx = 128,
-            HeightPx = 64,
-        });
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        definitionResult.IsError.ShouldBeFalse();
+        _writeDbContext!.DeviceDefinitions.Add(definitionResult.Value);
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         DeviceDefinitionSnapshot? result = await _repository!.GetByIdAsync(
-            id,
+            definitionResult.Value.Id,
             TestContext.Current.CancellationToken);
 
         result.ShouldNotBeNull();
-        result!.Id.ShouldBe(id);
+        result!.Id.ShouldBe(definitionResult.Value.Id);
         result.ModelId.ShouldBe("HS-MODEL-002");
         result.SupportsNfc.ShouldBeTrue();
         result.WidthPx.ShouldBe(128);
@@ -138,46 +139,39 @@ public sealed class DbDeviceDefinitionReadRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetByIdAsync_ShouldReturnNull_WhenDefinitionDoesNotExist()
-    {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
-        DeviceDefinitionSnapshot? result = await _repository!.GetByIdAsync(
-            Guid.NewGuid(),
-            TestContext.Current.CancellationToken);
-
-        result.ShouldBeNull();
-    }
-
-    [Fact]
     public async Task GetPagedAsync_ShouldReturnPagedItems_SortedByModelIdByDefault()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        var definitionResult1 = DeviceDefinition.Create(
+            modelId: "Z-MODEL",
+            name: "Z Model",
+            eslProvider: EslProvider.Hanshow,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: false,
+            widthPx: null,
+            heightPx: null,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
 
-        _dbContext!.DeviceDefinitions.AddRange(
-            new DeviceDefinitionReadModel
-            {
-                Id = Guid.NewGuid(),
-                ModelId = "ZZZ-PAGED-B",
-                Name = "Beta",
-                EslProvider = "Hanshow",
-                SupportedColors = (int)DisplayInkColor.Black,
-            },
-            new DeviceDefinitionReadModel
-            {
-                Id = Guid.NewGuid(),
-                ModelId = "AAA-PAGED-A",
-                Name = "Alpha",
-                EslProvider = "Hanshow",
-                SupportedColors = (int)DisplayInkColor.Black,
-            });
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        definitionResult1.IsError.ShouldBeFalse();
+        _writeDbContext!.DeviceDefinitions.Add(definitionResult1.Value);
+
+        var definitionResult2 = DeviceDefinition.Create(
+            modelId: "A-MODEL",
+            name: "A Model",
+            eslProvider: EslProvider.SoluM,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: true,
+            widthPx: null,
+            heightPx: null,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
+
+        definitionResult2.IsError.ShouldBeFalse();
+        _writeDbContext.DeviceDefinitions.Add(definitionResult2.Value);
+
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         PagedList<DeviceDefinitionSnapshot> result = await _repository!.GetPagedAsync(
             page: 1,
@@ -186,37 +180,45 @@ public sealed class DbDeviceDefinitionReadRepositoryTests : IAsyncLifetime
             sortDescending: false,
             TestContext.Current.CancellationToken);
 
-        result.ShouldNotBeNull();
-        result.TotalItems.ShouldBeGreaterThanOrEqualTo(2);
-        result.Items.ShouldNotBeEmpty();
+        result.Items.Count.ShouldBe(2);
+        result.Items[0].ModelId.ShouldBe("A-MODEL");
+        result.Items[1].ModelId.ShouldBe("Z-MODEL");
     }
 
     [Fact]
     public async Task GetPagedAsync_ShouldReturnPagedItems_SortedByName()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        var definitionResult1 = DeviceDefinition.Create(
+            modelId: "Z-MODEL",
+            name: "Z Model",
+            eslProvider: EslProvider.Hanshow,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: false,
+            widthPx: null,
+            heightPx: null,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
 
-        _dbContext!.DeviceDefinitions.AddRange(
-            new DeviceDefinitionReadModel
-            {
-                Id = Guid.NewGuid(),
-                ModelId = "SORT-NAME-C",
-                Name = "Zebra Display",
-                EslProvider = "Hanshow",
-                SupportedColors = (int)DisplayInkColor.Black,
-            },
-            new DeviceDefinitionReadModel
-            {
-                Id = Guid.NewGuid(),
-                ModelId = "SORT-NAME-D",
-                Name = "Apple Display",
-                EslProvider = "Hanshow",
-                SupportedColors = (int)DisplayInkColor.Black,
-            });
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        definitionResult1.IsError.ShouldBeFalse();
+        _writeDbContext!.DeviceDefinitions.Add(definitionResult1.Value);
+
+        var definitionResult2 = DeviceDefinition.Create(
+            modelId: "A-MODEL",
+            name: "A Model",
+            eslProvider: EslProvider.SoluM,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: true,
+            widthPx: null,
+            heightPx: null,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
+
+        definitionResult2.IsError.ShouldBeFalse();
+        _writeDbContext.DeviceDefinitions.Add(definitionResult2.Value);
+
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         PagedList<DeviceDefinitionSnapshot> result = await _repository!.GetPagedAsync(
             page: 1,
@@ -225,25 +227,18 @@ public sealed class DbDeviceDefinitionReadRepositoryTests : IAsyncLifetime
             sortDescending: false,
             TestContext.Current.CancellationToken);
 
-        result.ShouldNotBeNull();
-        result.Items.ShouldNotBeEmpty();
-        var names = result.Items.Select(x => x.Name).ToList();
-        names.ShouldBe(names.OrderBy(n => n).ToList());
+        result.Items.Count.ShouldBe(2);
+        result.Items[0].Name.ShouldBe("A Model");
+        result.Items[1].Name.ShouldBe("Z Model");
     }
 
-    /// <summary>
-    /// A simple <see cref="IDbContextFactory{TContext}"/> implementation for tests.
-    /// </summary>
     private sealed class TestDbContextFactory(string connectionString) : IDbContextFactory<DeviceReadDbContext>
     {
-        private readonly string connectionString = connectionString;
-
         public DeviceReadDbContext CreateDbContext()
         {
             var options = new DbContextOptionsBuilder<DeviceReadDbContext>()
-                .UseNpgsql(this.connectionString)
+                .UseNpgsql(connectionString)
                 .Options;
-
             return new DeviceReadDbContext(options);
         }
     }

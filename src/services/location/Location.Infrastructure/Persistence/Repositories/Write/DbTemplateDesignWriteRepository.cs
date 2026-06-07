@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Location.Infrastructure.Persistence.Repositories.Write;
 
-internal sealed class DbTemplateDesignWriteRepository(TemplateFontMetadataDbContext dbContext) : ITemplateDesignWriteRepository
+public sealed class DbTemplateDesignWriteRepository(TemplateFontMetadataDbContext dbContext) : ITemplateDesignWriteRepository
 {
     private readonly TemplateFontMetadataDbContext dbContext = dbContext;
 

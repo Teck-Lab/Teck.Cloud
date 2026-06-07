@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Location.Infrastructure.Persistence.Repositories.Read;
 
-internal sealed class DbLocationGroupReadRepository(LocationReadDbContext dbContext) : ILocationGroupReadRepository
+public sealed class DbLocationGroupReadRepository(LocationReadDbContext dbContext) : ILocationGroupReadRepository
 {
     private readonly LocationReadDbContext dbContext = dbContext;
 

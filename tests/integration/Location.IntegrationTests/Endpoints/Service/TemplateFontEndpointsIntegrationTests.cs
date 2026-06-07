@@ -1,3 +1,4 @@
+using Teck.Cloud.IntegrationTests.Shared;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -12,12 +13,12 @@ using Shouldly;
 namespace Location.IntegrationTests.Endpoints.Service;
 
 [Collection("LocationIntegrationTests")]
-public sealed class TemplateFontEndpointsIntegrationTests
+public sealed class TemplateFontEndpointsIntegrationTests(SharedTestcontainersFixture fixture)
 {
     [Fact]
     public async Task UploadListDelete_ShouldPersistAndRemoveTemplateFont()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantId = $"tenant-{Guid.NewGuid():N}";
         string templateId = $"template-{Guid.NewGuid():N}";
@@ -86,7 +87,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Delete_ShouldKeepBlobUntilLastTemplateReferenceIsRemoved()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantId = $"tenant-{Guid.NewGuid():N}";
         string templateOne = $"template-a-{Guid.NewGuid():N}";
@@ -124,7 +125,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task List_ShouldReturnBadRequest_WhenTenantHeaderIsMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         HttpResponseMessage response = await host.Client.GetAsync(
             new Uri("/location/v1/Service/Templates/template-1/Fonts", UriKind.Relative),
@@ -138,7 +139,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldReturnBadRequest_WhenTenantHeaderIsMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using MultipartFormDataContent formData = CreateFontUpload("Inter-Regular.ttf", "font/ttf", [1, 2, 3]);
         using HttpRequestMessage request = new(HttpMethod.Post, "/location/v1/Service/Templates/template-1/Fonts/fonts/Inter-Regular.ttf")
@@ -156,7 +157,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldReturnBadRequest_WhenFileIsMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using MultipartFormDataContent formData = [];
         formData.Add(new StringContent("placeholder"), "Metadata");
@@ -176,7 +177,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldReturnBadRequest_WhenBodyIsNotMultipart()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using HttpRequestMessage request = new(HttpMethod.Post, "/location/v1/Service/Templates/template-1/Fonts/fonts/Inter-Regular.ttf")
         {
@@ -193,7 +194,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldReturnBadRequest_WhenFileExceedsConfiguredMaxBytes()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         byte[] largePayload = new byte[(1024 * 1024) + 1];
         using MultipartFormDataContent formData = CreateFontUpload("too-large.ttf", "font/ttf", largePayload);
@@ -213,7 +214,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldSucceed_WhenFileSizeEqualsConfiguredMaxBytes()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         const int maxBytes = 1024 * 1024;
         byte[] payload = new byte[maxBytes];
@@ -246,7 +247,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldDefaultContentType_WhenMultipartFileContentTypeMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantId = $"tenant-{Guid.NewGuid():N}";
         string templateId = $"template-{Guid.NewGuid():N}";
@@ -272,7 +273,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldDecodeEncodedSpacesInFontKey()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantId = $"tenant-{Guid.NewGuid():N}";
         string templateId = $"template-{Guid.NewGuid():N}";
@@ -299,7 +300,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldNormalizeBackslashesInFontKey_FromUrlEncodedPath()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantId = $"tenant-{Guid.NewGuid():N}";
         string templateId = $"template-{Guid.NewGuid():N}";
@@ -326,7 +327,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldPreserveEncodedForwardSlashesInFontKey()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantId = $"tenant-{Guid.NewGuid():N}";
         string templateId = $"template-{Guid.NewGuid():N}";
@@ -353,7 +354,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldReturnBadRequest_WhenMultipartBoundaryIsMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using HttpRequestMessage request = new(HttpMethod.Post, "/location/v1/Service/Templates/template-1/Fonts/fonts/CorruptBoundary.ttf")
         {
@@ -372,7 +373,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldReturnBadRequest_WhenFilePartIsEmpty()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using MultipartFormDataContent formData = CreateFontUpload("empty.ttf", "font/ttf", []);
         using HttpRequestMessage request = new(HttpMethod.Post, "/location/v1/Service/Templates/template-1/Fonts/fonts/Empty.ttf")
@@ -391,7 +392,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Delete_ShouldReturnNotFound_WhenTemplateFontDoesNotExist()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         HttpResponseMessage response = await DeleteAsync(host, "tenant-1", "template-1", "fonts/unknown.ttf");
         string responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -403,7 +404,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Delete_ShouldReturnBadRequest_WhenTenantHeaderIsMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using HttpRequestMessage request = new(HttpMethod.Delete, "/location/v1/Service/Templates/template-1/Fonts/fonts/Inter-Regular.ttf");
 
@@ -417,7 +418,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task List_ShouldReturnEmpty_WhenTemplateHasNoFonts()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using HttpRequestMessage request = new(HttpMethod.Get, "/location/v1/Service/Templates/template-empty/Fonts");
         request.Headers.Add("X-TenantId", "tenant-1");
@@ -437,7 +438,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Upload_ShouldOverwriteExistingFont_WhenSameTemplateAndFontKeyAreUploadedAgain()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantId = $"tenant-{Guid.NewGuid():N}";
         string templateId = $"template-{Guid.NewGuid():N}";
@@ -488,7 +489,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task List_ShouldBeTenantIsolated_WhenTemplateIdMatchesAcrossTenants()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantA = $"tenant-a-{Guid.NewGuid():N}";
         string tenantB = $"tenant-b-{Guid.NewGuid():N}";
@@ -529,7 +530,7 @@ public sealed class TemplateFontEndpointsIntegrationTests
     [Fact]
     public async Task Delete_ShouldNotAffectOtherTenant_WhenFontKeysMatch()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         string tenantA = $"tenant-a-{Guid.NewGuid():N}";
         string tenantB = $"tenant-b-{Guid.NewGuid():N}";

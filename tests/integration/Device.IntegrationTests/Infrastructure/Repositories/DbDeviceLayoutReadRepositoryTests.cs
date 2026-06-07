@@ -2,57 +2,74 @@
 // Copyright (c) TeckLab. All rights reserved.
 // </copyright>
 
-using Device.Application.DeviceDefinitions.ReadModels;
 using Device.Application.DeviceLayouts.Abstractions;
-using Device.Application.DeviceLayouts.ReadModels;
 using Device.Domain.Entities.DeviceDefinitionAggregate;
+using Device.Domain.Entities.DeviceLayoutAggregate;
 using Device.Infrastructure.Persistence;
 using Device.Infrastructure.Persistence.Repositories.Read;
 using Device.IntegrationTests.TestSupport;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Core.Pagination;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.Infrastructure.Repositories;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DbDeviceLayoutReadRepositoryTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
-    private DeviceReadDbContext? _dbContext;
+    private readonly SharedTestcontainersFixture _fixture;
+    private DeviceReadDbContext? _readDbContext;
+    private DeviceWriteDbContext? _writeDbContext;
     private IDeviceLayoutReadRepository? _repository;
+    private string? _connectionString;
 
-    public DbDeviceLayoutReadRepositoryTests(SharedDeviceTestcontainersFixture fixture)
+    public DbDeviceLayoutReadRepositoryTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        // Create database using write context migrations (has all tables)
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
-        var options = new DbContextOptionsBuilder<DeviceReadDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+        // Create write context for seeding data
+        var writeOptions = new DbContextOptionsBuilder<DeviceWriteDbContext>()
+            .UseNpgsql(_connectionString)
             .Options;
 
-        var tenantAccessor = new FixedTenantContextAccessor();
-        _dbContext = new DeviceReadDbContext(options, tenantAccessor);
+        _writeDbContext = new DeviceWriteDbContext(writeOptions);
 
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        // Create read context for the repository
+        var readOptions = new DbContextOptionsBuilder<DeviceReadDbContext>()
+            .UseNpgsql(_connectionString)
+            .Options;
 
-        var factory = new TestDbContextFactory(_fixture.DbContainer!.GetConnectionString());
+        _readDbContext = new DeviceReadDbContext(readOptions);
+
+        var factory = new TestDbContextFactory(_connectionString);
         _repository = new DbDeviceLayoutReadRepository(factory);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_dbContext is not null)
+        if (_readDbContext is not null)
         {
-            await _dbContext.DisposeAsync();
+            await _readDbContext.DisposeAsync();
+        }
+
+        if (_writeDbContext is not null)
+        {
+            await _writeDbContext.DisposeAsync();
+        }
+
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
         }
 
         GC.SuppressFinalize(this);
@@ -61,30 +78,41 @@ public sealed class DbDeviceLayoutReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByDeviceDefinitionIdAsync_ShouldReturnLayouts_WhenLayoutsExist()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        var definitionResult = DeviceDefinition.Create(
+            modelId: "HS-LAYOUT-DEF-001",
+            name: "Layout Test Definition",
+            eslProvider: SharedKernel.Core.Devices.EslProvider.Hanshow,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: false,
+            widthPx: null,
+            heightPx: null,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
 
-        var definitionId = Guid.NewGuid();
+        definitionResult.IsError.ShouldBeFalse();
+        _writeDbContext!.DeviceDefinitions.Add(definitionResult.Value);
 
-        _dbContext!.DeviceDefinitions.Add(new DeviceDefinitionReadModel
-        {
-            Id = definitionId,
-            ModelId = "HS-LAYOUT-DEF-001",
-            Name = "Layout Test Definition",
-            EslProvider = "Hanshow",
-            SupportedColors = (int)DisplayInkColor.Black,
-        });
+        var layoutResult1 = DeviceLayout.Create(
+            deviceDefinitionId: definitionResult.Value.Id,
+            name: "Layout A",
+            maxZoneCount: 4);
 
-        _dbContext.DeviceLayouts.AddRange(
-            new DeviceLayoutReadModel { Id = Guid.NewGuid(), DeviceDefinitionId = definitionId, Name = "Layout A", MaxZoneCount = 4 },
-            new DeviceLayoutReadModel { Id = Guid.NewGuid(), DeviceDefinitionId = definitionId, Name = "Layout B", MaxZoneCount = 2 });
+        layoutResult1.IsError.ShouldBeFalse();
+        _writeDbContext.DeviceLayouts.Add(layoutResult1.Value);
 
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var layoutResult2 = DeviceLayout.Create(
+            deviceDefinitionId: definitionResult.Value.Id,
+            name: "Layout B",
+            maxZoneCount: 2);
+
+        layoutResult2.IsError.ShouldBeFalse();
+        _writeDbContext.DeviceLayouts.Add(layoutResult2.Value);
+
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         IReadOnlyList<DeviceLayoutSnapshot> result = await _repository!.GetByDeviceDefinitionIdAsync(
-            definitionId,
+            definitionResult.Value.Id,
             TestContext.Current.CancellationToken);
 
         result.ShouldNotBeNull();
@@ -96,11 +124,6 @@ public sealed class DbDeviceLayoutReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetByDeviceDefinitionIdAsync_ShouldReturnEmpty_WhenNoLayoutsExist()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         IReadOnlyList<DeviceLayoutSnapshot> result = await _repository!.GetByDeviceDefinitionIdAsync(
             Guid.NewGuid(),
             TestContext.Current.CancellationToken);
@@ -112,27 +135,38 @@ public sealed class DbDeviceLayoutReadRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetPagedAsync_ShouldReturnPagedLayouts()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        var definitionResult = DeviceDefinition.Create(
+            modelId: "HS-PAGED-LAYOUT-DEF",
+            name: "Paged Layout Test Definition",
+            eslProvider: SharedKernel.Core.Devices.EslProvider.Hanshow,
+            supportedColors: DisplayInkColor.Black,
+            supportsNfc: false,
+            widthPx: null,
+            heightPx: null,
+            catalogManufacturerId: null,
+            catalogSupplierId: null,
+            catalogProductId: null);
 
-        var definitionId = Guid.NewGuid();
+        definitionResult.IsError.ShouldBeFalse();
+        _writeDbContext!.DeviceDefinitions.Add(definitionResult.Value);
 
-        _dbContext!.DeviceDefinitions.Add(new DeviceDefinitionReadModel
-        {
-            Id = definitionId,
-            ModelId = "HS-PAGED-LAYOUT-DEF",
-            Name = "Paged Layout Test Definition",
-            EslProvider = "Hanshow",
-            SupportedColors = (int)DisplayInkColor.Black,
-        });
+        var layoutResult1 = DeviceLayout.Create(
+            deviceDefinitionId: definitionResult.Value.Id,
+            name: "Paged Layout 1",
+            maxZoneCount: 3);
 
-        _dbContext.DeviceLayouts.AddRange(
-            new DeviceLayoutReadModel { Id = Guid.NewGuid(), DeviceDefinitionId = definitionId, Name = "Paged Layout 1", MaxZoneCount = 3 },
-            new DeviceLayoutReadModel { Id = Guid.NewGuid(), DeviceDefinitionId = definitionId, Name = "Paged Layout 2", MaxZoneCount = 6 });
+        layoutResult1.IsError.ShouldBeFalse();
+        _writeDbContext.DeviceLayouts.Add(layoutResult1.Value);
 
-        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var layoutResult2 = DeviceLayout.Create(
+            deviceDefinitionId: definitionResult.Value.Id,
+            name: "Paged Layout 2",
+            maxZoneCount: 6);
+
+        layoutResult2.IsError.ShouldBeFalse();
+        _writeDbContext.DeviceLayouts.Add(layoutResult2.Value);
+
+        await _writeDbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         PagedList<DeviceLayoutSnapshot> result = await _repository!.GetPagedAsync(
             page: 1,

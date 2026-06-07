@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Location.Infrastructure.Persistence.Repositories.Write;
 
-internal sealed class DbLocationGroupWriteRepository(TemplateFontMetadataDbContext dbContext) : ILocationGroupWriteRepository
+public sealed class DbLocationGroupWriteRepository(TemplateFontMetadataDbContext dbContext) : ILocationGroupWriteRepository
 {
     private readonly TemplateFontMetadataDbContext dbContext = dbContext;
 

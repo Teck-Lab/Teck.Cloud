@@ -1,3 +1,4 @@
+using Teck.Cloud.IntegrationTests.Shared;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -7,12 +8,12 @@ using Shouldly;
 namespace Location.IntegrationTests.Endpoints.Service;
 
 [Collection("LocationIntegrationTests")]
-public sealed class ServiceEndpointsTenantValidationIntegrationTests
+public sealed class ServiceEndpointsTenantValidationIntegrationTests(SharedTestcontainersFixture fixture)
 {
     [Fact]
     public async Task CreateLocationNode_ShouldReturnBadRequest_WhenTenantHeaderIsMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         using HttpRequestMessage request = new(HttpMethod.Post, "/location/v1/Service/LocationNodes")
         {
@@ -29,7 +30,7 @@ public sealed class ServiceEndpointsTenantValidationIntegrationTests
     [Fact]
     public async Task GetDisplayModels_ShouldReturnBadRequest_WhenTenantHeaderIsMissing()
     {
-        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync();
+        await using TestLocationApiHost host = await TestLocationApiHost.StartAsync(fixture);
 
         HttpResponseMessage response = await host.Client.GetAsync(
             new Uri("/location/v1/Service/Displays", UriKind.Relative),

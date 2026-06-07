@@ -35,6 +35,11 @@
     <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Api\Catalog.Api.csproj" />
     <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Domain\Catalog.Domain.csproj" />
     <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\src\services\catalog\Catalog.Infrastructure.Migrations.PostgreSQL\Catalog.Infrastructure.Migrations.PostgreSQL.csproj" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <Using Include="Catalog.Domain.Entities.ProductAggregate.Product" Alias="Product" />
+  </ItemGroup>
 </Project>

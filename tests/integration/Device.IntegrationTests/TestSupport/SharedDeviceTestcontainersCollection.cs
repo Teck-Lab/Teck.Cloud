@@ -1,10 +1,8 @@
-// <copyright file="SharedDeviceTestcontainersCollection.cs" company="TeckLab">
-// Copyright (c) TeckLab. All rights reserved.
-// </copyright>
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.TestSupport;
 
-[CollectionDefinition("SharedDeviceTestcontainers")]
-public sealed class SharedDeviceTestcontainersCollection : ICollectionFixture<SharedDeviceTestcontainersFixture>
+[CollectionDefinition("SharedTestcontainers")]
+public sealed class SharedDeviceTestcontainersCollection : ICollectionFixture<SharedTestcontainersFixture>
 {
 }

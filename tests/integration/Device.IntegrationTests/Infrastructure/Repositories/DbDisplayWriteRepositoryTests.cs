@@ -10,37 +10,36 @@ using Device.IntegrationTests.TestSupport;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
+using Teck.Cloud.IntegrationTests.Shared;
 
 namespace Device.IntegrationTests.Infrastructure.Repositories;
 
-[Collection("SharedDeviceTestcontainers")]
+[Collection("SharedTestcontainers")]
 public sealed class DbDisplayWriteRepositoryTests : IAsyncLifetime
 {
-    private readonly SharedDeviceTestcontainersFixture _fixture;
+    private readonly SharedTestcontainersFixture _fixture;
     private DeviceWriteDbContext? _dbContext;
     private IDisplayWriteRepository? _repository;
+    private string? _connectionString;
 
-    public DbDisplayWriteRepositoryTests(SharedDeviceTestcontainersFixture fixture)
+    public DbDisplayWriteRepositoryTests(SharedTestcontainersFixture fixture)
     {
         _fixture = fixture;
     }
 
     public async ValueTask InitializeAsync()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
+        _connectionString = await _fixture.CreateSharedTestDatabaseAsync(
+            typeof(DeviceWriteDbContext),
+            "Teck.Cloud.Migrations.PostgreSQL",
+            TestContext.Current.CancellationToken);
 
         var options = new DbContextOptionsBuilder<DeviceWriteDbContext>()
-            .UseNpgsql(_fixture.DbContainer!.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
 
         var tenantAccessor = new FixedTenantContextAccessor();
         _dbContext = new DeviceWriteDbContext(options, tenantAccessor);
-
-        await _dbContext.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
-        await _dbContext.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         _repository = new DbDisplayWriteRepository(_dbContext, new TestHttpContextAccessor());
     }
@@ -52,17 +51,17 @@ public sealed class DbDisplayWriteRepositoryTests : IAsyncLifetime
             await _dbContext.DisposeAsync();
         }
 
+        if (_connectionString is not null)
+        {
+            await _fixture.TruncateAllTablesAsync(_connectionString, TestContext.Current.CancellationToken);
+        }
+
         GC.SuppressFinalize(this);
     }
 
     [Fact]
     public async Task AddAsync_ShouldPersistDisplay()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> created = Display.Create(
             shortSerial: "AE-6F-B8-87",
@@ -87,11 +86,6 @@ public sealed class DbDisplayWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task ExistsWithShortSerialGlobalAsync_ShouldReturnTrue_WhenSerialExists()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> created = Display.Create(
             shortSerial: "00-11-22-33",
@@ -111,11 +105,6 @@ public sealed class DbDisplayWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task ExistsWithShortSerialGlobalAsync_ShouldReturnFalse_WhenSerialDoesNotExist()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Act
         bool exists = await _repository!.ExistsWithShortSerialGlobalAsync("FF-FF-FF-FF", TestContext.Current.CancellationToken);
 
@@ -126,11 +115,6 @@ public sealed class DbDisplayWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task ExistsWithShortSerialGlobalAsync_ShouldBeCaseSensitive()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> created = Display.Create(
             shortSerial: "AA-BB-CC-DD",
@@ -151,11 +135,6 @@ public sealed class DbDisplayWriteRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task AddAsync_ShouldPersistMultipleDisplays()
     {
-        if (!_fixture.IsAvailable)
-        {
-            return;
-        }
-
         // Arrange
         global::ErrorOr.ErrorOr<Display> display1 = Display.Create(
             shortSerial: "11-22-33-44",

@@ -12,7 +12,7 @@ namespace Product.Infrastructure.Persistence.Repositories.Write;
 /// <summary>
 /// EF Core write repository for <see cref="Domain.Entities.ProductAggregate.Product"/>.
 /// </summary>
-internal sealed class DbProductWriteRepository(
+public sealed class DbProductWriteRepository(
     ProductWriteDbContext dbContext,
     IHttpContextAccessor httpContextAccessor)
     : GenericWriteRepository<Domain.Entities.ProductAggregate.Product, Guid, ProductWriteDbContext>(dbContext, httpContextAccessor),
