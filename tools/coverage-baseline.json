@@ -1,0 +1,14 @@
+{
+  "SharedKernel.Core": {
+    "line": 60.759,
+    "branch": 65.384
+  },
+  "SharedKernel.Infrastructure": {
+    "line": 89.514,
+    "branch": 72.348
+  },
+  "SharedKernel.Persistence": {
+    "line": 85.043,
+    "branch": 80
+  }
+}

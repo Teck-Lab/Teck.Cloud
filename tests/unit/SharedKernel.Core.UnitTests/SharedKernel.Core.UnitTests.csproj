@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="coverlet.MTP" PrivateAssets="all" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="AutoFixture" />
+    <PackageReference Include="AutoFixture.AutoNSubstitute" />
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="Soenneker.Utils.AutoBogus" />
+    <PackageReference Include="Soenneker.Utils.AutoBogus.NSubstitute" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp" PrivateAssets="all" />
+    <ProjectReference Include="../../../src/shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+  </ItemGroup>
+</Project>
