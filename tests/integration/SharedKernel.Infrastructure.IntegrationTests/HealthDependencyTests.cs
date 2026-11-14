@@ -45,7 +45,9 @@ public sealed class HealthDependencyTests
             ready.Entries.Keys.ShouldContain("postgres-messaging", StringComparer.Ordinal);
             foreach (var (container, name) in new (IContainer Container, string Name)[] { (redis, "redis"), (rabbit, "rabbitmq"), (database, "postgres-messaging") })
             {
-                await container.StopAsync(cancellation).ConfigureAwait(true);
+                // Keep the endpoint stable: Docker can remap random host ports after stop/start.
+                // Pausing simulates an unavailable dependency without changing client configuration.
+                await container.PauseAsync(cancellation).ConfigureAwait(true);
                 try
                 {
                     var offline = await checks.CheckHealthAsync(registration => string.Equals(registration.Name, name, StringComparison.Ordinal), cancellation).ConfigureAwait(true);
@@ -54,7 +56,8 @@ public sealed class HealthDependencyTests
                 }
                 finally
                 {
-                    await container.StartAsync(cancellation).ConfigureAwait(true);
+                    using var recovery = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                    await container.UnpauseAsync(recovery.Token).ConfigureAwait(true);
                 }
 
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
