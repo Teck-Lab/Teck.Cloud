@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="coverlet.MTP" PrivateAssets="all" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="AutoFixture" />
+    <PackageReference Include="AutoFixture.AutoNSubstitute" />
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="Soenneker.Utils.AutoBogus" />
+    <PackageReference Include="Soenneker.Utils.AutoBogus.NSubstitute" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp" PrivateAssets="all" />
+    <PackageReference Include="FastEndpoints.Testing" />
+    <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <ProjectReference Include="../../fixtures/SharedKernel.Api.TestHost/SharedKernel.Api.TestHost.csproj" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" PrivateAssets="all" Condition="'$(VerifyStaticHandlers)' != 'true'" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
+    <PackageReference Include="Testcontainers.Redis" />
+    <PackageReference Include="Testcontainers.Keycloak" />
+    <ProjectReference Include="../../../src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(VerifyStaticHandlers)' == 'true'">
+    <DefineConstants>$(DefineConstants);VERIFY_STATIC_HANDLERS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(VerifyStaticHandlers)' == 'true'">
+    <Compile Include="../../../.artifacts/wolverine-generated/**/*.cs" />
+  </ItemGroup>
+</Project>
