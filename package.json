@@ -51,7 +51,7 @@
     "@nx/js": "24.0.6",
     "nx": "24.0.6",
     "typescript": "6.0.2",
-    "yaml": "2.9.0"
+    "yaml": "2.9.1"
   },
   "trustedDependencies": [
     "nx"
