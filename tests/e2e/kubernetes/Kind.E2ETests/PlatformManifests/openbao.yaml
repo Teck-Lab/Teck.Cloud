@@ -1,0 +1,45 @@
+apiVersion: openbao.org/v1alpha1
+kind: OpenBaoCluster
+metadata:
+  name: bao
+  namespace: openbao-proof
+spec:
+  version: "2.7.2"
+  replicas: 1
+  profile: Development
+  controllerJWTMode: Target
+  selfInit:
+    enabled: true
+    oidc:
+      enabled: true
+    requests:
+      - name: create-health-policy
+        operation: update
+        path: sys/policies/acl/local-health
+        policy:
+          policy: 'path "sys/health" { capabilities = ["read"] }'
+      - name: create-health-role
+        operation: update
+        path: auth/jwt-operator/role/local-health
+        data:
+          role_type: jwt
+          user_claim: sub
+          bound_audiences: [local-health]
+          bound_subject: system:serviceaccount:openbao-proof:health-client
+          token_policies: [local-health]
+          token_ttl: 10m
+  tls:
+    enabled: true
+    mode: OperatorManaged
+    rotationPeriod: 720h
+  network:
+    apiServerEndpointIPs: [KIND_API_ENDPOINT]
+  storage:
+    size: 1Gi
+  deletionPolicy: DeleteAll
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: health-client
+  namespace: openbao-proof

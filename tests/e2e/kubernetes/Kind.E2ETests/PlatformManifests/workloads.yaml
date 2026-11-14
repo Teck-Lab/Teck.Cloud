@@ -1,0 +1,201 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-proof
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway
+  namespace: platform-proof
+spec:
+  secretName: gateway-tls
+  dnsNames: [gateway.platform-proof.svc.cluster.local]
+  issuerRef:
+    name: teck-local-ca
+    kind: ClusterIssuer
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gateway
+  namespace: platform-proof
+spec:
+  gatewayClassName: kgateway
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: gateway-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: application
+  namespace: platform-proof
+spec:
+  parentRefs:
+    - name: gateway
+  rules:
+    - backendRefs:
+        - name: application
+          port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: application
+  namespace: platform-proof
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: application
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: application
+  namespace: platform-proof
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: application
+  strategy:
+    blueGreen:
+      activeService: application
+      autoPromotionEnabled: true
+  template:
+    metadata:
+      labels:
+        app: application
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: http
+          image: busybox:1.37.0
+          command:
+            [
+              sh,
+              -c,
+              "mkdir -p /tmp/www; echo teck-gateway-ready >/tmp/www/index.html; exec httpd -f -p 8080 -h /tmp/www",
+            ]
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: platform-proof
+spec:
+  instances: 1
+  storage:
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-password
+  namespace: platform-proof
+stringData:
+  password: GENERATED_TEST_PASSWORD
+---
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisReplication
+metadata:
+  name: redis
+  namespace: platform-proof
+spec:
+  clusterSize: 2
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  kubernetesConfig:
+    image: quay.io/opstree/redis:v8.10.1
+    redisSecret:
+      name: redis-password
+      key: password
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisSentinel
+metadata:
+  name: redis
+  namespace: platform-proof
+spec:
+  clusterSize: 3
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  redisSentinelConfig:
+    redisReplicationName: redis
+    redisReplicationPassword:
+      secretKeyRef:
+        name: redis-password
+        key: password
+  kubernetesConfig:
+    image: quay.io/opstree/redis-sentinel:v8.10.1
+    redisSecret:
+      name: redis-password
+      key: password
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openbao-proof
+---
+apiVersion: openbao.org/v1alpha1
+kind: OpenBaoTenant
+metadata:
+  name: proof
+  namespace: openbao-operator-system
+spec:
+  targetNamespace: openbao-proof
