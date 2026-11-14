@@ -65,7 +65,11 @@ Do not add FastEndpoints messaging or another mediator beside Wolverine.
 
 ## Reproducible dependency restores
 
-Every C# project records its complete dependency graph in packages.lock.json. Keep these
+Every C# project records its complete dependency graph in packages.lock.json.
+The Infrastructure integration suite also records packages.static.lock.json for
+VerifyStaticHandlers=true, where WolverineFx.RuntimeCompilation is deliberately
+absent. Both graphs must restore in locked mode; update and verify both when
+changing their dependencies. Keep these
 files in source control alongside Directory.Packages.props; central version pins do not
 by themselves freeze transitive resolution. GITHUB_ACTIONS=true enables RestoreLockedMode
 for every restore, including implicit restores through Nx, build and pack. CI also uses

@@ -33,7 +33,7 @@
   },
   "overrides": [
     {
-      "includes": ["**/packages.lock.json"],
+      "includes": ["**/packages.lock.json", "**/packages.static.lock.json"],
       "formatter": {
         "enabled": false
       }
