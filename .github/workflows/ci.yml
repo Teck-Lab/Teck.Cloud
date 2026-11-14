@@ -173,7 +173,8 @@ jobs:
         run: git hash-object -w -t tree --stdin < /dev/null
       - name: Affected application E2E
         run: |
-          export TECK_REDIS_ADVERTISED_HOST="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
+          TECK_REDIS_ADVERTISED_HOST="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
+          export TECK_REDIS_ADVERTISED_HOST
           bun run affected:e2e
       - name: Upload verification evidence
         if: always()

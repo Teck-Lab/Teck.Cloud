@@ -10,6 +10,12 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: tls
           image: curlimages/curl:8.17.0
@@ -20,6 +26,11 @@ spec:
             - name: certificate
               mountPath: /certs
               readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           resources:
             requests:
               cpu: 10m
@@ -53,6 +64,11 @@ spec:
                 secretKeyRef:
                   name: redis-password
                   key: password
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
           resources:
             requests:
               cpu: 10m
