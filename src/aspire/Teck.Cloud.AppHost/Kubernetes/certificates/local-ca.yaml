@@ -1,0 +1,31 @@
+# Disposable local CA. Its trust is cluster-local; never install it into host trust stores.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: teck-local-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: teck-local-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: Teck disposable KIND CA
+  secretName: teck-local-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: teck-local-selfsigned
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: teck-local-ca
+spec:
+  ca:
+    secretName: teck-local-ca

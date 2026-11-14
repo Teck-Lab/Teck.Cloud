@@ -1,0 +1,43 @@
+namespace SharedKernel.Core.CQRS;
+
+/// <summary>
+/// Represents a void result. Replacement for Mediator's Unit type.
+/// Used by ICommand (non-generic) to indicate no response value.
+/// </summary>
+public readonly struct Unit : IEquatable<Unit>
+{
+    /// <summary>
+    /// The singleton instance of the <see cref="Unit"/> value.
+    /// </summary>
+    public static readonly Unit Value;
+
+    /// <summary>Compares two unit values.</summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns>Always true.</returns>
+    public static bool operator ==(Unit left, Unit right)
+    {
+        return left.Equals(right);
+    }
+
+    /// <summary>Compares two unit values for inequality.</summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns>Always false.</returns>
+    public static bool operator !=(Unit left, Unit right)
+    {
+        return !left.Equals(right);
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(Unit other) => true;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is Unit;
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => 0;
+
+    /// <inheritdoc/>
+    public override string ToString() => "Unit";
+}

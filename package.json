@@ -1,0 +1,68 @@
+{
+  "name": "teck-cloud",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.1",
+  "engines": {
+    "node": ">=24.15.0 <25",
+    "bun": ">=1.4.1 <2"
+  },
+  "workspaces": [
+    "src/apps/*",
+    "src/packages/*"
+  ],
+  "scripts": {
+    "nx": "nx",
+    "graph": "nx graph",
+    "projects": "nx show projects",
+    "check": "biome check .",
+    "format": "biome format --write .",
+    "build": "nx run-many -t build",
+    "typecheck": "nx run-many -t typecheck",
+    "test": "nx run-many -t test",
+    "test:integration": "nx run-many -t test:integration --parallel=2",
+    "test:e2e": "nx run-many -t test:e2e --parallel=1",
+    "test:kubernetes": "nx run-many -t test:kubernetes --parallel=1",
+    "affected:check": "nx affected -t build lint typecheck test --parallel=2",
+    "affected:integration": "nx affected -t test:integration --parallel=2",
+    "affected:e2e": "nx affected -t test:e2e --parallel=1",
+    "affected:kubernetes": "nx affected -t test:kubernetes --parallel=1",
+    "affected:images": "nx affected -t container:build --parallel=2",
+    "affected:deployables": "nx show projects --affected --with-target=container:build --json",
+    "sync": "nx sync",
+    "sync:check": "nx sync:check",
+    "verify:dotnet-policy": "node tools/verify-dotnet-policy.mjs",
+    "verify:alloy-redaction": "node tools/verify-alloy-redaction.mjs",
+    "verify:wolverine-static": "node tools/verify-wolverine-static.mjs",
+    "dev": "dotnet run --project src/aspire/Teck.Cloud.AppHost",
+    "dev:kind": "dotnet run --project src/aspire/Teck.Cloud.AppHost --launch-profile kind",
+    "coverage": "node tools/coverage.mjs",
+    "coverage:update": "node tools/coverage.mjs --update-baseline",
+    "test:tooling": "node --test tools/*.test.mjs",
+    "security:audit": "node tools/security-audit.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.7",
+    "@commitlint/config-conventional": "21.2.4",
+    "@commitlint/lint": "21.2.4",
+    "@commitlint/load": "21.2.4",
+    "@nx/dotnet": "24.0.6",
+    "@nx/js": "24.0.6",
+    "nx": "24.0.6",
+    "typescript": "6.0.2",
+    "yaml": "2.9.0"
+  },
+  "trustedDependencies": [
+    "nx"
+  ],
+  "nx": {
+    "includedScripts": []
+  },
+  "overrides": {
+    "minimatch": "11.0.8"
+  },
+  "patchedDependencies": {
+    "nx@24.0.6": "patches/nx@24.0.6.patch"
+  }
+}
