@@ -1,0 +1,47 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  - package-ecosystem: bun
+    directory: /
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      nx:
+        patterns: [nx, "@nx/*"]
+      tooling-minor-patch:
+        patterns: ["*"]
+        exclude-patterns: [nx, "@nx/*"]
+        update-types: [minor, patch]
+  - package-ecosystem: nuget
+    directory: /
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dotnet-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]

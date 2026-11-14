@@ -1,0 +1,34 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/aspire/">
+    <Project Path="src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/src/shared/">
+    <Project Path="src/shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+    <Project Path="src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+    <Project Path="src/shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/architecture/">
+    <Project Path="tests/architecture/SharedKernel.ArchitectureTests/SharedKernel.ArchitectureTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/e2e/" />
+  <Folder Name="/tests/e2e/kubernetes/">
+    <Project Path="tests/e2e/kubernetes/Kind.E2ETests/Kind.E2ETests.csproj" />
+  </Folder>
+  <Folder Name="/tests/e2e/web/">
+    <Project Path="tests/e2e/web/Redis.Sentinel.E2ETests/Redis.Sentinel.E2ETests.csproj" />
+  </Folder>
+  <Folder Name="/tests/fixtures/">
+    <Project Path="tests/fixtures/SharedKernel.Api.TestHost/SharedKernel.Api.TestHost.csproj" />
+  </Folder>
+  <Folder Name="/tests/integration/">
+    <Project Path="tests/integration/SharedKernel.Infrastructure.IntegrationTests/SharedKernel.Infrastructure.IntegrationTests.csproj" />
+    <Project Path="tests/integration/SharedKernel.Persistence.IntegrationTests/SharedKernel.Persistence.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/">
+    <Project Path="tests/unit/AppHost.UnitTests/AppHost.UnitTests.csproj" />
+    <Project Path="tests/unit/SharedKernel.Core.UnitTests/SharedKernel.Core.UnitTests.csproj" />
+    <Project Path="tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj" />
+  </Folder>
+</Solution>

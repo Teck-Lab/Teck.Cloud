@@ -1,0 +1,123 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <!-- Version pins do not add runtime dependencies; consumers opt in explicitly. -->
+  <ItemGroup Label="Service stack">
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.Keycloak" Version="13.6.5-preview.1.26559.7" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Kind" Version="13.6.2-beta.959" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.6.5" />
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.RabbitMQ" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.ApplicationStatus" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.OpenIdConnectServer" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.System" Version="9.0.0" />
+    <PackageVersion Include="WolverineFx.HealthChecks" Version="6.64.0" />
+    <PackageVersion Include="FastEndpoints" Version="9.0.0" />
+    <PackageVersion Include="FastEndpoints.Generator" Version="9.0.0" />
+    <PackageVersion Include="FastEndpoints.Swagger" Version="9.0.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.21.0" />
+    <PackageVersion Include="ErrorOr" Version="2.1.1" />
+    <PackageVersion Include="ServiceScan.SourceGenerator" Version="3.2.2" />
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
+    <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
+    <PackageVersion Include="WolverineFx" Version="6.64.0" />
+    <PackageVersion Include="WolverineFx.FluentValidation" Version="6.64.0" />
+    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.64.0" />
+    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.64.0" />
+    <PackageVersion Include="Ardalis.Specification" Version="9.3.1" />
+    <PackageVersion Include="Ardalis.Specification.EntityFrameworkCore" Version="9.3.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15" />
+  </ItemGroup>
+  <ItemGroup Label="Shared foundation and tests">
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="NewId" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
+  </ItemGroup>
+  <ItemGroup Label="Persistence and Infrastructure">
+    <PackageVersion Include="Finbuckle.MultiTenant.EntityFrameworkCore" Version="10.2.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.9.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Locking.Distributed.Redis" Version="2.9.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.AspNetCore.OutputCaching" Version="2.9.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.9.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.CysharpMemoryPack" Version="2.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="11.0.0" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.4.35" />
+    <PackageVersion Include="DistributedLock.Redis" Version="1.1.1" />
+    <PackageVersion Include="WolverineFx.RabbitMQ" Version="6.64.0" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="6.64.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.15" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.16.0" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="4.16.0" />
+    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.85.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="11.0.0" />
+    <PackageVersion Include="OpenTelemetry.Resources.Container" Version="1.21.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Resources.ProcessRuntime" Version="1.21.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Resources.Process" Version="1.21.0-rc.1" />
+    <PackageVersion Include="OpenTelemetry.Resources.OperatingSystem" Version="1.21.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Process" Version="1.21.0-rc.1" />
+    <PackageVersion Include="Pyroscope.OpenTelemetry" Version="0.5.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.21.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.21.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.21.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.21.0-beta.1" />
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.3" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.OpenTelemetry" Version="2.9.0" />
+    <PackageVersion Include="Serilog.Sinks.Async" Version="2.1.0" />
+    <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
+    <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.21.0" />
+    <PackageVersion Include="Serilog.Enrichers.Process" Version="3.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.ClientInfo" Version="3.0.0" />
+    <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
+    <PackageVersion Include="Serilog.Exceptions.EntityFrameworkCore" Version="8.4.0" />
+    <PackageVersion Include="Serilog.Exceptions.Grpc" Version="8.4.0" />
+    <PackageVersion Include="Serilog.Enrichers.Sensitive" Version="2.1.0" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup Label="Test tooling">
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
+    <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
+    <PackageVersion Include="AutoFixture" Version="5.0.0-rc.1" />
+    <PackageVersion Include="AutoFixture.AutoNSubstitute" Version="5.0.0-rc.1" />
+    <PackageVersion Include="Bogus" Version="35.6.5" />
+    <PackageVersion Include="Soenneker.Utils.AutoBogus" Version="11.0.1011" />
+    <PackageVersion Include="Soenneker.Utils.AutoBogus.NSubstitute" Version="11.0.880" />
+    <PackageVersion Include="FastEndpoints.Testing" Version="9.0.0" />
+    <PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.5" />
+    <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.5" />
+    <PackageVersion Include="Testcontainers.Keycloak" Version="4.16.0" />
+    <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
+  </ItemGroup>
+  <ItemGroup Label="Build analyzers">
+    <PackageVersion Include="NewStyleCop.Analyzers" Version="1.2.1" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.339" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
+    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="5.0.1" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.36.0.15337" />
+    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" />
+    <PackageVersion Include="SecurityCodeScan.VS2019" Version="5.6.7" />
+    <PackageVersion Include="SmartanAlyzers.ExceptionAnalyzer" Version="1.0.10" />
+    <!-- Retain the existing beta: the last stable is older than the legacy setup. -->
+    <PackageVersion Include="ErrorProne.NET.CoreAnalyzers" Version="0.9.0-beta.4" />
+    <!-- Opt in only in projects that actually use Redis. -->
+    <PackageVersion Include="StackExchange.Redis.Analyzer" Version="1.3.3" />
+  </ItemGroup>
+</Project>
+

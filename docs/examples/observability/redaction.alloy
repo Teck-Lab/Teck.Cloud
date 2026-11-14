@@ -1,0 +1,111 @@
+// Second-layer policy for OTLP traffic. Application masking remains enabled.
+// Import this module and wire its input before batching/export/queues.
+declare "teck_redaction" {
+	argument "logs" {
+		default = []
+	}
+
+	argument "traces" {
+		default = []
+	}
+
+	argument "metrics" {
+		default = []
+	}
+
+	otelcol.processor.transform "sanitize" {
+		error_mode = "propagate"
+
+		log_statements {
+			context    = "resource"
+			statements = [
+				`flatten(attributes)`,
+				`delete_matching_keys(attributes, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])")`,
+				`replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_all_patterns(attributes, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+			]
+		}
+
+		log_statements {
+			context    = "log"
+			statements = [
+				`flatten(attributes)`,
+				`delete_matching_keys(attributes, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])")`,
+				`replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_all_patterns(attributes, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+				`flatten(body) where IsMap(body)`,
+				`delete_matching_keys(body, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])") where IsMap(body)`,
+				`replace_all_patterns(body, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]") where IsMap(body)`,
+				`replace_all_patterns(body, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]") where IsMap(body)`,
+				`replace_pattern(body, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]") where IsString(body)`,
+				`replace_pattern(body, "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]") where IsString(body)`,
+			]
+		}
+
+		trace_statements {
+			context    = "resource"
+			statements = [
+				`flatten(attributes)`,
+				`delete_matching_keys(attributes, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])")`,
+				`replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_all_patterns(attributes, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+			]
+		}
+
+		trace_statements {
+			context    = "span"
+			statements = [
+				`flatten(attributes)`,
+				`delete_matching_keys(attributes, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])")`,
+				`replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_all_patterns(attributes, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+				`replace_pattern(name, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_pattern(name, "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+				`replace_pattern(status.message, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_pattern(status.message, "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+			]
+		}
+
+		trace_statements {
+			context    = "spanevent"
+			statements = [
+				`flatten(attributes)`,
+				`delete_matching_keys(attributes, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])")`,
+				`replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_all_patterns(attributes, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+				`replace_pattern(name, "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_pattern(name, "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+			]
+		}
+
+		metric_statements {
+			context    = "resource"
+			statements = [
+				`flatten(attributes)`,
+				`delete_matching_keys(attributes, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])")`,
+				`replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_all_patterns(attributes, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+			]
+		}
+
+		metric_statements {
+			context    = "datapoint"
+			statements = [
+				`flatten(attributes)`,
+				`delete_matching_keys(attributes, "(?i)(^|[._-])(password|pwd|token|access[_-]?token|refresh[_-]?token|id[_-]?token|authorization|cookie|set-cookie|api[_-]?key|secret|client[_-]?secret|connection[_-]?string|private[_-]?key)($|[._-])")`,
+				`replace_all_patterns(attributes, "value", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}", "[REDACTED]")`,
+				`replace_all_patterns(attributes, "value", "(?i)Bearer [A-Za-z0-9._~+/-]+=*", "[REDACTED]")`,
+			]
+		}
+
+		output {
+			logs    = argument.logs.value
+			traces  = argument.traces.value
+			metrics = argument.metrics.value
+		}
+	}
+
+	export "input" {
+		value = otelcol.processor.transform.sanitize.input
+	}
+}

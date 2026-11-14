@@ -1,0 +1,310 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  NX_DAEMON: false
+
+jobs:
+  scope:
+    name: Resolve affected baseline
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      base: ${{ steps.shas.outputs.base }}
+      head: ${{ steps.shas.outputs.head }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare a full-repository fallback
+        id: baseline
+        run: echo "empty-tree=$(git hash-object -w -t tree --stdin < /dev/null)" >> "$GITHUB_OUTPUT"
+      - name: Resolve affected baseline
+        id: shas
+        uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+        with:
+          main-branch-name: main
+          workflow-id: ci.yml
+          fallback-sha: ${{ steps.baseline.outputs.empty-tree }}
+
+  fast:
+    name: Build and fast checks
+    needs: scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NX_BASE: ${{ needs.scope.outputs.base }}
+      NX_HEAD: ${{ needs.scope.outputs.head }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Install pinned workspace dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore .NET projects
+        run: dotnet restore Teck.Cloud.slnx --locked-mode
+      - name: Materialize the first-run empty-tree baseline
+        run: git hash-object -w -t tree --stdin < /dev/null
+      - name: Workspace configuration and formatting
+        run: bun run check
+      - name: Verify .NET analyzer policy and package compatibility
+        run: bun run verify:dotnet-policy
+      - name: Verify project references are synchronized
+        run: bun run sync:check
+      - name: Record affected scope
+        run: |
+          mkdir -p .artifacts
+          bun run nx show projects --affected --json > .artifacts/affected-projects.json
+          bun run affected:deployables > .artifacts/affected-deployables.json
+      - name: Verify tooling behavior
+        run: bun run test:tooling
+      - name: Affected build and fast checks
+        run: bun run affected:check
+      - name: Affected static Wolverine handlers
+        run: bun run nx affected -t verify:static --parallel=1
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-fast-${{ github.sha }}
+          path: |
+            .artifacts/
+            **/TestResults/
+            **/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  coverage:
+    name: Full unit and integration coverage
+    needs: scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NX_BASE: ${{ needs.scope.outputs.base }}
+      NX_HEAD: ${{ needs.scope.outputs.head }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Install pinned workspace dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore .NET projects
+        run: dotnet restore Teck.Cloud.slnx --locked-mode
+      - name: Materialize the first-run empty-tree baseline
+        run: git hash-object -w -t tree --stdin < /dev/null
+      - name: Enforce complete unit and integration coverage baseline
+        run: bun run coverage
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-coverage-${{ github.sha }}
+          path: |
+            .artifacts/
+            **/TestResults/
+            **/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  aspire:
+    name: Application E2E
+    needs: scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NX_BASE: ${{ needs.scope.outputs.base }}
+      NX_HEAD: ${{ needs.scope.outputs.head }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Install pinned workspace dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore .NET projects
+        run: dotnet restore Teck.Cloud.slnx --locked-mode
+      - name: Materialize the first-run empty-tree baseline
+        run: git hash-object -w -t tree --stdin < /dev/null
+      - name: Affected application E2E
+        run: |
+          export TECK_REDIS_ADVERTISED_HOST="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
+          bun run affected:e2e
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-aspire-${{ github.sha }}
+          path: |
+            .artifacts/
+            **/TestResults/
+            **/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  kubernetes:
+    name: Kubernetes E2E (${{ matrix.mode }})
+    needs: scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [full, sandbox]
+    env:
+      NX_BASE: ${{ needs.scope.outputs.base }}
+      NX_HEAD: ${{ needs.scope.outputs.head }}
+      TECK_KIND_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Install pinned workspace dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore .NET projects
+        run: dotnet restore Teck.Cloud.slnx --locked-mode
+      - name: Materialize the first-run empty-tree baseline
+        run: git hash-object -w -t tree --stdin < /dev/null
+      - name: Install pinned KIND, kubectl and Helm
+        run: |
+          curl --fail --silent --show-error --location https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64 -o "$RUNNER_TEMP/kind"
+          curl --fail --silent --show-error --location https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64.sha256sum -o "$RUNNER_TEMP/kind.sha256sum"
+          (cd "$RUNNER_TEMP" && sed 's/kind-linux-amd64/kind/' kind.sha256sum | sha256sum --check)
+          curl --fail --silent --show-error --location https://dl.k8s.io/release/v1.37.2/bin/linux/amd64/kubectl -o "$RUNNER_TEMP/kubectl"
+          curl --fail --silent --show-error --location https://dl.k8s.io/release/v1.37.2/bin/linux/amd64/kubectl.sha256 -o "$RUNNER_TEMP/kubectl.sha256"
+          echo "$(cat "$RUNNER_TEMP/kubectl.sha256")  $RUNNER_TEMP/kubectl" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/kind" "$RUNNER_TEMP/kubectl"
+          curl --fail --silent --show-error --location https://get.helm.sh/helm-v4.1.4-linux-amd64.tar.gz -o "$RUNNER_TEMP/helm.tar.gz"
+          curl --fail --silent --show-error --location https://get.helm.sh/helm-v4.1.4-linux-amd64.tar.gz.sha256sum -o "$RUNNER_TEMP/helm.sha256sum"
+          (cd "$RUNNER_TEMP" && sed 's/helm-v4.1.4-linux-amd64.tar.gz/helm.tar.gz/' helm.sha256sum | sha256sum --check)
+          tar -xzf "$RUNNER_TEMP/helm.tar.gz" -C "$RUNNER_TEMP" linux-amd64/helm
+          mv "$RUNNER_TEMP/linux-amd64/helm" "$RUNNER_TEMP/helm"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Affected Kubernetes E2E
+        run: bun run affected:kubernetes
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-kubernetes-${{ matrix.mode }}-${{ github.sha }}
+          path: |
+            .artifacts/
+            **/TestResults/
+            **/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  images:
+    name: Affected container builds
+    needs: scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NX_BASE: ${{ needs.scope.outputs.base }}
+      NX_HEAD: ${{ needs.scope.outputs.head }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Install pinned workspace dependencies
+        run: bun install --frozen-lockfile
+      - name: Restore .NET projects
+        run: dotnet restore Teck.Cloud.slnx --locked-mode
+      - name: Materialize the first-run empty-tree baseline
+        run: git hash-object -w -t tree --stdin < /dev/null
+      - name: Build affected deployable images
+        run: bun run affected:images
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verification-images-${{ github.sha }}
+          path: |
+            .artifacts/
+            **/TestResults/
+            **/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  check:
+    name: Affected checks
+    if: always()
+    needs: [scope, fast, coverage, aspire, kubernetes, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Require every validation lane
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: node tools/check-ci-results.mjs
