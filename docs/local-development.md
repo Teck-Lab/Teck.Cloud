@@ -3,11 +3,11 @@
 The AppHost now has three explicit profiles. Run it from your IDE or use the Bun
 shortcuts below. Bun remains the JavaScript package manager and Nx owns test selection.
 
-| Profile               | Command                               | Purpose                                                                    |
-| --------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
-| development (default) | `bun run dev`                         | PostgreSQL, RabbitMQ management, Keycloak and Redis Sentinel               |
+| Profile               | Command                               | Purpose                                                                        |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------------------------ |
+| development (default) | `bun run dev`                         | PostgreSQL, RabbitMQ management, Keycloak and Redis Sentinel                   |
 | kind                  | `bun run dev:kind`                    | Reusable local Kubernetes cluster through the upstream Aspire KIND integration |
-| sentinel              | AppHost argument `--Profile=sentinel` | Focused Sentinel failover testing                                          |
+| sentinel              | AppHost argument `--Profile=sentinel` | Focused Sentinel failover testing                                              |
 
 ## Development prerequisites
 

@@ -18,7 +18,8 @@ public sealed class KeycloakAccountThemeTests(KeycloakFixture fixture) : IClassF
         await browser.PasswordAsync().ConfigureAwait(true);
         using var claims = await browser.ClaimsAsync(authorization).ConfigureAwait(true);
 
-        _ = await browser.Page.GotoAsync(new Uri(fixture.ServerAddress, "realms/teck-local/account/").AbsoluteUri).ConfigureAwait(true);
+        _ = await browser.Page.GotoAsync(browser.AccountAddress.AbsoluteUri).ConfigureAwait(true);
+        browser.Page.Url.ShouldContain("/realms/teck-local/account/");
         await browser.Page.GetByRole(AriaRole.Button, new() { Name = "Change appearance" }).ClickAsync().ConfigureAwait(true);
         (await browser.Page.GetByRole(AriaRole.Menuitem, new() { Name = "Light" }).IsVisibleAsync().ConfigureAwait(true)).ShouldBeTrue();
         await browser.Page.Keyboard.PressAsync("Escape").ConfigureAwait(true);

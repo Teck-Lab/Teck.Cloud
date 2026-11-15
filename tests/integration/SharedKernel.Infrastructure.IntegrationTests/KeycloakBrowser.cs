@@ -38,6 +38,8 @@ internal sealed class KeycloakBrowser : IAsyncDisposable
 
     internal IPage Page { get; }
 
+    internal Uri AccountAddress => new(_server, "realms/teck-local/account/");
+
     internal string UserId { get; private set; } = string.Empty;
 
     /// <inheritdoc/>
