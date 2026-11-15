@@ -1,0 +1,15 @@
+﻿# Exact historical false positives from Keycloak Storybook fixtures and the KETE test fixture.
+# Keep Git history scanning enabled; new values and locations remain detectable.
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/account/pages/Totp.stories.tsx:generic-api-key:107
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/account/pages/Totp.stories.tsx:generic-api-key:144
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/account/pages/Totp.stories.tsx:generic-api-key:23
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/account/pages/Totp.stories.tsx:generic-api-key:59
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/Register.stories.tsx:generic-api-key:170
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/Register.stories.tsx:generic-api-key:185
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/SelectAuthenticator.stories.tsx:generic-api-key:26
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/SelectAuthenticator.stories.tsx:generic-api-key:32
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/SelectAuthenticator.stories.tsx:generic-api-key:51
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/SelectAuthenticator.stories.tsx:generic-api-key:57
+03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/SelectAuthenticator.stories.tsx:generic-api-key:63
+03a5de79e6723c19a3a6224d37794ea337c04886:tests/fixtures/keycloak-kete/README.md:generic-api-key:9
+03a5de79e6723c19a3a6224d37794ea337c04886:tests/integration/SharedKernel.Infrastructure.IntegrationTests/KeycloakKeteEvaluationTests.cs:generic-api-key:23
