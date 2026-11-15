@@ -4,11 +4,11 @@
     "branch": 65.384
   },
   "SharedKernel.Infrastructure": {
-    "line": 92.957,
-    "branch": 76.54
+    "line": 92.99,
+    "branch": 76.777
   },
   "SharedKernel.Persistence": {
-    "line": 85.043,
-    "branch": 80
+    "line": 86,
+    "branch": 80.645
   }
 }
