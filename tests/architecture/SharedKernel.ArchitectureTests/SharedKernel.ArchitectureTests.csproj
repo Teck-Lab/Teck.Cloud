@@ -13,5 +13,12 @@
     <PackageReference Include="TngTech.ArchUnitNET" />
     <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
     <ProjectReference Include="../../../src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+    <ProjectReference Include="../Teck.Cloud.ArchitectureRules/Teck.Cloud.ArchitectureRules.csproj" />
+    <ProjectReference Include="../ServiceLayerRuleFixtures/Valid.Domain/Valid.Domain.Rules.csproj" />
+    <ProjectReference Include="../ServiceLayerRuleFixtures/Valid.Application/Valid.Application.Rules.csproj" />
+    <ProjectReference Include="../ServiceLayerRuleFixtures/Valid.Infrastructure/Valid.Infrastructure.Rules.csproj" />
+    <ProjectReference Include="../ServiceLayerRuleFixtures/Valid.Host/Valid.Host.Rules.csproj" />
+    <ProjectReference Include="../ServiceLayerRuleFixtures/Invalid.Domain/Invalid.Domain.Rules.csproj" />
+    <ProjectReference Include="../ServiceLayerRuleFixtures/Invalid.Application/Invalid.Application.Rules.csproj" />
   </ItemGroup>
 </Project>

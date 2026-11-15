@@ -41,10 +41,10 @@ public sealed partial class IngressTests
         called.ShouldBeFalse();
         http.Response.StatusCode.ShouldBe(403);
         _ = Should.Throw<InvalidOperationException>(() => operation.Scope).ShouldBeOfType<InvalidOperationException>();
-        http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("tenant_id", "inactive")], "test"));
+        http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("organization", """{"inactive":{"id":"inactive"}}""", "JSON")], "test"));
         await middleware.InvokeAsync(http, operation).ConfigureAwait(true);
         called.ShouldBeFalse();
-        http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("tenant_id", "alpha"), new Claim("sub", "actor")], "test"));
+        http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("organization", """{"alpha":{"id":"alpha"}}""", "JSON"), new Claim("sub", "actor")], "test"));
         await middleware.InvokeAsync(http, operation).ConfigureAwait(true);
         called.ShouldBeTrue();
         operation.Scope.TenantId.ShouldBe("alpha");

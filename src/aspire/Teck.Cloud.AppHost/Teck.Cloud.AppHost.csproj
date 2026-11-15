@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="AppHost.UnitTests" />
+    <InternalsVisibleTo Include="Kind.E2ETests" />
   </ItemGroup>
 </Project>

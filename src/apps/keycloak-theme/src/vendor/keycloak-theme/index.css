@@ -1,0 +1,300 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 47.4% 11.2%;
+        --card: 0 0% 100%;
+        --card-foreground: 222.2 47.4% 11.2%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222.2 47.4% 11.2%;
+        --primary: 0 0% 0%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222.2 47.4% 11.2%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --accent: 210 40% 96.1%;
+        --accent-foreground: 222.2 47.4% 11.2%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 0 0% 0%;
+        --chart-1: 12 76% 61%;
+        --chart-2: 173 58% 39%;
+        --chart-3: 197 37% 24%;
+        --chart-4: 43 74% 66%;
+        --chart-5: 27 87% 67%;
+        --radius: 0.75rem;
+    }
+
+    .dark {
+        --background: 0 0% 0%;
+        --foreground: 0 0% 100%;
+        --card: 0 0% 3.9%;
+        --card-foreground: 0 0% 100%;
+        --popover: 0 0% 3.9%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 0 0% 100%;
+        --primary-foreground: 0 0% 0%;
+        --secondary: 0 0% 14.9%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 0 0% 14.9%;
+        --muted-foreground: 0 0% 63.9%;
+        --accent: 0 0% 14.9%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 0 0% 14.9%;
+        --input: 0 0% 14.9%;
+        --ring: 0 0% 100%;
+        --chart-1: 220 70% 50%;
+        --chart-2: 160 60% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    html {
+        overflow-x: hidden;
+        width: 100%;
+    }
+    body {
+        @apply bg-background text-foreground;
+        scrollbar-gutter: stable;
+        width: 100%;
+        overflow-x: hidden;
+        position: relative;
+    }
+}
+
+/* Prevent Keycloak CSS conflicts */
+#kc-container {
+    @apply font-sans antialiased;
+}
+
+#kc-container * {
+    box-sizing: border-box;
+}
+
+/* Override Keycloak form styles */
+#kc-container form {
+    @apply m-0;
+}
+
+/* Reset Keycloak's default styles */
+#kc-container .kc-form-group {
+    @apply mb-0;
+}
+
+#kc-container .kc-input-group {
+    @apply mb-0;
+}
+
+/* UserProfileFormFields spacing adjustments */
+/* Hide empty divs */
+#kc-container form div:empty {
+    display: none !important;
+}
+
+/* Remove extra spacing for password confirm field */
+#kc-container input[name="password-confirm"],
+#kc-container input[id="password-confirm"] {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Adjust spacing for field wrappers in UserProfileFormFields */
+/* Remove margin for password confirm field's parent and itself */
+#kc-container form > div > div[class*="space-y"] > div:has(input[name="password-confirm"]),
+#kc-container form > div > div[class*="space-y"] > div:has(input[id="password-confirm"]) {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Remove spacing for confirm password field that comes after password field */
+#kc-container form > div > div[class*="space-y"] > div:has(input[name="password"]) + div:has(input[name="password-confirm"]),
+#kc-container form > div > div[class*="space-y"] > div:has(input[id="password"]) + div:has(input[id="password-confirm"]) {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Remove margin-bottom for field before password confirm field */
+#kc-container form > div > div[class*="space-y"] > div:has(input[name="password"]):has(+ div:has(input[name="password-confirm"])),
+#kc-container form > div > div[class*="space-y"] > div:has(input[id="password"]):has(+ div:has(input[id="password-confirm"])) {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Style inputs rendered by UserProfileFormFields */
+/* Override Keycloak's default styles with !important */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+input:not([type]),
+#kc-container input[type="text"],
+#kc-container input[type="email"],
+#kc-container input[type="password"],
+#kc-container input[type="tel"],
+#kc-container input[type="url"],
+#kc-container input[type="number"],
+#kc-container input:not([type]),
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form input[type="tel"],
+form input[type="url"],
+form input[type="number"],
+form input:not([type]) {
+    display: flex !important;
+    height: 2rem !important;
+    width: 100% !important;
+    border-radius: calc(var(--radius) - 2px) !important;
+    border: 1px solid hsl(var(--input)) !important;
+    background-color: hsl(var(--background)) !important;
+    padding: 0.625rem 0.625rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke !important;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition-duration: 150ms !important;
+    box-sizing: border-box !important;
+}
+
+input[type="text"]:focus-visible,
+input[type="email"]:focus-visible,
+input[type="password"]:focus-visible,
+input[type="tel"]:focus-visible,
+input[type="url"]:focus-visible,
+input[type="number"]:focus-visible,
+input:not([type]):focus-visible,
+#kc-container input[type="text"]:focus-visible,
+#kc-container input[type="email"]:focus-visible,
+#kc-container input[type="password"]:focus-visible,
+#kc-container input[type="tel"]:focus-visible,
+#kc-container input[type="url"]:focus-visible,
+#kc-container input[type="number"]:focus-visible,
+#kc-container input:not([type]):focus-visible,
+form input[type="text"]:focus-visible,
+form input[type="email"]:focus-visible,
+form input[type="password"]:focus-visible,
+form input[type="tel"]:focus-visible,
+form input[type="url"]:focus-visible,
+form input[type="number"]:focus-visible,
+form input:not([type]):focus-visible {
+    outline: 2px solid transparent !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 2px hsl(var(--ring)) !important;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="tel"]::placeholder,
+input[type="url"]::placeholder,
+input[type="number"]::placeholder,
+input:not([type])::placeholder,
+#kc-container input[type="text"]::placeholder,
+#kc-container input[type="email"]::placeholder,
+#kc-container input[type="password"]::placeholder,
+#kc-container input[type="tel"]::placeholder,
+#kc-container input[type="url"]::placeholder,
+#kc-container input[type="number"]::placeholder,
+#kc-container input:not([type])::placeholder,
+form input[type="text"]::placeholder,
+form input[type="email"]::placeholder,
+form input[type="password"]::placeholder,
+form input[type="tel"]::placeholder,
+form input[type="url"]::placeholder,
+form input[type="number"]::placeholder,
+form input:not([type])::placeholder {
+    color: hsl(var(--muted-foreground)) !important;
+}
+
+input[type="text"]:disabled,
+input[type="email"]:disabled,
+input[type="password"]:disabled,
+input[type="tel"]:disabled,
+input[type="url"]:disabled,
+input[type="number"]:disabled,
+input:not([type]):disabled,
+#kc-container input[type="text"]:disabled,
+#kc-container input[type="email"]:disabled,
+#kc-container input[type="password"]:disabled,
+#kc-container input[type="tel"]:disabled,
+#kc-container input[type="url"]:disabled,
+#kc-container input[type="number"]:disabled,
+#kc-container input:not([type]):disabled,
+form input[type="text"]:disabled,
+form input[type="email"]:disabled,
+form input[type="password"]:disabled,
+form input[type="tel"]:disabled,
+form input[type="url"]:disabled,
+form input[type="number"]:disabled,
+form input:not([type]):disabled {
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+}
+
+/* Smooth transitions */
+* {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+/* Focus visible improvements */
+:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+}
+
+/* Custom Scrollbar Styles */
+.scrollbar {
+    --sb-thumb-color: #222323;
+    --sb-size: 4px;
+}
+
+.scrollbar::-webkit-scrollbar {
+    width: var(--sb-size);
+    height: var(--sb-size);
+}
+
+.scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+}
+
+.scrollbar::-webkit-scrollbar-thumb {
+    background: var(--sb-thumb-color);
+    border-radius: 8px;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+    .scrollbar {
+        scrollbar-color: var(--sb-thumb-color) transparent;
+    }
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+}

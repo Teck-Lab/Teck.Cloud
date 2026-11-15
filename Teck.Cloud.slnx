@@ -11,15 +11,26 @@
   <Folder Name="/tests/" />
   <Folder Name="/tests/architecture/">
     <Project Path="tests/architecture/SharedKernel.ArchitectureTests/SharedKernel.ArchitectureTests.csproj" />
+    <Project Path="tests/architecture/Teck.Cloud.ArchitectureRules/Teck.Cloud.ArchitectureRules.csproj" />
+    <Project Path="tests/architecture/ServiceLayerRuleFixtures/Valid.Domain/Valid.Domain.Rules.csproj" />
+    <Project Path="tests/architecture/ServiceLayerRuleFixtures/Valid.Application/Valid.Application.Rules.csproj" />
+    <Project Path="tests/architecture/ServiceLayerRuleFixtures/Valid.Infrastructure/Valid.Infrastructure.Rules.csproj" />
+    <Project Path="tests/architecture/ServiceLayerRuleFixtures/Valid.Host/Valid.Host.Rules.csproj" />
+    <Project Path="tests/architecture/ServiceLayerRuleFixtures/Invalid.Domain/Invalid.Domain.Rules.csproj" />
+    <Project Path="tests/architecture/ServiceLayerRuleFixtures/Invalid.Application/Invalid.Application.Rules.csproj" />
   </Folder>
   <Folder Name="/tests/e2e/" />
   <Folder Name="/tests/e2e/kubernetes/">
     <Project Path="tests/e2e/kubernetes/Kind.E2ETests/Kind.E2ETests.csproj" />
   </Folder>
   <Folder Name="/tests/e2e/web/">
+    <Project Path="tests/e2e/web/Identity.E2ETests/Identity.E2ETests.csproj" />
     <Project Path="tests/e2e/web/Redis.Sentinel.E2ETests/Redis.Sentinel.E2ETests.csproj" />
   </Folder>
   <Folder Name="/tests/fixtures/">
+    <Project Path="tests/fixtures/Identity.AppHost/Identity.AppHost.csproj" />
+    <Project Path="tests/fixtures/Identity.ClusterProbe/Identity.ClusterProbe.csproj" />
+    <Project Path="tests/fixtures/Identity.TestHost/Identity.TestHost.csproj" />
     <Project Path="tests/fixtures/SharedKernel.Api.TestHost/SharedKernel.Api.TestHost.csproj" />
   </Folder>
   <Folder Name="/tests/integration/">

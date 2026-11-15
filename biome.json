@@ -16,7 +16,9 @@
       "!**/.expo",
       "!**/node_modules",
       "!**/.nx",
-      "!**/.artifacts"
+      "!**/.artifacts",
+      "!src/apps/keycloak-theme/src/vendor",
+      "!src/apps/keycloak-theme/vendor"
     ]
   },
   "formatter": {

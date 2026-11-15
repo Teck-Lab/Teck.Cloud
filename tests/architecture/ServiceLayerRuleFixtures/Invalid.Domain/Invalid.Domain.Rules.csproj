@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ArchitectureRuleFixtures.Invalid.Domain</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Valid.Application/Valid.Application.Rules.csproj" />
+    <ProjectReference Include="../Valid.Infrastructure/Valid.Infrastructure.Rules.csproj" />
+    <ProjectReference Include="../Valid.Host/Valid.Host.Rules.csproj" />
+    <ProjectReference Include="../../../../src/shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+  </ItemGroup>
+</Project>

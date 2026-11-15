@@ -1,19 +1,26 @@
 # .NET business services and gateways
 
 Before creating or migrating a service, read [service structure](../../docs/service-structure.md).
-When adding its real Domain/Application/Host projects, add focused AGENTS.md files
-using [the layer checklist](../../docs/agent-instructions.md#new-service-layers).
+When adding its real Domain/Application/Infrastructure/Host projects, add focused
+AGENTS.md files using [the layer checklist](../../docs/agent-instructions.md#new-service-layers).
 Do not create empty projects just to host instructions.
 
-- Normally use Domain, Application and Host. Gateways/stateless workers need only
-  actual responsibilities. SharedKernel.Persistence is reusable infrastructure,
-  not a mandatory fourth service project.
-- Keep capability-based vertical slices under
-  Application/<Capability>/Features/<UseCase>/V1. No references to another service's
-  implementation or from Application to Host.
-- Domain owns aggregate invariants. Application handlers use read/write repositories,
-  IUnitOfWork and ErrorOr. Wolverine owns CQRS and transactional inbox/outbox;
-  query handlers must not receive write access.
+- Stateful business services use Domain, Application, Infrastructure and Host.
+  The only worker exception is a service-root service-layout.json with the exact
+  contents {"kind":"stateless-worker"}; it requires Application/Infrastructure/Host,
+  may omit Domain and skips the stateful architecture-suite requirement. Unknown or
+  malformed markers fail; names do not select the exception. SharedKernel.Persistence
+  is reusable infrastructure, not a replacement for service Infrastructure.
+- Keep each command/query, validator and handler together under
+  Application/<Capability>/Features/<UseCase>/V<n>. See the canonical guide for
+  allowed capability folders and root files. See [validation boundaries](../../docs/validation.md)
+  for HTTP and Wolverine validator behavior. No references to another service's
+  implementation or from Application to Infrastructure/Host.
+- Domain files live under Aggregates/<Aggregate>/ or Common/, grouped by aggregate.
+  Domain owns its invariants and stable ErrorOr errors. Application handlers use
+  read/write repositories, IUnitOfWork and ErrorOr.
+  Wolverine owns CQRS and transactional inbox/outbox; query handlers must not receive
+  write access. See the [aggregate and error conventions](../../docs/service-structure.md#aggregate-first-domain-and-errors).
 - Host uses standard FastEndpoints, generated discovery, ServiceScan with explicit
   lifetimes, source-generated JSON and Scalar. Keep HTTP adapters thin; no custom
   endpoint hierarchy or second mediator.

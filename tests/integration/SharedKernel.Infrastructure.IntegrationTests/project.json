@@ -1,12 +1,23 @@
 {
   "targets": {
     "verify:static": {
+      "dependsOn": ["build", { "target": "container:build", "projects": ["keycloak-theme"] }],
       "executor": "nx:run-commands",
       "cache": false,
       "inputs": ["default", "^default", "{workspaceRoot}/tools/verify-wolverine-static.mjs"],
       "options": {
         "command": "node tools/verify-wolverine-static.mjs"
       }
+    },
+    "test:integration": {
+      "dependsOn": [
+        "build",
+        {
+          "target": "container:build",
+          "projects": ["keycloak-theme"]
+        }
+      ]
     }
-  }
+  },
+  "implicitDependencies": ["Teck.Cloud.AppHost", "keycloak-theme"]
 }

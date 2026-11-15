@@ -9,5 +9,6 @@ then the web or kubernetes child instructions.
   gateway/service/broker hops with local dispatch to obtain an E2E pass.
 - Record actual observable outcomes and failure diagnostics without secrets.
   Process readiness is a prerequisite, not feature acceptance.
-- Current suites prove foundation dependencies, Sentinel recovery and Kubernetes
-  smoke behavior. No business application/browser journey exists yet.
+- Foundation suites cover dependency behavior and Sentinel recovery. Identity
+  acceptance uses the test-only BFF/gRPC host and real Keycloak; it does not claim
+  that a business application or mobile journey has been implemented.

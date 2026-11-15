@@ -30,15 +30,26 @@
     <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.64.0" />
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.64.0" />
     <PackageVersion Include="Ardalis.Specification" Version="9.3.1" />
+    <PackageVersion Include="Ardalis.SmartEnum" Version="8.2.0" />
     <PackageVersion Include="Ardalis.Specification.EntityFrameworkCore" Version="9.3.1" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.15" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15" />
+    <PackageVersion Include="Keycloak.AuthServices.Authentication" Version="3.0.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Authorization" Version="3.0.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Authorization.TokenIntrospection" Version="3.0.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Authorization.Uma" Version="3.0.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Sdk" Version="3.0.0" />
+    <PackageVersion Include="Keycloak.AuthServices.Sdk.Kiota" Version="26.5.6" />
+    <PackageVersion Include="Keycloak.AuthServices.OpenTelemetry" Version="1.0.0" />
+    <PackageVersion Include="Duende.AccessTokenManagement" Version="4.3.0" />
+    <PackageVersion Include="Duende.AccessTokenManagement.OpenIdConnect" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup Label="Shared foundation and tests">
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="11.0.0" />
     <PackageVersion Include="NewId" Version="4.0.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.3" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.3" />
   </ItemGroup>
   <ItemGroup Label="Persistence and Infrastructure">
     <PackageVersion Include="Finbuckle.MultiTenant.EntityFrameworkCore" Version="10.2.0" />
@@ -60,6 +71,11 @@
     <PackageVersion Include="Testcontainers.Redis" Version="4.16.0" />
     <PackageVersion Include="Testcontainers.RabbitMq" Version="4.16.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.85.0" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.85.0" />
+    <PackageVersion Include="Grpc.Tools" Version="2.85.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.36.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.64.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="11.0.0" />
     <PackageVersion Include="OpenTelemetry.Resources.Container" Version="1.21.0-beta.1" />

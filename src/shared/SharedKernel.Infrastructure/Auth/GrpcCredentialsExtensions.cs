@@ -6,17 +6,25 @@ namespace SharedKernel.Infrastructure.Auth;
 /// <summary>Async credentials for generated gRPC clients, independent of HttpContext.</summary>
 public static class GrpcCredentialsExtensions
 {
-    /// <summary>Propagates a token and established operation scope over TLS.</summary>
+    /// <summary>Propagates an audience-scoped token after scope validation; the receiver resolves tenants from signed claims.</summary>
     /// <param name="builder">The gRPC client builder.</param>
     /// <param name="audience">The required downstream audience.</param>
+    /// <param name="transport">HTTPS unless explicitly protected by ambient mTLS or an isolated development boundary.</param>
     /// <returns>The configured client builder.</returns>
-    public static IHttpClientBuilder AddOperationCredentials(this IHttpClientBuilder builder, string audience)
+    /// <exception cref="ArgumentOutOfRangeException">The transport mode is unknown.</exception>
+    public static IHttpClientBuilder AddOperationCredentials(this IHttpClientBuilder builder, string audience, IdentityTransport transport = IdentityTransport.Https)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(audience);
+        if (!Enum.IsDefined(transport))
+        {
+            throw new ArgumentOutOfRangeException(nameof(transport));
+        }
+
+        _ = builder.ConfigureChannel(options => options.UnsafeUseInsecureChannelCallCredentials = transport != IdentityTransport.Https);
         return builder.AddCallCredentials(async (context, metadata, provider) =>
         {
-            var operation = provider.GetRequiredService<OperationContext>();
-            var scope = operation.Scope;
+            IdentityTransportPolicy.Validate(new Uri(context.ServiceUrl), transport);
+            _ = provider.GetRequiredService<OperationContext>().Scope;
             var token = await provider.GetRequiredService<IAccessTokenProvider>()
                 .GetTokenAsync(audience, context.CancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(token))
@@ -25,10 +33,6 @@ public static class GrpcCredentialsExtensions
             }
 
             metadata.Add("authorization", "Bearer " + token);
-            if (scope.TenantId is { } tenant)
-            {
-                metadata.Add("x-tenant-id", tenant);
-            }
         });
     }
 }

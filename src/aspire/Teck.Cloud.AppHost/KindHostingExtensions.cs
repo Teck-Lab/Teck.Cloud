@@ -12,6 +12,20 @@ internal static class KindHostingExtensions
         _ => throw new InvalidOperationException("TECK_KIND_MODE must be full or sandbox."),
     };
 
+    /// <summary>Maps the local identity gateway on KIND's existing control-plane node.</summary>
+    /// <param name="config">The cluster configuration with its default node.</param>
+    internal static void ConfigureIdentityPortMapping(KindConfigModel config)
+    {
+        var controlPlane = config.Nodes.Single(node => string.Equals(node.Role, "control-plane", StringComparison.Ordinal));
+        controlPlane.ExtraPortMappings ??= [];
+        controlPlane.ExtraPortMappings.Add(new KindPortMappingModel
+        {
+            ContainerPort = 30443,
+            HostPort = 18443,
+            ListenAddress = "127.0.0.1",
+        });
+    }
+
     /// <summary>Adds a session cluster and, when supplied, the actual candidate manifest overlay.</summary>
     /// <param name="builder">The application builder.</param>
     /// <exception cref="DirectoryNotFoundException">The requested manifest directory is missing.</exception>
@@ -20,12 +34,36 @@ internal static class KindHostingExtensions
     {
         var sandbox = IsSandboxMode(builder.Configuration["TECK_KIND_MODE"]);
         var name = builder.Configuration["Kind:Name"] ?? ("teck-cloud-dev-" + Guid.NewGuid().ToString("N")[..10]);
+        var identity = builder.Configuration["Kind:Identity"] switch
+        {
+            null or "" or "true" => true,
+            "false" => false,
+            _ => throw new InvalidOperationException("Kind:Identity must be true or false."),
+        };
+        var runtime = builder.Configuration["ASPIRE_CONTAINER_RUNTIME"] ?? "docker";
+        var kindProvider = Environment.GetEnvironmentVariable("KIND_EXPERIMENTAL_PROVIDER");
+        if (string.Equals(runtime, "podman", StringComparison.Ordinal) && string.IsNullOrEmpty(kindProvider))
+        {
+            Environment.SetEnvironmentVariable("KIND_EXPERIMENTAL_PROVIDER", "podman");
+        }
+        else if (!string.IsNullOrEmpty(kindProvider) && !string.Equals(kindProvider, runtime, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("KIND_EXPERIMENTAL_PROVIDER must match ASPIRE_CONTAINER_RUNTIME.");
+        }
+
         var cluster = builder.AddKindCluster(name)
             .WithNodeImage("kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5")
             .WithClusterLifetime(ClusterLifetime.Session);
+        if (identity)
+        {
+            _ = cluster.WithKindConfig(ConfigureIdentityPortMapping);
+        }
+
         var gatewayApi = cluster.AddManifest("gateway-api", Path.Combine(builder.AppHostDirectory, "Kubernetes", "gateway-api")).WithServerSideApply();
         var network = sandbox ? null : AddFullPlatform(cluster, gatewayApi);
         var platform = KindCommonPlatform.Add(cluster, builder.AppHostDirectory, gatewayApi, network);
+        var identityReady = identity ? KindIdentityHostingExtensions.Add(builder, cluster, platform, sandbox) : null;
+
         var manifests = builder.Configuration["Kind:Manifests"];
         if (!string.IsNullOrWhiteSpace(manifests))
         {
@@ -36,7 +74,7 @@ internal static class KindHostingExtensions
             }
 
             var candidate = cluster.AddManifest("candidate", absolutePath).WithServerSideApply();
-            _ = AfterDeployment(candidate, platform);
+            _ = AfterDeployment(candidate, identityReady ?? platform);
         }
     }
 
@@ -49,7 +87,7 @@ internal static class KindHostingExtensions
         return resource.OnBeforeResourceStarted(async (target, args, cancellationToken) =>
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            deadline.CancelAfter(TimeSpan.FromMinutes(10));
+            deadline.CancelAfter(TimeSpan.FromMinutes(25));
             var notifications = args.Services.GetRequiredService<ResourceNotificationService>();
             try
             {

@@ -18,19 +18,19 @@ public sealed class ClusterTests
     public async Task ClusterRunsManifestAndCleansUp()
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        deadline.CancelAfter(TimeSpan.FromMinutes(25));
+        deadline.CancelAfter(TimeSpan.FromMinutes(35));
         var name = "teck-cloud-test-" + Guid.NewGuid().ToString("N")[..10];
         var manifests = Path.Combine(AppContext.BaseDirectory, "Manifests");
         var mode = Environment.GetEnvironmentVariable("TECK_KIND_MODE");
         mode = string.IsNullOrEmpty(mode) ? "full" : mode;
         string[] expectedCharts = mode switch
         {
-            "full" => ["argo-rollouts", "cert-manager", "cilium", "cnpg", "istio-base", "istio-cni", "istiod", "kgateway", "kgateway-crds", "openbao-operator", "redis-operator", "ztunnel"],
-            "sandbox" => ["argo-rollouts", "cert-manager", "cnpg", "kgateway", "kgateway-crds", "openbao-operator", "redis-operator"],
+            "full" => ["argo-rollouts", "cert-manager", "cilium", "cnpg", "istio-base", "istio-cni", "istiod", "keycloak-operator", "kgateway", "kgateway-crds", "openbao-operator", "redis-operator", "ztunnel"],
+            "sandbox" => ["argo-rollouts", "cert-manager", "cnpg", "keycloak-operator", "kgateway", "kgateway-crds", "openbao-operator", "redis-operator"],
             _ => throw new InvalidOperationException("TECK_KIND_MODE must be full or sandbox."),
         };
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Teck_Cloud_AppHost>(
-            ["--Profile=kind", "--TECK_KIND_MODE=" + mode, "--Kind:Name=" + name, "--Kind:Manifests=" + manifests], deadline.Token).ConfigureAwait(true);
+            ["--Profile=kind", "--Kind:IdentityBuild=false", "--TECK_KIND_MODE=" + mode, "--Kind:Name=" + name, "--Kind:Manifests=" + manifests], deadline.Token).ConfigureAwait(true);
         await using (var app = await builder.BuildAsync(deadline.Token).ConfigureAwait(true))
         {
             builder.Resources.OfType<KindHelmChartResource>().Select(chart => chart.Name)
@@ -61,6 +61,8 @@ public sealed class ClusterTests
             var logs = await RunAsync("kubectl", ["--kubeconfig", cluster.KubeconfigPath, "logs", "job/cluster-smoke", "-n", "teck-smoke"], deadline.Token).ConfigureAwait(true);
             logs.ShouldContain("teck-kind-ready");
             await PlatformProof.VerifyAsync(cluster.KubeconfigPath, mode, deadline.Token).ConfigureAwait(true);
+            await IdentityDeploymentProof.VerifyAsync(cluster.KubeconfigPath, mode, deadline.Token).ConfigureAwait(true);
+            await KindProtectedPathProof.VerifyAsync(name, cluster.KubeconfigPath, mode, deadline.Token).ConfigureAwait(true);
             await app.StopAsync(deadline.Token).ConfigureAwait(true);
         }
 

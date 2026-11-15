@@ -83,10 +83,19 @@ jobs:
           mkdir -p .artifacts
           bun run nx show projects --affected --json > .artifacts/affected-projects.json
           bun run affected:deployables > .artifacts/affected-deployables.json
+      - name: Enforce the service project layout
+        run: bun run verify:service-layout
       - name: Verify tooling behavior
         run: bun run test:tooling
       - name: Affected build and fast checks
         run: bun run affected:check
+      - name: Install browser when static handler verification is affected
+        run: |
+          projects="$(bun run nx show projects --affected --with-target=verify:static --json)"
+          if [ "$(printf '%s' "$projects" | jq 'length')" -gt 0 ]; then
+            dotnet build tests/integration/SharedKernel.Infrastructure.IntegrationTests/SharedKernel.Infrastructure.IntegrationTests.csproj -c Release --no-restore
+            pwsh tests/integration/SharedKernel.Infrastructure.IntegrationTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+          fi
       - name: Affected static Wolverine handlers
         run: bun run nx affected -t verify:static --parallel=1
       - name: Upload verification evidence
@@ -129,6 +138,12 @@ jobs:
         run: dotnet restore Teck.Cloud.slnx --locked-mode
       - name: Materialize the first-run empty-tree baseline
         run: git hash-object -w -t tree --stdin < /dev/null
+      - name: Build the identity image used by integration tests
+        run: bun run nx run keycloak-theme:container:build
+      - name: Install browser for real Keycloak integration tests
+        run: |
+          dotnet build tests/integration/SharedKernel.Infrastructure.IntegrationTests/SharedKernel.Infrastructure.IntegrationTests.csproj -c Release --no-restore
+          pwsh tests/integration/SharedKernel.Infrastructure.IntegrationTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - name: Enforce complete unit and integration coverage baseline
         run: bun run coverage
       - name: Upload verification evidence
@@ -171,6 +186,19 @@ jobs:
         run: dotnet restore Teck.Cloud.slnx --locked-mode
       - name: Materialize the first-run empty-tree baseline
         run: git hash-object -w -t tree --stdin < /dev/null
+      - name: Build identity image when this lane has affected consumers
+        run: |
+          projects="$(bun run nx show projects --affected --with-target=test:e2e --json)"
+          if [ "$(printf '%s' "$projects" | jq 'length')" -gt 0 ]; then
+            bun run nx run keycloak-theme:container:build
+          fi
+      - name: Install browser when identity E2E is affected
+        run: |
+          projects="$(bun run nx show projects --affected --with-target=test:e2e --json)"
+          if printf '%s' "$projects" | jq -e 'index("Identity.E2ETests") != null' > /dev/null; then
+            dotnet build tests/e2e/web/Identity.E2ETests/Identity.E2ETests.csproj -c Release --no-restore
+            pwsh tests/e2e/web/Identity.E2ETests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+          fi
       - name: Affected application E2E
         run: |
           TECK_REDIS_ADVERTISED_HOST="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')"
@@ -236,6 +264,14 @@ jobs:
           tar -xzf "$RUNNER_TEMP/helm.tar.gz" -C "$RUNNER_TEMP" linux-amd64/helm
           mv "$RUNNER_TEMP/linux-amd64/helm" "$RUNNER_TEMP/helm"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Build identity image when this lane has affected consumers
+        run: |
+          projects="$(bun run nx show projects --affected --with-target=test:kubernetes --json)"
+          if [ "$(printf '%s' "$projects" | jq 'length')" -gt 0 ]; then
+            bun run nx run keycloak-theme:container:build
+            bun run nx run Identity.TestHost:container:build
+            bun run nx run Identity.ClusterProbe:container:build
+          fi
       - name: Affected Kubernetes E2E
         run: bun run affected:kubernetes
       - name: Upload verification evidence

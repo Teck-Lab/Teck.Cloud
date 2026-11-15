@@ -947,14 +947,6 @@
           "xunit.v3.runner.inproc.console": "[4.0.3]"
         }
       },
-      "xunit.v3.extensibility.core": {
-        "type": "Transitive",
-        "resolved": "4.0.3",
-        "contentHash": "TBYqQKyT+XBDLSHjG6PnmQpooqatflBcWvNiESVS5ptQxWXVf/FGlkUfkNyHKRCUDSCxxHIJNgwO+SRosUmZEw==",
-        "dependencies": {
-          "xunit.v3.common": "[4.0.3]"
-        }
-      },
       "xunit.v3.mtp-v2": {
         "type": "Transitive",
         "resolved": "4.0.3",
@@ -1196,6 +1188,15 @@
           "Microsoft.EntityFrameworkCore.Relational": "10.0.4",
           "Weasel.EntityFrameworkCore": "9.50.0",
           "WolverineFx.RDBMS": "6.64.0"
+        }
+      },
+      "xunit.v3.extensibility.core": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.3, )",
+        "resolved": "4.0.3",
+        "contentHash": "TBYqQKyT+XBDLSHjG6PnmQpooqatflBcWvNiESVS5ptQxWXVf/FGlkUfkNyHKRCUDSCxxHIJNgwO+SRosUmZEw==",
+        "dependencies": {
+          "xunit.v3.common": "[4.0.3]"
         }
       },
       "ZiggyCreatures.FusionCache": {

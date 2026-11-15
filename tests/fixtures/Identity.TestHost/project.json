@@ -1,0 +1,9 @@
+{
+  "targets": {
+    "container:build": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tests/fixtures/Identity.TestHost/build-image.mjs" }
+    }
+  }
+}

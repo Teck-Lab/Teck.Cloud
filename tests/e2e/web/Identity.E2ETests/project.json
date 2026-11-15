@@ -1,0 +1,8 @@
+{
+  "targets": {
+    "test:e2e": {
+      "dependsOn": ["build", { "target": "container:build", "projects": ["keycloak-theme"] }]
+    }
+  },
+  "implicitDependencies": ["keycloak-theme"]
+}

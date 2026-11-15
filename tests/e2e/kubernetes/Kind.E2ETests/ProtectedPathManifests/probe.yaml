@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: identity-protected-path
+  namespace: identity
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 360
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostAliases:
+        - ip: __IDENTITY_GATEWAY_ADDRESS__
+          hostnames:
+            - localhost
+        - ip: __APPLICATION_GATEWAY_ADDRESS__
+          hostnames:
+            - application.local.test
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        seccompProfile:
+          type: RuntimeDefault
+        runAsGroup: 1654
+        fsGroup: 1654
+      containers:
+        - name: proof
+          image: localhost/teck/identity-cluster-probe:local
+          imagePullPolicy: Never
+          env:
+            - name: GATEWAY_URL
+              value: https://application.local.test/
+            - name: IDENTITY_GATEWAY_ADDRESS
+              value: __IDENTITY_GATEWAY_ADDRESS__
+            - name: IDENTITY_BACKEND
+              value: http://keycloak:8080/
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: identity-bootstrap
+                  key: KC_BOOTSTRAP_ADMIN_USERNAME
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: identity-bootstrap
+                  key: KC_BOOTSTRAP_ADMIN_PASSWORD
+            - name: GATEWAY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: identity-bootstrap
+                  key: TECK_CUSTOMER_GATEWAY_SECRET
+          volumeMounts:
+            - name: certificate
+              mountPath: /certs
+              readOnly: true
+            - name: shared-memory
+              mountPath: /dev/shm
+            - name: runtime-tmp
+              mountPath: /tmp
+            - name: runtime-home
+              mountPath: /home/app
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+      volumes:
+        - name: certificate
+          secret:
+            secretName: identity-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: shared-memory
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: runtime-tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: runtime-home
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi

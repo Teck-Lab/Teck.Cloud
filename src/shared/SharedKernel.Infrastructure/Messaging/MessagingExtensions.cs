@@ -22,6 +22,8 @@ public static class MessagingExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         ArgumentException.ThrowIfNullOrWhiteSpace(schema);
+
+        _ = options.UseFoundationValidation();
         _ = options.PersistMessagesWithPostgresql(connectionString, schema);
         options.UseFoundationEfTransactions<TWrite>();
         _ = options.Services.AddHealthChecks().AddNpgSql(connectionString, name: "postgres-messaging", tags: FoundationHealthChecks.DependencyTags, timeout: TimeSpan.FromSeconds(5));

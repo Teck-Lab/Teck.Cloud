@@ -1,0 +1,255 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: identity-gateway
+  namespace: identity
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-gateway
+  namespace: identity
+spec:
+  selector:
+    app: identity-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-gateway
+  namespace: identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-gateway
+  template:
+    metadata:
+      labels:
+        app: identity-gateway
+    spec:
+      serviceAccountName: identity-gateway
+      automountServiceAccountToken: false
+      containers:
+        - name: application
+          image: localhost/teck/identity-probe:local
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: identity-path-settings
+          env:
+            - name: IDENTITY_ROLE
+              value: Gateway
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: identity-path-secrets
+                  key: redis-password
+            - name: ConnectionStrings__redis
+              value: redis-sentinel.platform-proof.svc.cluster.local:26379,serviceName=myMaster,password=$(REDIS_PASSWORD),abortConnect=false
+            - name: Identity__ClientSecret
+              valueFrom:
+                secretKeyRef:
+                  name: identity-bootstrap
+                  key: TECK_CUSTOMER_GATEWAY_SECRET
+            - name: Identity__ReaderSecret
+              valueFrom:
+                secretKeyRef:
+                  name: identity-bootstrap
+                  key: TECK_TENANT_READER_SECRET
+            - name: SSL_CERT_FILE
+              value: /identity-certs/ca.crt
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: identity-ca
+              mountPath: /identity-certs
+              readOnly: true
+            - name: runtime-tmp
+              mountPath: /tmp
+            - name: runtime-home
+              mountPath: /home/app
+      hostAliases:
+        - ip: __IDENTITY_GATEWAY_ADDRESS__
+          hostnames:
+            - localhost
+      volumes:
+        - name: identity-ca
+          secret:
+            secretName: identity-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: runtime-tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: runtime-home
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: identity-service
+  namespace: identity
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  namespace: identity
+spec:
+  selector:
+    app: identity-service
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-service
+  template:
+    metadata:
+      labels:
+        app: identity-service
+    spec:
+      serviceAccountName: identity-service
+      automountServiceAccountToken: false
+      containers:
+        - name: application
+          image: localhost/teck/identity-probe:local
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef:
+                name: identity-path-settings
+          env:
+            - name: IDENTITY_ROLE
+              value: Service
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: identity-path-secrets
+                  key: redis-password
+            - name: ConnectionStrings__redis
+              value: redis-sentinel.platform-proof.svc.cluster.local:26379,serviceName=myMaster,password=$(REDIS_PASSWORD),abortConnect=false
+            - name: Identity__ClientSecret
+              valueFrom:
+                secretKeyRef:
+                  name: identity-bootstrap
+                  key: TECK_CUSTOMER_GATEWAY_SECRET
+            - name: Identity__ReaderSecret
+              valueFrom:
+                secretKeyRef:
+                  name: identity-bootstrap
+                  key: TECK_TENANT_READER_SECRET
+            - name: Kestrel__EndpointDefaults__Protocols
+              value: Http2
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: identity-records-app
+                  key: password
+            - name: ConnectionStrings__identity-db
+              value:
+                Host=identity-records-rw.identity.svc.cluster.local;Database=identityrecords;Username=probe;Password=$(DATABASE_PASSWORD);SSL
+                Mode=VerifyFull;Root Certificate=/db-certs/ca.crt
+            - name: SSL_CERT_FILE
+              value: /identity-certs/ca.crt
+          volumeMounts:
+            - name: database-ca
+              mountPath: /db-certs
+              readOnly: true
+            - name: identity-ca
+              mountPath: /identity-certs
+              readOnly: true
+            - name: runtime-tmp
+              mountPath: /tmp
+            - name: runtime-home
+              mountPath: /home/app
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: database-ca
+          secret:
+            secretName: identity-records-ca
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: identity-ca
+          secret:
+            secretName: identity-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: runtime-tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+        - name: runtime-home
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+      hostAliases:
+        - ip: __IDENTITY_GATEWAY_ADDRESS__
+          hostnames:
+            - localhost
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault

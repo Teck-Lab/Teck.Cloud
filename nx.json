@@ -4,7 +4,11 @@
   "plugins": [
     {
       "plugin": "@nx/dotnet",
-      "include": ["src/**/*.csproj", "tests/fixtures/**/*.csproj"],
+      "include": [
+        "src/**/*.csproj",
+        "tests/fixtures/**/*.csproj",
+        "tests/architecture/**/*Rules.csproj"
+      ],
       "options": {
         "restore": true,
         "test": false
@@ -12,7 +16,7 @@
     },
     {
       "plugin": "@nx/dotnet",
-      "include": ["tests/unit/**/*.csproj", "tests/architecture/**/*.csproj"],
+      "include": ["tests/unit/**/*.csproj", "tests/architecture/**/*Tests.csproj"],
       "options": {
         "restore": true,
         "test": {
@@ -60,6 +64,14 @@
           "targetName": "build",
           "configName": "tsconfig.lib.json"
         }
+      }
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "include": ["src/apps/keycloak-theme/vite.config.ts"],
+      "options": {
+        "buildTargetName": "build",
+        "typecheckTargetName": false
       }
     }
   ],

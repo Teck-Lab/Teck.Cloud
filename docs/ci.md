@@ -17,8 +17,10 @@ unit/integration set once to enforce the [coverage ratchet](coverage.md). There 
 no additional integration lane repeating those real-container tests. Static
 Wolverine verification belongs to the fast lane. CI supplies the Sentinel address
 and installs pinned, checksum-verified KIND/kubectl/Helm in the Kubernetes jobs.
-The Aspire and KIND tests currently verify infrastructure; no business application
-or browser journey exists yet.
+Aspire and KIND verify infrastructure and the test-only identity BFF/gRPC journey.
+They do not claim a production business application. Browser-bearing integration
+and static-handler lanes install the pinned Playwright Chromium before execution;
+the Nx targets build the shared identity image before those real-container tests.
 
 The final **Affected checks** job preserves the required-check name and requires
 every lane, including both KIND matrix entries, to succeed. Failure, cancellation

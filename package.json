@@ -33,6 +33,7 @@
     "sync": "nx sync",
     "sync:check": "nx sync:check",
     "verify:dotnet-policy": "node tools/verify-dotnet-policy.mjs",
+    "verify:service-layout": "node tools/verify-service-layout.mjs",
     "verify:alloy-redaction": "node tools/verify-alloy-redaction.mjs",
     "verify:wolverine-static": "node tools/verify-wolverine-static.mjs",
     "dev": "dotnet run --project src/aspire/Teck.Cloud.AppHost",
@@ -51,7 +52,8 @@
     "@nx/js": "24.0.6",
     "nx": "24.0.6",
     "typescript": "6.0.2",
-    "yaml": "2.9.0"
+    "yaml": "2.9.0",
+    "@nx/vite": "24.0.6"
   },
   "trustedDependencies": [
     "nx"

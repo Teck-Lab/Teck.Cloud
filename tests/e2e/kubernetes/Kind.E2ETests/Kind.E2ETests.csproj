@@ -12,7 +12,12 @@
     <PackageReference Include="coverlet.MTP" PrivateAssets="all" />
     <PackageReference Include="Aspire.Hosting.Testing" />
     <ProjectReference Include="../../../../src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj" />
+    <Content Include="ProtectedPathManifests/**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="PlatformManifests/**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="IdentityManifests/**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../../deployment/base/identity/**" Link="Deployment/base/identity/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../../deployment/local/identity/**" Link="Deployment/local/identity/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../../src/aspire/Teck.Cloud.AppHost/Identity/**" Link="Identity/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Manifests/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

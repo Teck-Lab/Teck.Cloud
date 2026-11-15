@@ -65,7 +65,7 @@ public static class TelemetryExtensions
         _ = tracing.AddSource(builder.Environment.ApplicationName, "Teck.Cloud", "Wolverine", "RabbitMQ.Client")
             .SetSampler(CreateSampler(builder.Configuration))
             .AddAspNetCoreInstrumentation()
-            .AddHttpClientInstrumentation()
+            .AddHttpClientInstrumentation().AddKeycloakAuthServicesInstrumentation()
             .AddGrpcClientInstrumentation(options => options.SuppressDownstreamInstrumentation = true)
             .AddEntityFrameworkCoreInstrumentation(options => options.Filter = (provider, _) =>
                 !string.Equals(provider, "Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal))
@@ -94,7 +94,7 @@ public static class TelemetryExtensions
 
     private static void ConfigureMetrics(MeterProviderBuilder metrics, string application, OtlpTarget? target)
     {
-        _ = metrics.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddNpgsqlInstrumentation()
+        _ = metrics.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation().AddKeycloakAuthServicesInstrumentation().AddNpgsqlInstrumentation()
             .AddProcessInstrumentation()
             .AddView("process.cpu.time", MetricStreamConfiguration.Drop)
             .AddView("process.memory.usage", MetricStreamConfiguration.Drop)

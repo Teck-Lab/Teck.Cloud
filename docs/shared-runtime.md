@@ -8,18 +8,21 @@ The shared runtime is split into three projects:
 | SharedKernel.Persistence    | EF repositories/transactions, optional entity behaviors, Finbuckle enforcement, FusionCache/Redis and locks |
 | SharedKernel.Infrastructure | HTTP/auth/gRPC, messaging, host diagnostics, settings and OpenAPI/Scalar                                    |
 
-Services still have Domain, Application and Host projects. Their concrete entities,
-mappings, migrations and business rules stay with the service. This does not add a
-fourth Persistence project to every service.
+Business services use Domain, Application, Infrastructure and Host projects.
+Their concrete entities, mappings, migrations and business rules stay with the
+service. SharedKernel.Persistence is a reusable library, not a fifth service
+project or a replacement for service Infrastructure.
 
 ## Database composition
 
 Derive the read context from ScopedDbContext with `readOnly: true`, and the
 Wolverine-backed write context from WriteDbContext. Its constructor receives
 DbContextOptions, OperationContext, IDbContextOutbox and IMessageContext; optional
-TimeProvider remains supported. Use separate database credentials with
-SELECT-only privileges. No-tracking and rejected SaveChanges are additional guards,
-not substitutes for database permissions: raw SQL must also be denied by the database.
+TimeProvider remains supported. Use the Monorepo connection pattern: an optional service read connection string
+falls back to the write connection string. When a dedicated read connection is
+configured, give it SELECT-only database privileges. No-tracking and rejected
+SaveChanges still apply to the read context; with fallback credentials, direct SQL
+is not database-enforced read-only, so do not issue raw SQL through that context.
 
 Configure service entities **before** calling `base.OnModelCreating(modelBuilder)`.
 The base configures only the behaviors an entity opts into:
@@ -36,11 +39,18 @@ timestamp remains unchanged.
 
 ```csharp
 builder.AddFoundationHost();
+var writeConnection = builder.Configuration.GetConnectionString("OrdersWrite")
+    ?? builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException("Orders write connection is required.");
+var readConnection = builder.Configuration.GetConnectionString("OrdersRead") ?? writeConnection;
 builder.Services.AddDbContext<ReadContext>(options =>
     options.UseNpgsql(readConnection));
 builder.Services.AddDbContextWithWolverineIntegration<WriteContext>(
-    options => options.UseNpgsql(writeConnection), "orders_messages");
-builder.Services.AddRepositories<Order, Guid, ReadContext, WriteContext>();
+    options => options.UseNpgsql(writeConnection, provider =>
+        provider.MigrationsAssembly(typeof(Program).Assembly.GetName().Name!)),
+    "orders_messages");
+builder.Services.AddReadRepository<GetOrderByIdReadModel, Guid, ReadContext>();
+builder.Services.AddWriteRepository<Order, Guid, WriteContext>();
 
 builder.UseWolverine(options =>
 {
@@ -57,9 +67,11 @@ application migration is installed. PostgreSQL is tested. SQL Server and
 MySQL/MariaDB remain provider-validation work, including separate migrations.
 A provider-neutral model is not proof that every provider works.
 
-Write repositories and AddRepositories require IAggregateRoot. Mark only the
+Write repositories and AddWriteRepository require IAggregateRoot. Mark only the
 aggregate entry point, not every child entity. AddReadRepository registers a
-read-only repository for a child or projection without granting write access.
+read-only repository for a projection without granting write access. Use the two
+registrations separately when the read and write CLR models differ;
+AddRepositories remains available when both contexts intentionally map one type.
 
 Repository reads are untracked. Use LoadForUpdateAsync for tracked mutations.
 List materialization and mutation batches default to 1,000 rows; use paged
@@ -84,8 +96,8 @@ SQL. The operation remains immutable once initialized.
 HTTP endpoints attach OperationScope.Global or OperationScope.Tenant metadata.
 Run routing, authentication and authorization **before** UseFoundationApi.
 Unclassified endpoints leave data scope uninitialized. Tenant ingress requires an
-authenticated `tenant_id` claim, a single distinct tenant, and an active
-ITenantDirectory result. Raw x-tenant-id headers are not authority. Global metadata
+authenticated Keycloak organization claim with one selected organization ID, and an active
+ITenantDirectory result. Use the shared [Keycloak tenant store](identity-tenancy.md). Raw x-tenant-id headers are not authority. Global metadata
 does not grant authorization; endpoints still need their appropriate policies.
 
 Message contracts explicitly implement IGlobalMessage or ITenantMessage. Tenant
@@ -108,7 +120,7 @@ service-location policy remains unchanged. Concurrent tenant commands, durable
 local translation and RabbitMQ consumers are tested with isolated tenant receipts.
 
 Background code creates a DI scope and initializes OperationContext from an
-authorized job identity before data access. ITenantDirectory and tenant/database
+authorized job identity before data access. The Keycloak-backed ITenantDirectory and service-owned tenant/database
 provisioning remain service-owned. The existing Core connection lookup rejects
 missing tenant Read/Write entries; it does not provision databases or choose a
 provider.
@@ -119,7 +131,10 @@ IUnitOfWork is the application's SaveChangesAsync boundary. It no longer exposes
 Dispose or manual begin/commit/rollback: normal handlers do not own those lifetimes.
 There is no throwing WolverineUnitOfWork adapter.
 
-UseFoundationMessaging<TWrite> registers the actual WriteDbContext as IUnitOfWork
+UseFoundationMessaging<TWrite> also enables Wolverine FluentValidation discovery
+and middleware for public application validators; invalid commands stop before
+their handlers. See [validation](validation.md). It registers the actual
+WriteDbContext as IUnitOfWork
 and teaches Wolverine that abstraction through WithDbContextAbstraction. Handlers
 can depend only on repositories and IUnitOfWork. The Eager transactional middleware
 starts the transaction, the handler may save through IUnitOfWork, and Wolverine
@@ -192,6 +207,8 @@ short and retain database constraints/fencing where correctness requires it.
 ## HTTP, gRPC and hosting
 
 AddFoundationApi accepts FastEndpoints.Generator's DiscoveredTypes.All lists.
+`UseFoundationApi` runs discovered `FastEndpoints.Validator<T>` rules in the HTTP
+pipeline and maps failures to RFC-compatible Problem Details. See [validation](validation.md).
 Endpoints inherit standard FastEndpoints types; there is no shared custom endpoint
 hierarchy. Use `Send.ResultAsync(result.ToHttpResult(MyJsonContext.Default.Response))`.
 Use generated Web JSON options when camelCase is required. Validation errors map to

@@ -105,7 +105,7 @@ public static class HostingExtensions
             _ = app.UseOutputCache();
         }
 
-        _ = app.UseFastEndpoints();
+        _ = app.UseFastEndpoints(config => config.Errors.UseProblemDetails());
         if (exposeDocumentation)
         {
             _ = app.UseOpenApi(options => options.Path = "/openapi/{documentName}.json");

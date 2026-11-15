@@ -1,0 +1,10 @@
+.git
+.gitignore
+node_modules
+**/node_modules
+.nx
+.artifacts
+**/bin
+**/obj
+**/.next
+**/coverage

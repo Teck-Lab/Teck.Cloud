@@ -4,6 +4,8 @@ Read [architecture](../../docs/architecture.md) and, for service boundaries,
 [service structure](../../docs/service-structure.md).
 
 - Use the existing ArchUnitNET/xUnit setup against actual compiled projects.
+  Reuse Teck.Cloud.ArchitectureRules and call SharedArchitectureRules.AssertAll
+  from each concrete service architecture suite.
 - Preserve Core -> no Persistence/Infrastructure and Persistence -> no
   Infrastructure. Add service-specific reference, slice and handler rules with
   actual service projects, not empty scaffolding.

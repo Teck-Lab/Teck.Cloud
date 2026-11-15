@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Identity foundation proof</title>
+<h1>Tenant records</h1><form id="record"><label>Key <input id="key" name="key" value="shared-key"></label>
+<label>Value <input id="value" name="value"></label>
+<input type="hidden" name="__RequestVerificationToken" value="{{token}}"><button type="submit">Save</button>
+<button type="button" id="load">Load</button></form><output id="result" aria-live="polite"></output>
+<form method="post" action="/session/logout"><input type="hidden" name="__RequestVerificationToken" value="{{token}}"><button type="submit">Sign out</button></form>
+<script>
+const form=document.querySelector('#record'),result=document.querySelector('#result');
+const path=()=>`/api/records/${encodeURIComponent(document.querySelector('#key').value)}`;
+async function show(response){result.textContent=response.ok?await response.text():`HTTP ${response.status}`;}
+form.addEventListener('submit',async event=>{event.preventDefault();await show(await fetch(path(),{method:'POST',body:new FormData(form)}));});
+document.querySelector('#load').addEventListener('click',async()=>show(await fetch(path())));
+</script></html>

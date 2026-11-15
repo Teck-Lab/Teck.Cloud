@@ -1,0 +1,29 @@
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: identity-service-strict
+  namespace: identity
+spec:
+  selector:
+    matchLabels:
+      app: identity-service
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: identity-service-gateway-only
+  namespace: identity
+spec:
+  selector:
+    matchLabels:
+      app: identity-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: [cluster.local/ns/identity/sa/identity-gateway]
+      to:
+        - operation:
+            ports: ["8080"]

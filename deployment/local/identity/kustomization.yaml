@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: identity
+resources:
+  - ../../base/identity
+  - namespace.yaml
+  - database.yaml
+  - gateway.yaml
+  - operator.yaml
+configMapGenerator:
+  - name: identity-runtime
+    literals:
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME=https://localhost:18443
+      - KC_HOSTNAME_STRICT=true
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HTTP_MANAGEMENT_SCHEME=http

@@ -1,0 +1,30 @@
+# Full-mode overlay only; the sandbox mode deliberately does not apply mesh CRDs.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: identity-strict
+  namespace: identity
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: identity-local-callers
+  namespace: identity
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: [identity, keycloak-operator]
+      to:
+        - operation:
+            ports: ["8080"]

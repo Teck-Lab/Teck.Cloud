@@ -13,7 +13,7 @@ public sealed partial class OAuthTokenClient(HttpClient http, OAuthClientOptions
     /// <param name="cancellationToken">Operation cancellation.</param>
     /// <returns>A token response, with expiry, for a service-owned token cache.</returns>
     public Task<TokenResponse> ClientCredentialsAsync(string audience, CancellationToken cancellationToken = default) =>
-        RequestAsync(audience, subjectToken: null, cancellationToken);
+        RequestAsync(audience, subjectToken: null, scope: null, cancellationToken);
 
     /// <summary>Exchanges an authenticated subject token for a downstream audience.</summary>
     /// <param name="audience">The explicit downstream audience.</param>
@@ -23,10 +23,26 @@ public sealed partial class OAuthTokenClient(HttpClient http, OAuthClientOptions
     public Task<TokenResponse> ExchangeAsync(string audience, string subjectToken, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subjectToken);
-        return RequestAsync(audience, subjectToken, cancellationToken);
+        return RequestAsync(audience, subjectToken, scope: null, cancellationToken);
     }
 
-    private Task<TokenResponse> RequestAsync(string audience, string? subjectToken, CancellationToken cancellationToken)
+    /// <summary>Preserves an already authorized organization when delegating a user token.</summary>
+    /// <param name="audience">The downstream service audience.</param>
+    /// <param name="subjectToken">The validated incoming user access token.</param>
+    /// <param name="organizationAlias">The selected organization from Keycloak.AuthServices' validated claims, never a raw header.</param>
+    /// <param name="cancellationToken">Operation cancellation.</param>
+    /// <returns>A delegated token scoped to the selected organization.</returns>
+    /// <exception cref="ArgumentException">The alias is empty, ambiguous or contains scope delimiters.</exception>
+    public Task<TokenResponse> ExchangeForOrganizationAsync(string audience, string subjectToken, string organizationAlias, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subjectToken);
+        ArgumentException.ThrowIfNullOrWhiteSpace(organizationAlias);
+        return organizationAlias.Any(char.IsWhiteSpace) || organizationAlias.Contains('*', StringComparison.Ordinal) || organizationAlias.Contains(':', StringComparison.Ordinal)
+            ? throw new ArgumentException("An explicit, single organization alias is required.", nameof(organizationAlias))
+            : RequestAsync(audience, subjectToken, "organization:" + organizationAlias, cancellationToken);
+    }
+
+    private Task<TokenResponse> RequestAsync(string audience, string? subjectToken, string? scope, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(audience);
         if (string.IsNullOrWhiteSpace(options.ClientId) || string.IsNullOrWhiteSpace(options.ClientSecret))
@@ -34,10 +50,7 @@ public sealed partial class OAuthTokenClient(HttpClient http, OAuthClientOptions
             throw new InvalidOperationException("OAuth client credentials are required.");
         }
 
-        if (!options.TokenEndpoint.IsAbsoluteUri || !string.Equals(options.TokenEndpoint.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("OAuth credentials require an absolute HTTPS token endpoint.");
-        }
+        IdentityTransportPolicy.Validate(options.TokenEndpoint, options.Transport);
 
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -51,6 +64,11 @@ public sealed partial class OAuthTokenClient(HttpClient http, OAuthClientOptions
             fields["subject_token"] = subjectToken;
             fields["subject_token_type"] = "urn:ietf:params:oauth:token-type:access_token";
             fields["requested_token_type"] = "urn:ietf:params:oauth:token-type:access_token";
+        }
+
+        if (scope is not null)
+        {
+            fields["scope"] = scope;
         }
 
         return SendAsync(fields, cancellationToken);

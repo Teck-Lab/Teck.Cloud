@@ -1,0 +1,11 @@
+**
+!package.json
+!bun.lock
+!tsconfig.base.json
+!patches/**
+!src/apps/keycloak-theme/**
+!src/packages/design-tokens/**
+**/node_modules
+**/dist
+**/dist_keycloak
+**/.git

@@ -6,25 +6,9 @@ namespace SharedKernel.Core.Caching;
 /// </summary>
 /// <typeparam name="TEntity">The type of the cached entity.</typeparam>
 /// <typeparam name="TId">The type of the entity's identifier.</typeparam>
-public interface IGenericCacheService<TEntity, in TId>
+public interface IGenericCacheService<TEntity, in TId> : IReadCacheService<TEntity, TId>
     where TEntity : class
 {
-    /// <summary>
-    /// Get the value from cache, and if not found then from database.
-    /// </summary>
-    /// <param name="id">The identifier of the entity to retrieve.</param>
-    /// <param name="cancellationToken">A token to observe while waiting for the operation to complete.</param>
-    /// <returns>A <see cref="Task{TResult}"/> representing the result of the asynchronous operation.</returns>
-    Task<TEntity?> GetOrSetByIdAsync(TId id, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Attempts to retrieve the entity from cache by its identifier, or sets it if not present.
-    /// </summary>
-    /// <param name="id">The identifier of the entity to retrieve.</param>
-    /// <param name="cancellationToken">A token to observe while waiting for the operation to complete.</param>
-    /// <returns>A <see cref="Task{TResult}"/> representing the result of the asynchronous operation.</returns>
-    Task<TEntity?> TryGetByIdAsync(TId id, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Add the entity to cache.
     /// </summary>

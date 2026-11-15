@@ -15,15 +15,16 @@ Core and Infrastructure unit tests plus Persistence/Infrastructure integration
 suites are installed. They use real PostgreSQL, Redis and RabbitMQ Testcontainers
 and a test-only FastEndpoints WebApplicationFactory host under tests/fixtures.
 The verify:static target checks generated Wolverine handlers without the runtime
-compiler. Shared-layer architecture checks are installed. Business application E2E and
-service-specific architecture rules remain to be added with consumers.
+compiler. Shared-layer ArchUnitNET checks and reusable service rules with compiled negative
+fixtures are installed. Business application E2E and per-service rule invocation
+remain to be added with the first service consumer.
 Mobile testing is undecided; its Nx project can add a runner and targets later.
 
 Integration tests use real Testcontainers dependencies, never Aspire startup. Verify
 committed effects through fresh connections. Tests without external dependencies
 need no container. Application E2E owns one Aspire lifecycle and exercises actual
 frontend/gateway/services. Next.js browser journeys use TypeScript Playwright via
-Nx/Bun; .NET may own API-only journeys. Isolate data and bound readiness/cleanup.
+Nx/Bun; .NET may own foundation journeys, including the Keycloak/BFF protocol browser fixture. Isolate data and bound readiness/cleanup.
 
 Kubernetes tests run candidate images using actual deployment/ manifests and test
 through the deployed gateway, including operator behavior where relevant. An
@@ -59,3 +60,19 @@ Include forged/missing context, detached writes, concurrent scopes, replay and
 cache/idempotency isolation. Aspire E2E proves isolation through actual ingress.
 
 The Redis Sentinel E2E suite now boots the real Aspire AppHost and verifies primary-loss recovery. See [local Sentinel](redis-sentinel.md) for its advertised-host prerequisite; HTTP gateway output-cache tests remain focused Testcontainers integration tests.
+
+## Identity acceptance
+
+The native identity suite uses the same built Keycloak theme and realm in all
+three lanes. Testcontainers owns provider/store/event/MFA integration; Aspire owns
+the real browser BFF, token exchange, gRPC and scoped-persistence journey; KIND
+deploys the canonical identity overlay plus the same test application image.
+See [identity composition](keycloak-authservices.md), [MFA](identity-mfa.md),
+[tenant authority](identity-tenancy.md) and [event recovery](identity-events.md).
+These are reusable foundation proofs, not invented production business services.
+
+The Infrastructure integration runner limits concurrent collections to two.
+Each collection still owns its real dependencies; this bounds simultaneous
+Keycloak/database/broker instances on developer machines and CI without narrowing
+the suite or coverage scope. Install the pinned Playwright Chromium browser before
+running browser-bearing integration tests; CI handles that prerequisite.

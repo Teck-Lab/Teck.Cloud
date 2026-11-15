@@ -15,6 +15,23 @@ PostgreSQL, physical-envelope deduplication and pending outbox recovery after a
 broker outage/application restart are tested. Other database providers, business
 idempotency and abrupt process-kill windows remain explicit validation work.
 
+## Wolverine behavior transfer
+
+The Monorepo `Behaviors/BehaviorExtensions.cs` is not present as a whole in Cloud.
+The current behavior is split across adapters and needs explicit status:
+
+| Behavior                                                  | Cloud status                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EF transaction middleware and local domain events         | Registered by `UseFoundationEfTransactions`; integration tests cover rollback and outbox recovery.                                                                                                                                                                                                                                                                         |
+| Tenant/global message middleware and durable inbox/outbox | Registered by `UseFoundationMessaging`; transport-level duplicate suppression has tests.                                                                                                                                                                                                                                                                                   |
+| Typed `ErrorOr<T>` handler results                        | The legacy open-generic `UseResultType` hook is intentionally not ported: a Wolverine 6.64 local probe logged an `ErrorOr` failure but returned a default from `InvokeAsync<Guid>`. Callers use `InvokeAsync<ErrorOr<T>>` to retain explicit success/failure results; the no-container handler test verifies both and checks failed results leave success state unchanged. |
+| Handler logging and tracing                               | Wolverine's native `ActivitySource`/meters feed the shared OpenTelemetry pipeline; integration coverage asserts a correlated handler span. The single Serilog provider owns logs; no duplicate logging middleware is needed.                                                                                                                                               |
+| FluentValidation on Wolverine handlers                    | Registered through `UseFoundationMessaging`; the no-container Wolverine fixture proves invalid messages stop before handlers and valid messages reach them. Business validators remain service-owned.                                                                                                                                                                      |
+| Generated-handler production policy                       | The static mode is exercised in tests/identity fixtures; no shared production registration replaces the old `AddTeckBehaviors` configuration yet. Verify with the first service host.                                                                                                                                                                                      |
+| General retry/dead-letter policy                          | No general shared policy was ported. The identity event listener configures its own dead-letter queue.                                                                                                                                                                                                                                                                     |
+| License middleware                                        | Intentionally removed with Licensing.                                                                                                                                                                                                                                                                                                                                      |
+| Redis pre-execution idempotency marker                    | Intentionally removed; durable inbox handles physical-envelope duplicates, while business-intent idempotency remains service work.                                                                                                                                                                                                                                         |
+
 ## Recommended shared projects
 
 | Project                     | Responsibilities                                                                                                                                                                 |
@@ -35,9 +52,11 @@ A single Persistence assembly still brings its package dependencies transitively
 optional DI does not remove them. Split provider/cache adapter packages later if
 dependency footprint or independent consumers justify it.
 
-This is a shared-library split, not a fourth project required in every service.
-The existing service Domain/Application/Host layout remains. Concrete models,
-migrations, schemas and business rules stay with their service.
+This is a shared-library split alongside the four service-owned projects:
+Domain, Application, Infrastructure and Host. SharedKernel.Persistence is a
+reusable library, not an extra service layer or a replacement for service
+Infrastructure. Concrete models, mappings, migrations, schemas and business rules
+stay with their service.
 
 ## Reuse decisions
 

@@ -1,0 +1,364 @@
+import { type KcContext } from "../KcContext";
+import { useI18n } from "../i18n";
+import { KcForm, KcInput, KcButton, KcCard, KcAlert, KcCheckbox } from "../components";
+import { Label } from "@/components/ui/label";
+import { i18nToString } from "../utils/i18n";
+import { Logo } from "@/components/Logo";
+import React, { useEffect } from "react";
+import { 
+    type LucideIcon
+} from "lucide-react";
+import { keycloakThemeConfig } from "config";
+import { useThemeConfigContext } from "@/lib/themeConfigContext";
+
+// Google SVG ikonu - img/social/google.svg
+const GoogleIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/google.svg")} alt="Google" className={className} />
+);
+
+// Microsoft SVG ikonu - img/social/microsoft.svg
+const MicrosoftIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/microsoft.svg")} alt="Microsoft" className={className} />
+);
+
+// Facebook SVG ikonu - img/social/facebook.svg
+const FacebookIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/facebook.svg")} alt="Facebook" className={className} />
+);
+
+// Instagram SVG ikonu - img/social/instagram.svg
+const InstagramIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/instagram.svg")} alt="Instagram" className={className} />
+);
+
+// Twitter/X SVG ikonu - img/social/x.svg (koyu temada invert filtresi)
+const TwitterIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img 
+        src={resourcePath("img/social/x.svg")} 
+        alt="X (Twitter)" 
+        className={`${className} dark:invert`} 
+    />
+);
+
+// LinkedIn SVG ikonu - img/social/linkedin.svg
+const LinkedinIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/linkedin.svg")} alt="LinkedIn" className={className} />
+);
+
+// GitHub SVG ikonu - img/social/github.svg (koyu temada invert filtresi)
+const GithubIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img 
+        src={resourcePath("img/social/github.svg")} 
+        alt="GitHub" 
+        className={`${className} dark:invert`} 
+    />
+);
+
+// GitLab SVG ikonu - img/social/gitlab.svg
+const GitlabIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/gitlab.svg")} alt="GitLab" className={className} />
+);
+
+// Bitbucket SVG ikonu - img/social/bitbucket.svg
+const BitbucketIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/bitbucket.svg")} alt="Bitbucket" className={className} />
+);
+
+// PayPal SVG ikonu - img/social/paypal.svg
+const PayPalIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/paypal.svg")} alt="PayPal" className={className} />
+);
+
+// StackOverflow SVG ikonu - img/social/stackoverflow.svg
+const StackOverflowIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/stackoverflow.svg")} alt="StackOverflow" className={className} />
+);
+
+// OpenShift SVG ikonu - img/social/openshift.svg
+const OpenShiftIcon = ({ className, resourcePath }: { className?: string; resourcePath: (path: string) => string }) => (
+    <img src={resourcePath("img/social/openshift.svg")} alt="OpenShift" className={className} />
+);
+
+// Icon mapping by Provider ID
+function getProviderIcon(providerId: string | undefined, resourcePath: (path: string) => string): React.ComponentType<{ className?: string }> | LucideIcon | null {
+    if (!providerId) return null;
+    
+    const iconMap: Record<string, React.ComponentType<{ className?: string; resourcePath: (path: string) => string }> | LucideIcon> = {
+        google: GoogleIcon,
+        facebook: FacebookIcon,
+        instagram: InstagramIcon,
+        twitter: TwitterIcon,
+        linkedin: LinkedinIcon,
+        github: GithubIcon,
+        gitlab: GitlabIcon,
+        bitbucket: BitbucketIcon,
+        microsoft: MicrosoftIcon,
+        openshift: OpenShiftIcon,
+        paypal: PayPalIcon,
+        stackoverflow: StackOverflowIcon,
+    };
+    
+    const normalizedId = providerId.toLowerCase();
+    const IconComponent = iconMap[normalizedId];
+    if (!IconComponent) return null;
+    
+    // If IconComponent is a function, wrap it with resourcePath
+    if (typeof IconComponent === 'function') {
+        return (props: { className?: string }) => <IconComponent {...props} resourcePath={resourcePath} />;
+    }
+    
+    return IconComponent;
+}
+
+export default function LoginPage({ kcContext }: { kcContext: Extract<KcContext, { pageId: "login.ftl" }> }) {
+    const { i18n } = useI18n({ kcContext });
+    const themeConfig = useThemeConfigContext();
+    const heightPx = parseInt(themeConfig.logoHeightLogin ?? "0", 10) || undefined;
+
+    const {
+        url,
+        realm,
+        login,
+        social,
+        messagesPerField,
+        message,
+        usernameHidden,
+        auth,
+        themeName,
+    } = kcContext;
+
+    // Calculate title
+    const realmName = realm.displayName || realm.name || "";
+    const htmlTitle = (i18nToString as any)(i18n, "loginTitleHtml", { 0: realmName }, realmName);
+    const baseTitle = i18nToString(i18n, "loginTitle");
+    const title = htmlTitle && htmlTitle !== "loginTitleHtml" && htmlTitle !== "" 
+        ? htmlTitle 
+        : realmName && baseTitle.includes("{0}")
+        ? baseTitle.replace("{0}", realmName)
+        : realmName ? `${baseTitle} ${realmName}` : baseTitle;
+
+    // Set document title
+    useEffect(() => {
+        const titleText = typeof title === "string" ? title.replace(/<[^>]*>/g, "") : title;
+        document.title = titleText || "Sign In";
+    }, [title]);
+
+    // Path for static files in production build with Keycloakify
+    const getResourcePath = (path: string) => {
+        // In development, use keycloakify-dev-resources
+        if (import.meta.env.DEV) {
+            return `/keycloakify-dev-resources/login/${path}`;
+        }
+        // In production, Keycloak's resources path
+        // Based on favicon path: /resources/6k3sb/login/keycloak-shadcn/dist/favicon-32x32.png
+        // So path structure: /resources/{realm-id}/login/{theme-name}/dist/...
+        // url.resourcesPath is probably in format: /resources/{realm-id}/login/{theme-name}
+        // Files should be under dist/ folder
+        let resourcesPath = (url as any).resourcesPath;
+        const defaultThemeName = themeName || keycloakThemeConfig.themeName;
+        if (!resourcesPath) {
+            // If url.resourcesPath doesn't exist, create it based on favicon path
+            // However, we don't know realm-id, so create temporarily with theme name
+            resourcesPath = `/resources/${defaultThemeName}`;
+        }
+        // Path structure: /resources/{realm-id}/login/{theme-name}/dist/img/...
+        // If resourcesPath already contains /login/{theme-name}, just add /dist
+        // If it doesn't, add /login/{theme-name}/dist
+        if (resourcesPath.includes('/login/')) {
+            return `${resourcesPath}/dist/${path}`;
+        }
+        return `${resourcesPath}/login/${defaultThemeName}/dist/${path}`;
+    };
+
+    return (
+        <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="w-full max-w-md space-y-6">
+                {/* System Logo */}
+                <div className="flex justify-center">
+                    <Logo
+                        kcContext={kcContext}
+                        defaultLight="img/keycloak-logo-text.png"
+                        getResourcePath={getResourcePath}
+                        alt="Logo"
+                        className="h-20"
+                        heightPx={heightPx}
+                    />
+                </div>
+                
+                <KcCard 
+                    kcContext={kcContext} 
+                    title={title}
+                    className="w-full"
+                >
+                    {message && <KcAlert message={message} className="mb-4" />}
+
+                    <KcForm
+                        action={url.loginAction}
+                        method="post"
+                        id="kc-form-login"
+                    >
+                        {!usernameHidden && (
+                            <div className="space-y-4 mb-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="username">
+                                        {!realm.loginWithEmailAllowed
+                                            ? i18nToString(i18n, "username")
+                                            : !realm.registrationEmailAsUsername
+                                              ? i18nToString(i18n, "usernameOrEmail")
+                                              : i18nToString(i18n, "email")}
+                                    </Label>
+                                    <KcInput
+                                        kcContext={kcContext}
+                                        id="username"
+                                        name="username"
+                                        defaultValue={login.username ?? ""}
+                                        autoFocus={true}
+                                        autoComplete="username"
+                                        aria-invalid={messagesPerField.existsError("username", "password")}
+                                        aria-describedby={
+                                            messagesPerField.existsError("username", "password")
+                                                ? "input-error"
+                                                : undefined
+                                        }
+                                        className={
+                                            messagesPerField.existsError("username", "password")
+                                                ? "border-destructive"
+                                                : ""
+                                        }
+                                    />
+                                    {messagesPerField.existsError("username", "password") && (
+                                        <span id="input-error" className="text-sm text-destructive">
+                                            {messagesPerField.getFirstError("username", "password")}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="password">{i18nToString(i18n, "password")}</Label>
+                                <KcInput
+                                    kcContext={kcContext}
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    autoFocus={usernameHidden}
+                                    autoComplete="current-password"
+                                    aria-invalid={messagesPerField.existsError("username", "password")}
+                                    aria-describedby={
+                                        messagesPerField.existsError("username", "password")
+                                            ? "input-error"
+                                            : undefined
+                                    }
+                                    className={
+                                        messagesPerField.existsError("username", "password")
+                                            ? "border-destructive"
+                                            : ""
+                                    }
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                {realm.rememberMe && !usernameHidden ? (
+                                    <KcCheckbox
+                                        kcContext={kcContext}
+                                        id="rememberMe"
+                                        name="rememberMe"
+                                        label={i18nToString(i18n, "rememberMe")}
+                                    />
+                                ) : null}
+
+                                {realm.resetPasswordAllowed && (
+                                    <a
+                                        href={url.loginResetCredentialsUrl}
+                                        className="text-sm text-primary underline-offset-4 hover:underline"
+                                    >
+                                        {i18nToString(i18n, "doForgotPassword")}
+                                    </a>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <input
+                                    type="hidden"
+                                    id="id-hidden-input"
+                                    name="credentialId"
+                                    value={auth?.selectedCredential}
+                                />
+                                <KcButton
+                                    kcContext={kcContext}
+                                    name="login"
+                                    id="kc-login"
+                                    className="w-full"
+                                >
+                                    {i18nToString(i18n, "doLogIn")}
+                                </KcButton>
+                            </div>
+                        </div>
+                    </KcForm>
+
+                    {realm.password && social?.providers !== undefined && social.providers.length > 0 && (
+                        <div className="mt-6">
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-card px-2 text-muted-foreground">
+                                        {i18nToString(i18n, "identity-provider-login-label")}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex flex-wrap justify-center gap-3">
+                                {social.providers.map((p) => {
+                                    const Icon = getProviderIcon(p.providerId, getResourcePath);
+                                    return (
+                                    <KcButton
+                                        key={p.alias}
+                                        kcContext={kcContext}
+                                        type="button"
+                                        variant="outline"
+                                            className="h-12 w-12 p-0 flex items-center justify-center"
+                                        onClick={() => {
+                                            window.location.href = p.loginUrl;
+                                        }}
+                                            title={p.displayName}
+                                            aria-label={p.displayName}
+                                        >
+                                            {Icon ? (
+                                                typeof Icon === 'function' ? (
+                                                    <Icon className="h-6 w-6" />
+                                                ) : (
+                                                    React.createElement(Icon, { className: "h-6 w-6" })
+                                                )
+                                            ) : (
+                                                <span className="text-xs truncate px-1">{p.displayName}</span>
+                                            )}
+                                        </KcButton>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {realm.registrationAllowed && (
+                        <div className="mt-6 text-center text-sm">
+                            <span className="text-muted-foreground">
+                                {i18nToString(i18n, "noAccount")}{" "}
+                            </span>
+                            <a
+                                href={url.registrationUrl}
+                                className="text-primary underline-offset-4 hover:underline"
+                            >
+                                {i18nToString(i18n, "doRegister")}
+                            </a>
+                        </div>
+                    )}
+                </KcCard>
+            </div>
+        </div>
+    );
+}
+

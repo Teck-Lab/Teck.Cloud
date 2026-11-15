@@ -43,6 +43,56 @@ public sealed class OAuthTests
         _ = await Should.ThrowAsync<OperationCanceledException>(() => client.ClientCredentialsAsync("service", cancelled.Token)).ConfigureAwait(true);
     }
 
+    /// <summary>Plain HTTP requires an explicit isolated or mesh-protected transport.</summary>
+    /// <param name="transport">The trusted deployment transport.</param>
+    /// <returns>The verification task.</returns>
+    [Theory]
+    [InlineData(IdentityTransport.AmbientMesh)]
+    [InlineData(IdentityTransport.IsolatedDevelopment)]
+    public async Task ExplicitProtectedTransportAllowsHttp(IdentityTransport transport)
+    {
+        using var handler = new TokenHandler();
+        using var http = new HttpClient(handler);
+        var client = new OAuthTokenClient(http, new OAuthClientOptions
+        {
+            TokenEndpoint = new Uri("http://keycloak:8080/realms/teck/token"),
+            ClientId = "fixture",
+            ClientSecret = "test-only-secret",
+            Transport = transport,
+        });
+        var response = await client.ClientCredentialsAsync("service", TestContext.Current.CancellationToken).ConfigureAwait(true);
+        response.ExpiresIn.ShouldBe(60);
+    }
+
+    /// <summary>Organization delegation cannot inject additional scopes or select multiple tenants.</summary>
+    /// <param name="alias">An unsafe or ambiguous organization selector.</param>
+    /// <returns>The verification task.</returns>
+    [Theory]
+    [InlineData("*")]
+    [InlineData("alpha beta")]
+    [InlineData("alpha:beta")]
+    [InlineData("alpha\tbeta")]
+    public async Task AmbiguousOrganizationScopeIsRejectedBeforeNetwork(string alias)
+    {
+        using var handler = new TokenHandler();
+        using var http = new HttpClient(handler);
+        var client = new OAuthTokenClient(http, new OAuthClientOptions { TokenEndpoint = new Uri("https://identity.test/token"), ClientId = "fixture", ClientSecret = "fixture-secret" });
+        _ = await Should.ThrowAsync<ArgumentException>(() => client.ExchangeForOrganizationAsync("service", "subject", alias, TestContext.Current.CancellationToken)).ConfigureAwait(true);
+        handler.Body.ShouldBeNull();
+    }
+
+    /// <summary>Transport defaults reject cleartext credential delivery before making a request.</summary>
+    /// <returns>The verification task.</returns>
+    [Fact]
+    public async Task DefaultTransportRejectsHttp()
+    {
+        using var handler = new TokenHandler();
+        using var http = new HttpClient(handler);
+        var client = new OAuthTokenClient(http, new OAuthClientOptions { TokenEndpoint = new Uri("http://identity.test/token"), ClientId = "fixture", ClientSecret = "fixture-secret" });
+        _ = await Should.ThrowAsync<InvalidOperationException>(() => client.ClientCredentialsAsync("service", TestContext.Current.CancellationToken)).ConfigureAwait(true);
+        handler.Body.ShouldBeNull();
+    }
+
     private sealed class TokenHandler : HttpMessageHandler
     {
         public string? Body { get; private set; }

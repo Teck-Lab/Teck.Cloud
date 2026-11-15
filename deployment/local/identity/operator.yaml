@@ -1,0 +1,26 @@
+# Hostzero manages the imported realm through the existing Keycloak server's Admin API.
+apiVersion: keycloak.hostzero.com/v1beta1
+kind: KeycloakInstance
+metadata:
+  name: local
+spec:
+  baseUrl: http://keycloak.identity.svc:8080
+  auth:
+    passwordGrant:
+      secretRef:
+        name: keycloak-admin
+---
+apiVersion: keycloak.hostzero.com/v1beta1
+kind: KeycloakRealm
+metadata:
+  name: local
+spec:
+  instanceRef:
+    name: local
+  realmName: teck-local
+  definition:
+    enabled: true
+    displayName: Teck local development
+    organizationsEnabled: true
+    loginTheme: teck
+    accountTheme: teck

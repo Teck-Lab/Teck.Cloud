@@ -233,6 +233,11 @@
         "resolved": "1.0.8",
         "contentHash": "LAOsY8WxX8JU/n3lfXFz+f2pfnv0+4bHkCrOO3bwa28u9HrS3DlxSG6jf+u76SqesKs+KehZi0CndkfaUXBKvg=="
       },
+      "Duende.IdentityModel": {
+        "type": "Transitive",
+        "resolved": "8.1.0",
+        "contentHash": "ncmC2ISg0efTqY74xI6gaLKlv4mErT5ruYK262dkSnAv07g9qYC2++q7AWWs1FyP2c0YZ6LvUtcoJmxZqYyVrA=="
+      },
       "EmptyFiles": {
         "type": "Transitive",
         "resolved": "4.4.0",
@@ -306,21 +311,6 @@
         "resolved": "7.3.0",
         "contentHash": "2bETFWLBc8b7Ut2SVi+bxhGVwiSpknHYGBh2PADyGWONLkTxT7bKyDRhF8ao+XUv90tq8Fl7GTPxSI5bacIRJw=="
       },
-      "Google.Protobuf": {
-        "type": "Transitive",
-        "resolved": "3.36.1",
-        "contentHash": "77AqPEoaY1ODE+syYBHti0jXiwQq0J/fUr/fRyYhNlc9oKtH5dZZEr/OLKtdKNVG83PRnCYB2r8B80ZrObzOGQ=="
-      },
-      "Grpc.AspNetCore": {
-        "type": "Transitive",
-        "resolved": "2.83.0",
-        "contentHash": "PMoR+paO24EgBjBvfCqrmkurBH+RmfOIYThsUv6sGx6LUH0kxhzQkjtZ44mJxU0IwEw64dCzHhIjAM+CmORp3g==",
-        "dependencies": {
-          "Google.Protobuf": "3.31.1",
-          "Grpc.AspNetCore.Server.ClientFactory": "2.83.0",
-          "Grpc.Tools": "2.83.0"
-        }
-      },
       "Grpc.AspNetCore.Server": {
         "type": "Transitive",
         "resolved": "2.83.0",
@@ -359,11 +349,6 @@
         "dependencies": {
           "Grpc.Core.Api": "2.85.0"
         }
-      },
-      "Grpc.Tools": {
-        "type": "Transitive",
-        "resolved": "2.83.0",
-        "contentHash": "vK2Go/83W0v2Nn7tTP9fGrX4IjmOa93s3M0SZeFimU1vIIr2wL9yNJlIyK21y85SGm3++JncB8IF751cjoLHuQ=="
       },
       "Hex1b": {
         "type": "Transitive",
@@ -413,6 +398,15 @@
         "type": "Transitive",
         "resolved": "2.102.0",
         "contentHash": "gvaAyjd2cDZDfSMtEHwZhGQnhJeoQsVNLTP6NkB5tJ/zcB70jOzKFtC0OJI4pgK7W38vdHQuoCJQl1+nCPgghA=="
+      },
+      "Keycloak.AuthServices.Common": {
+        "type": "Transitive",
+        "resolved": "3.0.0",
+        "contentHash": "WpbOg1UVlzfA0nC1fmIhuabvAHdYy3n6gKpgJm7OtFdYZcL35uoBy1R81SutV/F/dEivPpgMJVu121rSRGfIUw==",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Configuration.Binder": "10.0.5"
+        }
       },
       "KubernetesClient": {
         "type": "Transitive",
@@ -613,6 +607,17 @@
         "contentHash": "L+eahU5QGaFaCau3Y9qqY7WThUsR18sHASVDD1KuaSx2dy73NOY9U5Qz5eOe6bJOF3wHzkEaCl2LZhgwtlClyw==",
         "dependencies": {
           "Microsoft.Extensions.Primitives": "11.0.0"
+        }
+      },
+      "Microsoft.Extensions.Caching.Hybrid": {
+        "type": "Transitive",
+        "resolved": "10.4.0",
+        "contentHash": "4V+aMLQeU/p4VcIWIcvGro0L6HynmL2TrelL04Ce1iotP6T5+kjxuZQvl6P1ObSXIRPCbVXtQSt1NxK0fRIuag==",
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Abstractions": "10.0.4",
+          "Microsoft.Extensions.Caching.Memory": "10.0.4",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.4",
+          "Microsoft.Extensions.Options": "10.0.4"
         }
       },
       "Microsoft.Extensions.Caching.Memory": {
@@ -1042,6 +1047,77 @@
           "Microsoft.Bcl.Cryptography": "10.0.2",
           "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
           "Microsoft.IdentityModel.Logging": "8.19.2"
+        }
+      },
+      "Microsoft.IO.RecyclableMemoryStream": {
+        "type": "Transitive",
+        "resolved": "3.0.1",
+        "contentHash": "s/s20YTVY9r9TPfTrN5g8zPF1YhwxyqO6PxUkrYTGI2B+OGPe9AdajWZrLhFqXIvqIW23fnUE4+ztrUWNU1+9g=="
+      },
+      "Microsoft.Kiota.Abstractions": {
+        "type": "Transitive",
+        "resolved": "1.22.1",
+        "contentHash": "oalsaAAFmMnC3OdpKvBPC9lizUZIRqd2gWk6PuCVP2aHPOlHTVS/U7E9htlVtp0RJ9ir0qkcSjtUt1sl5B4u7A==",
+        "dependencies": {
+          "Std.UriTemplate": "2.0.8"
+        }
+      },
+      "Microsoft.Kiota.Bundle": {
+        "type": "Transitive",
+        "resolved": "1.22.1",
+        "contentHash": "MjUUuFy9MXvAd/AjCmWLYtr8DgMPduXoB90NFGGSZv7uspw6QGgrhjDAiOZLRHE5PLkj/wq5Ym3svBPTzF7lMw==",
+        "dependencies": {
+          "Microsoft.Kiota.Abstractions": "1.22.1",
+          "Microsoft.Kiota.Http.HttpClientLibrary": "1.22.1",
+          "Microsoft.Kiota.Serialization.Form": "1.22.1",
+          "Microsoft.Kiota.Serialization.Json": "1.22.1",
+          "Microsoft.Kiota.Serialization.Multipart": "1.22.1",
+          "Microsoft.Kiota.Serialization.Text": "1.22.1"
+        }
+      },
+      "Microsoft.Kiota.Http.HttpClientLibrary": {
+        "type": "Transitive",
+        "resolved": "1.22.1",
+        "contentHash": "tRqS/CyzzsbJCLItJPwAfOi3YjMLnu1wzyKHDWDbS34+1Xv2mJsxVsZTRvwjblZZcgy1wRQ/LL6AcozSaDkBTQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "6.0.0",
+          "Microsoft.Kiota.Abstractions": "1.22.1"
+        }
+      },
+      "Microsoft.Kiota.Serialization.Form": {
+        "type": "Transitive",
+        "resolved": "1.22.1",
+        "contentHash": "316VXS9ezoruCJzeW4IWQjJfN2okHmsThSXr+NrANBGbpOfYE+l8P+lDtVRNQgHtMNHNEd2WYeMFQMc0G7hKeg==",
+        "dependencies": {
+          "Microsoft.IO.RecyclableMemoryStream": "3.0.1",
+          "Microsoft.Kiota.Abstractions": "1.22.1"
+        }
+      },
+      "Microsoft.Kiota.Serialization.Json": {
+        "type": "Transitive",
+        "resolved": "1.22.1",
+        "contentHash": "YHiGIrZ2quJSK72FYusmAt+4fOBO+l9vnZtrnH2RvlG8+gJ2U0gO0mX79rCPicwQFdvwXzYCf6YqWrWuMSsC+Q==",
+        "dependencies": {
+          "Microsoft.IO.RecyclableMemoryStream": "3.0.1",
+          "Microsoft.Kiota.Abstractions": "1.22.1"
+        }
+      },
+      "Microsoft.Kiota.Serialization.Multipart": {
+        "type": "Transitive",
+        "resolved": "1.22.1",
+        "contentHash": "4DAAmAb5kn1LuGD6Id6OcYNKpjCOSdDrtRKSKlr/t6b6RYubkhJSwsXH/0LvEG5fk34JN62yq0z+KMDMUqfxHg==",
+        "dependencies": {
+          "Microsoft.IO.RecyclableMemoryStream": "3.0.1",
+          "Microsoft.Kiota.Abstractions": "1.22.1"
+        }
+      },
+      "Microsoft.Kiota.Serialization.Text": {
+        "type": "Transitive",
+        "resolved": "1.22.1",
+        "contentHash": "29VFjaIXyWDHPWVPadckxnNpoj7Owu9nVtXPi6PLg2qZt2Iepw/4yL0JBf9AkDQQtzon6fy5AnGxOUnHhy4MtA==",
+        "dependencies": {
+          "Microsoft.IO.RecyclableMemoryStream": "3.0.1",
+          "Microsoft.Kiota.Abstractions": "1.22.1"
         }
       },
       "Microsoft.Net.Http.Headers": {
@@ -1487,6 +1563,11 @@
         "resolved": "0.55.0",
         "contentHash": "GIfgOvuF8MpU52bprhwtDEtx0gmVIGOepM8bw0lH/TSMD0rg1Xp+5Y53kPG8rFVdcpbNANlhDQ5mEVVPO3/2Tg=="
       },
+      "Std.UriTemplate": {
+        "type": "Transitive",
+        "resolved": "2.0.8",
+        "contentHash": "IAR4gJlLVD4r/FsU/rDb1+9sbB3/tCFVZz5IzlbM2yHoiUisBi5Ek/KXRUF7RcqNARka79EoaOz9INnXvQ/O6w=="
+      },
       "StreamJsonRpc": {
         "type": "Transitive",
         "resolved": "2.25.29",
@@ -1699,14 +1780,6 @@
           "xunit.v3.runner.inproc.console": "[4.0.3]"
         }
       },
-      "xunit.v3.extensibility.core": {
-        "type": "Transitive",
-        "resolved": "4.0.3",
-        "contentHash": "TBYqQKyT+XBDLSHjG6PnmQpooqatflBcWvNiESVS5ptQxWXVf/FGlkUfkNyHKRCUDSCxxHIJNgwO+SRosUmZEw==",
-        "dependencies": {
-          "xunit.v3.common": "[4.0.3]"
-        }
-      },
       "xunit.v3.mtp-v2": {
         "type": "Transitive",
         "resolved": "4.0.3",
@@ -1759,10 +1832,18 @@
           "AspNetCore.HealthChecks.RabbitMQ": "[9.0.0, )",
           "AspNetCore.HealthChecks.Redis": "[9.0.0, )",
           "AspNetCore.HealthChecks.System": "[9.0.0, )",
+          "Duende.AccessTokenManagement": "[4.3.0, )",
           "ErrorOr": "[2.1.1, )",
           "FastEndpoints": "[9.0.0, )",
           "FastEndpoints.Swagger": "[9.0.0, )",
           "Grpc.Net.ClientFactory": "[2.85.0, )",
+          "Keycloak.AuthServices.Authentication": "[3.0.0, )",
+          "Keycloak.AuthServices.Authorization": "[3.0.0, )",
+          "Keycloak.AuthServices.Authorization.TokenIntrospection": "[3.0.0, )",
+          "Keycloak.AuthServices.Authorization.Uma": "[3.0.0, )",
+          "Keycloak.AuthServices.OpenTelemetry": "[1.0.0, )",
+          "Keycloak.AuthServices.Sdk": "[3.0.0, )",
+          "Keycloak.AuthServices.Sdk.Kiota": "[26.5.6, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.15, )",
           "Microsoft.Extensions.Http.Resilience": "[11.0.0, )",
           "Npgsql.OpenTelemetry": "[10.0.3, )",
@@ -1793,6 +1874,7 @@
           "Serilog.Sinks.OpenTelemetry": "[4.2.0, )",
           "SharedKernel.Core": "[1.0.0, )",
           "SharedKernel.Persistence": "[1.0.0, )",
+          "WolverineFx.FluentValidation": "[6.64.0, )",
           "WolverineFx.HealthChecks": "[6.64.0, )",
           "WolverineFx.Postgresql": "[6.64.0, )",
           "WolverineFx.RabbitMQ": "[6.64.0, )",
@@ -2087,6 +2169,22 @@
           "StackExchange.Redis": "2.7.33"
         }
       },
+      "Duende.AccessTokenManagement": {
+        "type": "CentralTransitive",
+        "requested": "[4.3.0, )",
+        "resolved": "4.3.0",
+        "contentHash": "VOHGEOdmLkkBTOpR5Az7u688t43ohTO0wZ+aqmhubfMjJFlbvSmsRxDKrKK7/aVWnkXQ18rBJHc/E8JBb4UfhA==",
+        "dependencies": {
+          "Duende.IdentityModel": "8.1.0",
+          "Microsoft.Extensions.Caching.Hybrid": "10.0.0",
+          "Microsoft.Extensions.Http": "10.0.13",
+          "Microsoft.Extensions.Http.Resilience": "10.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.13",
+          "Microsoft.Extensions.Options": "10.0.13",
+          "Microsoft.Extensions.Telemetry.Abstractions": "10.0.0",
+          "System.IdentityModel.Tokens.Jwt": "[8.19.2, 9.0.0)"
+        }
+      },
       "ErrorOr": {
         "type": "CentralTransitive",
         "requested": "[2.1.1, )",
@@ -2131,6 +2229,23 @@
         "resolved": "12.2.0",
         "contentHash": "DR3lFbdnKucaaj1/8zMNOACMz/64igzox1yVZSFVsLxYB5mxAB+wFP1WZ8fjwrZnbU1KA1DoMzHKYKxUfuZ4wQ=="
       },
+      "Google.Protobuf": {
+        "type": "CentralTransitive",
+        "requested": "[3.36.2, )",
+        "resolved": "3.36.1",
+        "contentHash": "77AqPEoaY1ODE+syYBHti0jXiwQq0J/fUr/fRyYhNlc9oKtH5dZZEr/OLKtdKNVG83PRnCYB2r8B80ZrObzOGQ=="
+      },
+      "Grpc.AspNetCore": {
+        "type": "CentralTransitive",
+        "requested": "[2.85.0, )",
+        "resolved": "2.83.0",
+        "contentHash": "PMoR+paO24EgBjBvfCqrmkurBH+RmfOIYThsUv6sGx6LUH0kxhzQkjtZ44mJxU0IwEw64dCzHhIjAM+CmORp3g==",
+        "dependencies": {
+          "Google.Protobuf": "3.31.1",
+          "Grpc.AspNetCore.Server.ClientFactory": "2.83.0",
+          "Grpc.Tools": "2.83.0"
+        }
+      },
       "Grpc.Net.ClientFactory": {
         "type": "CentralTransitive",
         "requested": "[2.85.0, )",
@@ -2141,6 +2256,84 @@
           "Microsoft.Extensions.Http": "8.0.1"
         }
       },
+      "Grpc.Tools": {
+        "type": "CentralTransitive",
+        "requested": "[2.85.0, )",
+        "resolved": "2.83.0",
+        "contentHash": "vK2Go/83W0v2Nn7tTP9fGrX4IjmOa93s3M0SZeFimU1vIIr2wL9yNJlIyK21y85SGm3++JncB8IF751cjoLHuQ=="
+      },
+      "Keycloak.AuthServices.Authentication": {
+        "type": "CentralTransitive",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "2nN1gR7TLRndbbZMs/cg1mIor+hCh+6+VkQXrnrJoECYFI71jTP641jBy6KxL7Uhhh8CmDpNCrR1uhDAv2AO9w==",
+        "dependencies": {
+          "Microsoft.AspNetCore.Authentication.JwtBearer": "10.0.5",
+          "Microsoft.AspNetCore.Authentication.OpenIdConnect": "10.0.5",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Configuration.Json": "10.0.5",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.5",
+          "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.17.0"
+        }
+      },
+      "Keycloak.AuthServices.Authorization": {
+        "type": "CentralTransitive",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "dnYxElMsfUXN0xy8PpY5aTT0GjUJIja8v8XiOgrXA5JwFleesKaGxv9L5wBme0o7dHMSMp0YC3EHs5HC24NVIA=="
+      },
+      "Keycloak.AuthServices.Authorization.TokenIntrospection": {
+        "type": "CentralTransitive",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "dcalSkCwKFtcv9nNcNtIolTMDal7kizeCIbXlfi6ZXGevYiz5+wSYYvolj4QKquO7crGWeRqkW7kjbGlEBU9SA==",
+        "dependencies": {
+          "Keycloak.AuthServices.Authorization": "3.0.0",
+          "Microsoft.Extensions.Caching.Hybrid": "10.4.0"
+        }
+      },
+      "Keycloak.AuthServices.Authorization.Uma": {
+        "type": "CentralTransitive",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "YdLBRB+mmVpIZWmJzwLiT+ySfTUzDrWAH71DgSHKyG8A6KLhbPeiXNBe3vbx8+9x6Ol6oTUsksecDEOyLjQRXA==",
+        "dependencies": {
+          "Keycloak.AuthServices.Authorization": "3.0.0",
+          "Keycloak.AuthServices.Sdk": "3.0.0"
+        }
+      },
+      "Keycloak.AuthServices.OpenTelemetry": {
+        "type": "CentralTransitive",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "zRl6KBQD+l0eClt5pW9nVsJ7QD4Z9ZqWx4ELVRvLDPioj0TVilF98F1N3ggTYBDvMVnx+wrn455BAAWlzI4LbA==",
+        "dependencies": {
+          "OpenTelemetry": "1.8.1"
+        }
+      },
+      "Keycloak.AuthServices.Sdk": {
+        "type": "CentralTransitive",
+        "requested": "[3.0.0, )",
+        "resolved": "3.0.0",
+        "contentHash": "v520+SpseJ4T7ldZ6WzW6CjccqBhAPvhUP0a2ClZ4ZfqrHQBGlpbB/+xs9LrK8Qo9w0tojfUOY3ULOduf/EKLg==",
+        "dependencies": {
+          "Keycloak.AuthServices.Common": "3.0.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Http": "10.0.5"
+        }
+      },
+      "Keycloak.AuthServices.Sdk.Kiota": {
+        "type": "CentralTransitive",
+        "requested": "[26.5.6, )",
+        "resolved": "26.5.6",
+        "contentHash": "xhSqkpvgHgwUhfREQ/GdQI8zlOoqJZ1qQzAshCJ+KK688eExhi6I9YmwQa1vUulcAYVOQ+HwEpxWy7VFhOStmg==",
+        "dependencies": {
+          "Keycloak.AuthServices.Common": "2.8.1",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.1",
+          "Microsoft.Extensions.Http": "10.0.1",
+          "Microsoft.Kiota.Bundle": "1.22.1"
+        }
+      },
       "Microsoft.AspNetCore.Authentication.JwtBearer": {
         "type": "CentralTransitive",
         "requested": "[10.0.15, )",
@@ -2148,6 +2341,15 @@
         "contentHash": "Y8VbPrQuABpTkMrqO/K2URdfqBBheri/YDcB+sO530arpqsy7vsd/go/YfEP8XaRkACWPQV2gPxedl7dnxp0zg==",
         "dependencies": {
           "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.19.2"
+        }
+      },
+      "Microsoft.AspNetCore.Authentication.OpenIdConnect": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.15, )",
+        "resolved": "10.0.5",
+        "contentHash": "MPODD1XR3wu+QbVBpId+uO7yGfhSr1ZIdiPrqzbApHlVUdi2Va29elIKYaROaZd5ksvYWtPnurvHPzTrzg1UnQ==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.0.1"
         }
       },
       "Microsoft.EntityFrameworkCore": {
@@ -2561,6 +2763,16 @@
           "WolverineFx.RDBMS": "6.64.0"
         }
       },
+      "WolverineFx.FluentValidation": {
+        "type": "CentralTransitive",
+        "requested": "[6.64.0, )",
+        "resolved": "6.64.0",
+        "contentHash": "bMGs+vv+C1h9Dnhsrmi9VNwc6AWNqaGZtJ2pF+8SjIhZKDtB2AWB2ZIqo5ty4WbIARoBdIiJos10PBfH6Gaggw==",
+        "dependencies": {
+          "FluentValidation": "12.0.0",
+          "WolverineFx": "6.64.0"
+        }
+      },
       "WolverineFx.HealthChecks": {
         "type": "CentralTransitive",
         "requested": "[6.64.0, )",
@@ -2591,6 +2803,15 @@
           "RabbitMQ.Client": "7.2.2",
           "WolverineFx": "6.64.0",
           "WolverineFx.Newtonsoft": "6.64.0"
+        }
+      },
+      "xunit.v3.extensibility.core": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.3, )",
+        "resolved": "4.0.3",
+        "contentHash": "TBYqQKyT+XBDLSHjG6PnmQpooqatflBcWvNiESVS5ptQxWXVf/FGlkUfkNyHKRCUDSCxxHIJNgwO+SRosUmZEw==",
+        "dependencies": {
+          "xunit.v3.common": "[4.0.3]"
         }
       },
       "ZiggyCreatures.FusionCache": {

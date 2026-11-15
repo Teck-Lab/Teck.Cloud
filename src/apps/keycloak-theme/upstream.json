@@ -1,0 +1,41 @@
+{
+  "repository": "https://github.com/emirhannaneli/keycloak-shadcn",
+  "commit": "68219c97f5b76fc4360702fe307113007290ca5d",
+  "license": "MIT",
+  "source": "src/vendor/keycloak-theme",
+  "assets": "vendor/keycloak-shadcn/public",
+  "adaptations": [
+    {
+      "file": "account/utils/accountProfile.ts",
+      "upstreamSha256": "909394db6b72672e40777a9fe0d54e86a50302c88a00b6e388ef1edc6367b24b"
+    },
+    {
+      "file": "lib/realmLogoConfig.ts",
+      "upstreamSha256": "7011fd593ab5f537ee68d4f4de2fbfd3f07d9845f25f1dd0274967ffae7c5c56"
+    },
+    {
+      "file": "lib/themeColors.ts",
+      "upstreamSha256": "62768c6a0f352341300cafdb8814793d62f9476c9c84830db7c2778faf0ef771"
+    },
+    {
+      "file": "lib/useFavicon.ts",
+      "upstreamSha256": "f8b90e753461a64f8420f5cb8e63a08fe5823bab2933f9de63dd10f892b5084b"
+    },
+    {
+      "file": "login/pages/LoginOtpPage.tsx",
+      "upstreamSha256": "856e0328ca1cc3d7227ed9b144d70cfbeaa2ef5198294ff3c80fc51d3ee29693"
+    },
+    {
+      "file": "login/pages/WebauthnAuthenticatePage.tsx",
+      "upstreamSha256": "f74741899864dc3cfbcc0523c529805939157fc63fb381d0c734aeb4298e480b"
+    },
+    {
+      "file": "kc.gen.tsx",
+      "upstreamSha256": "812661939d40ea1da293b1fa65afa1972fc1c87cf146e97196e62f5c39f3ec5f"
+    },
+    {
+      "file": "login/KcPage.tsx",
+      "upstreamSha256": "b2fede68a3f2ba0fa85cf9231df22940b1048ead4c27ea2c3745d49c58ee7085"
+    }
+  ]
+}

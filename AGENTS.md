@@ -40,6 +40,9 @@ Before designing tests, read the relevant tests guidance below.
   do not narrow tests or measurement to conceal regressions.
 - Tenant-owned work requires validated scope; no default-tenant or global fallback.
   Never commit credentials, expose secrets in telemetry, or bypass ownership/auth.
+- Before asserting existing behavior, trace inherited contracts, callers,
+  registrations and tests. Use [the verification gate](docs/agent-instructions.md#verify-a-contract-before-claiming-it-works)
+  for foundation changes.
 - Run checks appropriate to the changed paths; report what actually passed and
   what remains unverified. Empty target sets and documentation are not evidence.
 - Use Conventional Commits. Agent remote publication uses the configured GitHub

@@ -16,11 +16,26 @@ internal static class KindCommonPlatform
         _ = KindHostingExtensions.AfterDeployment(gatewayCrds, gatewayApi);
         var gateway = Chart("kgateway", "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway", "v2.5.2", "kgateway-system");
         _ = KindHostingExtensions.AfterDeployment(gateway, gatewayCrds);
-        var postgres = Chart("cnpg", "https://github.com/cloudnative-pg/charts/releases/download/cloudnative-pg-v0.29.1/cloudnative-pg-0.29.1.tgz", "0.29.1", "cnpg-system")
+        var postgres = Chart("cnpg", "oci://ghcr.io/cloudnative-pg/charts/cloudnative-pg", "0.29.1", "cnpg-system")
             .WithHelmValue("fullnameOverride", "cnpg");
-        var redis = Chart("redis-operator", "https://github.com/OT-CONTAINER-KIT/helm-charts/releases/download/redis-operator-0.27.0/redis-operator-0.27.0.tgz", "0.27.0", "redis-operator");
+        var redis = Chart("redis-operator", "oci://ghcr.io/ot-container-kit/charts/redis-operator", "0.27.0", "redis-operator");
         var bao = Chart("openbao-operator", "oci://ghcr.io/kubebao/charts/openbao-operator", "0.6.1", "openbao-operator-system");
-        var rollouts = Chart("argo-rollouts", "https://github.com/argoproj/argo-helm/releases/download/argo-rollouts-2.43.12/argo-rollouts-2.43.12.tgz", "2.43.12", "argo-rollouts");
+        IResourceBuilder<K8sManifestResource>? ambientOperatorNamespace = null;
+        if (network is not null)
+        {
+            ambientOperatorNamespace = cluster.AddManifestFromContent(
+                "keycloak-operator-ambient",
+                "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: keycloak-operator\n  labels:\n    istio.io/dataplane-mode: ambient\n").WithServerSideApply();
+            _ = KindHostingExtensions.AfterDeployment(ambientOperatorNamespace, network, "daemonset/ztunnel");
+        }
+
+        var keycloakOperator = Chart("keycloak-operator", "oci://ghcr.io/hostzero-gmbh/charts/keycloak-operator", "0.14.0", "keycloak-operator");
+        if (ambientOperatorNamespace is not null)
+        {
+            _ = KindHostingExtensions.AfterDeployment(keycloakOperator, ambientOperatorNamespace);
+        }
+
+        var rollouts = Chart("argo-rollouts", "oci://ghcr.io/argoproj/argo-helm/argo-rollouts", "2.43.12", "argo-rollouts");
 
         // This barrier exists even without candidate manifests. Controllers must actually
         // roll out before local certificates or application-owned custom resources are applied.
@@ -30,6 +45,7 @@ internal static class KindCommonPlatform
         _ = KindHostingExtensions.AfterDeployment(defaults, postgres, "deployment/cnpg");
         _ = KindHostingExtensions.AfterDeployment(defaults, redis, "deployment/redis-operator");
         _ = KindHostingExtensions.AfterDeployment(defaults, bao, "deployment/openbao-operator-controller", "deployment/openbao-operator-provisioner");
+        _ = KindHostingExtensions.AfterDeployment(defaults, keycloakOperator, "deployment/keycloak-operator");
         _ = KindHostingExtensions.AfterDeployment(defaults, rollouts, "deployment/argo-rollouts");
         return defaults;
 

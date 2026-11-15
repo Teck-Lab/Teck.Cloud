@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ArchitectureRuleFixtures.Valid.Domain</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../src/shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+  </ItemGroup>
+</Project>

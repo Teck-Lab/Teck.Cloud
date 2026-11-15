@@ -31,11 +31,11 @@ this convention does not select an outbound vendor protocol.
 Use two lightweight, framework-independent marker interfaces:
 
 - IDomainEvent identifies a fact internal to its owning service. Concrete types live
-  in that service's Domain/DomainEvents. They never become RabbitMQ payloads,
+  inside the owning Domain aggregate. They never become RabbitMQ payloads,
   externally shared DTOs or another service's dependencies.
 - IIntegrationEvent identifies a versioned, producer-owned fact intended for other
   services. Concrete types live in a focused shared contracts library; consumers
-  reference contracts, never the producer's Domain/Application/Host implementation.
+  reference contracts, never the producer's Domain/Application/Infrastructure/Host implementation.
 
 These are our architecture markers, not interfaces required by Wolverine. Put the
 markers in SharedKernel.Core without Wolverine, EF Core or ASP.NET dependencies. A concrete type must not implement both markers. Do not

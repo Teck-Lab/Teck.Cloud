@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <Content Include="../Identity.TestHost/Assets/index.html" Link="Assets/index.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <Compile Include="../../e2e/web/Identity.E2ETests/IdentityProvisioner.cs" Link="IdentityProvisioner.cs" />
+  </ItemGroup>
+</Project>

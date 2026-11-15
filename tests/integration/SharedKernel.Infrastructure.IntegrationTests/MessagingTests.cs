@@ -158,6 +158,7 @@ public sealed class MessagingTests
         _ = builder.Services.AddDbContextWithWolverineIntegration<MessageDbContext>(options => options.UseNpgsql(database), "messages");
         _ = builder.UseWolverine(options =>
         {
+            options.ApplicationAssembly = typeof(MessagingTests).Assembly;
             var output = Environment.GetEnvironmentVariable("TECK_CODEGEN_OUTPUT");
             if (!string.IsNullOrEmpty(output))
             {

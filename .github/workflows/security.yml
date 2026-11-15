@@ -105,6 +105,8 @@ jobs:
           scan-type: config
           scan-ref: .
           skip-dirs: node_modules,.artifacts,.nx,**/bin,**/obj
+          # Docker build-context filters are not Dockerfiles or deployable configuration.
+          skip-files: "**/*.dockerignore"
           severity: HIGH,CRITICAL
           exit-code: "1"
           format: sarif

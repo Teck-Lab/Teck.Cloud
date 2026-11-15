@@ -1,0 +1,31 @@
+{
+  "name": "design-tokens",
+  "sourceRoot": "src/packages/design-tokens",
+  "tags": ["scope:shared", "type:lib", "platform:neutral"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node src/packages/design-tokens/generate.mjs --check"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install tsc --noEmit -p src/packages/design-tokens/tsconfig.json"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install biome check src/packages/design-tokens"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test src/packages/design-tokens/generate.test.mjs"
+      }
+    }
+  }
+}

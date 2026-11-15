@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/vendor/keycloak-theme/*"],
+      "config": ["./src/theme-config.ts"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "exclude": [
+    "node_modules",
+    "src/vendor/keycloak-theme/**/*.stories.tsx",
+    "src/vendor/keycloak-theme/**/KcPageStory.tsx",
+    "src/vendor/keycloak-theme/main.tsx"
+  ]
+}

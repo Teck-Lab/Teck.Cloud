@@ -1,4 +1,4 @@
-﻿# Common KIND platform
+# Common KIND platform
 
 The Aspire `kind` profile installs these components in **both full and sandbox modes**.
 Only the Cilium/Istio networking layer differs. Start through the existing `bun run dev:kind`
@@ -6,15 +6,16 @@ entry point or the IDE; no separate bootstrap script or Terraform is required.
 All resources belong to the disposable session cluster. This does not alter the Orca
 plugin's persistent workspace cluster or an existing user cluster.
 
-| Component                       | Pinned chart / release            | Purpose                                              |
-| ------------------------------- | --------------------------------- | ---------------------------------------------------- |
-| Gateway API                     | 1.7.0 experimental CRDs           | Standard APIs plus experimental resources and fields |
-| kgateway and its CRDs           | 2.5.2                             | Envoy gateway controller and on-demand proxies       |
-| cert-manager                    | 1.21.3                            | Certificate issuance and renewal                     |
-| CloudNativePG                   | chart 0.29.1 / operator 1.30.1    | PostgreSQL Cluster reconciliation                    |
-| OT-CONTAINER-KIT Redis Operator | 0.27.0                            | Redis replication and Sentinel reconciliation        |
-| KubeBao OpenBao Operator        | 0.6.1                             | OpenBao cluster lifecycle and tenant onboarding      |
-| Argo Rollouts                   | chart 2.43.12 / controller 1.10.2 | Progressive delivery independent of Argo CD          |
+| Component                       | Pinned chart / release            | Purpose                                               |
+| ------------------------------- | --------------------------------- | ----------------------------------------------------- |
+| Gateway API                     | 1.7.0 experimental CRDs           | Standard APIs plus experimental resources and fields  |
+| kgateway and its CRDs           | 2.5.2                             | Envoy gateway controller and on-demand proxies        |
+| cert-manager                    | 1.21.3                            | Certificate issuance and renewal                      |
+| CloudNativePG                   | chart 0.29.1 / operator 1.30.1    | PostgreSQL Cluster reconciliation                     |
+| Hostzero Keycloak Operator      | chart 0.14.0                      | Reconciles local Keycloak realm through its Admin API |
+| OT-CONTAINER-KIT Redis Operator | 0.27.0                            | Redis replication and Sentinel reconciliation         |
+| KubeBao OpenBao Operator        | 0.6.1                             | OpenBao cluster lifecycle and tenant onboarding       |
+| Argo Rollouts                   | chart 2.43.12 / controller 1.10.2 | Progressive delivery independent of Argo CD           |
 
 Versions are configured in `KindCommonPlatform.cs` and the Gateway API Kustomization.
 Gateway API uses the pinned experimental bundle, which includes the standard APIs
@@ -30,7 +31,7 @@ no remote GitOps or promotion connection and no GitHub credentials are required.
 Aspire installs Gateway API with server-side apply and waits for CRD establishment.
 kgateway's own CRD chart precedes its controller. Full mode's mesh also waits for
 Gateway API. All common controllers wait for the full-mode network when applicable.
-A `platform-defaults` resource waits for named controller Deployment rollouts before
+A `platform-defaults` resource waits for named controller Deployment rollouts, including Hostzero, before
 applying the local CA. Candidate manifests wait for that barrier. Errors and deadlines
 fail startup; they never select a smaller platform silently.
 
@@ -46,7 +47,9 @@ index caches, repair that configuration with Helm's supported repository command
 AppHost does not rewrite the developer's global Helm configuration.
 
 The platform installs **operators**, not a permanent shared PostgreSQL database, Redis
-fleet or OpenBao tenant. Application/environment manifests own their Cluster,
+fleet or OpenBao tenant. The local identity overlay owns its CNPG Cluster, Keycloak
+Deployment, Hostzero KeycloakInstance and KeycloakRealm. Other application/environment
+manifests own their Cluster,
 RedisReplication/RedisSentinel, OpenBaoTenant/OpenBaoCluster and Rollout resources.
 Redis consumers must use Sentinel rather than a fixed primary address. OpenBao namespaces
 must be onboarded before creating their clusters; preserve the operator's admission and
@@ -69,6 +72,8 @@ application's local overlay, including customer/admin separation when those gate
 implemented. The installer does not expose an unauthenticated public gateway or invent
 an application deployment. KIND has no cloud load balancer by default: external access
 needs a deliberate KIND port mapping or a supported local load-balancer solution.
+The identity overlay uses a loopback-only port mapping from host 18443 to node 30443;
+see [local Keycloak access](local-development.md#keycloak-in-the-kind-profile).
 The platform proof exercises in-cluster HTTPS through the real proxy.
 
 Argo Rollouts blue/green service switching works without Argo CD. Gateway API weighted

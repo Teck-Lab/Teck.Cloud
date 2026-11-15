@@ -10,75 +10,133 @@ real service project using [the agent instruction checklist](agent-instructions.
 
 ## Layout
 
-A stateful business service normally has three projects under
+A business service has four projects under
 src/services/<domain>/<service>/:
 
 ```text
 <Service>.Domain/
-  Entities/
-  ValueObjects/
-  DomainEvents/
-  Services/                         # Domain logic when needed
+  Aggregates/
+    <Aggregate>/
+      <Aggregate>.cs              # Root owns business invariants
+      <ChildEntity>.cs
+      <Aggregate>Errors.cs        # Domain-owned ErrorOr errors
+      ValueObjects/
+      DomainEvents/               # Local domain events
+      Services/                   # Optional pure domain calculations
+  Common/                         # Only concepts shared across aggregates
   <Service>.Domain.csproj
 <Service>.Application/
   <Capability>/
     Features/<UseCase>/V1/
-      <UseCase>Command.cs            # Or Query / Request as appropriate
+      <UseCase>Command.cs         # Or Query as appropriate
       <UseCase>Validator.cs
       <UseCase>Handler.cs
     Responses/
-    ReadModels/                     # Query specifications / projections
-    Mapping/
+    ReadModels/                   # Query-specific projection types
+    Mapping/                      # Mapperly mappers
     EventHandlers/DomainEvents/
     EventHandlers/IntegrationEvents/
-  Database/
-    <Service>DbContextBase.cs
-    <Service>DbContext.cs            # Write context, migration target
-    Configurations/
   <Service>.Application.csproj
-<Service>.Host/
-  Endpoints/<Capability>/           # External HTTP adapters
-  Grpc/                             # Internal synchronous service adapters
+<Service>.Infrastructure/
   Database/
-    Migrations/
-    <Service>ReadDbContext.cs
-    <Service>ReadRepository.cs
-    <Service>WriteRepository.cs
-    <Service>PersistenceExtensions.cs
-  Infrastructure/                   # External clients and runtime adapters
+    <Service>WriteDbContext.cs    # Tracked write context
+    <Service>ReadDbContext.cs     # Untracked, save-guarded read context
+    PersistenceExtensions.cs
+    Configurations/
+      Shared/                     # Mappings present on both sides
+      Write/                      # Write aggregate mappings
+      Read/                       # Read projection mappings
+    Migrations/                   # Write-context schema history
+  Clients/                        # Outbound gRPC/other service adapters
+  Caching/                        # Only when service-specific
+  Messaging/                      # Only when service-specific
+  <Service>.Infrastructure.csproj
+<Service>.Host/
+  Endpoints/<Capability>/<UseCase>/V1/
+  Grpc/                           # Inbound synchronous service adapters
+  Composition/
   Program.cs
   <Service>.Host.csproj
 ```
-
 This is a placement guide, not a requirement to create empty folders or a file for
 every possible type. Each feature belongs to a business capability; avoid a single
-Application/Features folder collecting unrelated use cases. Add versions for
-versioned contracts and use cases deliberately. A V1 directory does not itself
-configure the externally exposed URL.
+Application/Features folder collecting unrelated use cases. Keep each command or
+query, validator and handler together under
+Application/<Capability>/Features/<UseCase>/V<n>/. The V1 shown above is an example;
+versions are added deliberately for versioned contracts and use cases. A version
+directory does not itself configure the externally exposed URL.
+
+Capability-level Responses, ReadModels, Mapping and EventHandlers folders are also
+allowed in Application. Application-root C# files are limited to
+DependencyInjection.cs, ApplicationServiceCollectionExtensions.cs,
+ServiceCollectionExtensions.cs, ApplicationComposition.cs, GlobalUsings.cs and
+AssemblyInfo.cs; put other source under a capability or feature.
 
 A service-local Directory.Build.props is optional. If added, import the parent
 configuration explicitly: MSBuild otherwise stops at the nearest props file.
 
 ## Responsibilities and references
 
-| Project     | Owns                                                                                         | Reference direction                                                                                               |
-| ----------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Domain      | Entities, value objects, invariants, domain events                                           | No Application/Host or infrastructure dependencies; focused framework-independent domain primitives may be shared |
-| Application | Use cases, commands/queries, validation, responses, mappings and handlers                    | Its Domain and relevant shared contracts; never its Host or another service's internals                           |
-| Host        | Process entrypoint, transports, auth, DI, configuration, persistence adapters and migrations | Application; Domain where persistence/composition genuinely requires it; hosting infrastructure                   |
+| Project        | Owns                                                                                   | Reference direction                                                       |
+| -------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Domain         | Aggregates, value objects, invariants, domain errors and local events                  | Shared domain contracts only; no Application, Infrastructure or Host      |
+| Application    | Use cases, commands/queries, validators, DTOs, Mapperly mappings and handlers          | Domain and shared contracts; no Infrastructure or Host                    |
+| Infrastructure | Read/write EF contexts, configurations, migrations, repositories and outbound adapters | Application, Domain and relevant shared adapters                          |
+| Host           | Process entrypoint, inbound HTTP/gRPC, auth, configuration and composition             | Application and Infrastructure; Domain only where composition requires it |
 
-The retained database-context placement means Application has EF Core/persistence
-references. Do not describe this as a framework-free Application layer. Moving
-those contexts into a separate Infrastructure project would be an architecture
-change, not a prerequisite or an implicit part of this migration.
-
+This follows the inward dependency rule used by Clean Architecture and Onion Architecture:
+Domain is at the center, Application owns use cases and ports, Infrastructure implements
+outward-facing adapters, and Host is the composition root and inbound transport. The
+four-project layout keeps EF Core and provider packages in the service's Infrastructure
+project. Application handlers consume repository, cache and unit-of-work contracts
+without referencing concrete contexts. Host composes the service and is the only
+deployable process/image. SharedKernel.Persistence and SharedKernel.Infrastructure
+remain reusable libraries, not additional service layers.
 Service-to-service calls use gRPC synchronously and Wolverine/RabbitMQ asynchronously.
 HTTP/REST is for external ingress only. Follow [events and communication](messaging.md).
 Services do not
-reference another service's Host/Application/Domain projects or access its database.
+reference another service's Domain/Application/Infrastructure/Host projects or access
+its database.
 Shared contracts carry IDs and integration DTOs, not EF entities or navigations.
 Gateways remain routing/auth components and do not acquire business-domain layers.
-A stateless worker can omit Domain when it has no domain model.
+A stateless worker may omit Domain only when its service-root service-layout.json
+declares {"kind":"stateless-worker"}. Do not infer this exception from the service
+name; without the marker, the four-project business-service layout applies.
+
+## Aggregate-first Domain and errors
+
+Group domain types by aggregate rather than by technical type. Domain source
+belongs under Aggregates/<Aggregate>/ or Common/; do not create top-level Entities, ValueObjects, DomainEvents, Errors or Services
+folders. For example, Domain/Aggregates/Order/
+holds the Order root, child entities such as OrderLine, OrderErrors, related value
+objects, local events and any pure domain service. Do not create empty folders or
+one folder per child entity. Keep genuinely shared domain concepts under Common/
+only when multiple aggregates own them.
+
+Aggregate and value-object factories enforce their own invariants, including
+required values, maximum string lengths and valid quantities. Return ErrorOr<T>
+for expected creation or mutation failures, using stable domain error codes defined
+beside the owning aggregate (for example, OrderErrors.NameTooLong). A factory
+must reject an overlong name before constructing the value or aggregate; request
+and handler validators may give earlier feedback, but they do not own or replace
+the Domain invariant. Guard constructors so callers cannot bypass the factory.
+Application owns orchestration errors such as a requested ID not being found or a
+downstream capability being unavailable. Host maps the full ErrorOr result to
+transport status; it does not define business errors. This is the chosen Teck.Cloud
+convention, not a claim that Monorepo already centralized domain errors.
+
+Use Ardalis.SmartEnum for finite domain choices that need named instances,
+behavior or domain metadata. Keep a type with its owning aggregate; place it in
+Domain/Common/ only when it is truly shared across aggregates. A plain enum is
+sufficient for a simple closed set with no behavior. Add the SmartEnum package
+reference to the Domain project only when a real domain type uses it, and manage
+its version centrally under the repository package policy.
+
+A domain service is a pure business calculation that does not naturally belong
+on one entity or value object. Monorepo's OrderPricingService sums order lines;
+it does not call the separate Pricing service. Cross-service calls and repository
+lookups belong outside Domain. Use a service only when a method on the aggregate
+or value object would be the worse owner.
 
 ## Feature and transport flow
 
@@ -88,11 +146,21 @@ Endpoint -> Application command/query -> handler -> domain/persistence -> respon
   dispatch, FluentValidation for validation, Mapperly for generated mappings and
   Ardalis.Specification for query specifications when porting the matching feature.
   Selected packages are centrally pinned; add references in each actual consumer.
-  See [build quality](dotnet-quality.md) for analyzer and ErrorOr conventions.
+  See [validation boundaries](validation.md) for HTTP and Wolverine validator behavior,
+  and [build quality](dotnet-quality.md) for analyzer and ErrorOr conventions.
 - Endpoints handle route, authorization, transport translation and response status.
-  Business decisions, database operations and entity mapping belong behind them.
-- Put use-case requests, commands/queries and validators beside the handler in
-  Application/<Capability>/Features/<UseCase>/V1. Responses and mappings belong to
+  Business decisions and database operations belong behind them. Use Mapperly-generated
+  mappers for mappings between aggregates, Application DTO/read models and Host request/
+  response contracts; direct assignment of one scalar value is fine. Do not use AutoMapper
+  or handwritten mapper classes. Put application mappings under Application/<Capability>/Mapping
+  and transport mappings in a Host-owned mapper near the endpoint. Name each mapper type
+  with the Mapper suffix and mark it with the [Mapper] attribute. The service-layout
+  verifier checks authored C# Mapper-suffixed types in Application/Host for that attribute;
+  the shared architecture suite rejects AutoMapper assembly references. These checks do not
+  classify arbitrary inline object initializers, endpoint/handler expressions or LINQ
+  projections, so keep transformations in named mapper types and test their behavior.
+- Put use-case requests, commands/queries, validators and handlers together in
+  Application/<Capability>/Features/<UseCase>/V<n>. Responses and mappings belong to
   the capability. An HTTP-only binding contract, if needed, must be distinguished
   explicitly from the use-case contract rather than duplicating business validation.
 - Wolverine handlers use its supported method conventions; do not introduce a second
@@ -110,8 +178,8 @@ or introduce custom endpoint base classes. Express authorization with supported
 policies, endpoint configuration and focused composition helpers; preserve tenant
 and permission checks when porting features.
 
-Keep vertical slices under Application/<Capability>/Features/<UseCase>/V1 and align
-Host/Endpoints/<Capability>/<UseCase>/V1 with that use case. Endpoint classes own
+Keep vertical slices under Application/<Capability>/Features/<UseCase>/V<n> and align
+Host/Endpoints/<Capability>/<UseCase>/V<n> with that use case. Endpoint classes own
 HTTP binding and response mapping; Wolverine handlers own application behavior.
 Use Wolverine for CQRS rather than adding FastEndpoints' command/event bus as a
 second dispatch mechanism.
@@ -161,7 +229,7 @@ requirement. Keep useful EF features and do not restrict queries solely around i
 experimental AOT support.
 
 Prefer FastEndpoints' documented source-generation setup, System.Text.Json source
-generation, Mapperly/direct mapping and LoggerMessage generation. Configure the
+generation, Mapperly-generated mappings and LoggerMessage generation. Configure the
 selected Wolverine version's supported build-time code generation and static
 loading (TypeLoadMode.Static), verifying the generated handlers and the actual
 messaging integrations. Wolverine has a documented AOT path; EF limitations do
@@ -184,11 +252,12 @@ References:
 
 ## Persistence and transactions
 
-Retain PostgreSQL and EF Core for the service's persistence baseline. The existing
-three-context pattern defines the entity model once in Application's abstract base,
-with a tracked write context and a separate Host read context using NoTracking.
-The read context derives from the base, not from the write context. Read/write
-contexts do not imply separate databases or an available read replica.
+Retain PostgreSQL and EF Core as the current persistence baseline. Each service owns
+distinct read and write DbContext types in Infrastructure: the tracked write context
+derives from the shared WriteDbContext, and the untracked, save-guarded read context
+derives directly from ScopedDbContext. Keep their EF configurations and migrations in
+Infrastructure; do not add a service-specific abstract context base in Application.
+Separate context types do not imply separate databases or an available read replica.
 
 Use the retained generic read/write repository and unit-of-work boundary in
 handlers. Do not inject DbContext or Ardalis IRepositoryBase directly into them.
@@ -231,29 +300,94 @@ or an independently projected read schema. Catalog is the verified example:
 CreateProductHandler consumes IGenericWriteRepository and IUnitOfWork;
 GetProductHandler consumes IGenericReadRepository.
 
-For new stateful services, require these invariants regardless of whether
-persistence remains in three projects or moves into a fourth:
+For new stateful services, require these invariants in the four-project layout:
 
-1. Distinct read and write DbContext types share one authoritative entity model.
-   The read context derives from the common base, not the write context. Existing
-   names such as CatalogDbContext denote the write side; new names should make
-   Read/Write explicit.
+1. Distinct read and write DbContext types use the same shared entity mappings,
+   while each can include its own model. The write context derives from
+   SharedKernel.Persistence.Database.WriteDbContext (Wolverine unit of work and
+   outbox); the read context derives directly from ScopedDbContext with
+   `readOnly: true`. They cannot derive from one service DbContext base class.
+   Keep EF configurations in Infrastructure/Database/Configurations/Shared,
+   Write and Read. Implement ISharedModelConfiguration<TEntity>,
+   IWriteModelConfiguration<TEntity> or IReadModelConfiguration<TEntity>.
+   Both contexts scan the Infrastructure assembly with their respective
+   ModelConfigurationFilters predicate **before** calling base.OnModelCreating.
+   The base applies tenant and soft-delete filters to all discovered entities.
+   Only the write context owns migrations; a read-only view/projection belongs
+   only in the read model. For a genuinely small read model, mark the rich
+   Product mapping as IWriteModelConfiguration<Product> and the separate
+   GetProductByIdReadModel mapping as IReadModelConfiguration<GetProductByIdReadModel>; the
+   Shared marker is only for mappings both contexts actually need. Name each
+   read-side EF type with a ReadModel suffix, such as OrderReadModel for a reused
+   shape or GetOrderByIdReadModel for a query-specific shape. This is separate
+   from an external HTTP response type. A read
+   projection still needs tenant and soft-delete filtering; verify that its
+   mapped fields and query filters enforce those boundaries.
+
+   ```csharp
+   // Infrastructure/Database/CatalogWriteDbContext.cs
+   public sealed class CatalogWriteDbContext(
+       DbContextOptions<CatalogWriteDbContext> options,
+       OperationContext operation,
+       IDbContextOutbox outbox,
+       IMessageContext messaging)
+       : WriteDbContext(options, operation, outbox, messaging)
+   {
+       public DbSet<Product> Products => Set<Product>();
+
+       protected override void OnModelCreating(ModelBuilder modelBuilder)
+       {
+           modelBuilder.ApplyConfigurationsFromAssembly(
+               typeof(CatalogWriteDbContext).Assembly,
+               ModelConfigurationFilters.WriteConfigurationsFilter);
+           base.OnModelCreating(modelBuilder);
+       }
+   }
+
+   // Infrastructure/Database/CatalogReadDbContext.cs
+   public sealed class CatalogReadDbContext(
+       DbContextOptions<CatalogReadDbContext> options,
+       OperationContext operation)
+       : ScopedDbContext(options, operation, readOnly: true)
+   {
+       public DbSet<GetProductByIdReadModel> ProductSummaries => Set<GetProductByIdReadModel>();
+
+       protected override void OnModelCreating(ModelBuilder modelBuilder)
+       {
+           modelBuilder.ApplyConfigurationsFromAssembly(
+               typeof(CatalogWriteDbContext).Assembly,
+               ModelConfigurationFilters.ReadConfigurationsFilter);
+           base.OnModelCreating(modelBuilder);
+       }
+   }
+   ```
+
 2. Read repositories resolve only the read context, with NoTracking by default.
    Query handlers must not receive a write repository or unit of work.
+   Every command handler injects a write repository; every query handler injects
+   a read repository or IReadCacheService<TModel, TId>. Cache loading must be
+   registered against an untracked, tenant-scoped read path and verified in a
+   service integration test; the architecture rule cannot prove loader wiring.
 3. Write repositories resolve the tracked write context; command handlers may
    read through that same context when loading data to mutate or when consistency
    requires it. One transaction owner completes that same scoped context and outbox;
    a unit-of-work adapter must not independently commit ahead of Wolverine middleware.
 4. NoTracking is a query tracking setting, not write authorization. Guard every
    SaveChanges/SaveChangesAsync entry point on the read context and use a
-   read-only database principal for the read connection. Test direct SQL/bulk-write
-   paths against that principal too; SaveChanges guards do not cover those paths.
-5. Read and write may initially use the same database server with different
-   credentials. A read replica is optional; if enabled, specify replica-lag and
-   read-after-write behavior rather than assuming immediate visibility.
-6. The write model owns schema migrations. The read context must not generate
-   or apply a second competing set for the same schema. Provider-specific sets
-   are different from read/write sets.
+   read-only database principal when a separate read connection is configured.
+   Test direct SQL/bulk-write paths against that principal too; SaveChanges guards
+   do not cover those paths. If the read connection string is absent, use the write
+   connection string as Monorepo does; the read context still rejects SaveChanges,
+   but the shared database principal does not make raw SQL read-only.
+5. A read connection string is optional and falls back to the required write
+   connection string. A dedicated read principal or read replica is optional;
+   if a replica is enabled, specify replica-lag and read-after-write behavior
+   rather than assuming immediate visibility.
+6. The write model owns schema migrations. Target the service write DbContext
+   for EF scaffolding, and store migrations in the service Infrastructure assembly.
+   This differs from Monorepo's current layout. The read context must not generate or
+   apply a competing migration set for the same schema. Provider-specific sets are
+   different from read/write sets.
 7. Enforce wiring and handler dependencies with architecture/DI tests. Use real
    Testcontainers integration tests to verify read-only restrictions, no tracking,
    successful write commits, isolation, migrations and the outbox boundary.
@@ -263,16 +397,17 @@ implement the write guards above. These are requirements for the new service
 implementation. Teck.Cloud now tests these guards in ScopedDbContext and a real
 PostgreSQL read principal; each service must prove its own registration/credentials.
 
-## Multiple providers and the persistence-project decision
+## Multiple providers and Infrastructure ownership
 
 PostgreSQL is the inherited implementation, not a permanent PostgreSQL-only rule.
 The intended portability targets are PostgreSQL, SQL Server, MySQL and MariaDB.
 No additional provider is installed or claimed supported until its real tests pass.
 
-Use shared SharedKernel.Persistence for reusable EF/cache adapters. Keep the
-service's Domain/Application/Host layout: concrete mappings and migrations remain
-service-owned. A separate service Persistence project is optional only when real
-provider isolation or dependency constraints justify it; it is not the default.
+The four service projects are Domain, Application, Infrastructure and Host. Keep
+concrete contexts, mappings and migrations service-owned in Infrastructure. Do not add
+a fifth service-specific Persistence project by default. If a real provider-isolation
+or dependency constraint requires another project, document the exception, its project
+references and the provider-specific verification before adding it.
 
 EF Core scaffolds for the active provider. Maintain provider-specific migrations
 and model snapshots; regenerate the relevant sets for model changes. Microsoft
@@ -281,8 +416,8 @@ type with separate migration assemblies. Merely selecting different output folde
 for the same context/assembly is not a complete isolation strategy.
 
 If we keep one logical write context, provider-specific migration projects are a
-clear option, but they add projects beyond Domain/Application/Host. Alternatively,
-provider-specific write context types can keep migrations inside the service Host.
+clear option, but they add projects beyond the four-layer baseline. Alternatively,
+provider-specific write context types can keep migrations inside service Infrastructure.
 Select that trade-off before scaffolding the first migration.
 The read side shares the model and does not add separate schema migration sets.
 
@@ -304,7 +439,7 @@ References:
 ## Migrations, hosting and deployment
 
 Retain the same Host image with a bounded --migrate mode, with generated EF
-migrations under Host/Database/Migrations and the write context as migration target.
+migrations under Infrastructure/Database/Migrations and the write context as migration target.
 The normal server mode and migration mode use the same candidate version. Migration
 failure must stop rollout/startup. Choose the init-container/job execution strategy
 with the deployment, including coordination when multiple replicas start. Re-running
@@ -320,7 +455,8 @@ unverified legacy build command.
 ## Nx, tests and release unit
 
 Each csproj is an Nx project, with ProjectReference dependencies and solution
-registration. Domain/Application are dependencies of the Host, not three separate
+registration. Host composes Application and Infrastructure; Infrastructure implements
+Application ports and references Domain. These projects make one service, not separate
 service deployments. The deployable Host/image owns container:build and its release
 identity. Shared-code changes must select affected Host consumers. Include shared
 build configuration, external image inputs and deployment manifests where relevant.
@@ -331,13 +467,26 @@ The service normally adds:
 - tests/integration/<Service>.IntegrationTests using Testcontainers and optionally
   WebApplicationFactory for external HTTP, covering migrations, gRPC, committed data
   and real RabbitMQ messaging. See [messaging proof](messaging.md#required-proof-with-the-first-service).
-- tests/architecture/<Service>.Architecture.UnitTests enforcing the actual declared
-  reference and placement rules, including forbidden handler persistence dependencies.
+- tests/architecture/<Service>.Architecture.UnitTests is required for a stateful
+  business service. It must contain an authored test and direct ProjectReferences to
+  the four service projects plus tests/architecture/Teck.Cloud.ArchitectureRules.
 
 Assembled Aspire E2E and Aspire/KIND deployment tests live in the existing E2E lanes;
-see [testing](testing.md). Architecture rules are documented here but not yet
-mechanically enforced in Teck.Cloud. Add behavioral and architecture evidence with
-the first service migration; do not claim enforcement from tags or prose alone.
+see [testing](testing.md). The reusable ArchUnitNET rule library under
+tests/architecture/Teck.Cloud.ArchitectureRules ports the applicable Monorepo CQRS,
+domain, aggregate, domain-event and validator rules. The shared architecture suite
+proves that these rules reject compiled bad fixtures. A stateful service architecture
+test loads its Domain, Application, Infrastructure and Host assemblies with ArchLoader,
+then calls SharedArchitectureRules.AssertAll(architecture, domainAssembly,
+applicationAssembly, infrastructureAssembly, hostAssembly, domainNamespace,
+applicationNamespace). No service-specific rule runs until that service and its
+test suite exist; runtime behavior still requires integration evidence.
+
+The only service layout exception is a service-root service-layout.json whose full
+contents are exactly {"kind":"stateless-worker"}. It requires Application,
+Infrastructure and Host, permits Domain to be absent, and skips the stateful-service
+architecture-suite requirement. Unknown or malformed markers fail the layout check;
+a service name alone never selects this exception.
 
 ## Legacy inconsistencies to resolve during migration
 
@@ -385,7 +534,7 @@ contracts) and explicitly implements IAggregateRoot. BaseEntity alone does not m
 an entity a root. For example, Order is a root and OrderLine is a child changed
 through Order's business methods, not an independent write repository.
 
-IGenericWriteRepository, GenericWriteRepository and AddRepositories require
+IGenericWriteRepository, GenericWriteRepository, AddWriteRepository and AddRepositories require
 IAggregateRoot at compile time. Read repositories remain available for roots,
 children and projections; use AddReadRepository<TEntity, TId, TRead> when only a
 read registration is needed. Aggregate methods enforce invariants and record domain

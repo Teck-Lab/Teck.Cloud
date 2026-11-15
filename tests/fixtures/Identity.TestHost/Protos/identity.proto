@@ -1,0 +1,12 @@
+syntax = "proto3";
+option csharp_namespace = "Identity.TestHost.Contracts";
+package identity;
+service Records {
+  rpc Store (RecordRequest) returns (RecordReply);
+  rpc Read (RecordRequest) returns (RecordReply);
+
+}
+service AdminRecords { rpc Read (AdminRecordRequest) returns (RecordReply); }
+message AdminRecordRequest { string key = 1; string tenant_id = 2; }
+message RecordRequest { string key = 1; string value = 2; }
+message RecordReply { string key = 1; string value = 2; string tenant_id = 3; string actor = 4; }

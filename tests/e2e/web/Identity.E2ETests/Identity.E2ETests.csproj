@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable><IsTestProject>true</IsTestProject><OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner><TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" /><PackageReference Include="Shouldly" /><PackageReference Include="coverlet.MTP" PrivateAssets="all" />
+    <PackageReference Include="Aspire.Hosting.Testing" /><PackageReference Include="Microsoft.Playwright" />
+    <ProjectReference Include="../../../fixtures/Identity.AppHost/Identity.AppHost.csproj" />
+    <ProjectReference Include="../../../fixtures/Identity.TestHost/Identity.TestHost.csproj" />
+    <Compile Include="../../../fixtures/Identity.Protocol/KeycloakTotp.cs" Link="KeycloakTotp.cs" />
+  </ItemGroup>
+</Project>

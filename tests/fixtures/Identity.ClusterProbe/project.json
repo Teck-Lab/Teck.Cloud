@@ -1,0 +1,12 @@
+{
+  "implicitDependencies": ["Identity.TestHost", "Identity.E2ETests"],
+  "targets": {
+    "container:build": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "node tests/fixtures/Identity.ClusterProbe/build-image.mjs"
+      }
+    }
+  }
+}

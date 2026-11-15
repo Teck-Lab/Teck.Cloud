@@ -92,7 +92,10 @@ composition model, not a drop-in switch for this foundation. Native conjoined or
 database-per-tenant profiles can be added when a service needs them, with dedicated
 read-principal, provisioning, migration and generated-code tests. Neither profile
 is claimed implemented here. Finbuckle HTTP tenant resolution is not additionally
-registered: trusted claims plus the service-owned ITenantDirectory establish scope.
+registered: validated Keycloak organization claims plus the shared cached
+KeycloakTenantStore/ITenantDirectory establish scope. See [identity tenancy](identity-tenancy.md)
+for five-second freshness, SDK/FusionCache resolution, header-free admin selection
+and the distinction between organization status and user membership.
 
 ## Transport and other state
 

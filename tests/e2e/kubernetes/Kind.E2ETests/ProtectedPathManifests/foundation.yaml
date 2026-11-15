@@ -1,0 +1,77 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: identity-records
+  namespace: identity
+spec:
+  instances: 1
+  bootstrap:
+    initdb:
+      database: identityrecords
+      owner: probe
+  storage:
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: identity-application
+  namespace: identity
+spec:
+  secretName: identity-application-tls
+  dnsNames: [application.local.test]
+  issuerRef:
+    name: teck-local-ca
+    kind: ClusterIssuer
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: identity-application
+  namespace: identity
+spec:
+  gatewayClassName: kgateway
+  listeners:
+    - name: https
+      hostname: application.local.test
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: identity-application-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: identity-application
+  namespace: identity
+spec:
+  parentRefs:
+    - name: identity-application
+  hostnames: [application.local.test]
+  rules:
+    - backendRefs:
+        - name: identity-gateway
+          port: 8080
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: identity-path-settings
+  namespace: identity
+data:
+  Identity__ServerUrl: http://keycloak:8080/
+  Identity__PublicIssuer: https://localhost:18443/realms/teck-local
+  Identity__Transport: __IDENTITY_TRANSPORT__
+  Identity__Realm: teck-local
+  Identity__ClientId: identity-gateway
+  Identity__DownstreamUrl: http://identity-service:8080
+  ASPNETCORE_HTTP_PORTS: "8080"
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"

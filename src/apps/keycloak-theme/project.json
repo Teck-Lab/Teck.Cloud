@@ -1,0 +1,55 @@
+{
+  "name": "keycloak-theme",
+  "sourceRoot": "src/apps/keycloak-theme/src",
+  "tags": ["scope:identity", "type:app", "platform:web"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "src/apps/keycloak-theme"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "bun run build",
+        "cwd": "src/apps/keycloak-theme"
+      }
+    },
+    "build:theme": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "outputs": ["{projectRoot}/dist_keycloak"],
+      "options": {
+        "command": "bun run build:theme",
+        "cwd": "src/apps/keycloak-theme"
+      }
+    },
+    "container:build": {
+      "executor": "nx:run-commands",
+      "dependsOn": [],
+      "cache": false,
+      "options": {
+        "command": "node src/apps/keycloak-theme/image/build.mjs"
+      },
+      "inputs": ["default", "{workspaceRoot}/src/aspire/Teck.Cloud.AppHost/Identity/runtime.json"]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install biome check src/apps/keycloak-theme"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "node --test theme.test.mjs",
+        "cwd": "src/apps/keycloak-theme"
+      }
+    }
+  },
+  "implicitDependencies": ["design-tokens"]
+}

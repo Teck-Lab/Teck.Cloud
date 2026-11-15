@@ -4,10 +4,12 @@ One Nx workspace coordinates native language toolchains. Migrate selected busine
 features deliberately from Teck.Monorepo, one verified feature at a time.
 
 - src/apps/<app>: Next.js and React Native application entry points.
-- src/services/<domain>/<service>: service-owned Host/Application/Domain projects;
+- src/services/<domain>/<service>: service-owned Domain/Application/Infrastructure/Host projects;
   add layers only for actual responsibilities.
 - src/services/gateway/<gateway>: customer/admin gateways.
 - src/packages/<package>: TypeScript package with its own package.json.
+  The design-tokens package owns the shared semantic light/dark palette; Keycloak consumes
+  its CSS, and future web/native apps consume its CSS or JavaScript exports.
 - src/shared/<project>: narrowly scoped .NET library with its own csproj.
 - src/aspire/<project>: AppHost composition and service defaults.
 
@@ -68,3 +70,15 @@ References:
 - https://nx.dev/docs/kb/folder-structure
 - https://nx.dev/docs/features/multi-language-support
 - https://nx.dev/docs/technologies/dotnet/introduction
+
+## Identity platform
+
+The [identity integration plan and diagrams](identity-platform-plan.html) describe
+Keycloak Organizations, gateway token exchange, authorization, theme and event
+integration. Open the standalone HTML in a browser for current acceptance status.
+Native package composition is documented in [Keycloak AuthServices](keycloak-authservices.md);
+the shared lookup and scope contract is in [identity tenancy](identity-tenancy.md).
+
+Customer and admin gateways each act as the BFF for their own clients. They compose
+responses with independently authorized gRPC calls; business rules and durable workflows
+stay with backend services. kgateway provides infrastructure routing, not BFF logic.

@@ -1,0 +1,20 @@
+{
+  "implicitDependencies": ["keycloak-theme", "Identity.TestHost", "Identity.ClusterProbe"],
+  "targets": {
+    "test:kubernetes": {
+      "dependsOn": [
+        "build",
+        {
+          "target": "container:build",
+          "projects": ["keycloak-theme", "Identity.TestHost", "Identity.ClusterProbe"]
+        }
+      ],
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/deployment/base/identity/**/*",
+        "{workspaceRoot}/deployment/local/identity/**/*"
+      ]
+    }
+  }
+}

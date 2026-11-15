@@ -27,7 +27,13 @@
     <PackageReference Include="Testcontainers.RabbitMq" />
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="Testcontainers.Keycloak" />
+    <PackageReference Include="Microsoft.Playwright" />
     <ProjectReference Include="../../../src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../fixtures/Identity.Protocol/*.cs" Link="%(Filename)%(Extension)" />
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/aspire/Teck.Cloud.AppHost/Identity/**/*" Link="Identity/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <PropertyGroup Condition="'$(VerifyStaticHandlers)' == 'true'">
     <DefineConstants>$(DefineConstants);VERIFY_STATIC_HANDLERS</DefineConstants>

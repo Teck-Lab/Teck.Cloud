@@ -130,6 +130,35 @@ session cluster on graceful shutdown. An explicit
 to another developer or AppHost. A forced process termination may require cleanup
 of that exact cluster after verifying its ownership.
 
+### Keycloak in the KIND profile
+
+`bun run dev:kind` builds the shared themed Keycloak image, loads it into the new
+session cluster, and applies `deployment/local/identity` after the platform
+controllers are ready. With Podman, the image is exported with `podman save` and loaded through KIND's `image-archive` command because KIND's `docker-image` command still calls the Docker CLI. Local images and manifests use matching `localhost/teck/` tags. The overlay includes a CNPG database, a Keycloak Deployment,
+the Hostzero Keycloak operator's instance and realm resources, a certificate, and a
+kgateway route. This follows the same ownership split as `Teck.GitOps` local:
+Hostzero manages the realm settings through the Admin API; the shared realm import
+still supplies clients and authentication flows. The operator does not create the
+Keycloak server or database. In full mode, the operator namespace joins ambient mesh before Helm installs the operator, so its Admin API calls satisfy Keycloak's mTLS policy. Sandbox mode leaves that namespace unmeshed. Aspire waits for the database, Keycloak, operator
+resources, and Gateway before deploying candidate manifests.
+
+Open `https://localhost:18443/admin/` after the identity-ready resource
+is running. The KIND node maps the Gateway's NodePort to loopback only. This
+Aspire profile uses `localhost` because nested `.localhost` names are not resolved by
+Windows on every developer machine; the GitOps cluster keeps its own hostname. The local CA
+is disposable and not automatically trusted by the browser. A one-off browser
+exception for this loopback-only session is possible; automated tests instead trust the
+current cluster CA and never disable certificate checks. Do not install this disposable
+CA in the system-wide trust store. The administrator user is `admin`; its
+generated password is stored as the secret Aspire parameter
+`Parameters:kind-keycloak-admin-password` in local AppHost user secrets. Do not copy
+that password into source, a command line, or logs.
+
+Set `--Kind:Identity=false` only for infrastructure-only tests that intentionally
+omit identity. The E2E suite keeps identity enabled and sets
+`--Kind:IdentityBuild=false` after its image-build target runs. Both full and sandbox
+modes install identity. Full mode additionally protects the Keycloak workload with
+ambient mTLS and a namespace allow policy; sandbox mode does not claim mesh security.
 To deploy an actual application, set `Kind:Manifests` to an absolute path or a path
 relative to the AppHost directory, for example `../../../deployment/local` once that
 overlay exists. Aspire applies the real Kustomize overlay or manifest directory

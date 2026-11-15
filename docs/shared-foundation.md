@@ -107,7 +107,7 @@ contracts) and explicitly implements IAggregateRoot. BaseEntity alone does not m
 an entity a root. For example, Order is a root and OrderLine is a child changed
 through Order's business methods, not an independent write repository.
 
-IGenericWriteRepository, GenericWriteRepository and AddRepositories require
+IGenericWriteRepository, GenericWriteRepository, AddWriteRepository and AddRepositories require
 IAggregateRoot at compile time. Read repositories remain available for roots,
 children and projections; use AddReadRepository<TEntity, TId, TRead> when only a
 read registration is needed. Aggregate methods enforce invariants and record domain

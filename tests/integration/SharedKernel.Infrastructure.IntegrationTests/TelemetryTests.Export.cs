@@ -72,7 +72,10 @@ public sealed partial class TelemetryTests
             && Encoding.UTF8.GetString(request.Body).Contains("process.thread.count", StringComparison.Ordinal));
         foreach (var request in requests)
         {
-            Encoding.UTF8.GetString(request.Body).ShouldContain("teck-telemetry-test", Case.Sensitive);
+            var body = Encoding.UTF8.GetString(request.Body);
+            body.ShouldContain("teck-telemetry-test", Case.Sensitive);
+            body.ShouldContain("service.version", Case.Sensitive);
+            body.ShouldContain("42.7.3", Case.Sensitive);
         }
 
         console.ToString().ShouldContain(trace.ToHexString(), Case.Sensitive);
@@ -88,6 +91,7 @@ public sealed partial class TelemetryTests
         _ = builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["OTEL_SERVICE_NAME"] = "teck-telemetry-test",
+            ["Telemetry:ServiceVersion"] = "42.7.3",
             ["OTEL_EXPORTER_OTLP_ENDPOINT"] = receiver.AbsoluteUri,
             ["OTEL_EXPORTER_OTLP_PROTOCOL"] = "http/protobuf",
             ["OTEL_EXPORTER_OTLP_HEADERS"] = "x-test-otel=test-value",

@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: identity-probe
+  namespace: identity
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 150
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: identity
+          image: curlimages/curl:8.17.0
+          command: [sh, -ec]
+          args:
+            - |
+              gateway_ip=$(getent hosts "$GATEWAY_ADDRESS" | awk 'NR==1{print $1}')
+              test -n "$gateway_ip"
+              curl --silent --show-error --fail --retry 15 --retry-all-errors --retry-delay 2 --cacert /certs/ca.crt --resolve "localhost:18443:$gateway_ip" https://localhost:18443/realms/teck-local/.well-known/openid-configuration > /tmp/discovery.json
+              grep -qF '"issuer":"https://localhost:18443/realms/teck-local"' /tmp/discovery.json
+              curl --silent --show-error --fail --cacert /certs/ca.crt --resolve "localhost:18443:$gateway_ip" 'https://localhost:18443/realms/teck-local/protocol/openid-connect/auth?client_id=teck-web&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&scope=openid&code_challenge=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&code_challenge_method=S256' > /tmp/login.html
+              grep -qF 'teck' /tmp/login.html > /dev/null
+              code=$(curl --silent --output /dev/null --write-out '%{http_code}' --cacert /certs/ca.crt --resolve "localhost:18443:$gateway_ip" https://localhost:18443/admin/master/console/)
+              case "$code" in 200|302|303) ;; *) exit 1 ;; esac
+              echo teck-identity-tls-ready
+          env:
+            - name: GATEWAY_ADDRESS
+              value: __GATEWAY_ADDRESS__
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: certificate
+              mountPath: /certs
+              readOnly: true
+            - name: temporary
+              mountPath: /tmp
+      volumes:
+        - name: certificate
+          secret:
+            secretName: identity-tls
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: temporary
+          emptyDir: {}

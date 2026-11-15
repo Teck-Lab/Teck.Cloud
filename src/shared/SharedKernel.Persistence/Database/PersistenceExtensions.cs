@@ -38,6 +38,20 @@ public static class PersistenceExtensions
         return services;
     }
 
+    /// <summary>Registers a tracked write repository for an aggregate root independently of the read model.</summary>
+    /// <typeparam name="TEntity">The write aggregate.</typeparam>
+    /// <typeparam name="TId">Its identifier.</typeparam>
+    /// <typeparam name="TWrite">The service's write context.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <returns>The configured registrations for chaining.</returns>
+    public static IServiceCollection AddWriteRepository<TEntity, TId, TWrite>(this IServiceCollection services)
+        where TEntity : class, IReadModel<TId>, IAggregateRoot
+        where TWrite : WriteDbContext
+    {
+        _ = services.AddScoped<IGenericWriteRepository<TEntity, TId>, GenericWriteRepository<TEntity, TId, TWrite>>();
+        return services;
+    }
+
     /// <summary>Registers aggregate-root repositories with explicit read/write context ownership.</summary>
     /// <typeparam name="TEntity">The entity.</typeparam>
     /// <typeparam name="TId">Its identifier.</typeparam>
