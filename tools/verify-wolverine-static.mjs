@@ -7,6 +7,13 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const output = path.join(root, ".artifacts", "wolverine-generated");
 const project = "tests/integration/SharedKernel.Infrastructure.IntegrationTests";
 const environment = { ...process.env, TECK_CODEGEN_OUTPUT: output };
+// The coverage job runs the full integration suite; this gate exercises only generated handler paths.
+const handlerTests = [
+  "*MessagingTests",
+  "*WolverineValidationTests",
+  "*KeycloakEventIntegrationTests",
+];
+const testFilter = ["--", "--filter-class", ...handlerTests];
 
 function run(args) {
   const result = spawnSync("dotnet", args, { cwd: root, env: environment, stdio: "inherit" });
@@ -21,12 +28,12 @@ if (path.relative(root, output) !== path.join(".artifacts", "wolverine-generated
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 try {
-  run(["test", "--project", project]);
+  run(["test", "--project", project, ...testFilter]);
   const handlers = path.join(output, "WolverineHandlers");
   if (!readdirSync(handlers).some((name) => name.endsWith(".cs"))) {
     throw new Error("No generated handlers were produced.");
   }
-  run(["test", "--project", project, "-p:VerifyStaticHandlers=true"]);
+  run(["test", "--project", project, "-p:VerifyStaticHandlers=true", ...testFilter]);
 } finally {
   // Restore normal project assets for subsequent Nx builds.
   run(["restore", "Teck.Cloud.slnx"]);
