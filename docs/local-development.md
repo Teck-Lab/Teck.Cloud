@@ -6,7 +6,7 @@ shortcuts below. Bun remains the JavaScript package manager and Nx owns test sel
 | Profile               | Command                               | Purpose                                                                    |
 | --------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
 | development (default) | `bun run dev`                         | PostgreSQL, RabbitMQ management, Keycloak and Redis Sentinel               |
-| kind                  | `bun run dev:kind`                    | Disposable Kubernetes cluster through the upstream Aspire KIND integration |
+| kind                  | `bun run dev:kind`                    | Reusable local Kubernetes cluster through the upstream Aspire KIND integration |
 | sentinel              | AppHost argument `--Profile=sentinel` | Focused Sentinel failover testing                                          |
 
 ## Development prerequisites
@@ -98,7 +98,7 @@ silent downgrade and no OS-name heuristic. Setting the environment on the AppHos
 process, or passing --TECK_KIND_MODE=full/sandbox, explicitly overrides the default.
 This setting only changes the Aspire kind profile, not development/Sentinel or the
 Orca plugin's separate persistent workspace cluster. Switching modes requires a
-fresh session cluster; it does not retrofit a live cluster's CNI.
+fresh cluster; it does not retrofit a live cluster's CNI.
 
 Full mode disables kindnet before cluster creation and installs Cilium, Istio base,
 istiod, Istio CNI and ztunnel in order through upstream Aspire/Helm resources.
@@ -124,17 +124,36 @@ that do not assert those platform features; full-mode security/network behavior
 must be tested on a supported host. Never skip a required mesh assertion and call
 it a passed sandbox test.
 
-The `kind` profile creates a unique `teck-cloud-dev-*` cluster, uses its own kubeconfig and deletes its
-session cluster on graceful shutdown. An explicit
-`Kind:Name` override must be distinct for each concurrent session. Do not reuse a name belonging
-to another developer or AppHost. A forced process termination may require cleanup
-of that exact cluster after verifying its ownership.
+The `kind` launch profile uses a stable `teck-cloud-dev-*` name derived from the
+checkout path and `Kind:Lifetime=persistent`. Stopping the AppHost leaves this
+development cluster and its data in place; the next launch reuses it. An explicit
+`Kind:Name` override must belong to this checkout and must not target another
+developer or production cluster. To start clean, delete only the owned KIND
+cluster after verifying its name with `kind get clusters`, then start
+`bun run dev:kind` again. Switching `TECK_KIND_MODE` between full and sandbox
+requires this clean recreation because the CNI cannot be changed in place.
+
+The Kubernetes E2E suite explicitly uses `Kind:Lifetime=session`, a unique cluster
+name and its own kubeconfig, so it still cleans up after each run. It disables the
+host identity port mapping; its gateway assertions run inside the cluster. This
+lets the E2E cluster coexist with the persistent development cluster.
 
 ### Keycloak in the KIND profile
 
-`bun run dev:kind` builds the shared themed Keycloak image, loads it into the new
-session cluster, and applies `deployment/local/identity` after the platform
-controllers are ready. With Podman, the image is exported with `podman save` and loaded through KIND's `image-archive` command because KIND's `docker-image` command still calls the Docker CLI. Local images and manifests use matching `localhost/teck/` tags. The overlay includes a CNPG database, a Keycloak Deployment,
+`bun run dev:kind` builds the themed Keycloak image only when its source
+fingerprint changes, loads it only when the cluster has a different image ID,
+and restarts an existing Keycloak Deployment after a changed image is loaded.
+The `identity-prepared` resource prepares the image and bootstrap inputs alongside
+the platform chart installs.
+It then applies `deployment/local/identity`. Identity waits for cert-manager,
+kgateway, CNPG, the Keycloak operator and, in full mode, the ambient mesh.
+The remaining operators install in parallel and form the separate
+`platform-ready` barrier for application candidate manifests.
+
+With Podman, the image is exported with `podman save` and loaded through
+KIND's `image-archive` command because KIND's `docker-image` command still
+calls the Docker CLI. Local images and manifests use matching `localhost/teck/`
+tags. The overlay includes a CNPG database, a Keycloak Deployment,
 the Hostzero Keycloak operator's instance and realm resources, a certificate, and a
 kgateway route. This follows the same ownership split as `Teck.GitOps` local:
 Hostzero manages the realm settings through the Admin API; the shared realm import

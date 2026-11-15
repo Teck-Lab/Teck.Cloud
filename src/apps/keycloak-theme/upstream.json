@@ -36,6 +36,22 @@
     {
       "file": "login/KcPage.tsx",
       "upstreamSha256": "b2fede68a3f2ba0fa85cf9231df22940b1048ead4c27ea2c3745d49c58ee7085"
+    },
+    {
+      "file": "account/components/ThemeSwitcher.tsx",
+      "upstreamSha256": "740cb25c879ae6a54e841a512d79f83d18a7f25b99277c1cbcc523f781579595"
+    },
+    {
+      "file": "account/components/LanguageSwitcher.tsx",
+      "upstreamSha256": "f7dd782e4bd20f64b51c02c938af93bbe00cf8ca69838572f660f952589f3a72"
+    },
+    {
+      "file": "account/components/PageHeader.tsx",
+      "upstreamSha256": "bb005f11661e20a58b7ac49fdc8f813a30c60a20beb193b0ad07afc7de5dece7"
+    },
+    {
+      "file": "account/pages/AccountPage.tsx",
+      "upstreamSha256": "50eb36e3aa9d68b90d3314dbc924661f6c47b09f3b14b4f125e17fc9a042ff81"
     }
   ]
 }

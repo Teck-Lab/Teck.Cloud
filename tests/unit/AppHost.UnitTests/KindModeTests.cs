@@ -61,6 +61,7 @@ public sealed class KindModeTests
         builder.AddDeploymentCluster();
         builder.Resources.OfType<KindHelmChartResource>().Select(chart => chart.Name).ShouldContain("keycloak-operator", StringComparer.Ordinal);
         builder.Resources.OfType<K8sManifestResource>().Select(manifest => manifest.Name).ShouldContain("identity", StringComparer.Ordinal);
+        builder.Resources.OfType<K8sManifestResource>().Select(manifest => manifest.Name).ShouldContain("identity-prepared", StringComparer.Ordinal);
         builder.Resources.OfType<K8sManifestResource>().Select(manifest => manifest.Name).ShouldContain("identity-ready", StringComparer.Ordinal);
         builder.Resources.OfType<ParameterResource>().Single(parameter => string.Equals(parameter.Name, "kind-keycloak-admin-password", StringComparison.Ordinal)).Secret.ShouldBeTrue();
     }
@@ -77,6 +78,55 @@ public sealed class KindModeTests
         mapping.ContainerPort.ShouldBe(30443);
         mapping.HostPort.ShouldBe(18443);
         mapping.ListenAddress.ShouldBe("127.0.0.1");
+    }
+
+    /// <summary>A persistent development cluster keeps a stable checkout-specific name.</summary>
+    [Fact]
+    public void PersistentClusterReusesItsName()
+    {
+        var options = new DistributedApplicationOptions
+        {
+            Args = ["--Profile=kind", "--Kind:Identity=false", "--Kind:Lifetime=persistent"],
+            DisableDashboard = true,
+        };
+        var first = DistributedApplication.CreateBuilder(options);
+        first.AddDeploymentCluster();
+        var second = DistributedApplication.CreateBuilder(options);
+        second.AddDeploymentCluster();
+        var firstCluster = first.Resources.OfType<KindClusterResource>().Single();
+        var secondCluster = second.Resources.OfType<KindClusterResource>().Single();
+        firstCluster.Name.ShouldBe(secondCluster.Name);
+        firstCluster.Name.ShouldStartWith("teck-cloud-dev-");
+        KindHostingExtensions.ResolveKindLifetime("persistent").ShouldBe(ClusterLifetime.Persistent);
+    }
+
+    /// <summary>Explicit session clusters remain disposable and allow a separate test name.</summary>
+    [Fact]
+    public void SessionClusterKeepsExplicitIsolation()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = ["--Profile=kind", "--Kind:Identity=false", "--Kind:Lifetime=session", "--Kind:Name=teck-cloud-test-owned"],
+            DisableDashboard = true,
+        });
+        builder.AddDeploymentCluster();
+        var cluster = builder.Resources.OfType<KindClusterResource>().Single();
+        cluster.Name.ShouldBe("teck-cloud-test-owned");
+        KindHostingExtensions.ResolveKindLifetime("session").ShouldBe(ClusterLifetime.Session);
+    }
+
+    /// <summary>Unknown lifetime must not silently retain or delete a cluster.</summary>
+    [Fact]
+    public void UnknownLifetimeFails() => _ = Should.Throw<InvalidOperationException>(() => KindHostingExtensions.ResolveKindLifetime("forever"));
+
+    /// <summary>Disposable test clusters need no host port for their in-cluster gateway proof.</summary>
+    [Fact]
+    public void IdentityPortMappingCanStayInternal()
+    {
+        var config = new KindConfigModel();
+        config.Nodes.Add(new KindNodeModel { Role = "control-plane" });
+        KindHostingExtensions.ConfigureIdentityPortMapping(config, exposeHost: false);
+        config.Nodes.Single().ExtraPortMappings.ShouldBeNull();
     }
 
     /// <summary>Absent configuration means full; only an explicit sandbox value reduces it.</summary>

@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
-import { imageBuildCommand } from "./image/build.mjs";
+import { fingerprintTree, imageBuildCommand } from "./image/build.mjs";
+import {
+  accountControlLabels,
+  accountLanguageLinks,
+  accountProfileFields,
+} from "./src/account-presentation.ts";
 import { useThemeConfig } from "./src/branding.ts";
 import { parseRealmLogoConfig } from "./src/vendor/keycloak-theme/lib/realmLogoConfig.ts";
 import { hexToHslTuple } from "./src/vendor/keycloak-theme/lib/themeColors.ts";
@@ -36,6 +43,27 @@ test("image builder follows Aspire's Docker or Podman runtime", () => {
   assert.deepEqual(podman.args, docker.args);
   assert.equal(podman.args[podman.args.indexOf("-t") + 1], runtime.image);
 });
+test("image cache fingerprint changes with source but ignores generated outputs", () => {
+  const root = mkdtempSync(join(tmpdir(), "teck-theme-fingerprint-"));
+  try {
+    mkdirSync(join(root, "source"));
+    writeFileSync(join(root, "source", "page.tsx"), "original");
+    const initial = fingerprintTree(root, ["source"]);
+    mkdirSync(join(root, "source", "dist_keycloak"));
+    writeFileSync(join(root, "source", "dist_keycloak", "theme.jar"), "generated");
+    assert.equal(fingerprintTree(root, ["source"]), initial);
+    writeFileSync(join(root, "source", "page.tsx"), "changed");
+    assert.notEqual(fingerprintTree(root, ["source"]), initial);
+    const build = imageBuildCommand("podman", runtime, initial);
+    assert.deepEqual(build.args.slice(-3, -1), [
+      "--label",
+      `org.teck.cloud.source-sha256=${initial}`,
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("image builder rejects an arbitrary executable or shell command", () => {
   for (const runtime of ["", "sh", "docker; echo injected", "../podman"]) {
     assert.throws(() => imageBuildCommand(runtime), /must be docker or podman/);
@@ -67,4 +95,57 @@ test("optimized and final Keycloak stages use the descriptor's exact digest-pinn
   assert.match(runtime.baseImage, /@sha256:[a-f0-9]{64}$/);
   assert.equal(bases.length, 2);
   assert.deepEqual(bases, [runtime.baseImage, runtime.baseImage]);
+});
+
+test("account languages follow realm-provided links and hide unavailable choices", () => {
+  const supported = [
+    { languageTag: "en", label: "English", url: "/realms/teck-local/account/?kc_locale=en" },
+    { languageTag: "da", label: "Dansk", url: "/realms/teck-local/account/?kc_locale=da" },
+  ];
+  assert.deepEqual(accountLanguageLinks(undefined), []);
+  assert.deepEqual(accountLanguageLinks({ supported: supported.slice(0, 1) }), []);
+  assert.deepEqual(accountLanguageLinks({ supported }), supported);
+  assert.deepEqual(accountLanguageLinks({ supported }, false), []);
+});
+
+test("local realm enables the account theme locales", () => {
+  const realm = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../aspire/Teck.Cloud.AppHost/Identity/Realms/teck-local-realm.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  assert.equal(realm.internationalizationEnabled, true);
+  assert.equal(realm.defaultLocale, "en");
+  assert.deepEqual(realm.supportedLocales, ["en", "da", "tr"]);
+});
+
+test("account profile exposes only declared fields, never Keycloak internal attributes", () => {
+  const values = { nickname: ["Pat"], is_temporary_admin: ["true"] };
+  assert.deepEqual(accountProfileFields({ attributes: values }), []);
+  const fields = accountProfileFields({
+    attributes: values,
+    userProfileMetadata: {
+      attributes: [
+        { name: "nickname", displayName: "Nickname" },
+        { name: "is_temporary_admin", displayName: "is_temporary_admin" },
+        { name: "email", displayName: "Email" },
+      ],
+    },
+  });
+  assert.deepEqual(
+    fields.map(({ name }) => name),
+    ["nickname"],
+  );
+  assert.deepEqual(fields[0].value, ["Pat"]);
+});
+
+test("account appearance controls follow the selected language with a safe fallback", () => {
+  assert.equal(accountControlLabels("en").themeLight, "Light");
+  assert.equal(accountControlLabels("da").themeDark, "Mørk");
+  assert.equal(accountControlLabels("tr").themeSystem, "Sistem");
+  assert.equal(accountControlLabels("fr").themeLight, "Light");
 });

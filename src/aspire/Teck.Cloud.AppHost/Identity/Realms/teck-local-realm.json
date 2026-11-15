@@ -539,6 +539,9 @@
   ],
   "loginTheme": "teck",
   "accountTheme": "teck",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "da", "tr"],
+  "defaultLocale": "en",
   "authenticationFlows": [
     {
       "alias": "Account verification options",

@@ -53,7 +53,7 @@ export function PageHeader({ kcContext }: PageHeaderProps) {
 
                     {/* Right side controls */}
                     <div className="flex items-center gap-1 flex-shrink-0">
-                        <ThemeSwitcher />
+                        <ThemeSwitcher kcContext={kcContext} />
                         <LanguageSwitcher kcContext={kcContext} />
                     </div>
                 </div>
@@ -61,4 +61,3 @@ export function PageHeader({ kcContext }: PageHeaderProps) {
         </header>
     );
 }
-

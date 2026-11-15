@@ -3,8 +3,9 @@
 The Aspire `kind` profile installs these components in **both full and sandbox modes**.
 Only the Cilium/Istio networking layer differs. Start through the existing `bun run dev:kind`
 entry point or the IDE; no separate bootstrap script or Terraform is required.
-All resources belong to the disposable session cluster. This does not alter the Orca
-plugin's persistent workspace cluster or an existing user cluster.
+The local development cluster is persistent for the same checkout; E2E/CI use
+unique disposable session clusters. Both remain separate from the Orca plugin's
+persistent workspace cluster and any existing user cluster.
 
 | Component                       | Pinned chart / release            | Purpose                                               |
 | ------------------------------- | --------------------------------- | ----------------------------------------------------- |
@@ -30,10 +31,13 @@ no remote GitOps or promotion connection and no GitHub credentials are required.
 
 Aspire installs Gateway API with server-side apply and waits for CRD establishment.
 kgateway's own CRD chart precedes its controller. Full mode's mesh also waits for
-Gateway API. All common controllers wait for the full-mode network when applicable.
-A `platform-defaults` resource waits for named controller Deployment rollouts, including Hostzero, before
-applying the local CA. Candidate manifests wait for that barrier. Errors and deadlines
-fail startup; they never select a smaller platform silently.
+Gateway API. cert-manager, CNPG, Redis Operator, OpenBao Operator and Argo
+Rollouts can install while the full-mode Cilium/Istio chain starts. The Keycloak
+operator waits for its ambient-enabled namespace in full mode. A
+`platform-defaults` resource waits only for cert-manager before applying the
+local CA. Identity waits for its own controllers and mesh; candidate manifests
+wait for the separate `platform-ready` barrier covering every operator. Errors
+and deadlines fail startup; they never select a smaller platform silently.
 
 Helm is required in both modes. The Orca image sources now include Helm 4.1.4 and
 kubectl 1.36.6, which also stays compatible with its existing Kubernetes 1.35 workspace

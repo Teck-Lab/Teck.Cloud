@@ -27,6 +27,12 @@ The small listed source adaptations guard indexed accesses under the repository'
 
 No KETE, GeoAware or optional MFA provider is installed. The retained Keycloak UI pages do not enable providers or authentication policies on their own.
 
+## Account locale and profile controls
+
+The account language menu follows the realm's enabled locales and Keycloak-provided navigation URLs. It is hidden when internationalization is off or only one locale is available. The imported `teck-local` realm enables English, Danish and Turkish for newly created realms. Existing realms keep their stored settings: in Keycloak, open Realm settings > Localization, enable Internationalization, and select the supported languages. Apply this separately to master if its account page is used. The appearance menu has English, Danish and Turkish control labels, with English fallback for other locales.
+
+The account form renders custom attributes only when Keycloak supplies User Profile metadata, and excludes Keycloak's internal temporary-admin marker. When metadata is unavailable, the form keeps its standard fields without exposing raw account attributes.
+
 ## Native security pages
 
 The upstream custom OTP configuration, WebAuthn registration and recovery input

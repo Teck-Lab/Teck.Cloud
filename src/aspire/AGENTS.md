@@ -12,8 +12,9 @@ and [Redis Sentinel](../../docs/redis-sentinel.md) before Redis networking.
   reachable from both containers and host clients.
 - Keep generated secrets out of source. Preserve Keycloak's realm-specific authority,
   PKCE and restricted redirects; disabling authentication is not a local fix.
-- Resources are session-owned. KIND uses a unique owned cluster and kubeconfig;
-  bound readiness/cleanup and never target an existing production cluster.
+- The local KIND development profile reuses one cluster per checkout. E2E/CI
+  must use unique session-owned clusters and kubeconfigs with bounded cleanup.
+  Never target an existing production cluster or another developer's cluster.
 - Apply actual deployment manifests and reachable candidate images for application
   KIND tests. The smoke Job proves infrastructure only.
 - Aspire owns assembled E2E lifecycle, not service integration tests. Those remain

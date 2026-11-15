@@ -1,4 +1,5 @@
 import { type KcContext } from "../KcContext";
+import { accountProfileFields } from "../../../../account-presentation";
 import { useI18n } from "../i18n";
 import { KcForm, KcButton, KcCard, KcAlert, KcInput } from "../components";
 import { Label } from "@/components/ui/label";
@@ -24,10 +25,6 @@ export default function AccountPage({
 
     const showUsername = !realm?.registrationEmailAsUsername;
     const canEditUsername = realm?.editUsernameAllowed ?? false;
-
-    // Fields handled outside the dynamic-attribute loop (rendered explicitly or
-    // managed by Keycloak itself), so they are not shown as custom attributes.
-    const standardFields = ["username", "email", "firstName", "lastName", "locale"];
 
     // The legacy account.ftl context does NOT carry User Profile metadata
     // (input type, options, required, ...). So — exactly like keycloak.v3 — we read
@@ -81,12 +78,12 @@ export default function AccountPage({
             email: getStr("email"),
             firstName: getStr("firstName"),
             lastName: getStr("lastName"),
-            attributes: {}
         };
         if (showUsername && canEditUsername) payload.username = getStr("username");
         for (const attribute of dynamicAttributes) {
             if (attribute.readOnly) continue;
-            payload.attributes![attribute.name] = [getStr(attribute.name)];
+            payload.attributes ??= {};
+            payload.attributes[attribute.name] = [getStr(attribute.name)];
         }
 
         const result = await save(payload);
@@ -103,44 +100,10 @@ export default function AccountPage({
         setFieldErrors(errs);
     };
 
-    const dynamicAttributes = useMemo(() => {
-        // Preferred: full User Profile metadata from the Account REST API.
-        if (profileState.status === "ready") {
-            const meta = profileState.profile.userProfileMetadata?.attributes ?? [];
-            const values = profileState.profile.attributes ?? {};
-            return meta
-                .filter(attr => attr.name && !standardFields.includes(attr.name))
-                .map(attr => {
-                    const displayName =
-                        attr.displayName && !/^\$\{.*\}$/.test(attr.displayName)
-                            ? attr.displayName
-                            : attr.name;
-                    return {
-                        name: attr.name,
-                        value: values[attr.name] ?? [],
-                        displayName,
-                        required: attr.required ?? false,
-                        readOnly: attr.readOnly ?? false,
-                        annotations: (attr.annotations ?? {}) as Record<string, any>,
-                        validators: attr.validators
-                    };
-                });
-        }
-        // Fallback (loading / error / dev): legacy raw values, no metadata.
-        const raw = (account as any)?.attributes as Record<string, unknown> | undefined;
-        if (!raw) return [];
-        return Object.entries(raw)
-            .filter(([name]) => name && !standardFields.includes(name))
-            .map(([name, value]) => ({
-                name,
-                value: Array.isArray(value) ? value : value == null ? "" : value,
-                displayName: name,
-                required: false,
-                readOnly: false,
-                annotations: {} as Record<string, any>,
-                validators: undefined as Record<string, Record<string, unknown>> | undefined
-            }));
-    }, [profileState, account]);
+    // Only User Profile metadata can make an attribute visible or editable.
+    const dynamicAttributes = useMemo(() => profileState.status === "ready"
+        ? accountProfileFields(profileState.profile)
+        : [], [profileState]);
 
     const realmName: string = (realm && "displayName" in realm && typeof realm.displayName === "string" ? realm.displayName : undefined) || 
                       (realm && "name" in realm && typeof realm.name === "string" ? realm.name : undefined) || "";

@@ -30,7 +30,7 @@ public sealed class ClusterTests
             _ => throw new InvalidOperationException("TECK_KIND_MODE must be full or sandbox."),
         };
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Teck_Cloud_AppHost>(
-            ["--Profile=kind", "--Kind:IdentityBuild=false", "--TECK_KIND_MODE=" + mode, "--Kind:Name=" + name, "--Kind:Manifests=" + manifests], deadline.Token).ConfigureAwait(true);
+            ["--Profile=kind", "--Kind:Lifetime=session", "--Kind:ExposeIdentityHost=false", "--Kind:IdentityBuild=false", "--TECK_KIND_MODE=" + mode, "--Kind:Name=" + name, "--Kind:Manifests=" + manifests], deadline.Token).ConfigureAwait(true);
         await using (var app = await builder.BuildAsync(deadline.Token).ConfigureAwait(true))
         {
             builder.Resources.OfType<KindHelmChartResource>().Select(chart => chart.Name)

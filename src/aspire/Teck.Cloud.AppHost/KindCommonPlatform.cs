@@ -3,7 +3,7 @@ namespace Teck.Cloud.AppHost;
 /// <summary>Installs the same application-facing APIs and operators in both KIND modes.</summary>
 internal static class KindCommonPlatform
 {
-    internal static IResourceBuilder<K8sManifestResource> Add(
+    internal static KindPlatformResources Add(
         IResourceBuilder<KindClusterResource> cluster,
         string directory,
         IResourceBuilder<K8sManifestResource> gatewayApi,
@@ -11,7 +11,6 @@ internal static class KindCommonPlatform
     {
         var certificates = Chart("cert-manager", "oci://quay.io/jetstack/charts/cert-manager", "v1.21.3", "cert-manager")
             .WithHelmValue("crds.enabled", "true");
-        _ = KindHostingExtensions.AfterDeployment(certificates, gatewayApi);
         var gatewayCrds = Chart("kgateway-crds", "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds", "v2.5.2", "kgateway-system");
         _ = KindHostingExtensions.AfterDeployment(gatewayCrds, gatewayApi);
         var gateway = Chart("kgateway", "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway", "v2.5.2", "kgateway-system");
@@ -37,22 +36,26 @@ internal static class KindCommonPlatform
 
         var rollouts = Chart("argo-rollouts", "oci://ghcr.io/argoproj/argo-helm/argo-rollouts", "2.43.12", "argo-rollouts");
 
-        // This barrier exists even without candidate manifests. Controllers must actually
-        // roll out before local certificates or application-owned custom resources are applied.
+        // Certificates can be issued as soon as cert-manager is ready.
         var defaults = cluster.AddManifest("platform-defaults", Path.Combine(directory, "Kubernetes", "certificates")).WithServerSideApply();
         _ = KindHostingExtensions.AfterDeployment(defaults, certificates, "deployment/cert-manager", "deployment/cert-manager-webhook", "deployment/cert-manager-cainjector");
-        _ = KindHostingExtensions.AfterDeployment(defaults, gateway, "deployment/kgateway");
-        _ = KindHostingExtensions.AfterDeployment(defaults, postgres, "deployment/cnpg");
-        _ = KindHostingExtensions.AfterDeployment(defaults, redis, "deployment/redis-operator");
-        _ = KindHostingExtensions.AfterDeployment(defaults, bao, "deployment/openbao-operator-controller", "deployment/openbao-operator-provisioner");
-        _ = KindHostingExtensions.AfterDeployment(defaults, keycloakOperator, "deployment/keycloak-operator");
-        _ = KindHostingExtensions.AfterDeployment(defaults, rollouts, "deployment/argo-rollouts");
-        return defaults;
+
+        // Candidate manifests still require every controller, while identity needs only its own prerequisites.
+        var ready = cluster.AddManifestFromContent(
+            "platform-ready",
+            "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: teck-platform-ready\ndata:\n  owner: aspire\n").WithServerSideApply();
+        _ = KindHostingExtensions.AfterDeployment(ready, defaults);
+        _ = KindHostingExtensions.AfterDeployment(ready, gateway, "deployment/kgateway");
+        _ = KindHostingExtensions.AfterDeployment(ready, postgres, "deployment/cnpg");
+        _ = KindHostingExtensions.AfterDeployment(ready, redis, "deployment/redis-operator");
+        _ = KindHostingExtensions.AfterDeployment(ready, bao, "deployment/openbao-operator-controller", "deployment/openbao-operator-provisioner");
+        _ = KindHostingExtensions.AfterDeployment(ready, keycloakOperator, "deployment/keycloak-operator");
+        _ = KindHostingExtensions.AfterDeployment(ready, rollouts, "deployment/argo-rollouts");
+        return new KindPlatformResources(defaults, ready, gateway, postgres, keycloakOperator);
 
         IResourceBuilder<KindHelmChartResource> Chart(string name, string chart, string version, string ns)
         {
-            var resource = cluster.AddHelmChart(name, chart).WithChartVersion(version).WithNamespace(ns);
-            return network is null ? resource : KindHostingExtensions.AfterDeployment(resource, network, "daemonset/ztunnel");
+            return cluster.AddHelmChart(name, chart).WithChartVersion(version).WithNamespace(ns);
         }
     }
 }

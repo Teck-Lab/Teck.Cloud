@@ -10,7 +10,9 @@ internal static class KindIdentityHostingExtensions
     internal static IResourceBuilder<K8sManifestResource> Add(
         IDistributedApplicationBuilder builder,
         IResourceBuilder<KindClusterResource> cluster,
-        IResourceBuilder<K8sManifestResource> platform,
+        KindPlatformResources platform,
+        IResourceBuilder<KindHelmChartResource>? network,
+        string runtime,
         bool sandbox)
     {
         var root = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", ".."));
@@ -21,26 +23,29 @@ internal static class KindIdentityHostingExtensions
             "false" => false,
             _ => throw new InvalidOperationException("Kind:IdentityBuild must be true or false."),
         };
-        using var runtime = JsonDocument.Parse(File.ReadAllText(Path.Combine(builder.AppHostDirectory, "Identity", "runtime.json")));
-        var image = runtime.RootElement.GetProperty("image").GetString() ?? throw new InvalidOperationException("The shared Keycloak image is required.");
+        using var identityDescriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(builder.AppHostDirectory, "Identity", "runtime.json")));
+        var image = identityDescriptor.RootElement.GetProperty("image").GetString() ?? throw new InvalidOperationException("The shared Keycloak image is required.");
         var adminPassword = builder.AddParameter("kind-keycloak-admin-password", new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true, persist: true);
         var customerSecret = builder.AddParameter("kind-customer-gateway-secret", new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true);
         var adminSecret = builder.AddParameter("kind-admin-gateway-secret", new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true);
         var readerSecret = builder.AddParameter("kind-tenant-reader-secret", new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true);
-        var resource = cluster.AddManifest("identity", overlay).WithServerSideApply();
-        _ = KindHostingExtensions.AfterDeployment(resource, platform);
-        _ = resource.OnBeforeResourceStarted(async (_, _, cancellationToken) =>
+
+        // Prepare the image and bootstrap inputs while the platform charts install.
+        var prepared = cluster.AddManifestFromContent(
+            "identity-prepared",
+            "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: identity-prepared\n  namespace: identity\ndata:\n  owner: aspire\n").WithServerSideApply();
+        _ = prepared.OnBeforeResourceStarted(async (_, _, cancellationToken) =>
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             deadline.CancelAfter(TimeSpan.FromMinutes(20));
             var kubeconfig = cluster.Resource.KubeconfigPath;
             if (buildImage)
             {
-                await RunAsync("node", [Path.Combine(root, "src", "apps", "keycloak-theme", "image", "build.mjs")], root, input: null, deadline.Token).ConfigureAwait(false);
+                await RunAsync("node", [Path.Combine(root, "src", "apps", "keycloak-theme", "image", "build.mjs"), "--if-changed"], root, input: null, deadline.Token, containerRuntime: runtime).ConfigureAwait(false);
             }
 
-            await KindImageLoader.LoadAsync(image, cluster.Resource.Name, deadline.Token).ConfigureAwait(false);
             await RunAsync("kubectl", ["--kubeconfig", kubeconfig, "apply", "-f", Path.Combine(overlay, "namespace.yaml")], root, input: null, deadline.Token).ConfigureAwait(false);
+            await KindImageLoader.EnsureIdentityImageAsync(image, cluster.Resource.Name, kubeconfig, runtime, deadline.Token).ConfigureAwait(false);
 
             var realm = await File.ReadAllBytesAsync(Path.Combine(builder.AppHostDirectory, "Identity", "Realms", "teck-local-realm.json"), deadline.Token).ConfigureAwait(false);
             var bootstrap = await CreateBootstrapAsync(
@@ -51,15 +56,33 @@ internal static class KindIdentityHostingExtensions
                 readerSecret.Resource,
                 deadline.Token).ConfigureAwait(false);
             await RunAsync("kubectl", ["--kubeconfig", kubeconfig, "apply", "-f", "-"], root, bootstrap, deadline.Token).ConfigureAwait(false);
-            if (!sandbox)
-            {
-                await RunAsync("kubectl", ["--kubeconfig", kubeconfig, "label", "namespace", "identity", "istio.io/dataplane-mode=ambient", "--overwrite"], root, input: null, deadline.Token).ConfigureAwait(false);
-                await RunAsync("kubectl", ["--kubeconfig", kubeconfig, "apply", "-f", Path.Combine(overlay, "ambient.yaml")], root, input: null, deadline.Token).ConfigureAwait(false);
-            }
         });
 
+        var resource = cluster.AddManifest("identity", overlay).WithServerSideApply();
+        _ = KindHostingExtensions.AfterDeployment(resource, prepared);
+        WaitForPrerequisites(resource, platform, network);
+        if (!sandbox)
+        {
+            _ = resource.OnBeforeResourceStarted(async (_, _, cancellationToken) =>
+            {
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                deadline.CancelAfter(TimeSpan.FromMinutes(20));
+                var kubeconfig = cluster.Resource.KubeconfigPath;
+                await RunAsync("kubectl", ["--kubeconfig", kubeconfig, "label", "namespace", "identity", "istio.io/dataplane-mode=ambient", "--overwrite"], root, input: null, deadline.Token).ConfigureAwait(false);
+                await RunAsync("kubectl", ["--kubeconfig", kubeconfig, "apply", "-f", Path.Combine(overlay, "ambient.yaml")], root, input: null, deadline.Token).ConfigureAwait(false);
+            });
+        }
+
+        return AddReady(cluster, resource, root);
+    }
+
+    private static IResourceBuilder<K8sManifestResource> AddReady(
+        IResourceBuilder<KindClusterResource> cluster,
+        IResourceBuilder<K8sManifestResource> identity,
+        string root)
+    {
         var ready = cluster.AddManifestFromContent("identity-ready", "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: identity-ready\n  namespace: identity\ndata:\n  owner: aspire\n").WithServerSideApply();
-        _ = KindHostingExtensions.AfterDeployment(ready, resource);
+        _ = KindHostingExtensions.AfterDeployment(ready, identity);
         _ = ready.OnBeforeResourceStarted(async (_, _, cancellationToken) =>
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -72,6 +95,21 @@ internal static class KindIdentityHostingExtensions
             await RunAsync("kubectl", ["--kubeconfig", kubeconfig, "wait", "--for=condition=Programmed", "gateway/identity", "-n", "identity", "--timeout=180s"], root, input: null, deadline.Token).ConfigureAwait(false);
         });
         return ready;
+    }
+
+    private static void WaitForPrerequisites(
+        IResourceBuilder<K8sManifestResource> resource,
+        KindPlatformResources platform,
+        IResourceBuilder<KindHelmChartResource>? network)
+    {
+        _ = KindHostingExtensions.AfterDeployment(resource, platform.Certificates);
+        _ = KindHostingExtensions.AfterDeployment(resource, platform.Gateway, "deployment/kgateway");
+        _ = KindHostingExtensions.AfterDeployment(resource, platform.Postgres, "deployment/cnpg");
+        _ = KindHostingExtensions.AfterDeployment(resource, platform.KeycloakOperator, "deployment/keycloak-operator");
+        if (network is not null)
+        {
+            _ = KindHostingExtensions.AfterDeployment(resource, network, "daemonset/ztunnel");
+        }
     }
 
     private static async Task<string> CreateBootstrapAsync(
@@ -102,7 +140,7 @@ internal static class KindIdentityHostingExtensions
     private static void AddData(StringBuilder output, string name, string value) =>
         _ = output.Append("  ").Append(name).Append(": ").Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(value))).Append('\n');
 
-    private static async Task RunAsync(string executable, string[] arguments, string root, string? input, CancellationToken cancellationToken)
+    private static async Task RunAsync(string executable, string[] arguments, string root, string? input, CancellationToken cancellationToken, string? containerRuntime = null)
     {
         var start = new ProcessStartInfo(executable)
         {
@@ -113,6 +151,11 @@ internal static class KindIdentityHostingExtensions
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+        if (containerRuntime is not null)
+        {
+            start.Environment["ASPIRE_CONTAINER_RUNTIME"] = containerRuntime;
+        }
+
         foreach (var argument in arguments)
         {
             start.ArgumentList.Add(argument);

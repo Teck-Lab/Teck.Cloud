@@ -1,4 +1,6 @@
-import { Moon, Sun, Monitor } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { accountControlLabels } from "../../../../account-presentation";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -6,105 +8,74 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useEffect, useState, useCallback } from "react";
+import type { KcContext } from "../KcContext";
 
 type Theme = "light" | "dark" | "system";
 
-export function ThemeSwitcher() {
+export function ThemeSwitcher({ kcContext }: { kcContext: KcContext }) {
+    const labels = accountControlLabels(kcContext.locale?.currentLanguageTag);
     const [theme, setTheme] = useState<Theme>("system");
     const [mounted, setMounted] = useState(false);
 
     const updateTheme = useCallback((newTheme: Theme, isDark?: boolean) => {
         const root = document.documentElement;
-        
         if (newTheme === "system") {
-            const prefersDark = isDark ?? window.matchMedia("(prefers-color-scheme: dark)").matches;
-            if (prefersDark) {
-                root.classList.add("dark");
-            } else {
-                root.classList.remove("dark");
-            }
-        } else if (newTheme === "dark") {
-            root.classList.add("dark");
+            root.classList.toggle("dark", isDark ?? window.matchMedia("(prefers-color-scheme: dark)").matches);
         } else {
-            root.classList.remove("dark");
+            root.classList.toggle("dark", newTheme === "dark");
         }
     }, []);
 
     useEffect(() => {
         setMounted(true);
-        const stored = localStorage.getItem("theme") as Theme | null;
-        if (stored) {
-            setTheme(stored);
-            updateTheme(stored);
-        } else {
-            // Check system theme
-            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            setTheme("system");
-            updateTheme("system", prefersDark);
-        }
+        const stored = localStorage.getItem("theme");
+        const selected: Theme = stored === "light" || stored === "dark" ? stored : "system";
+        setTheme(selected);
+        updateTheme(selected);
     }, [updateTheme]);
 
     useEffect(() => {
-        if (!mounted) return;
-        
+        if (!mounted || theme !== "system") return;
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-        const handleChange = (e: MediaQueryListEvent) => {
-            if (theme === "system") {
-                updateTheme("system", e.matches);
-            }
-        };
-
+        const handleChange = (event: MediaQueryListEvent) => updateTheme("system", event.matches);
         mediaQuery.addEventListener("change", handleChange);
         return () => mediaQuery.removeEventListener("change", handleChange);
     }, [theme, mounted, updateTheme]);
 
-    const handleThemeChange = (newTheme: Theme) => {
-        setTheme(newTheme);
-        localStorage.setItem("theme", newTheme);
-        updateTheme(newTheme);
+    const handleThemeChange = (selected: Theme) => {
+        setTheme(selected);
+        localStorage.setItem("theme", selected);
+        updateTheme(selected);
     };
 
     if (!mounted) {
-        return (
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Sun className="h-4 w-4" />
-            </Button>
-        );
+        return <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={labels.themeToggle}><Sun className="h-4 w-4" /></Button>;
     }
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                    {theme === "light" ? (
-                        <Sun className="h-4 w-4" />
-                    ) : theme === "dark" ? (
-                        <Moon className="h-4 w-4" />
-                    ) : (
-                        <Monitor className="h-4 w-4" />
-                    )}
-                    <span className="sr-only">Tema değiştir</span>
+                <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={labels.themeToggle}>
+                    {theme === "light" ? <Sun className="h-4 w-4" /> : theme === "dark" ? <Moon className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="center">
                 <DropdownMenuItem onClick={() => handleThemeChange("light")}>
                     <Sun className="mr-2 h-4 w-4" />
-                    <span>Aydınlık</span>
+                    <span>{labels.themeLight}</span>
                     {theme === "light" && <span className="ml-auto">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleThemeChange("dark")}>
                     <Moon className="mr-2 h-4 w-4" />
-                    <span>Koyu</span>
+                    <span>{labels.themeDark}</span>
                     {theme === "dark" && <span className="ml-auto">✓</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleThemeChange("system")}>
                     <Monitor className="mr-2 h-4 w-4" />
-                    <span>Sistem</span>
+                    <span>{labels.themeSystem}</span>
                     {theme === "system" && <span className="ml-auto">✓</span>}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     );
 }
-
