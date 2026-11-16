@@ -125,8 +125,8 @@ Use its canonical commands and policy rather than an ad hoc single-suite compari
 
 - [FastEndpoints testing](https://fast-endpoints.com/docs/integration-unit-testing)
 - [NSubstitute usage and analyzer guidance](https://nsubstitute.github.io/help/getting-started/)
-- [AutoFixture](https://github.com/AutoFixture)
-- [Bogus](https://github.com/bchavez/Faker)
+- [AutoFixture](https://github.com/AutoFixture/AutoFixture)
+- [Bogus](https://github.com/bchavez/Bogus)
 - [AutoBogus](https://github.com/soenneker/soenneker.utils.autobogus)
 - [AutoBogus NSubstitute binder](https://github.com/soenneker/soenneker.utils.autobogus.nsubstitute)
 - [Coverlet for MTP](https://github.com/coverlet-coverage/coverlet/blob/master/Documentation/Coverlet.MTP.Integration.md)
