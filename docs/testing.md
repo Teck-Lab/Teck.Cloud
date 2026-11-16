@@ -16,9 +16,9 @@ the repository root, install the pinned workspace dependencies with
 `bun install --frozen-lockfile`, then run `bun run test:tooling`. This invokes
 Node's built-in `node:test` runner for `tools/*.test.mjs`; coverage report merging,
 PR-title validation, CI workflow checks and service-layout checks are among its
-tests. CI runs this lane independently of `bun run test` (Nx project tests). Use
-the pinned Node and Bun versions from `.node-version` and `package.json`. The .NET
-xUnit/MTP guidance in [test tooling](test-tooling.md) does not apply to these scripts.
+tests. CI runs this lane independently of `bun run test` (Nx project tests) and
+`bun test` (Bun's native test runner). Use the pinned Node and Bun versions from
+`.node-version` and `package.json`. The .NET xUnit/MTP guidance in [test tooling](test-tooling.md) does not apply to these scripts.
 
 Core and Infrastructure unit tests plus Persistence/Infrastructure integration
 suites are installed. They use real PostgreSQL, Redis and RabbitMQ Testcontainers
