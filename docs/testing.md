@@ -11,6 +11,15 @@ FastEndpoints fixtures and MTP-compatible coverage conventions.
 | Application E2E     | tests/e2e/web                           | test:e2e         | Aspire-managed stack; browser/API assertions         |
 | Kubernetes E2E      | tests/e2e/kubernetes                    | test:kubernetes  | Aspire/KIND with deployed candidate manifests/images |
 
+Repository tooling tests are a separate Node.js lane, not an Nx test target. From
+the repository root, install the pinned workspace dependencies with
+`bun install --frozen-lockfile`, then run `bun run test:tooling`. This invokes
+Node's built-in `node:test` runner for `tools/*.test.mjs`; coverage report merging,
+PR-title validation, CI workflow checks and service-layout checks are among its
+tests. CI runs this lane independently of `bun run test` (Nx project tests). Use
+the pinned Node and Bun versions from `.node-version` and `package.json`. The .NET
+xUnit/MTP guidance in [test tooling](test-tooling.md) does not apply to these scripts.
+
 Core and Infrastructure unit tests plus Persistence/Infrastructure integration
 suites are installed. They use real PostgreSQL, Redis and RabbitMQ Testcontainers
 and a test-only FastEndpoints WebApplicationFactory host under tests/fixtures.

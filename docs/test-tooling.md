@@ -1,8 +1,10 @@
 # Test tooling and generated data
 
-Use xUnit v3 on Microsoft Testing Platform (MTP). Shouldly is the assertion API for both
-existing and new tests. xUnit supplies test attributes, fixtures and lifecycle; use Shouldly
-for assertions. These packages are test dependencies, never service runtime dependencies.
+For .NET test projects, use xUnit v3 on Microsoft Testing Platform (MTP). Shouldly is
+the assertion API for both existing and new .NET tests. xUnit supplies test attributes,
+fixtures and lifecycle; use Shouldly for assertions. These packages are test dependencies,
+never service runtime dependencies. Repository tooling tests are a separate Node.js lane;
+see [test layers](testing.md#test-layers).
 
 ## Packages adopted from Teck.Monorepo
 
