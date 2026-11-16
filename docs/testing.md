@@ -11,6 +11,15 @@ FastEndpoints fixtures and MTP-compatible coverage conventions.
 | Application E2E     | tests/e2e/web                           | test:e2e         | Aspire-managed stack; browser/API assertions         |
 | Kubernetes E2E      | tests/e2e/kubernetes                    | test:kubernetes  | Aspire/KIND with deployed candidate manifests/images |
 
+Repository tooling tests are a separate Node.js lane, not an Nx test target. From
+the repository root, install the pinned workspace dependencies with
+`bun install --frozen-lockfile`, then run `bun run test:tooling`. This invokes
+Node's built-in `node:test` runner for `tools/*.test.mjs`; coverage report merging,
+PR-title validation, CI workflow checks and service-layout checks are among its
+tests. CI runs this lane independently of `bun run test` (Nx project tests). Use
+the pinned Node and Bun versions from `.node-version` and `package.json`. The .NET
+xUnit/MTP guidance in [test tooling](test-tooling.md) does not apply to these scripts.
+
 Core and Infrastructure unit tests plus Persistence/Infrastructure integration
 suites are installed. They use real PostgreSQL, Redis and RabbitMQ Testcontainers
 and a test-only FastEndpoints WebApplicationFactory host under tests/fixtures.
@@ -47,8 +56,8 @@ rollback/recovery, duplicates, local translator recovery, tenant isolation, dead
 and committed consumer effects. WebApplicationFactory is for the external HTTP
 adapter; use a real HTTP/2 server where gRPC transport/TLS is under test. Aspire E2E
 starts the actual communicating services rather than replacing broker/gRPC hops with
-local dispatch. Shared tests cover durable delivery/retry, save-then-throw rollback, physical
-envelope deduplication and pending outbox recovery after broker outage/application
+local dispatch. Shared tests cover durable delivery/retry, save-then-throw rollback,
+physical envelope deduplication and pending outbox recovery after broker outage/application
 restart. Abrupt process-kill windows, duplicate business intents and live gRPC/TLS
 tests remain required with real services; see [shared runtime](shared-runtime.md).
 

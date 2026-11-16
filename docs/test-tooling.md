@@ -1,8 +1,10 @@
 # Test tooling and generated data
 
-Use xUnit v3 on Microsoft Testing Platform (MTP). Shouldly is the assertion API for both
-existing and new tests. xUnit supplies test attributes, fixtures and lifecycle; use Shouldly
-for assertions. These packages are test dependencies, never service runtime dependencies.
+For .NET test projects, use xUnit v3 on Microsoft Testing Platform (MTP). Shouldly is
+the assertion API for both existing and new .NET tests. xUnit supplies test attributes,
+fixtures and lifecycle; use Shouldly for assertions. These packages are test dependencies,
+never service runtime dependencies. Repository tooling tests are a separate Node.js lane;
+see [test layers](testing.md#test-layers).
 
 ## Packages adopted from Teck.Monorepo
 
@@ -13,7 +15,7 @@ for assertions. These packages are test dependencies, never service runtime depe
 | Mock misuse detection                        | NSubstitute.Analyzers.CSharp 1.0.17                            | Projects referencing NSubstitute; private analyzer dependency       |
 | Arbitrary object graphs and SUT construction | AutoFixture 5.0.0-rc.1                                         | Unit tests and Infrastructure integration tests                     |
 | Realistic data with explicit rules           | Bogus 35.6.5                                                   | Same test projects                                                  |
-| Automatic population of DTOs                 | Soenneker.Utils.AutoBogus 11.0.1011                            | Same test projects; compatible .NET 10 assets                       |
+| Automatic population of DTOs                  | Soenneker.Utils.AutoBogus 11.0.1011                            | Same test projects; compatible .NET 10 assets                       |
 | AutoBogus interface/abstract substitutes     | Soenneker.Utils.AutoBogus.NSubstitute 11.0.880                 | Same test projects                                                  |
 | Endpoint fixtures                            | FastEndpoints.Testing 9.0.0                                    | Infrastructure endpoint integration tests                           |
 | Architecture rules                           | TngTech.ArchUnitNET and TngTech.ArchUnitNET.xUnitV3 0.13.5     | SharedKernel.ArchitectureTests                                      |
@@ -97,8 +99,8 @@ PreSetupAsync and dispose owned resources in the matching fixture lifecycle. Hos
 allowed only when test state and container ownership are isolated correctly.
 
 Typed FastEndpoints HTTP helpers are useful for ordinary endpoint tests. Keep explicit URL
-checks for externally consumed contracts. Factory.Create endpoint unit tests do not execute
-the full HTTP pipeline. FastEndpoints command/event receivers observe its own bus, not Wolverine.
+checks for externally consumed contracts. Factory.Create endpoint unit tests do not execute the
+full HTTP pipeline. FastEndpoints command/event receivers observe its own bus, not Wolverine.
 
 The initial architecture suite checks Core cannot depend on Persistence/Infrastructure and
 Persistence cannot depend on Infrastructure. Add service-specific slice, read/write handler,
@@ -124,7 +126,7 @@ Use its canonical commands and policy rather than an ad hoc single-suite compari
 - [FastEndpoints testing](https://fast-endpoints.com/docs/integration-unit-testing)
 - [NSubstitute usage and analyzer guidance](https://nsubstitute.github.io/help/getting-started/)
 - [AutoFixture](https://github.com/AutoFixture/AutoFixture)
-- [Bogus](https://github.com/bchavez/Bogus)
+- [Bogus](https://github.com/bchavez/Faker)
 - [AutoBogus](https://github.com/soenneker/soenneker.utils.autobogus)
 - [AutoBogus NSubstitute binder](https://github.com/soenneker/soenneker.utils.autobogus.nsubstitute)
 - [Coverlet for MTP](https://github.com/coverlet-coverage/coverlet/blob/master/Documentation/Coverlet.MTP.Integration.md)
