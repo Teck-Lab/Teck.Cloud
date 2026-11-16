@@ -56,8 +56,8 @@ rollback/recovery, duplicates, local translator recovery, tenant isolation, dead
 and committed consumer effects. WebApplicationFactory is for the external HTTP
 adapter; use a real HTTP/2 server where gRPC transport/TLS is under test. Aspire E2E
 starts the actual communicating services rather than replacing broker/gRPC hops with
-local dispatch. Shared tests cover durable delivery/retry, save-then-throw rollback,
-physical envelope deduplication and pending outbox recovery after broker outage/application
+local dispatch. Shared tests cover durable delivery/retry, save-then-throw rollback, physical
+envelope deduplication and pending outbox recovery after broker outage/application
 restart. Abrupt process-kill windows, duplicate business intents and live gRPC/TLS
 tests remain required with real services; see [shared runtime](shared-runtime.md).
 
