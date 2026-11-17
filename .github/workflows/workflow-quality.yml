@@ -1,1 +1,109 @@
-$FILE:.github/workflows/workflow-quality.yml
+name: Workflow quality
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: workflow-quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  scope:
+    name: Workflow quality applicability
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      required: ${{ steps.manual.outputs.required || steps.scope.outputs.required }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate PR title without expensive setup
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node tools/check-pr-title.mjs
+      - name: Require full workflow quality on manual dispatch
+        id: manual
+        if: github.event_name == 'workflow_dispatch'
+        run: echo 'required=true' >> "$GITHUB_OUTPUT"
+      - name: Download and validate authoritative CI scope
+        id: scope
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          run=$(gh api "repos/$REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SOURCE_SHA&per_page=100" --jq '[.workflow_runs[] | select(.head_sha == env.SOURCE_SHA and .event == env.EVENT_NAME and (.status == "in_progress" or .status == "completed"))] | sort_by(.created_at) | last | [.id, .run_attempt] | @tsv')
+          IFS=$'\t' read -r run_id run_attempt <<< "$run"
+          test -n "$run_id" && test -n "$run_attempt" || { echo 'No matching CI run found for this commit and event.' >&2; exit 1; }
+          gh run download "$run_id" --repo "$REPOSITORY" --name "ci-scope-${run_id}-${run_attempt}" --dir .artifacts/scope
+          node tools/ci-scope.mjs --validate .artifacts/scope/.artifacts/ci-scope.json
+          node -e 'const s=JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")); if(s.head!==process.env.SOURCE_SHA) throw Error("Scope head does not match this workflow run"); if(process.env.EVENT_NAME==="pull_request" && s.event!=="pull_request" || process.env.EVENT_NAME==="push" && s.event!=="push") throw Error("Scope event does not match this workflow run"); if(typeof s.jobs.workflowQuality?.required!=="boolean") throw Error("Missing workflowQuality applicability"); console.log(`required=${s.jobs.workflowQuality.required}`)' .artifacts/scope/.artifacts/ci-scope.json >> "$GITHUB_OUTPUT"
+
+  quality:
+    name: Workflow quality checks
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate squash title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node tools/check-pr-title.mjs
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run test:tooling
+      - name: Check documentation lint and local links
+        run: bun run docs:check
+      - name: Validate workflow syntax and shell scripts
+        run: |
+          curl --fail --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/*.yml
+      - name: Audit workflow security
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          version: v1.32.0
+          advanced-security: false
+          min-severity: low
+          min-confidence: medium
+  gate:
+    name: Workflow quality gate
+    if: always()
+    needs: [scope, quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require applicable checks
+        env:
+          REQUIRED: ${{ needs.scope.outputs.required }}
+          QUALITY: ${{ needs.quality.result }}
+          SCOPE: ${{ needs.scope.result }}
+        run: |
+          test "$SCOPE" = success
+          if [ "$REQUIRED" = true ]; then
+            test "$QUALITY" = success
+          else
+            test "$QUALITY" = skipped
+          fi

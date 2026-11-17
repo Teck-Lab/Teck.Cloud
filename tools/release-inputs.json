@@ -1,1 +1,31 @@
-$FILE:tools/release-inputs.json
+{
+  "schemaVersion": 1,
+  "artifacts": {
+    "foundation-bundle": {
+      "publicationKind": "candidate",
+      "baselineKind": "successful-verified-foundation-run",
+      "members": [
+        "src/shared/SharedKernel.Core/SharedKernel.Core.csproj",
+        "src/shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj",
+        "src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj"
+      ],
+      "inputPatterns": [
+        "src/shared/SharedKernel.Core/**/*.cs",
+        "src/shared/SharedKernel.Core/SharedKernel.Core.csproj",
+        "src/shared/SharedKernel.Core/packages.lock.json",
+        "src/shared/SharedKernel.Persistence/**/*.cs",
+        "src/shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj",
+        "src/shared/SharedKernel.Persistence/packages.lock.json",
+        "src/shared/SharedKernel.Infrastructure/**/*.cs",
+        "src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj",
+        "src/shared/SharedKernel.Infrastructure/packages.lock.json",
+        "Directory.Build.props",
+        "Directory.Packages.props",
+        "global.json",
+        "nuget.config",
+        ".github/workflows/reusable-foundation-build.yml",
+        "tools/release-inputs.json"
+      ]
+    }
+  }
+}

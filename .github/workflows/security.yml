@@ -1,1 +1,250 @@
-$FILE:.github/workflows/security.yml
+name: Security
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    name: Security applicability
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      required: ${{ steps.force.outputs.required || steps.scope.outputs.required }}
+      secret_scan: ${{ steps.force.outputs.secret_scan || steps.scope.outputs.secret_scan }}
+      scan_base: ${{ steps.scope.outputs.scan_base }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require full security scan on schedule or manual dispatch
+        id: force
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo 'required=true' >> "$GITHUB_OUTPUT"
+          echo 'secret_scan=true' >> "$GITHUB_OUTPUT"
+      - name: Download and validate authoritative CI scope
+        id: scope
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          run=$(gh api "repos/$REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SOURCE_SHA&per_page=100" --jq '[.workflow_runs[] | select(.head_sha == env.SOURCE_SHA and .event == env.EVENT_NAME and (.status == "in_progress" or .status == "completed"))] | sort_by(.created_at) | last | [.id, .run_attempt] | @tsv')
+          IFS=$'\t' read -r run_id run_attempt <<< "$run"
+          test -n "$run_id" && test -n "$run_attempt" || { echo 'No matching CI run found for this commit and event.' >&2; exit 1; }
+          gh run download "$run_id" --repo "$REPOSITORY" --name "ci-scope-${run_id}-${run_attempt}" --dir .artifacts/scope
+          node tools/ci-scope.mjs --validate .artifacts/scope/.artifacts/ci-scope.json
+          node -e 'const s=JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")); if(s.head!==process.env.SOURCE_SHA) throw Error("Scope head does not match this workflow run"); if(s.event!==process.env.EVENT_NAME) throw Error("Scope event does not match this workflow run"); if(typeof s.jobs.security?.required!=="boolean" || typeof s.jobs.secretScan?.required!=="boolean") throw Error("Missing security applicability"); console.log(`required=${s.jobs.security.required}`); console.log(`secret_scan=${s.jobs.secretScan.required}`); console.log(`scan_base=${s.validation.base}`)' .artifacts/scope/.artifacts/ci-scope.json >> "$GITHUB_OUTPUT"
+  secret-scan:
+    name: Changed-content secret scan
+    needs: scope
+    if: needs.scope.outputs.secret_scan == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan changed content or full history
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCAN_BASE: ${{ needs.scope.outputs.scan_base }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/security
+          curl --fail --silent --show-error --location https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o "$RUNNER_TEMP/gitleaks.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          if [ "$EVENT_NAME" = schedule ] || [ "$EVENT_NAME" = workflow_dispatch ]; then
+            log_opts=--all
+          else
+            test -n "$SCAN_BASE"
+            test -n "$SOURCE_SHA"
+            log_opts="$SCAN_BASE..$SOURCE_SHA"
+          fi
+          "$RUNNER_TEMP/gitleaks" git . "--log-opts=$log_opts" --redact --report-format json --report-path .artifacts/security/secrets.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: security-secrets-${{ github.sha }}
+          path: .artifacts/security/secrets.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  dependencies:
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
+    name: Dependencies and secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - run: bun install --frozen-lockfile
+      - run: dotnet restore Teck.Cloud.slnx --locked-mode
+      - name: Audit all dependency severities
+        run: bun run security:audit
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: security-audits
+          path: .artifacts/security/
+          retention-days: 7
+
+  codeql:
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: csharp
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        if: matrix.language == 'csharp'
+        with:
+          global-json-file: global.json
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+      - name: Build C# under CodeQL
+        if: matrix.language == 'csharp'
+        run: |
+          dotnet restore Teck.Cloud.slnx --locked-mode
+          dotnet build Teck.Cloud.slnx -c Release --no-restore --no-incremental -p:UseSharedCompilation=false
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
+        with:
+          category: /language:${{ matrix.language }}
+
+  configuration:
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
+    name: Configuration vulnerabilities
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: config
+          scan-ref: .
+          skip-dirs: node_modules,.artifacts,.nx,**/bin,**/obj
+          # Docker build-context filters are not Dockerfiles or deployable configuration.
+          skip-files: "**/*.dockerignore"
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          format: sarif
+          limit-severities-for-sarif: true
+          output: trivy-config.sarif
+          cache: false
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: configuration-security
+          path: trivy-config.sarif
+          retention-days: 7
+
+  dependency-review:
+    name: Pull request dependency review
+    needs: scope
+    if: github.event_name == 'pull_request' && needs.scope.outputs.required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: low
+          comment-summary-in-pr: never
+
+  gate:
+    name: Security gate
+    if: always()
+    needs: [scope, secret-scan, dependencies, codeql, configuration, dependency-review]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all security jobs
+        env:
+          DEPENDENCIES: ${{ needs.dependencies.result }}
+          CODEQL: ${{ needs.codeql.result }}
+          CONFIGURATION: ${{ needs.configuration.result }}
+          REVIEW: ${{ needs.dependency-review.result }}
+          SECRET_SCAN: ${{ needs.secret-scan.result }}
+          SECRET_REQUIRED: ${{ needs.scope.outputs.secret_scan }}
+          EVENT: ${{ github.event_name }}
+          REQUIRED: ${{ needs.scope.outputs.required }}
+          SCOPE: ${{ needs.scope.result }}
+        run: |
+          test "$SCOPE" = success
+          if [ "$SECRET_REQUIRED" = true ]; then
+            test "$SECRET_SCAN" = success
+          else
+            test "$SECRET_SCAN" = skipped
+          fi
+          if [ "$REQUIRED" = true ]; then
+            test "$DEPENDENCIES" = success
+            test "$CODEQL" = success
+            test "$CONFIGURATION" = success
+            if [ "$EVENT" = pull_request ]; then
+              test "$REVIEW" = success
+            else
+              test "$REVIEW" = skipped
+            fi
+          else
+            test "$DEPENDENCIES" = skipped
+            test "$CODEQL" = skipped
+            test "$CONFIGURATION" = skipped
+            test "$REVIEW" = skipped
+          fi

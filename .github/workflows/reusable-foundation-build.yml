@@ -1,1 +1,171 @@
-$FILE:.github/workflows/reusable-foundation-build.yml
+name: Reusable foundation build
+on:
+  workflow_call:
+# No caller-provided commands, artifact digests, source refs or inherited secrets.
+permissions: {}
+jobs:
+  select:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      selected: ${{ steps.select.outputs.selected }}
+      reason: ${{ steps.select.outputs.reason }}
+    steps:
+      - name: Require successful checks for this exact source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          for workflow in ci.yml security.yml workflow-quality.yml; do
+            result=$(gh api "repos/$REPOSITORY/actions/workflows/$workflow/runs?head_sha=$SOURCE_SHA&branch=main&event=push&per_page=1" --jq '.workflow_runs[0].conclusion')
+            if [ "$result" != success ]; then
+              echo "Required workflow $workflow has not succeeded for this commit."
+              exit 1
+            fi
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve verified Foundation candidate baseline and artifact inputs
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+          CURRENT_RUN_NUMBER: ${{ github.run_number }}
+          SELECTION_INPUT: ${{ runner.temp }}/foundation-selection-input.json
+          MANIFEST_OUTPUT: ${{ runner.temp }}/foundation-selection.json
+          GITHUB_OUTPUT: ${{ runner.temp }}/foundation-selection-output
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/$REPOSITORY/actions/workflows/foundation-candidate.yml/runs?branch=main&event=workflow_dispatch&per_page=100" --jq '.workflow_runs[]' | jq -s --arg repo "$REPOSITORY" --argjson current "$CURRENT_RUN_ID" --argjson number "$CURRENT_RUN_NUMBER" '{repository:$repo,workflowRunId:$current,currentRunNumber:$number,runs:map(select(.id != $current)),jobsByAttempt:{}}' > "$SELECTION_INPUT"
+          while IFS=$'\t' read -r run_id attempt; do
+            [ -n "$run_id" ] || continue
+            gh api --paginate "repos/$REPOSITORY/actions/runs/$run_id/attempts/$attempt/jobs?per_page=100" --jq '.jobs[]' | jq -s --argjson attempt "$attempt" 'map(. + {run_attempt:$attempt})' > "$RUNNER_TEMP/jobs.json"
+            jq --arg key "$run_id:$attempt" --slurpfile jobs "$RUNNER_TEMP/jobs.json" '.jobsByAttempt[$key]=$jobs[0]' "$SELECTION_INPUT" > "$RUNNER_TEMP/selection.json"
+            mv "$RUNNER_TEMP/selection.json" "$SELECTION_INPUT"
+          done < <(jq -r --argjson current "$CURRENT_RUN_ID" --argjson number "$CURRENT_RUN_NUMBER" '.runs[] | select(.id != $current and .run_number < $number and .status == "completed" and .conclusion == "success") | [.id,.run_attempt] | @tsv' "$SELECTION_INPUT")
+          jq --arg sha "$SOURCE_SHA" '.requestedHead=$sha' "$SELECTION_INPUT" > "$RUNNER_TEMP/selection.json"
+          mv "$RUNNER_TEMP/selection.json" "$SELECTION_INPUT"
+          node tools/select-foundation-candidate.mjs
+          mkdir -p .artifacts
+          cp "$MANIFEST_OUTPUT" .artifacts/foundation-selection.json
+          cat "$MANIFEST_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: foundation-selection-${{ github.run_attempt }}
+          path: .artifacts/foundation-selection.json
+          if-no-files-found: error
+          retention-days: 90
+
+  build:
+    needs: select
+    if: needs.select.outputs.selected == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Restore the locked dependency graph
+        run: dotnet restore
+      - name: Build the actual foundation packages
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          CANDIDATE_VERSION: 0.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/packages" "$RUNNER_TEMP/candidate"
+          for project in SharedKernel.Core SharedKernel.Persistence SharedKernel.Infrastructure; do
+            dotnet pack "src/shared/$project/$project.csproj" -c Release --no-restore \
+              -p:PackageVersion="$CANDIDATE_VERSION" \
+              -p:PackageOutputPath="$RUNNER_TEMP/packages"
+          done
+          tar -czf "$RUNNER_TEMP/candidate/teck-cloud-foundation.tar.gz" -C "$RUNNER_TEMP/packages" .
+          printf '%s\n' "$SOURCE_SHA" > "$RUNNER_TEMP/candidate/source.sha"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: foundation-build-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/candidate/
+          if-no-files-found: error
+          retention-days: 90
+
+  attest:
+    needs: [select, build]
+    if: needs.select.outputs.selected == 'true' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Download the candidate bytes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: foundation-build-${{ github.run_attempt }}
+          path: candidate
+      - name: Attest the bytes produced by this workflow run
+        id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: candidate/teck-cloud-foundation.tar.gz
+      - name: Package the verification bundle
+        env:
+          BUNDLE_PATH: ${{ steps.provenance.outputs.bundle-path }}
+        run: cp "$BUNDLE_PATH" candidate/provenance.sigstore.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: foundation-attested-${{ github.run_attempt }}
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 90
+
+  verify:
+    needs: [select, attest]
+    if: needs.select.outputs.selected == 'true' && needs.attest.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    steps:
+      - name: Download the attested candidate
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: foundation-attested-${{ github.run_attempt }}
+          path: candidate
+      - name: Verify the candidate and reject tampering
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          test "$(cat candidate/source.sha)" = "$SOURCE_SHA"
+          gh attestation verify candidate/teck-cloud-foundation.tar.gz --repo "$REPOSITORY" --source-repo "$REPOSITORY" --source-ref refs/heads/main
+          cp candidate/teck-cloud-foundation.tar.gz "$RUNNER_TEMP/tampered.tar.gz"
+          printf 'tamper' >> "$RUNNER_TEMP/tampered.tar.gz"
+          if gh attestation verify "$RUNNER_TEMP/tampered.tar.gz" --repo "$REPOSITORY" --source-repo "$REPOSITORY" --source-ref refs/heads/main; then
+            echo 'ERROR: verifier accepted tampered candidate bytes'
+            exit 1
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: foundation-verified-${{ github.run_attempt }}
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 90

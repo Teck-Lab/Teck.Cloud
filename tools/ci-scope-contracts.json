@@ -1,1 +1,43 @@
-$FILE:tools/ci-scope-contracts.json
+{
+  "schemaVersion": 1,
+  "targets": [
+    "build",
+    "lint",
+    "typecheck",
+    "test",
+    "test:integration",
+    "test:e2e",
+    "test:kubernetes",
+    "container:build",
+    "verify:static"
+  ],
+  "coverageFullInputs": [
+    "^tools/coverage(?:[^/]*)\\.(?:mjs|json)$",
+    "^tools/coverage-components\\.json$"
+  ],
+
+  "globalInputs": [
+    "^package\\.json$",
+    "^bun\\.lock$",
+    "^nx\\.json$",
+    "^tsconfig(?:\\.base)?\\.json$",
+    "^Directory\\.Build\\.(?:props|targets)$",
+    "^Directory\\.Packages\\.props$",
+    "^global\\.json$",
+    "^\\.config/",
+    "^\\.github/workflows/",
+    "^tools/"
+  ],
+  "securityInputs": [
+    "^\\.github/",
+    "^\\.gitleaks",
+    "^\\.trivy",
+    "^\\.zizmor",
+    "^package\\.json$",
+    "^bun\\.lock$",
+    "^Directory\\.Packages\\.props$",
+    "^nuget\\.config$",
+    "^src/",
+    "^tests/"
+  ]
+}

@@ -1,1 +1,28 @@
-$FILE:tools/coverage-components.json
+{
+  "schemaVersion": 1,
+  "components": {
+    "shared-kernel": {
+      "projects": [
+        {
+          "path": "src/shared/SharedKernel.Core/SharedKernel.Core.csproj",
+          "assembly": "SharedKernel.Core"
+        },
+        {
+          "path": "src/shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj",
+          "assembly": "SharedKernel.Persistence"
+        },
+        {
+          "path": "src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj",
+          "assembly": "SharedKernel.Infrastructure"
+        }
+      ],
+      "suites": [
+        "tests/unit/SharedKernel.Core.UnitTests/SharedKernel.Core.UnitTests.csproj",
+        "tests/unit/SharedKernel.Infrastructure.UnitTests/SharedKernel.Infrastructure.UnitTests.csproj",
+        "tests/unit/AppHost.UnitTests/AppHost.UnitTests.csproj",
+        "tests/integration/SharedKernel.Persistence.IntegrationTests/SharedKernel.Persistence.IntegrationTests.csproj",
+        "tests/integration/SharedKernel.Infrastructure.IntegrationTests/SharedKernel.Infrastructure.IntegrationTests.csproj"
+      ]
+    }
+  }
+}
