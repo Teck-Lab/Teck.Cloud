@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { requiredJobs, verifyCiResults } from "./check-ci-results.mjs";
+import { isPublicationEnabled, requirePublicationEnabled } from "./release-activation.mjs";
 
 const success = () => Object.fromEntries(requiredJobs.map((name) => [name, { result: "success" }]));
 const workflow = parse(
@@ -75,4 +76,13 @@ test("workflow invokes the tested gate and CLI fails closed on malformed data", 
     );
     assert.equal(result.status, expected, result.stderr);
   }
+});
+
+test("image publication requires the exact explicit activation value", () => {
+  for (const value of [undefined, "", "false", "TRUE", "True", " true", "true ", "1"]) {
+    assert.equal(isPublicationEnabled(value), false, `${value}`);
+    assert.throws(() => requirePublicationEnabled(value), /ENABLE_IMAGE_PUBLICATION=true/);
+  }
+  assert.equal(isPublicationEnabled("true"), true);
+  assert.equal(requirePublicationEnabled("true"), true);
 });
