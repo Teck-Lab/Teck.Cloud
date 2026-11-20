@@ -14,8 +14,8 @@ and evidence checklist below is complete.**
 
 ## Build and trust boundary
 
-Run **Foundation candidate** from the GitHub Actions UI on `main`, after CI,
-Security and Workflow quality have all succeeded for the exact source SHA. A
+Run **Foundation candidate** from the GitHub Actions UI on `main`, after CI and
+Security and quality have succeeded for the exact source SHA. A
 missing, failed or still-running check blocks the candidate. The caller has no
 inputs that can select another artifact, source ref, command or digest.
 
@@ -75,8 +75,8 @@ files that can be declared complete by writing YAML:
 - [ ] Enable Actions, dependency graph, CodeQL and Dependency Review. Confirm
       Scorecard can read this repository with its workflow token. Do not introduce
       a broad PAT to make a check pass.
-- [ ] Protect main and require PR review, **Affected checks**, **Security gate** and
-      **Workflow quality gate**. Configure Code Scanning rules to block relevant alert
+- [ ] Protect main and require PR review, **Affected checks** and
+      **Security and quality gate**. Configure Code Scanning rules to block relevant alert
       severities; successful analysis alone is not zero findings. Apply changes to
       workflow/build/security policy through review; restrict bypass permissions.
 - [ ] Assign actual code owners for `.github/`, build props, dependency policy and

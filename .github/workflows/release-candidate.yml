@@ -1,7 +1,7 @@
 name: Release candidate
 on:
   workflow_run: # zizmor: ignore[dangerous-triggers] -- Only successful main push check runs are accepted. This workflow never checks out or executes their artifacts; it reads exact-SHA checks before using trusted default-branch action config.
-    workflows: [CI, Security, Workflow quality]
+    workflows: [CI, Security and quality]
     types: [completed]
 permissions: {}
 concurrency:
@@ -27,7 +27,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          for workflow in ci.yml security.yml workflow-quality.yml; do
+          for workflow in ci.yml security.yml; do
             conclusion=$(gh api --method GET "repos/$REPOSITORY/actions/workflows/$workflow/runs" \
               -f head_sha="$SOURCE_SHA" -f branch=main -f per_page=20 \
               --jq '[.workflow_runs[] | select(.event == "push")][0].conclusion // "pending"')

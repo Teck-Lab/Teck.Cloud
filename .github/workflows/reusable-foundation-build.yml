@@ -18,7 +18,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           SOURCE_SHA: ${{ github.sha }}
         run: |
-          for workflow in ci.yml security.yml workflow-quality.yml; do
+          for workflow in ci.yml security.yml; do
             result=$(gh api "repos/$REPOSITORY/actions/workflows/$workflow/runs?head_sha=$SOURCE_SHA&branch=main&event=push&per_page=1" --jq '.workflow_runs[0].conclusion')
             if [ "$result" != success ]; then
               echo "Required workflow $workflow has not succeeded for this commit."

@@ -49,8 +49,8 @@ to no cache: replaying a cached log cannot restore an image into the container d
 
 GitHub release metadata is enabled for the repository. Release Drafter uses
 Conventional Commit PR titles to group changes and calculate one repository version.
-It includes documentation and deployment changes as patch releases. Once CI,
-Security and Workflow quality pass for the exact current main commit, the Release
+It includes documentation and deployment changes as patch releases. Once CI and
+Security and quality pass for the exact current main commit, the Release
 candidate workflow updates the stable draft and publishes an RC for that commit.
 Each completed check triggers one evaluation; runs with unfinished or failed
 checks exit without publishing. The last successful check can publish the RC.
@@ -85,10 +85,11 @@ uploaded. CodeQL scans C#, JavaScript/TypeScript and Actions with the extended
 security suite and uploads findings. C# is built under tracing, including generated
 code. There is no personal token or publication credential in these jobs.
 
-Require Affected checks, Security gate and Workflow quality gate in repository
-rules. Each workflow publishes its own result directly, without a polling job.
-Workflow quality runs again when a PR title is edited; CI and Security keep
-their result for the unchanged head commit.
+Require Affected checks and Security and quality gate in repository rules. Each
+workflow publishes its own result directly, without a polling job. A PR title
+edit reruns the combined Security and quality workflow so its gate reflects the
+new title. CI keeps its result for the unchanged head commit.
+
 Teck.Cloud is public. Enable code scanning and add a code-scanning ruleset to block
 the selected alert severities:
 a successful CodeQL analysis/upload alone does not mean zero findings. These server
@@ -105,23 +106,24 @@ real deployable image/release pipeline; no empty publishing jobs are installed.
 
 ## Additional gates and provenance
 
-Workflow quality is a separate required check. It validates Conventional Commit PR
-squash titles (including on title edits), workflow syntax/shell scripts with
-Actionlint, and workflow security with Zizmor. Inputs such as PR titles are passed
-as environment data, never interpolated as shell code. External actions are pinned
+The Security and quality workflow validates Conventional Commit PR squash titles
+(including on title edits), workflow syntax/shell scripts with Actionlint, and
+workflow security with Zizmor. Inputs such as PR titles are passed as
+environment data, never interpolated as shell code. External actions are pinned
 to full commit SHAs. Actionlint and Gitleaks downloads are checksum-verified.
 
-Security gate also requires Trivy configuration scanning (high/critical findings)
-and, on PRs, Dependency Review (low and above). A dependency-review failure cannot
+The Security and quality gate also requires Trivy configuration scanning
+(high/critical findings) and, on PRs, Dependency Review (low and above).
+A dependency-review failure cannot
 be hidden as an intentional skip on a PR. Generated build output is excluded from
 configuration scanning; source manifests are included. CodeQL alert blocking still
 requires the GitHub code-scanning ruleset described above.
 
 Dependabot checks Bun, central NuGet packages and Actions weekly. Nx updates stay
 together. Version updates wait seven days; security updates do not. Updates still
-need all applicable checks and review. OpenSSF Scorecard runs weekly, on main and
-manually, retaining an advisory Actions artifact rather than publishing to the Scorecard service or
-blocking on an arbitrary score.
+need all applicable checks and review. OpenSSF Scorecard runs as an advisory job
+in Security and quality on main, weekly and manual runs. It retains an Actions
+artifact without publishing to the Scorecard service or blocking on an arbitrary score.
 
 The **Foundation candidate** workflow builds actual shared-library packages using
 an isolated reusable builder, then attests and verifies the archive. See
