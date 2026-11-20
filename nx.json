@@ -87,8 +87,7 @@
       "{workspaceRoot}/nuget.config",
       "{workspaceRoot}/.github/workflows/ci.yml",
       "{workspaceRoot}/stylecop.json",
-      "{workspaceRoot}/tools/verify-wolverine-static.mjs",
-      "{workspaceRoot}/patches/**/*"
+      "{workspaceRoot}/tools/verify-wolverine-static.mjs"
     ]
   },
   "targetDefaults": {

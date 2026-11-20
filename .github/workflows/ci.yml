@@ -28,6 +28,7 @@ jobs:
     outputs:
       base: ${{ steps.shas.outputs.base }}
       head: ${{ steps.shas.outputs.head }}
+      source-changed: ${{ steps.source.outputs.changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,6 +44,23 @@ jobs:
           main-branch-name: main
           workflow-id: ci.yml
           fallback-sha: ${{ steps.baseline.outputs.empty-tree }}
+      - name: Detect source changes for the full coverage lane
+        id: source
+        env:
+          BASE: ${{ steps.shas.outputs.base }}
+          HEAD: ${{ steps.shas.outputs.head }}
+        run: |
+          git cat-file -e "$BASE^{tree}"
+          git cat-file -e "$HEAD^{tree}"
+          git diff --name-only "$BASE" "$HEAD" > "$RUNNER_TEMP/changed-files"
+          changed=false
+          while IFS= read -r file; do
+            case "$file" in
+              docs/*|deployment/*|.github/*|*.md|*.mdx) ;;
+              *) changed=true; break ;;
+            esac
+          done < "$RUNNER_TEMP/changed-files"
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
 
   fast:
     name: Build and fast checks
@@ -119,32 +137,45 @@ jobs:
       NX_BASE: ${{ needs.scope.outputs.base }}
       NX_HEAD: ${{ needs.scope.outputs.head }}
     steps:
+      - name: Record documentation and deployment only scope
+        if: needs.scope.outputs.source-changed == 'false'
+        run: echo 'No source changes; full coverage remains enforced on code changes.'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.scope.outputs.source-changed == 'true'
         with:
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: needs.scope.outputs.source-changed == 'true'
         with:
           node-version-file: .node-version
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: needs.scope.outputs.source-changed == 'true'
         with:
           bun-version-file: package.json
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        if: needs.scope.outputs.source-changed == 'true'
         with:
           global-json-file: global.json
       - name: Install pinned workspace dependencies
+        if: needs.scope.outputs.source-changed == 'true'
         run: bun install --frozen-lockfile
       - name: Restore .NET projects
+        if: needs.scope.outputs.source-changed == 'true'
         run: dotnet restore Teck.Cloud.slnx --locked-mode
       - name: Materialize the first-run empty-tree baseline
+        if: needs.scope.outputs.source-changed == 'true'
         run: git hash-object -w -t tree --stdin < /dev/null
       - name: Build the identity image used by integration tests
+        if: needs.scope.outputs.source-changed == 'true'
         run: bun run nx run keycloak-theme:container:build
       - name: Install browser for real Keycloak integration tests
+        if: needs.scope.outputs.source-changed == 'true'
         run: |
           dotnet build tests/integration/SharedKernel.Infrastructure.IntegrationTests/SharedKernel.Infrastructure.IntegrationTests.csproj -c Release --no-restore
           pwsh tests/integration/SharedKernel.Infrastructure.IntegrationTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - name: Enforce complete unit and integration coverage baseline
+        if: needs.scope.outputs.source-changed == 'true'
         run: bun run coverage
       - name: Upload verification evidence
         if: always()

@@ -13,7 +13,9 @@ The matrix does not cancel its other mode when one fails.
 Workspace format/config and tooling checks always run. Build, lint, typecheck,
 unit and architecture checks use affected selection. The fast lane intentionally
 runs affected unit tests for early feedback; the coverage lane runs the complete
-unit/integration set once to enforce the [coverage ratchet](coverage.md). There is
+unit/integration set once on source changes to enforce the [coverage ratchet](coverage.md).
+Changes confined to Markdown, docs, deployment and GitHub configuration leave the
+coverage job green without running its build or tests. There is
 no additional integration lane repeating those real-container tests. Static
 Wolverine verification belongs to the fast lane. CI supplies the Sentinel address
 and installs pinned, checksum-verified KIND/kubectl/Helm in the Kubernetes jobs.
@@ -45,13 +47,27 @@ container:build identifies a deployable unit; libraries have no image target.
 container:push is side-effecting and never cacheable. container:build also defaults
 to no cache: replaying a cached log cannot restore an image into the container daemon.
 
-Publishing is not enabled in this foundation. Add Nx Release groups and registry
-coordinates with actual deployable projects. Prefer independent versions unless
-components intentionally share a lifecycle. Affected selection determines candidate
-work; Nx Release and release history determine version/release decisions.
-Publication selection must compare with the last successful publication, not just
-the latest successful CI build, preserving unshipped changes across deferred or
-failed releases. Coordinate image versions and immutable manifest references.
+GitHub release metadata is enabled for the repository. Release Drafter uses
+Conventional Commit PR titles to group changes and calculate one repository version.
+It includes documentation and deployment changes as patch releases. Once CI,
+Security and Workflow quality pass for the exact current main commit, the Release
+candidate workflow updates the stable draft and publishes an RC for that commit.
+If main advances before verification finishes, the superseded commit does not
+receive a separate RC. Re-running CI for the same commit does not intentionally
+publish another RC.
+The Publish stable release workflow is manually dispatched from main, checks those
+same workflows for the exact current main commit, requires a matching stable draft,
+and publishes it. Backstage can dispatch this workflow later without changing the
+release logic. These GitHub releases contain notes and tags, not application images,
+NuGet packages or attested binaries.
+
+Application publication remains deferred until actual deployable projects and
+registry coordinates exist. Add Nx Release groups only if independent application
+versioning is needed; do not introduce a second version calculator for the
+repository release. Publication selection must compare with the last successful
+publication, not just the latest successful CI build, preserving unshipped changes
+across deferred or failed releases. Coordinate image versions and immutable
+manifest references.
 
 PR jobs use read-only permissions without publishing credentials. Release jobs must
 validate the intended trusted revision and use the authorized GitHub App workflow
@@ -74,13 +90,11 @@ a successful CodeQL analysis/upload alone does not mean zero findings. These ser
 settings have not been changed locally. Workflows need a pushed commit to run on
 GitHub; local validation cannot claim a GitHub Actions pass.
 
-Nx 24.0.6 pins vulnerable minimatch 10.2.5. A temporary Bun override uses 11.0.8
-for GHSA-g3hv-75wg-m249. Bun patchedDependencies applies patches/nx@24.0.6.patch
-to replace three removed makeRe calls with Minimatch.match. Keep the override and
-patch together until aligned stable Nx packages natively support the patched
-dependency. The Nx glob regression tests cover project selection, cached file
-matching, generator tree globs and release branch matching; retain them through
-upgrades. Frozen Bun installs must apply the recorded patch.
+The aligned Nx 24.1 beta uses minimatch 11 without a local package patch. The Bun
+override keeps transitive minimatch instances on 11.0.8 for GHSA-g3hv-75wg-m249.
+The Nx glob regression tests cover project selection, cached file matching,
+generator tree globs and release branch matching; retain them through upgrades.
+Return to aligned stable Nx packages when their minimatch integration is available.
 Image vulnerability scans, signing and SBOM publication belong with the first
 real deployable image/release pipeline; no empty publishing jobs are installed.
 

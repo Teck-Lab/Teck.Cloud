@@ -9,6 +9,7 @@ working local implementation from GitHub activation and application-dependent wo
 | Control                      | Implementation                                                                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Affected CI                  | Nx transitive graph; build/lint/typecheck/unit; full unit/integration coverage ratchet; affected Aspire and KIND E2E           |
+| Repository release notes     | Release Drafter stable draft, CI-gated RCs and manual stable GitHub release; no application artifact publication               |
 | Dependency and secret audits | All-severity NuGet/Bun audit and redacted full-history Gitleaks                                                                |
 | Code scanning                | CodeQL C#, JS/TS and Actions with extended queries                                                                             |
 | PR dependency delta          | Dependency Review blocks low-and-higher vulnerabilities; full lockfile audits remain necessary                                 |

@@ -1,0 +1,42 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+template: |
+  ## Changes
+
+  $CHANGES
+categories:
+  - title: Breaking changes
+    semver-increment: major
+    exclusive: true
+    when:
+      conventional:
+        breaking: true
+  - title: Features
+    semver-increment: minor
+    exclusive: true
+    when:
+      conventional:
+        type: feat
+  - title: Fixes
+    semver-increment: patch
+    exclusive: true
+    when:
+      conventional:
+        type: fix
+  - title: Deployment
+    semver-increment: patch
+    exclusive: true
+    when:
+      paths:
+        - "deployment/**"
+  - title: Documentation
+    semver-increment: patch
+    exclusive: true
+    when:
+      - conventional:
+          type: docs
+      - paths:
+          - "docs/**"
+  - title: Maintenance
+    semver-increment: patch

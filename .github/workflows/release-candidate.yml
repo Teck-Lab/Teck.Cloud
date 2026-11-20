@@ -1,0 +1,81 @@
+name: Release candidate
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] -- Only successful main push CI runs are accepted. This workflow never checks out or executes their artifacts; it reads exact-SHA checks before using trusted default-branch action config.
+    workflows: [CI]
+    types: [completed]
+permissions: {}
+concurrency:
+  group: github-releases-main
+  cancel-in-progress: false
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Require all checks for the exact source commit
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          for attempt in $(seq 1 60); do
+            ready=true
+            for workflow in security.yml workflow-quality.yml; do
+              conclusion=$(gh api --method GET "repos/$REPOSITORY/actions/workflows/$workflow/runs" \
+                -f head_sha="$SOURCE_SHA" -f branch=main -f per_page=20 \
+                --jq '[.workflow_runs[] | select(.event == "push")][0].conclusion // "pending"')
+              if [ "$conclusion" != success ]; then
+                if [ "$conclusion" != pending ]; then
+                  echo "$workflow concluded $conclusion for $SOURCE_SHA"
+                  exit 1
+                fi
+                ready=false
+              fi
+            done
+            if [ "$ready" = true ]; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "Timed out waiting for required checks on $SOURCE_SHA"
+              exit 1
+            fi
+            sleep 30
+          done
+          main_sha=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [ "$main_sha" != "$SOURCE_SHA" ]; then
+            echo "Main advanced past $SOURCE_SHA; the newer commit will receive the RC."
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          existing=$(gh api --method GET "repos/$REPOSITORY/releases" -f per_page=100 --paginate --slurp \
+            --jq '[.[][] | select(.prerelease and (.draft | not) and .target_commitish == "'"$SOURCE_SHA"'")] | length')
+          if [ "$existing" -gt 0 ]; then
+            echo "RC already published for $SOURCE_SHA"
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Update the stable draft
+        if: steps.gate.outputs.publish == 'true'
+        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+        with:
+          config-name: release-drafter.yml
+          prerelease: false
+          commitish: ${{ github.event.workflow_run.head_sha }}
+      - name: Publish the RC
+        if: steps.gate.outputs.publish == 'true'
+        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+        with:
+          config-name: release-drafter.yml
+          prerelease-identifier: rc
+          publish: true
+          commitish: ${{ github.event.workflow_run.head_sha }}

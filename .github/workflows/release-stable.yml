@@ -1,0 +1,55 @@
+name: Publish stable release
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: github-releases-main
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Verify main and the exact release candidate
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          main_sha=$(gh api "repos/$REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [ "$main_sha" != "$SOURCE_SHA" ]; then
+            echo 'Main advanced after this workflow was started; dispatch it again.'
+            exit 1
+          fi
+          for workflow in ci.yml security.yml workflow-quality.yml; do
+            conclusion=$(gh api --method GET "repos/$REPOSITORY/actions/workflows/$workflow/runs" \
+              -f head_sha="$SOURCE_SHA" -f branch=main -f per_page=20 \
+              --jq '[.workflow_runs[] | select(.event == "push")][0].conclusion // "missing"')
+            if [ "$conclusion" != success ]; then
+              echo "$workflow has not succeeded for $SOURCE_SHA: $conclusion"
+              exit 1
+            fi
+          done
+          draft=$(gh api --method GET "repos/$REPOSITORY/releases" -f per_page=100 --paginate --slurp \
+            --jq '[.[][] | select(.draft and (.prerelease | not) and .target_commitish == "'"$SOURCE_SHA"'" and (.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")))] | first | .tag_name // empty')
+          if [ -z "$draft" ]; then
+            echo "No stable draft exists for $SOURCE_SHA"
+            exit 1
+          fi
+          echo "tag=$draft" >> "$GITHUB_OUTPUT"
+          echo "version=${draft#v}" >> "$GITHUB_OUTPUT"
+      - name: Publish the reviewed stable draft
+        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+        with:
+          config-name: release-drafter.yml
+          prerelease: false
+          publish: true
+          commitish: ${{ github.sha }}
+          tag: ${{ steps.candidate.outputs.tag }}
+          version: ${{ steps.candidate.outputs.version }}

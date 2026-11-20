@@ -48,12 +48,12 @@
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/lint": "21.2.4",
     "@commitlint/load": "21.2.4",
-    "@nx/dotnet": "24.0.6",
-    "@nx/js": "24.0.6",
-    "nx": "24.0.6",
+    "@nx/dotnet": "24.1.0-beta.2",
+    "@nx/js": "24.1.0-beta.2",
+    "nx": "24.1.0-beta.2",
     "typescript": "6.0.2",
     "yaml": "2.9.0",
-    "@nx/vite": "24.0.6"
+    "@nx/vite": "24.1.0-beta.2"
   },
   "trustedDependencies": [
     "nx"
@@ -63,8 +63,5 @@
   },
   "overrides": {
     "minimatch": "11.0.8"
-  },
-  "patchedDependencies": {
-    "nx@24.0.6": "patches/nx@24.0.6.patch"
   }
 }
