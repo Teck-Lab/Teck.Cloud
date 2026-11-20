@@ -65,7 +65,17 @@ public static class Program
     {
         var context = await browser.NewContextAsync().ConfigureAwait(false);
         var page = await context.NewPageAsync().ConfigureAwait(false);
-        _ = await page.GotoAsync(new Uri(gateway, "/login/" + organization).ToString()).ConfigureAwait(false);
+        var login = new Uri(gateway, "/login/" + organization).ToString();
+        try
+        {
+            _ = await page.GotoAsync(login).ConfigureAwait(false);
+        }
+        catch (PlaywrightException error) when (error.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.Ordinal))
+        {
+            // Kubernetes networking can change Chromium's network generation before login begins.
+            _ = await page.GotoAsync(login).ConfigureAwait(false);
+        }
+
         await page.Locator("input[name=username]").FillAsync(username).ConfigureAwait(false);
         if (await page.Locator("input[name=password]").CountAsync().ConfigureAwait(false) == 0)
         {
