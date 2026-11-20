@@ -83,12 +83,10 @@ uploaded. CodeQL scans C#, JavaScript/TypeScript and Actions with the extended
 security suite and uploads findings. C# is built under tracing, including generated
 code. There is no personal token or publication credential in these jobs.
 
-Require the Merge gate job in repository rules. It waits for successful CI,
-Security and Workflow quality runs for the same commit. On PR title edits, it
-requires a new Workflow quality run while reusing the CI and Security results
-for the unchanged head commit. The three individual gates remain visible for
-diagnosis; keep them required until the Merge gate has passed on GitHub
-and the repository rule has been updated.
+Require Affected checks, Security gate and Workflow quality gate in repository
+rules. Each workflow publishes its own result directly, without a polling job.
+Workflow quality runs again when a PR title is edited; CI and Security keep
+their result for the unchanged head commit.
 Teck.Cloud is public. Enable code scanning and add a code-scanning ruleset to block
 the selected alert severities:
 a successful CodeQL analysis/upload alone does not mean zero findings. These server
@@ -105,7 +103,7 @@ real deployable image/release pipeline; no empty publishing jobs are installed.
 
 ## Additional gates and provenance
 
-Workflow quality is a separate check. It validates Conventional Commit PR
+Workflow quality is a separate required check. It validates Conventional Commit PR
 squash titles (including on title edits), workflow syntax/shell scripts with
 Actionlint, and workflow security with Zizmor. Inputs such as PR titles are passed
 as environment data, never interpolated as shell code. External actions are pinned
