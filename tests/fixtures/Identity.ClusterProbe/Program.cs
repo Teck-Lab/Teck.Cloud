@@ -63,17 +63,26 @@ public static class Program
 
     private static async Task<IPage> LoginAsync(IBrowser browser, Uri gateway, string organization, string username, string password)
     {
+        var login = new Uri(gateway, "/login/" + organization).ToString();
         var context = await browser.NewContextAsync().ConfigureAwait(false);
         var page = await context.NewPageAsync().ConfigureAwait(false);
-        var login = new Uri(gateway, "/login/" + organization).ToString();
-        try
+        for (var attempt = 0; attempt < 3; attempt++)
         {
-            _ = await page.GotoAsync(login).ConfigureAwait(false);
-        }
-        catch (PlaywrightException error) when (error.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.Ordinal))
-        {
-            // Kubernetes networking can change Chromium's network generation before login begins.
-            _ = await page.GotoAsync(login).ConfigureAwait(false);
+            try
+            {
+                _ = await page.GotoAsync(login).ConfigureAwait(false);
+                break;
+            }
+            catch (PlaywrightException error) when (attempt < 2 &&
+                (error.Message.Contains("net::ERR_NETWORK_CHANGED", StringComparison.Ordinal) ||
+                 error.Message.Contains("chrome-error://chromewebdata/", StringComparison.Ordinal)))
+            {
+                // Cluster networking can change while Chromium opens its first page.
+                await context.CloseAsync().ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(attempt + 1)).ConfigureAwait(false);
+                context = await browser.NewContextAsync().ConfigureAwait(false);
+                page = await context.NewPageAsync().ConfigureAwait(false);
+            }
         }
 
         await page.Locator("input[name=username]").FillAsync(username).ConfigureAwait(false);

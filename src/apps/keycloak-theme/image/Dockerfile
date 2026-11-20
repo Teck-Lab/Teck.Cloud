@@ -13,7 +13,10 @@ COPY src/apps/keycloak-theme ./src/apps/keycloak-theme
 COPY src/packages/design-tokens ./src/packages/design-tokens
 RUN bun install --frozen-lockfile --ignore-scripts
 WORKDIR /source/src/apps/keycloak-theme
-RUN bun run typecheck && bun run build && bun run build:theme
+# Keycloakify invokes Maven; retry one transient Central fetch and force a
+# fresh check for artifacts Maven may have marked missing on the first attempt.
+ENV MAVEN_ARGS=-U
+RUN bun run typecheck && bun run build && (bun run build:theme || (sleep 3 && bun run build:theme))
 RUN test -s dist_keycloak/teck-keycloak-theme.jar
 # Keycloak 26.8.2 bundles Guava 33.6.0-jre; replace its bytes with the upstream
 # fix for CVE-2026-102554. Quarkus references the original filename at runtime.
