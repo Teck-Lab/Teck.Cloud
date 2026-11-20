@@ -101,8 +101,15 @@ override keeps transitive minimatch instances on 11.0.8 for GHSA-g3hv-75wg-m249.
 The Nx glob regression tests cover project selection, cached file matching,
 generator tree globs and release branch matching; retain them through upgrades.
 Return to aligned stable Nx packages when their minimatch integration is available.
-Image vulnerability scans, signing and SBOM publication belong with the first
-real deployable image/release pipeline; no empty publishing jobs are installed.
+The affected image lane scans the built Keycloak candidate for high/critical OS
+and library vulnerabilities with Trivy. It retains a full JSON report and blocks
+on findings with an available fix. The refreshed Keycloak 26.8.2 base and a
+checksum-verified Guava JAR update resolved the current fixable findings. Five
+upstream high-severity findings without a published fix remain in the full report;
+reassess them on each Keycloak update. Other container targets are test-only;
+add image scans when they become deployable. This validates the local build,
+not a future published registry digest. Image signing and SBOM publication remain
+deferred until there is an artifact publication pipeline.
 
 ## Additional gates and provenance
 
@@ -113,10 +120,22 @@ environment data, never interpolated as shell code. External actions are pinned
 to full commit SHAs. Actionlint and Gitleaks downloads are checksum-verified.
 
 The Security and quality gate also requires Trivy configuration scanning
-(high/critical findings) and, on PRs, Dependency Review (low and above).
+(high/critical findings), rendered local identity manifest checks and, on PRs,
+Dependency Review (low and above). Kubeconform validates built-in resources
+strictly. The operator and Gateway API CRDs are explicitly skipped by this
+offline schema check; the KIND E2E lane applies those real resources against
+installed CRDs. Kubescape scans the rendered local identity resources against
+the NSA framework and blocks high/critical posture findings. The current local
+baseline has three medium findings for non-root checks and network isolation;
+they remain visible in the JSON artifact. Kyverno tests the workload policy with good/bad fixtures and
+applies it to the same rendered overlay. The ambient manifest is appended for
+full-mode coverage; sandbox mode does not install mesh CRDs. These local checks
+do not establish a production overlay security posture.
 A dependency-review failure cannot
 be hidden as an intentional skip on a PR. Generated build output is excluded from
-configuration scanning; source manifests are included. CodeQL alert blocking still
+configuration scanning; source manifests are included. The deliberately insecure
+Kyverno negative fixture is excluded from Trivy configuration scanning and is
+required to fail in the Kyverno policy tests. CodeQL alert blocking still
 requires the GitHub code-scanning ruleset described above.
 
 Dependabot checks Bun, central NuGet packages and Actions weekly. Nx updates stay

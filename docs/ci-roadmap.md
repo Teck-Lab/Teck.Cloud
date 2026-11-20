@@ -14,6 +14,7 @@ working local implementation from GitHub activation and application-dependent wo
 | Code scanning                | CodeQL C#, JS/TS and Actions with extended queries                                                                   |
 | PR dependency delta          | Dependency Review blocks low-and-higher vulnerabilities; full lockfile audits remain necessary                       |
 | Configuration scan           | Trivy blocks high/critical misconfigurations, retains SARIF; scans source, excludes generated outputs                |
+| Kubernetes manifests         | Rendered local overlay: Kubeconform built-ins, Kubescape NSA high/critical posture, tested Kyverno workload policy   |
 | Workflow quality             | Checksum-pinned Actionlint, pinned Zizmor, Conventional Commit squash-title validation with tests                    |
 | Updates                      | Weekly Dependabot for Bun, NuGet and Actions; aligned Nx group; seven-day version cooldown; no automatic merge       |
 | Repository posture           | Weekly/main/manual OpenSSF Scorecard JSON, advisory, no publication to the Scorecard service                         |
@@ -39,7 +40,7 @@ working local implementation from GitHub activation and application-dependent wo
 | Permanent artifact distribution   | First feed/registry/release publication. Retain verified bytes, provenance and verification policy beyond Actions retention. Prove download/verification outside the producing run.                             |
 | Scheduled image rescanning        | Once images are actually published. Rescan immutable supported release digests and report newly disclosed vulnerabilities without rebuilding or silently changing tags.                                         |
 | VEX                               | Real vulnerability triage. Require evidence and ownership for affected/not-affected decisions; do not automatically claim not-affected from scanner absence.                                                    |
-| Semgrep service rules             | First application slices. Select maintained rules that add value beyond CodeQL/analyzers and test both bad/good fixtures. The old repo's legacy scanner pin and nonblocking invocation are not copied.          |
+| OpenGrep SAST rules               | First application slices. Select pinned rules that add value beyond CodeQL/analyzers and test both bad/good fixtures. Do not gate on a mutable automatic ruleset or silently ignore scanner errors.             |
 | OpenAPI lint/breaking changes     | First gateway schema. Generate and validate the actual document, compare with the released contract, and prove breaking changes fail. The old placeholder echo job is not a validation implementation.          |
 | Preview DAST and API fuzzing      | First reachable application preview. Add ZAP, Schemathesis and security-header checks against an allowlisted disposable target; prove authenticated flows and avoid production mutation.                        |
 | Browser E2E                       | First web feature. Run a real browser against the application assembled by Aspire, covering gateway/backend/database and visible behavior. Keep integration tests on Testcontainers.                            |

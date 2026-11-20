@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+spec:
+  template:
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: keycloak
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-insecure
+spec:
+  template:
+    spec:
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: false
+      containers:
+        - name: keycloak
+          securityContext:
+            allowPrivilegeEscalation: true

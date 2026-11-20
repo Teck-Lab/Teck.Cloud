@@ -15,12 +15,18 @@ RUN bun install --frozen-lockfile --ignore-scripts
 WORKDIR /source/src/apps/keycloak-theme
 RUN bun run typecheck && bun run build && bun run build:theme
 RUN test -s dist_keycloak/teck-keycloak-theme.jar
+# Keycloak 26.8.2 bundles Guava 33.6.0-jre; replace its bytes with the upstream
+# fix for CVE-2026-102554. Quarkus references the original filename at runtime.
+RUN curl --fail --silent --show-error --location https://repo.maven.apache.org/maven2/com/google/guava/guava/33.7.2-jre/guava-33.7.2-jre.jar -o /source/guava-33.7.2-jre.jar && \
+    echo 'b530942257fb935f8b2cfaa5f8eb5bd59c555fd8e8d01b8ce98912e077ea606c  /source/guava-33.7.2-jre.jar' | sha256sum --check
 
-FROM quay.io/keycloak/keycloak:26.8.2@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0 AS keycloak-build
+FROM quay.io/keycloak/keycloak:26.8.2@sha256:7e66a96e4739239070aeaf72e4c5decf0f7f682cfc725b9f7ea2b336eaba38b3 AS keycloak-build
+COPY --from=theme --chown=keycloak:keycloak /source/guava-33.7.2-jre.jar /opt/keycloak/lib/lib/main/com.google.guava.guava-33.6.0-jre.jar
 COPY --from=theme --chown=keycloak:keycloak /source/src/apps/keycloak-theme/dist_keycloak/teck-keycloak-theme.jar /opt/keycloak/providers/teck-keycloak-theme.jar
 COPY --from=theme --chown=keycloak:keycloak /source/src/apps/keycloak-theme/LICENSE /opt/keycloak/providers/teck-keycloak-theme.LICENSE
+USER 1000
 RUN /opt/keycloak/bin/kc.sh build --db=postgres --health-enabled=true --metrics-enabled=true --features=opentelemetry
-FROM quay.io/keycloak/keycloak:26.8.2@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0
+FROM quay.io/keycloak/keycloak:26.8.2@sha256:7e66a96e4739239070aeaf72e4c5decf0f7f682cfc725b9f7ea2b336eaba38b3
 COPY --from=keycloak-build /opt/keycloak/ /opt/keycloak/
 USER 1000
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]

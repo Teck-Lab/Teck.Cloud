@@ -141,8 +141,8 @@ jobs:
           scan-type: config
           scan-ref: .
           skip-dirs: node_modules,.artifacts,.nx,**/bin,**/obj
-          # Docker build-context filters are not Dockerfiles or deployable configuration.
-          skip-files: "**/*.dockerignore"
+          # The Kyverno negative fixture is intentionally insecure and is tested below.
+          skip-files: "**/*.dockerignore,deployment/policies/kyverno/resources.yaml"
           severity: HIGH,CRITICAL
           exit-code: "1"
           format: sarif
@@ -154,6 +154,54 @@ jobs:
         with:
           name: configuration-security
           path: trivy-config.sarif
+          retention-days: 7
+
+  kubernetes-manifests:
+    name: Kubernetes manifest checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned Kubernetes scanners
+        run: |
+          curl --fail --silent --show-error --location https://dl.k8s.io/release/v1.37.2/bin/linux/amd64/kubectl -o "$RUNNER_TEMP/kubectl"
+          curl --fail --silent --show-error --location https://dl.k8s.io/release/v1.37.2/bin/linux/amd64/kubectl.sha256 -o "$RUNNER_TEMP/kubectl.sha256"
+          echo "$(cat "$RUNNER_TEMP/kubectl.sha256")  $RUNNER_TEMP/kubectl" | sha256sum --check
+          curl --fail --silent --show-error --location https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz -o "$RUNNER_TEMP/kubeconform.tar.gz"
+          echo "9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/kubeconform.tar.gz" -C "$RUNNER_TEMP" kubeconform
+          curl --fail --silent --show-error --location https://github.com/kubescape/kubescape/releases/download/v4.0.21/kubescape_4.0.21_linux_amd64 -o "$RUNNER_TEMP/kubescape"
+          echo "7a997a0d46ea37f83fa33d318e615721f569f3721b36a96f7f2c0254b6570fae  $RUNNER_TEMP/kubescape" | sha256sum --check
+          curl --fail --silent --show-error --location https://github.com/kyverno/kyverno/releases/download/v1.20.0/kyverno-cli_v1.20.0_linux_x86_64.tar.gz -o "$RUNNER_TEMP/kyverno.tar.gz"
+          echo "06b8f3ca7b5626473be8fb4d343ad54ab84e317142766f72420e7d44b80942e2  $RUNNER_TEMP/kyverno.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/kyverno.tar.gz" -C "$RUNNER_TEMP" kyverno
+          chmod +x "$RUNNER_TEMP/kubectl" "$RUNNER_TEMP/kubeconform" "$RUNNER_TEMP/kubescape" "$RUNNER_TEMP/kyverno"
+      - name: Render local identity overlay and ambient mode
+        run: |
+          mkdir -p .artifacts/security
+          "$RUNNER_TEMP/kubectl" kustomize deployment/local/identity > .artifacts/security/identity-rendered.yaml
+          printf '\n---\n' >> .artifacts/security/identity-rendered.yaml
+          cat deployment/local/identity/ambient.yaml >> .artifacts/security/identity-rendered.yaml
+      - name: Validate built-in Kubernetes resource schemas
+        run: |
+          # Operator and Gateway API CRDs are applied and checked in the KIND E2E lane.
+          "$RUNNER_TEMP/kubeconform" -strict -summary -skip Cluster,Certificate,GatewayParameters,Gateway,HTTPRoute,KeycloakInstance,KeycloakRealm,PeerAuthentication,AuthorizationPolicy .artifacts/security/identity-rendered.yaml
+      - name: Scan Kubernetes posture
+        run: |
+          "$RUNNER_TEMP/kubescape" scan framework nsa .artifacts/security/identity-rendered.yaml --controls-version v2 --keep-local --fail-on-degraded-config --severity-threshold high --format json --output .artifacts/security/kubescape-nsa.json --scan-timeout 5m
+      - name: Test and enforce Kyverno workload policy
+        run: |
+          "$RUNNER_TEMP/kyverno" test deployment/policies/kyverno
+          "$RUNNER_TEMP/kyverno" apply deployment/policies/kyverno/identity-workload.yaml --resource .artifacts/security/identity-rendered.yaml
+      - name: Upload manifest scan evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kubernetes-manifest-security
+          path: .artifacts/security/
+          if-no-files-found: ignore
           retention-days: 7
 
   dependency-review:
@@ -200,7 +248,7 @@ jobs:
   gate:
     name: Security and quality gate
     if: always()
-    needs: [quality, dependencies, codeql, configuration, dependency-review]
+    needs: [quality, dependencies, codeql, configuration, kubernetes-manifests, dependency-review]
     runs-on: ubuntu-latest
     steps:
       - name: Require all security and quality jobs
@@ -209,6 +257,7 @@ jobs:
           DEPENDENCIES: ${{ needs.dependencies.result }}
           CODEQL: ${{ needs.codeql.result }}
           CONFIGURATION: ${{ needs.configuration.result }}
+          KUBERNETES: ${{ needs.kubernetes-manifests.result }}
           REVIEW: ${{ needs.dependency-review.result }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -216,6 +265,7 @@ jobs:
           test "$DEPENDENCIES" = success
           test "$CODEQL" = success
           test "$CONFIGURATION" = success
+          test "$KUBERNETES" = success
           if [ "$EVENT" = pull_request ]; then
             test "$REVIEW" = success
           else

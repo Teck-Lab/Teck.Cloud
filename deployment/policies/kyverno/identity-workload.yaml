@@ -1,0 +1,26 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: identity-workload-security
+spec:
+  validationActions: [Deny]
+  evaluation:
+    background:
+      enabled: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [deployments]
+  validations:
+    - expression: >-
+        !object.metadata.name.startsWith('keycloak') ||
+        (object.spec.template.spec.?automountServiceAccountToken.orValue(true) == false &&
+        object.spec.template.spec.?securityContext.?runAsNonRoot.orValue(false) == true &&
+        object.spec.template.spec.?securityContext.?seccompProfile.?type.orValue('') == 'RuntimeDefault' &&
+        object.spec.template.spec.containers.all(c,
+          c.?securityContext.?allowPrivilegeEscalation.orValue(true) == false &&
+          c.?securityContext.?readOnlyRootFilesystem.orValue(false) == true &&
+          'ALL' in c.?securityContext.?capabilities.?drop.orValue([])))
+      message: Keycloak deployments must retain restricted pod and container security settings.

@@ -1,0 +1,19 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: identity-workload-security
+policies:
+  - identity-workload.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: identity-workload-security
+    isValidatingPolicy: true
+    kind: Deployment
+    resources: [keycloak]
+    result: pass
+  - policy: identity-workload-security
+    isValidatingPolicy: true
+    kind: Deployment
+    resources: [keycloak-insecure]
+    result: fail
