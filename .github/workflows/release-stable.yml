@@ -37,7 +37,7 @@ jobs:
             fi
           done
           draft=$(gh api --method GET "repos/$REPOSITORY/releases" -f per_page=100 --paginate --slurp \
-            --jq '[.[][] | select(.draft and (.prerelease | not) and .target_commitish == "'"$SOURCE_SHA"'" and (.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")))] | first | .tag_name // empty')
+            | jq -r --arg sha "$SOURCE_SHA" '[.[][] | select(.draft and (.prerelease | not) and .target_commitish == $sha and (.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")))][0].tag_name // empty')
           if [ -z "$draft" ]; then
             echo "No stable draft exists for $SOURCE_SHA"
             exit 1

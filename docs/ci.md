@@ -52,6 +52,8 @@ Conventional Commit PR titles to group changes and calculate one repository vers
 It includes documentation and deployment changes as patch releases. Once CI,
 Security and Workflow quality pass for the exact current main commit, the Release
 candidate workflow updates the stable draft and publishes an RC for that commit.
+Each completed check triggers one evaluation; runs with unfinished or failed
+checks exit without publishing. The last successful check can publish the RC.
 If main advances before verification finishes, the superseded commit does not
 receive a separate RC. Re-running CI for the same commit does not intentionally
 publish another RC.
