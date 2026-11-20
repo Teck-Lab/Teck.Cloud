@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api.teck.cloud/contracts/dedicated-postgresql/v1/signalr-events.schema.json",
+  "title": "Dedicated PostgreSQL SignalR event hint",
+  "description": "SignalR OperationChanged notifications are hints only. The authenticated HTTP operation snapshot is authoritative.",
+  "$ref": "#/$defs/operationChangedInvocation",
+  "$defs": {
+    "revision": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "description": "Monotonically increasing per operation. Decimal string avoids IEEE-754 precision loss; compare as arbitrary-precision integers, never lexicographically."
+    },
+    "operationChangedHint": {
+      "type": "object",
+      "required": ["operationId", "revision"],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "pattern": "^op_[A-Za-z0-9_-]+$"
+        },
+        "revision": {
+          "$ref": "#/$defs/revision"
+        }
+      },
+      "additionalProperties": false
+    },
+    "operationChangedInvocation": {
+      "type": "object",
+      "required": ["type", "target", "arguments"],
+      "properties": {
+        "type": {
+          "const": 1,
+          "description": "SignalR JSON Hub Protocol Invocation message."
+        },
+        "target": {
+          "const": "OperationChanged"
+        },
+        "arguments": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/operationChangedHint"
+            }
+          ],
+          "items": false,
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

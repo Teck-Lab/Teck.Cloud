@@ -1,0 +1,21 @@
+{
+  "kind": "operationSnapshot",
+  "snapshot": {
+    "operationId": "op_provision_demo",
+    "orderId": "ord_demo_03",
+    "revision": "9007199254740993",
+    "status": "complete",
+    "phase": "provisioning",
+    "requiredStepCount": 4,
+    "succeededStepCount": 4,
+    "failedStepCount": 0,
+    "steps": [
+      { "stepId": "reserve-placement", "status": "succeeded" },
+      { "stepId": "create-storage", "status": "succeeded" },
+      { "stepId": "create-database", "status": "succeeded" },
+      { "stepId": "verify-endpoint", "status": "succeeded" }
+    ],
+    "createdAt": "2026-11-20T12:00:00Z",
+    "updatedAt": "2026-11-20T12:04:00Z"
+  }
+}

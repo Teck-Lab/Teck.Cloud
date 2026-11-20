@@ -1,0 +1,983 @@
+openapi: 3.1.0
+info:
+  title: Dedicated PostgreSQL customer and admin gateway API
+  version: 1.0.0
+  description: >-
+    Normative v1 JSON contract. Tenant identity and customer scope come only from
+    the authenticated principal. Admin operations require distinct permissions.
+servers:
+  - url: https://api.teck.cloud
+security:
+  - bearerAuth: []
+tags:
+  - name: Customer catalog
+  - name: Customer orders
+  - name: Customer operations
+  - name: Admin orders
+paths:
+  /v1/dedicated-database/offerings:
+    get:
+      operationId: listDedicatedDatabaseOfferings
+      tags: [Customer catalog]
+      summary: List offerings visible to the authenticated tenant
+      x-required-permission: dedicated-database.customer
+      responses:
+        '200':
+          description: Tenant-visible offerings and server-defined options
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Offering'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/dedicated-database/options:
+    get:
+      operationId: listDedicatedDatabaseOptions
+      tags: [Customer catalog]
+      summary: List selectable server-priced options
+      x-required-permission: dedicated-database.customer
+      responses:
+        '200':
+          description: Available option identifiers and display-safe labels
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Option'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/dedicated-database/orders:
+    get:
+      operationId: listCustomerDedicatedDatabaseOrders
+      tags: [Customer orders]
+      summary: List the authenticated tenant's orders
+      description: >-
+        Tenant scope is derived from authentication; tenant identifiers are never
+        accepted as filters. Results are stable, newest first, with orderId as
+        the deterministic tie-breaker.
+      x-required-permission: dedicated-database.customer
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A stable cursor page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPage'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    post:
+      operationId: createCustomerDedicatedDatabaseOrder
+      tags: [Customer orders]
+      summary: Create an order from server-listed options
+      description: >-
+        The client submits option identifiers only. The server resolves and stores
+        the authoritative price/configuration snapshot. A successful create may
+        still be awaiting payment; it does not imply payment or provisioning.
+      x-required-permission: dedicated-database.customer
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '202':
+          description: Order accepted; payment may be pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrder'
+              examples:
+                paymentPending:
+                  $ref: '#/components/examples/PaymentPendingOrder'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/dedicated-database/orders/{orderId}:
+    get:
+      operationId: getCustomerDedicatedDatabaseOrder
+      tags: [Customer orders]
+      summary: Get one order and customer-safe placement/entitlement summary
+      x-required-permission: dedicated-database.customer
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Customer-safe order snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerOrder'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/dedicated-database/operations/{operationId}:
+    get:
+      operationId: getCustomerDedicatedDatabaseOperation
+      tags: [Customer operations]
+      summary: Fetch the authoritative operation snapshot
+      description: >-
+        This authenticated snapshot, not SignalR, is authoritative. Subscribe to
+        the operation hub before fetching; after each notification, refetch this
+        resource and apply only snapshots with a greater decimal-string revision.
+      x-required-permission: dedicated-database.customer
+      parameters:
+        - $ref: '#/components/parameters/OperationId'
+      responses:
+        '200':
+          description: Current authoritative customer-safe progress snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationSnapshot'
+              examples:
+                migrating:
+                  $ref: '#/components/examples/MigrationProgress'
+                complete:
+                  $ref: '#/components/examples/OperationComplete'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/orders:
+    get:
+      operationId: listAdminDedicatedDatabaseOrders
+      tags: [Admin orders]
+      summary: Search orders visible to the caller's admin permissions
+      x-required-permission: dedicated-database.orders.read
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            description: Extensible order state; unknown values must be handled safely by clients.
+      responses:
+        '200':
+          description: Stable cursor page of admin order projections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrderPage'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/orders/{orderId}:
+    get:
+      operationId: getAdminDedicatedDatabaseOrder
+      tags: [Admin orders]
+      summary: Get role-gated order details and currently permitted actions
+      x-required-permission: dedicated-database.orders.read
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Admin-visible order projection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrder'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/orders/{orderId}/diagnostics:
+    get:
+      operationId: getAdminDedicatedDatabaseOrderDiagnostics
+      tags: [Admin orders]
+      summary: Read redacted diagnostics for an order
+      x-required-permission: dedicated-database.diagnostics.read
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Redacted diagnostics with stable diagnostic codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Diagnostics'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/orders/{orderId}/actions/retry:
+    post:
+      operationId: retryAdminDedicatedDatabaseOrder
+      tags: [Admin orders]
+      summary: Request an audited retry of an eligible operation
+      x-required-permission: dedicated-database.actions.retry
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/ActionAccepted'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '409':
+          $ref: '#/components/responses/TransitionConflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/orders/{orderId}/actions/restore:
+    post:
+      operationId: restoreAdminDedicatedDatabaseOrder
+      tags: [Admin orders]
+      summary: Request an audited restore to an approved recovery point
+      x-required-permission: dedicated-database.actions.restore
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreActionRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/ActionAccepted'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '409':
+          $ref: '#/components/responses/TransitionConflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/orders/{orderId}/actions/hold:
+    post:
+      operationId: holdAdminDedicatedDatabaseOrder
+      tags: [Admin orders]
+      summary: Request an audited operational hold
+      x-required-permission: dedicated-database.actions.hold
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/ActionAccepted'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '409':
+          $ref: '#/components/responses/TransitionConflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/orders/{orderId}/actions/refund:
+    post:
+      operationId: refundAdminDedicatedDatabaseOrder
+      tags: [Admin orders]
+      summary: Request an audited refund through Billing
+      description: Requests a Billing refund; it never deletes or mutates database infrastructure.
+      x-required-permission: dedicated-database.actions.refund
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundActionRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/ActionAccepted'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '409':
+          $ref: '#/components/responses/TransitionConflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /v1/admin/dedicated-database/operations/{operationId}:
+    get:
+      operationId: getAdminDedicatedDatabaseOperation
+      tags: [Admin orders]
+      summary: Fetch the authoritative admin operation snapshot
+      x-required-permission: dedicated-database.orders.read
+      parameters:
+        - $ref: '#/components/parameters/OperationId'
+      responses:
+        '200':
+          description: Admin-visible progress and exception evidence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOperationSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/NotVisible'
+        '404':
+          $ref: '#/components/responses/NotVisible'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^ord_[A-Za-z0-9_-]+$'
+    OperationId:
+      name: operationId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^op_[A-Za-z0-9_-]+$'
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+  schemas:
+    Offering:
+      type: object
+      required: [offeringId, displayName, optionIds]
+      properties:
+        offeringId:
+          type: string
+          pattern: '^off_[A-Za-z0-9_-]+$'
+        displayName:
+          type: string
+          minLength: 1
+        optionIds:
+          type: array
+          items:
+            type: string
+            pattern: '^opt_[A-Za-z0-9_-]+$'
+        description:
+          type: [string, 'null']
+      additionalProperties: true
+    Option:
+      type: object
+      required: [optionId, offeringId, displayName, price]
+      properties:
+        optionId:
+          type: string
+          pattern: '^opt_[A-Za-z0-9_-]+$'
+        offeringId:
+          type: string
+          pattern: '^off_[A-Za-z0-9_-]+$'
+        displayName:
+          type: string
+          minLength: 1
+        region:
+          type: string
+          description: Opaque selectable region identifier; not a host address.
+        storageGiB:
+          type: integer
+          minimum: 1
+        price:
+          $ref: '#/components/schemas/Price'
+      additionalProperties: true
+    Price:
+      type: object
+      required: [amountMinor, currency, interval]
+      properties:
+        amountMinor:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        interval:
+          type: string
+          x-known-enum-values: [month, year, oneTime]
+      additionalProperties: true
+    CreateOrderRequest:
+      type: object
+      required: [offeringId, optionId]
+      properties:
+        offeringId:
+          type: string
+          pattern: '^off_[A-Za-z0-9_-]+$'
+        optionId:
+          type: string
+          pattern: '^opt_[A-Za-z0-9_-]+$'
+      additionalProperties: false
+    PriceSnapshot:
+      type: object
+      required: [amountMinor, currency, interval, capturedAt]
+      properties:
+        amountMinor:
+          type: integer
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        interval:
+          type: string
+          x-known-enum-values: [month, year, oneTime]
+        capturedAt:
+          type: string
+          format: date-time
+          description: RFC 3339 UTC timestamp; offset must be Z.
+      additionalProperties: true
+    CustomerOrder:
+      type: object
+      required: [orderId, status, paymentStatus, offeringId, optionId, priceSnapshot, createdAt, updatedAt, placementSummary, entitlementSummary]
+      properties:
+        orderId:
+          type: string
+          pattern: '^ord_[A-Za-z0-9_-]+$'
+        status:
+          type: string
+          x-known-enum-values: [paymentPending, paid, fulfillmentPending, fulfilling, provisioned, held, failed, refundPending, refunded, cancelled]
+        paymentStatus:
+          type: string
+          x-known-enum-values: [pending, authorized, paid, failed, refundPending, refunded]
+        offeringId:
+          type: string
+          pattern: '^off_[A-Za-z0-9_-]+$'
+        optionId:
+          type: string
+          pattern: '^opt_[A-Za-z0-9_-]+$'
+        priceSnapshot:
+          $ref: '#/components/schemas/PriceSnapshot'
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 UTC timestamp; offset must be Z.
+        updatedAt:
+          type: string
+          format: date-time
+          description: RFC 3339 UTC timestamp; offset must be Z.
+        placementSummary:
+          oneOf:
+            - $ref: '#/components/schemas/PlacementSummary'
+            - type: 'null'
+        entitlementSummary:
+          oneOf:
+            - $ref: '#/components/schemas/EntitlementSummary'
+            - type: 'null'
+        operationId:
+          type: [string, 'null']
+          pattern: '^op_[A-Za-z0-9_-]+$'
+      additionalProperties: true
+    PlacementSummary:
+      type: object
+      required: [placementId, status]
+      properties:
+        placementId:
+          type: string
+          pattern: '^plc_[A-Za-z0-9_-]+$'
+        status:
+          type: string
+          x-known-enum-values: [requested, active, suspended, released]
+      additionalProperties: true
+    EntitlementSummary:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          x-known-enum-values: [pending, active, suspended, expired, revoked]
+        validFrom:
+          type: [string, 'null']
+          format: date-time
+        validUntil:
+          type: [string, 'null']
+          format: date-time
+      additionalProperties: true
+    OrderPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerOrder'
+        nextCursor:
+          type: [string, 'null']
+      additionalProperties: true
+    AdminOrderPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrder'
+        nextCursor:
+          type: [string, 'null']
+      additionalProperties: true
+    AdminOrder:
+      allOf:
+        - $ref: '#/components/schemas/CustomerOrder'
+        - type: object
+          required: [tenant, allowedActions]
+          properties:
+            tenant:
+              type: object
+              required: [tenantId]
+              properties:
+                tenantId:
+                  type: string
+                  pattern: '^ten_[A-Za-z0-9_-]+$'
+              additionalProperties: true
+            allowedActions:
+              type: array
+              items:
+                type: string
+                x-known-enum-values: [retry, restore, hold, refund]
+            diagnosticsSummary:
+              type: array
+              items:
+                $ref: '#/components/schemas/Diagnostic'
+            manualException:
+              oneOf:
+                - $ref: '#/components/schemas/ManualException'
+                - type: 'null'
+          additionalProperties: true
+    Diagnostic:
+      type: object
+      required: [code, severity, occurredAt]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z][A-Z0-9_]+$'
+        severity:
+          type: string
+          x-known-enum-values: [info, warning, error]
+        occurredAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+          description: Redacted, display-safe text; never include credentials or connection data.
+      additionalProperties: true
+    Diagnostics:
+      type: object
+      required: [orderId, items]
+      properties:
+        orderId:
+          type: string
+          pattern: '^ord_[A-Za-z0-9_-]+$'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Diagnostic'
+      additionalProperties: true
+    ActionRequest:
+      type: object
+      required: [expectedRevision, reason]
+      properties:
+        expectedRevision:
+          $ref: '#/components/schemas/Revision'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      additionalProperties: false
+    RestoreActionRequest:
+      allOf:
+        - $ref: '#/components/schemas/ActionRequest'
+        - type: object
+          required: [recoveryPoint]
+          properties:
+            recoveryPoint:
+              type: string
+              format: date-time
+              description: Approved recovery point in UTC; retention policy is enforced server-side.
+    RefundActionRequest:
+      allOf:
+        - $ref: '#/components/schemas/ActionRequest'
+        - type: object
+          properties:
+            amountMinor:
+              type: integer
+              minimum: 1
+              description: Omit for full eligible refund; Billing validates the permitted amount.
+    ActionAccepted:
+      type: object
+      required: [orderId, operationId, auditRecordId, revision, acceptedAt]
+      properties:
+        orderId:
+          type: string
+          pattern: '^ord_[A-Za-z0-9_-]+$'
+        operationId:
+          type: string
+          pattern: '^op_[A-Za-z0-9_-]+$'
+        auditRecordId:
+          type: string
+          pattern: '^aud_[A-Za-z0-9_-]+$'
+        revision:
+          $ref: '#/components/schemas/Revision'
+        acceptedAt:
+          type: string
+          format: date-time
+      additionalProperties: true
+    Revision:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)$'
+      description: >-
+        Monotonically increasing per operation. Encode as an unsigned decimal
+        string to avoid JSON/JavaScript integer precision loss. Compare with
+        arbitrary-precision integer arithmetic, never lexicographically.
+    OperationSnapshot:
+      type: object
+      required: [operationId, orderId, revision, status, phase, requiredStepCount, succeededStepCount, failedStepCount, steps, createdAt, updatedAt]
+      properties:
+        operationId:
+          type: string
+          pattern: '^op_[A-Za-z0-9_-]+$'
+        orderId:
+          type: string
+          pattern: '^ord_[A-Za-z0-9_-]+$'
+        revision:
+          $ref: '#/components/schemas/Revision'
+        status:
+          type: string
+          x-known-enum-values: [pending, running, needsAttention, complete, failed]
+        phase:
+          type: string
+          x-known-enum-values: [copy, validation, cutover, provisioning, restore, refund]
+        requiredStepCount:
+          type: integer
+          minimum: 0
+          description: Frozen when the operation starts; never changes for this operation.
+        succeededStepCount:
+          type: integer
+          minimum: 0
+        failedStepCount:
+          type: integer
+          minimum: 0
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/OperationStep'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      additionalProperties: true
+    AdminOperationSnapshot:
+      allOf:
+        - $ref: '#/components/schemas/OperationSnapshot'
+        - type: object
+          properties:
+            manualException:
+              oneOf:
+                - $ref: '#/components/schemas/ManualException'
+                - type: 'null'
+            diagnostics:
+              type: array
+              items:
+                $ref: '#/components/schemas/Diagnostic'
+          additionalProperties: true
+    OperationStep:
+      type: object
+      required: [stepId, status]
+      properties:
+        stepId:
+          type: string
+          pattern: '^[a-z][a-z0-9-]+$'
+        status:
+          type: string
+          x-known-enum-values: [pending, running, succeeded, failed, skipped]
+        failedCode:
+          type: [string, 'null']
+          description: Stable safe error code; no provider secrets.
+      additionalProperties: true
+    ManualException:
+      type: object
+      required: [exceptionId, status, evidenceUrl, activationRequired]
+      properties:
+        exceptionId:
+          type: string
+          pattern: '^exc_[A-Za-z0-9_-]+$'
+        status:
+          type: string
+          x-known-enum-values: [awaitingEvidence, awaitingReview, approved, rejected, activated]
+        evidenceUrl:
+          type: [string, 'null']
+          format: uri
+          description: Link to the manually reviewed exception PR/evidence; may be null before evidence exists.
+        activationRequired:
+          type: boolean
+          const: true
+        activatedAt:
+          type: [string, 'null']
+          format: date-time
+          description: Set only after separately authorized activation and preflight.
+        blockedReasons:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        code:
+          type: string
+          description: Stable machine-readable application error code.
+      additionalProperties: true
+  responses:
+    ValidationProblem:
+      description: Invalid input (400)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            validation:
+              $ref: '#/components/examples/ValidationProblem'
+    Unauthenticated:
+      description: Missing or invalid credentials (401)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            unauthenticated:
+              $ref: '#/components/examples/UnauthenticatedProblem'
+    NotVisible:
+      description: Authenticated but not authorized or resource is not visible (403)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            unauthorized:
+              $ref: '#/components/examples/NotVisibleProblem'
+    IdempotencyConflict:
+      description: The same idempotency key was reused for a different request (409)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            idempotencyConflict:
+              $ref: '#/components/examples/IdempotencyConflictProblem'
+    TransitionConflict:
+      description: Stale expected revision or invalid state transition (409)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            transitionConflict:
+              $ref: '#/components/examples/TransitionConflictProblem'
+    Unavailable:
+      description: Transient service unavailability (503); retry with backoff
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            unavailable:
+              $ref: '#/components/examples/UnavailableProblem'
+    ActionAccepted:
+      description: Audited action accepted asynchronously (202)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActionAccepted'
+  examples:
+    PaymentPendingOrder:
+      value:
+        orderId: ord_demo_01
+        status: paymentPending
+        paymentStatus: pending
+        offeringId: off_dedicated_postgresql
+        optionId: opt_standard_small
+        priceSnapshot:
+          amountMinor: 4900
+          currency: EUR
+          interval: month
+          capturedAt: '2026-11-20T12:00:00Z'
+        createdAt: '2026-11-20T12:00:00Z'
+        updatedAt: '2026-11-20T12:00:00Z'
+        placementSummary: null
+        entitlementSummary:
+          status: pending
+          validFrom: null
+          validUntil: null
+        operationId: null
+    ValidationProblem:
+      value:
+        type: https://api.teck.cloud/problems/validation
+        title: Request validation failed
+        status: 400
+        code: VALIDATION_FAILED
+        detail: One or more option identifiers are not currently offered.
+        instance: /v1/dedicated-database/orders
+    UnauthenticatedProblem:
+      value:
+        type: https://api.teck.cloud/problems/unauthenticated
+        title: Authentication required
+        status: 401
+        code: UNAUTHENTICATED
+        detail: A valid customer or admin access token is required.
+        instance: /v1/dedicated-database/orders
+    NotVisibleProblem:
+      value:
+        type: https://api.teck.cloud/problems/not-visible
+        title: Resource not available
+        status: 404
+        code: RESOURCE_NOT_VISIBLE
+        detail: The resource does not exist or is not visible to this principal.
+        instance: /v1/dedicated-database/orders/ord_demo_01
+    IdempotencyConflictProblem:
+      value:
+        type: https://api.teck.cloud/problems/idempotency-conflict
+        title: Idempotency key conflict
+        status: 409
+        code: IDEMPOTENCY_KEY_REUSED
+        detail: The idempotency key was already used with a different request.
+        instance: /v1/dedicated-database/orders
+    TransitionConflictProblem:
+      value:
+        type: https://api.teck.cloud/problems/transition-conflict
+        title: Operation cannot be applied
+        status: 409
+        code: STALE_REVISION_OR_INVALID_TRANSITION
+        detail: Refresh the authoritative snapshot before retrying the action.
+        instance: /v1/admin/dedicated-database/orders/ord_demo_01/actions/retry
+    UnavailableProblem:
+      value:
+        type: https://api.teck.cloud/problems/unavailable
+        title: Temporarily unavailable
+        status: 503
+        code: SERVICE_UNAVAILABLE
+        detail: Retry later using bounded exponential backoff.
+        instance: /v1/dedicated-database/orders

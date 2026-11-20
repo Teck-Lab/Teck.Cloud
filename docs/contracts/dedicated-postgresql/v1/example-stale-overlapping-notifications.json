@@ -1,0 +1,14 @@
+{
+  "kind": "notificationRace",
+  "stale": {
+    "type": 1,
+    "target": "OperationChanged",
+    "arguments": [{ "operationId": "op_migration_demo", "revision": "9007199254740992" }]
+  },
+  "overlapping": {
+    "type": 1,
+    "target": "OperationChanged",
+    "arguments": [{ "operationId": "op_migration_demo", "revision": "9007199254740993" }]
+  },
+  "consumerRule": "Fetch the authoritative snapshot for every hint; ignore duplicate/stale hints and only apply snapshots whose decimal-string revision compares greater by arbitrary-precision integer arithmetic."
+}
