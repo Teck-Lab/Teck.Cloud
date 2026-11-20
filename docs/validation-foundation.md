@@ -106,9 +106,9 @@ platform-full-experimental-bao272.log under .artifacts.
 
 ## Remaining external and application evidence
 
-GitHub-hosted CI, repository protections, CodeQL results, Scorecard results and
-OIDC provenance verification still require the committed branch and actual runs.
-Follow [the activation checklist](supply-chain.md#activation-and-acceptance-evidence);
+GitHub-hosted CI, CodeQL and Scorecard now have actual runs; repository protections
+still require configuration. OIDC provenance verification is deferred until an
+artifact is published. Follow [the activation checklist](supply-chain.md#activation-and-acceptance-evidence);
 local workflow validation does not satisfy those checks.
 
 No business service, gateway, frontend or mobile application exists yet. There is

@@ -125,11 +125,9 @@ need all applicable checks and review. OpenSSF Scorecard runs as an advisory job
 in Security and quality on main, weekly and manual runs. It retains an Actions
 artifact without publishing to the Scorecard service or blocking on an arbitrary score.
 
-The **Foundation candidate** workflow builds actual shared-library packages using
-an isolated reusable builder, then attests and verifies the archive. See
-[supply-chain.md](supply-chain.md) for the SLSA Build L3 target, verification policy,
-public-repository availability and outstanding GitHub activation evidence. This is
-not application-image publication and does not claim achieved L3 before verification.
+Artifact builds and attestations are deferred until there is a package or image
+publication consumer. See [supply-chain.md](supply-chain.md) for the future
+provenance requirements; the current releases contain metadata only.
 
 [ci-roadmap.md](ci-roadmap.md) records everything deliberately deferred, the trigger
 for implementing it and the evidence needed to accept it.

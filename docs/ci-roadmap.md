@@ -17,7 +17,6 @@ working local implementation from GitHub activation and application-dependent wo
 | Workflow quality             | Checksum-pinned Actionlint, pinned Zizmor, Conventional Commit squash-title validation with tests                              |
 | Updates                      | Weekly Dependabot for Bun, NuGet and Actions; aligned Nx group; seven-day version cooldown; no automatic merge                 |
 | Repository posture           | Weekly/main/manual OpenSSF Scorecard JSON, advisory, no publication to the Scorecard service                                   |
-| Artifact provenance          | Actual foundation packages built, attested and verified through isolated reusable workflow jobs; GitHub activation outstanding |
 
 ## Activation before relying on the gates
 
@@ -36,7 +35,7 @@ working local implementation from GitHub activation and application-dependent wo
 | Work                                | Trigger and acceptance criteria                                                                                                                                                                                                                   |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Application image build/release     | First deployable service or gateway. Add Nx targets and independent release groups as appropriate; select from last successful publication, not last CI. Prove an earlier unshipped change is not skipped.                                        |
-| Image SBOM/signature/provenance     | First image release. Generate SPDX/CycloneDX for the exact image digest, scan it, sign/attest from an isolated builder and verify before promotion. Extend the reusable build pattern; do not assume the NuGet archive attestation covers images. |
+| Package/image SBOM and provenance  | First artifact publication. Generate SPDX/CycloneDX for the exact artifact digest, scan it, attest from an isolated builder and verify before promotion. Prove the published bytes match the verified artifact.                        |
 | Permanent artifact distribution     | First feed/registry/release publication. Retain verified bytes, provenance and verification policy beyond Actions retention. Prove download/verification outside the producing run.                                                               |
 | Scheduled image rescanning          | Once images are actually published. Rescan immutable supported release digests and report newly disclosed vulnerabilities without rebuilding or silently changing tags.                                                                           |
 | VEX                                 | Real vulnerability triage. Require evidence and ownership for affected/not-affected decisions; do not automatically claim not-affected from scanner absence.                                                                                      |
@@ -48,7 +47,6 @@ working local implementation from GitHub activation and application-dependent wo
 | Mobile tests                        | After the user selects a strategy. Preserve React Native workspace support; do not choose a runner prematurely.                                                                                                                                   |
 | Dependency auto-merge               | After stable branch protection/gates. Limit eligibility, use authorized App automation, prove failed checks block merging, and retain human review for major/security-sensitive changes.                                                          |
 | Merge queue                         | If enabled on GitHub, add `merge_group` triggers and verify all required checks on merge-group commits before enabling the queue.                                                                                                                 |
-| New self-repository workflow syntax | Upgrade Actionlint when it validates `$/...`. Until then, one documented Zizmor exception keeps the job-level `./.github/workflows/...` call, which resolves at the caller commit and cannot load runtime filesystem contents.                    |
 
 Paperclip issue automation is not a build/security gate and is not migrated without
 an actual Teck.Cloud workflow requiring it. Terraform and production cluster changes

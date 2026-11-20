@@ -13,9 +13,8 @@ Read [CI](../docs/ci.md) before workflow changes. For artifact/release work read
   zero-alert proof.
 - Keep Scorecard advisory in the combined workflow. Dependabot updates must
   respect aligned Nx/package groups and still pass checks/review.
-- The reusable candidate builder owns commands/source/artifacts. Build code has no
-  signing permissions. Attestation jobs neither check out source nor execute
-  artifacts; verification pins source and builder identities and rejects tampering.
+- When an artifact builder is added, keep build code separate from signing and
+  verification permissions. Pin source and builder identities and reject tampering.
 - Use ephemeral workflow credentials, never developer PATs. Do not claim SLSA L3,
   branch protection or successful GitHub execution from local YAML validation.
 - Validate with Actionlint, Zizmor and applicable tooling tests. Explain narrow
