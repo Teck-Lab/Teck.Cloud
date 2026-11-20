@@ -1,4 +1,4 @@
-name: Repository gate
+name: Merge gate
 on:
   pull_request:
     branches: [main]
@@ -11,12 +11,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: repository-gate-${{ github.ref }}
+  group: merge-gate-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   gate:
-    name: Repository gate
+    name: Merge gate
     runs-on: ubuntu-latest
     timeout-minutes: 70
     env:

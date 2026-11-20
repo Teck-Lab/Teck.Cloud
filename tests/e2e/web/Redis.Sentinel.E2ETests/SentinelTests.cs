@@ -43,7 +43,7 @@ public sealed class SentinelTests
         }
 
         (await data.StringSetAsync("replication-proof", "preserved").WaitAsync(deadline.Token).ConfigureAwait(true)).ShouldBeTrue();
-        ((int)await data.ExecuteAsync("WAIT", 1, 15000).WaitAsync(deadline.Token).ConfigureAwait(true)).ShouldBe(1);
+        await WaitForReplicaAsync(data, deadline.Token).ConfigureAwait(true);
         var primary = await data.IdentifyEndpointAsync(flags: CommandFlags.DemandMaster).WaitAsync(deadline.Token).ConfigureAwait(true);
         _ = primary.ShouldNotBeNull();
         await WaitForTopologyAsync(configuration, deadline.Token).ConfigureAwait(true);
@@ -77,8 +77,29 @@ public sealed class SentinelTests
         }
 
         (await first.Services.GetRequiredService<RedisConnection>().GetAsync(deadline.Token).ConfigureAwait(true)).ShouldBeSameAs(connection);
-        var health = await first.Services.GetRequiredService<HealthCheckService>().CheckHealthAsync(registration => string.Equals(registration.Name, "redis", StringComparison.Ordinal), deadline.Token).ConfigureAwait(true);
-        health.Status.ShouldBe(HealthStatus.Healthy);
+        await WaitForHealthAsync(first.Services.GetRequiredService<HealthCheckService>(), deadline.Token).ConfigureAwait(true);
+    }
+
+    private static async Task WaitForHealthAsync(HealthCheckService checks, CancellationToken cancellation)
+    {
+        while (true)
+        {
+            var health = await checks.CheckHealthAsync(registration => string.Equals(registration.Name, "redis", StringComparison.Ordinal), cancellation).ConfigureAwait(false);
+            if (health.Status == HealthStatus.Healthy)
+            {
+                break;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellation).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task WaitForReplicaAsync(IDatabase data, CancellationToken cancellation)
+    {
+        while ((int)await data.ExecuteAsync("WAIT", 1, 1000).WaitAsync(cancellation).ConfigureAwait(false) != 1)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellation).ConfigureAwait(false);
+        }
     }
 
     private static async Task WaitForTopologyAsync(string configuration, CancellationToken cancellation)

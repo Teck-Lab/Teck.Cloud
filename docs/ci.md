@@ -83,11 +83,11 @@ uploaded. CodeQL scans C#, JavaScript/TypeScript and Actions with the extended
 security suite and uploads findings. C# is built under tracing, including generated
 code. There is no personal token or publication credential in these jobs.
 
-Require the Repository gate job in repository rules. It waits for successful CI,
+Require the Merge gate job in repository rules. It waits for successful CI,
 Security and Workflow quality runs for the same commit. On PR title edits, it
 requires a new Workflow quality run while reusing the CI and Security results
 for the unchanged head commit. The three individual gates remain visible for
-diagnosis; keep them required until the Repository gate has passed on GitHub
+diagnosis; keep them required until the Merge gate has passed on GitHub
 and the repository rule has been updated.
 Teck.Cloud is public. Enable code scanning and add a code-scanning ruleset to block
 the selected alert severities:
