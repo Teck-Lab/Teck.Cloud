@@ -34,6 +34,7 @@ jobs:
           workflows=(ci.yml security.yml workflow-quality.yml)
 
           for attempt in {1..130}; do
+            echo "Checking required workflows (attempt $attempt/130)"
             pending=0
             for workflow in "${workflows[@]}"; do
               cutoff=""
