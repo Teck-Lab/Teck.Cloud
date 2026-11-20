@@ -1,0 +1,72 @@
+name: Repository gate
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: repository-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Repository gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      SOURCE_EVENT: ${{ github.event_name }}
+      PR_ACTION: ${{ github.event.action || '' }}
+      PR_UPDATED_AT: ${{ github.event.pull_request.updated_at || '' }}
+    steps:
+      - name: Require CI, Security and Workflow quality
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflows=(ci.yml security.yml workflow-quality.yml)
+
+          for attempt in {1..130}; do
+            pending=0
+            for workflow in "${workflows[@]}"; do
+              cutoff=""
+              if [[ "$SOURCE_EVENT" == pull_request && ( "$PR_ACTION" != edited || "$workflow" == workflow-quality.yml ) ]]; then
+                cutoff="$PR_UPDATED_AT"
+              fi
+
+              run=$(gh api --method GET "repos/$REPOSITORY/actions/workflows/$workflow/runs" \
+                -f head_sha="$SOURCE_SHA" -f event="$SOURCE_EVENT" -f per_page=100 \
+                | jq -c --arg cutoff "$cutoff" \
+                    '[.workflow_runs[] | select(.created_at >= $cutoff)][0] // empty')
+
+              if [[ -z "$run" ]]; then
+                echo "$workflow: waiting for a run on $SOURCE_SHA"
+                pending=1
+                continue
+              fi
+
+              conclusion=$(jq -r '.conclusion // "pending"' <<< "$run")
+              echo "$workflow: $conclusion ($(jq -r '.html_url' <<< "$run"))"
+              case "$conclusion" in
+                success) ;;
+                pending) pending=1 ;;
+                *) echo "::error::$workflow concluded $conclusion"; exit 1 ;;
+              esac
+            done
+
+            if (( pending == 0 )); then
+              echo "All required workflows passed for $SOURCE_SHA"
+              exit 0
+            fi
+            sleep 30
+          done
+
+          echo "::error::Timed out waiting for required workflows on $SOURCE_SHA"
+          exit 1

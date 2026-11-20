@@ -49,7 +49,6 @@ export function imageSourceFingerprint(root = repositoryRoot) {
     ".dockerignore",
     "bun.lock",
     "package.json",
-    "patches",
     "src/apps/keycloak-theme",
     "src/aspire/Teck.Cloud.AppHost/Identity/runtime.json",
     "src/packages/design-tokens",

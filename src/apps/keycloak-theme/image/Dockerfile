@@ -8,7 +8,6 @@ COPY --from=node /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 WORKDIR /source
 COPY package.json bun.lock ./
-COPY patches ./patches
 COPY tsconfig.base.json ./
 COPY src/apps/keycloak-theme ./src/apps/keycloak-theme
 COPY src/packages/design-tokens ./src/packages/design-tokens
