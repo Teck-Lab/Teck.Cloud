@@ -150,6 +150,31 @@ assert.equal(
   realtimeSubscription.$id,
   "https://api.teck.cloud/contracts/dedicated-postgresql/v1/realtime-subscription.schema.json",
 );
+assert.ok(
+  signalR.description.includes("RESOURCE_NOT_VISIBLE is terminal") &&
+    signalR.description.includes("do not retry or fetch") &&
+    signalR.description.includes("SERVICE_UNAVAILABLE is transient") &&
+    signalR.description.includes("bounded exponential backoff and jitter") &&
+    signalR.description.includes("Unknown error codes are non-retryable") &&
+    signalR.description.includes("successful void SubscribeToOrder Completion permits"),
+  "SignalR schema must normatively define subscription failure and snapshot recovery",
+);
+const [completionSuccessSchema, completionErrorSchema] = signalR.$defs.completionMessage.oneOf;
+assert.ok(
+  completionSuccessSchema.description.includes("Successful void") &&
+    completionSuccessSchema.description.includes("no result or error") &&
+    completionSuccessSchema.description.includes("may fetch the authenticated snapshot"),
+  "SignalR success branch must normatively permit snapshot fetch only after successful completion",
+);
+assert.ok(
+  completionErrorSchema.description.includes("RESOURCE_NOT_VISIBLE is terminal") &&
+    completionErrorSchema.description.includes("no retry or fetch") &&
+    completionErrorSchema.description.includes("SERVICE_UNAVAILABLE is transient") &&
+    completionErrorSchema.description.includes("bounded jittered exponential backoff") &&
+    completionErrorSchema.description.includes("Unknown codes stop watching") &&
+    completionErrorSchema.description.includes("no result"),
+  "SignalR error branch must normatively define terminal and transient recovery",
+);
 assert.deepEqual(
   realtimeSubscription.oneOf.map((branch) => branch.$ref),
   ["#/$defs/subscribeToOrder", "#/$defs/unsubscribeFromOrder"],
@@ -333,6 +358,7 @@ for (const file of exampleFiles) {
       example.reconnect.subscribe.invocationId,
       `${file} reconnect.completion.invocationId must match reconnect.subscribe.invocationId`,
     );
+    assert.equal("result" in example.reconnect.completion, false);
     assert.equal("error" in example.reconnect.completion, false);
     assert.equal(
       example.reconnect.snapshotRequest,

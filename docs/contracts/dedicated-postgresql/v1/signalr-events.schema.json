@@ -45,7 +45,7 @@
             "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" }
           },
           "additionalProperties": false,
-          "not": { "required": ["error"] }
+          "description": "Successful void completion has no result or error; after matching invocation correlation the client may fetch the authenticated snapshot."
         },
         {
           "type": "object",
@@ -60,7 +60,7 @@
             }
           },
           "additionalProperties": false,
-          "not": { "required": ["result"] }
+          "description": "Failure completion has no result. RESOURCE_NOT_VISIBLE is terminal: stop watching, no retry or fetch, present like absent. SERVICE_UNAVAILABLE is transient: stay unsubscribed, no fetch, retry SubscribeToOrder with bounded jittered exponential backoff capped at 30s. Unknown codes stop watching without fetching. Codes MUST NOT contain exceptions or secrets."
         }
       ]
     }

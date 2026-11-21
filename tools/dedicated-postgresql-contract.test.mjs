@@ -95,6 +95,16 @@ test("checker rejects void success completions with result or error fields", () 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Expected values to be strictly equal/);
 });
+test("checker rejects SignalR schema without normative failure recovery text", () => {
+  const result = verify((directory) => {
+    const schemaPath = path.join(directory, "signalr-events.schema.json");
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+    schema.description = "OperationChanged notifications are hints only.";
+    fs.writeFileSync(schemaPath, JSON.stringify(schema));
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /normatively define subscription failure and snapshot recovery/);
+});
 
 test("checker rejects unknown subscription failure codes", () => {
   const result = verify((directory) => {
