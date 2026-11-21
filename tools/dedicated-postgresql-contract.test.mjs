@@ -89,14 +89,11 @@ test("checker rejects void success completions with result or error fields", () 
   const result = verify((directory) => {
     const fixturePath = path.join(directory, "example-stale-overlapping-notifications.json");
     const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
-    fixture.reconnect.completion.result = null;
+    fixture.reconnect.completion.error = "RESOURCE_NOT_VISIBLE";
     fs.writeFileSync(fixturePath, JSON.stringify(fixture));
   });
   assert.notEqual(result.status, 0);
-  assert.match(
-    result.stderr,
-    /reconnect\.completion|Expected values to be strictly equal|oneOf branch/,
-  );
+  assert.match(result.stderr, /Expected values to be strictly equal/);
 });
 
 test("checker rejects unknown subscription failure codes", () => {
