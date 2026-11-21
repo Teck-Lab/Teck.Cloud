@@ -90,6 +90,10 @@ function schemaErrors(schema, value, path = "$", seen = new Set(), document = op
         errors.push(...schemaErrors(child, item, `${path}[${index}]`, seen, document));
     }
   }
+  if (schema.enum && !schema.enum.includes(value))
+    errors.push(
+      `${path} must be one of ${schema.enum.map((entry) => JSON.stringify(entry)).join(", ")}`,
+    );
   if (typeof value === "string") {
     if (schema.pattern && !new RegExp(schema.pattern).test(value))
       errors.push(`${path} does not match ${schema.pattern}`);
@@ -345,6 +349,55 @@ for (const file of exampleFiles) {
       [],
       `${file} resubscription completion must match the server-to-client schema`,
     );
+    for (const [failure, expectedError] of Object.entries({
+      notVisible: "RESOURCE_NOT_VISIBLE",
+      unavailable: "SERVICE_UNAVAILABLE",
+    })) {
+      const completion = example.subscriptionFailureExamples[failure];
+      assert.equal(
+        completion.invocationId,
+        failure === "notVisible" ? "28" : "29",
+        `${file} ${failure} completion keeps its invocation correlation`,
+      );
+      assert.equal(completion.error, expectedError);
+      assert.ok(
+        ["RESOURCE_NOT_VISIBLE", "SERVICE_UNAVAILABLE"].includes(completion.error),
+        `${file} ${failure} completion error must be a declared subscription code`,
+      );
+      assert.equal(
+        "result" in completion,
+        false,
+        `${file} ${failure} completion must not include a result`,
+      );
+      const matchingBranches = signalR.$defs.completionMessage.oneOf.filter(
+        (branch) => schemaErrors(branch, completion, "$", new Set(), signalR).length === 0,
+      );
+      assert.equal(
+        matchingBranches.length,
+        1,
+        `${file} ${failure} completion must match one server-to-client schema branch`,
+      );
+      assert.deepEqual(
+        schemaErrors(signalR.$defs.completionMessage, completion, "$", new Set(), signalR),
+        [],
+        `${file} ${failure} completion must match the server-to-client schema`,
+      );
+    }
+    assert.ok(example.reconnectRule.includes("do not fetch a snapshot"));
+    assert.ok(example.reconnectRule.includes("bounded exponential backoff"));
+    for (const invalidCompletion of [
+      { ...example.reconnect.completion, result: null },
+      { ...example.reconnect.completion, error: "INTERNAL_ERROR" },
+    ]) {
+      const matchingBranches = signalR.$defs.completionMessage.oneOf.filter(
+        (branch) => schemaErrors(branch, invalidCompletion, "$", new Set(), signalR).length === 0,
+      );
+      assert.equal(
+        matchingBranches.length,
+        0,
+        `${file} invalid completion must be void without result or a declared error`,
+      );
+    }
     assert.ok(
       example.reconnectRule.indexOf("resubscribe") < example.reconnectRule.indexOf("fetch"),
     );

@@ -36,13 +36,31 @@
       "additionalProperties": false
     },
     "completionMessage": {
-      "type": "object",
-      "required": ["type", "invocationId"],
-      "properties": {
-        "type": { "const": 3, "description": "SignalR JSON Hub Protocol Completion message." },
-        "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" }
-      },
-      "additionalProperties": false
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "invocationId"],
+          "properties": {
+            "type": { "const": 3, "description": "SignalR JSON Hub Protocol Completion message." },
+            "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "invocationId", "error"],
+          "properties": {
+            "type": { "const": 3, "description": "SignalR JSON Hub Protocol Completion message." },
+            "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+            "error": {
+              "type": "string",
+              "enum": ["RESOURCE_NOT_VISIBLE", "SERVICE_UNAVAILABLE"],
+              "description": "Stable, non-sensitive subscription failure code; no result is included."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   }
 }

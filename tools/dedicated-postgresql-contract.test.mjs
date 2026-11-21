@@ -85,6 +85,47 @@ test("checker rejects reconnect snapshots fetched before resubscription completi
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /reconnect\.completion\.invocationId/);
 });
+test("checker rejects void success completions with result or error fields", () => {
+  const result = verify((directory) => {
+    const fixturePath = path.join(directory, "example-stale-overlapping-notifications.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+    fixture.reconnect.completion.result = null;
+    fs.writeFileSync(fixturePath, JSON.stringify(fixture));
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(
+    result.stderr,
+    /reconnect\.completion|Expected values to be strictly equal|oneOf branch/,
+  );
+});
+
+test("checker rejects unknown subscription failure codes", () => {
+  const result = verify((directory) => {
+    const fixturePath = path.join(directory, "example-stale-overlapping-notifications.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+    fixture.subscriptionFailureExamples.unavailable.error = "INTERNAL_ERROR";
+    fs.writeFileSync(fixturePath, JSON.stringify(fixture));
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(
+    result.stderr,
+    /subscriptionFailureExamples|must equal|oneOf branch|Expected values to be strictly equal/,
+  );
+});
+
+test("checker rejects subscription failures with result payloads", () => {
+  const result = verify((directory) => {
+    const fixturePath = path.join(directory, "example-stale-overlapping-notifications.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+    fixture.subscriptionFailureExamples.notVisible.result = null;
+    fs.writeFileSync(fixturePath, JSON.stringify(fixture));
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(
+    result.stderr,
+    /subscriptionFailureExamples|additional properties|oneOf branch|must not include a result/,
+  );
+});
 
 test("checker rejects client subscription requests that supply tenant or group scope", () => {
   const result = verify((directory) => {
