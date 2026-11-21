@@ -1,0 +1,35 @@
+{
+  "kind": "adminOperationSnapshot",
+  "snapshot": {
+    "operationId": "op_exception_demo",
+    "orderId": "ord_demo_04",
+    "revision": "18",
+    "status": "needsAttention",
+    "phase": "validation",
+    "requiredStepCount": 2,
+    "succeededStepCount": 1,
+    "failedStepCount": 1,
+    "steps": [
+      { "stepId": "copy-data", "status": "succeeded" },
+      { "stepId": "validate-data", "status": "failed", "failedCode": "DATA_REQUIRES_REVIEW" }
+    ],
+    "createdAt": "2026-11-20T12:00:00Z",
+    "updatedAt": "2026-11-20T12:05:00Z",
+    "manualException": {
+      "exceptionId": "exc_manual_demo",
+      "status": "awaitingReview",
+      "evidenceUrl": "https://github.com/Teck-Lab/Teck.Cloud/pull/123",
+      "activationRequired": true,
+      "activatedAt": null,
+      "blockedReasons": ["Two-person review required", "Run activation preflight"]
+    },
+    "diagnostics": [
+      {
+        "code": "DATA_REQUIRES_REVIEW",
+        "severity": "warning",
+        "occurredAt": "2026-11-20T12:05:00Z",
+        "message": "A reviewed exception is required before activation."
+      }
+    ]
+  }
+}

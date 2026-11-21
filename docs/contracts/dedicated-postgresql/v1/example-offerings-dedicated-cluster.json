@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "offeringId": "off_dedicated_cluster",
+      "kind": "dedicatedCluster",
+      "displayName": "Dedicated cluster",
+      "optionIds": ["opt_cluster_small"],
+      "includedCapabilities": {
+        "replicas": {
+          "ha": true,
+          "dedicated": true,
+          "readAccess": "staleTolerantReplicaAvailable",
+          "reservedCapacity": true
+        },
+        "backupRecovery": {
+          "backups": null,
+          "physicalPitr": null,
+          "recoveryScope": "unconfirmed",
+          "retentionDays": null
+        }
+      },
+      "selectableEntitlements": []
+    }
+  ]
+}

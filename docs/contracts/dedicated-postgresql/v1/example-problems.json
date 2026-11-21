@@ -1,0 +1,53 @@
+{
+  "kind": "problemCatalog",
+  "examples": [
+    {
+      "type": "https://api.teck.cloud/problems/validation",
+      "title": "Request validation failed",
+      "status": 400,
+      "code": "VALIDATION_FAILED",
+      "detail": "One or more option identifiers are not currently offered.",
+      "instance": "/v1/dedicated-database/orders"
+    },
+    {
+      "type": "https://api.teck.cloud/problems/unauthenticated",
+      "title": "Authentication required",
+      "status": 401,
+      "code": "UNAUTHENTICATED",
+      "detail": "A valid customer or admin access token is required.",
+      "instance": "/v1/dedicated-database/orders"
+    },
+    {
+      "type": "https://api.teck.cloud/problems/not-visible",
+      "title": "Resource not available",
+      "status": 404,
+      "code": "RESOURCE_NOT_VISIBLE",
+      "detail": "The resource does not exist or is not visible to this principal.",
+      "instance": "/v1/dedicated-database/orders/ord_demo_01"
+    },
+    {
+      "type": "https://api.teck.cloud/problems/idempotency-conflict",
+      "title": "Idempotency key conflict",
+      "status": 409,
+      "code": "IDEMPOTENCY_KEY_REUSED",
+      "detail": "The idempotency key was already used with a different request.",
+      "instance": "/v1/dedicated-database/orders"
+    },
+    {
+      "type": "https://api.teck.cloud/problems/transition-conflict",
+      "title": "Operation cannot be applied",
+      "status": 409,
+      "code": "STALE_REVISION_OR_INVALID_TRANSITION",
+      "detail": "Refresh the authoritative snapshot before retrying the action.",
+      "instance": "/v1/admin/dedicated-database/orders/ord_demo_01/actions/retry"
+    },
+    {
+      "type": "https://api.teck.cloud/problems/unavailable",
+      "title": "Temporarily unavailable",
+      "status": 503,
+      "code": "SERVICE_UNAVAILABLE",
+      "detail": "Retry later using bounded exponential backoff.",
+      "instance": "/v1/dedicated-database/orders"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "offeringId": "off_dedicated_database",
+      "kind": "dedicatedDatabase",
+      "displayName": "Dedicated database",
+      "optionIds": ["opt_database_small"],
+      "includedCapabilities": {
+        "replicas": {
+          "ha": true,
+          "dedicated": false,
+          "readAccess": "consistentPrimaryOnly",
+          "reservedCapacity": false
+        },
+        "backupRecovery": {
+          "backups": null,
+          "physicalPitr": null,
+          "recoveryScope": "unconfirmed",
+          "retentionDays": null
+        }
+      },
+      "selectableEntitlements": [
+        {
+          "entitlementId": "ent_replica_read",
+          "capability": "replicaReadAccess"
+        }
+      ]
+    }
+  ]
+}

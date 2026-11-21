@@ -36,6 +36,7 @@
     "verify:service-layout": "node tools/verify-service-layout.mjs",
     "verify:alloy-redaction": "node tools/verify-alloy-redaction.mjs",
     "verify:wolverine-static": "node tools/verify-wolverine-static.mjs",
+    "verify:dedicated-postgresql-contract": "node tools/verify-dedicated-postgresql-contract.mjs",
     "dev": "dotnet run --project src/aspire/Teck.Cloud.AppHost",
     "dev:kind": "dotnet run --project src/aspire/Teck.Cloud.AppHost --launch-profile kind",
     "coverage": "node tools/coverage.mjs",
