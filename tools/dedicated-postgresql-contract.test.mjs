@@ -28,7 +28,51 @@ function verify(mutator) {
 test("valid contract examples pass schema, route and compatibility checks", () => {
   const result = verify(() => {});
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /Validated 13 paths, 14 operations, 6 fixtures/);
+  assert.match(result.stdout, /Validated 13 paths, 14 operations, 8 fixtures/);
+});
+test("checker rejects catalog claims that contradict launch-tier capabilities", () => {
+  const cases = [
+    [
+      "database replica isolation",
+      "example-offerings-dedicated-database.json",
+      (offering) => {
+        offering.includedCapabilities.replicas.dedicated = true;
+      },
+    ],
+    [
+      "database physical PITR",
+      "example-offerings-dedicated-database.json",
+      (offering) => {
+        offering.includedCapabilities.backupRecovery.physicalPitr = true;
+      },
+    ],
+    [
+      "cluster backup availability",
+      "example-offerings-dedicated-cluster.json",
+      (offering) => {
+        offering.includedCapabilities.backupRecovery.backups = true;
+      },
+    ],
+    [
+      "cluster restore entitlement",
+      "example-offerings-dedicated-cluster.json",
+      (offering) => {
+        offering.selectableEntitlements.push({
+          entitlementId: "ent_restore",
+          capability: "restore",
+        });
+      },
+    ],
+  ];
+  for (const [label, fileName, mutate] of cases) {
+    const result = verify((directory) => {
+      const fixturePath = path.join(directory, fileName);
+      const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+      mutate(fixture.items[0]);
+      fs.writeFileSync(fixturePath, JSON.stringify(fixture));
+    });
+    assert.notEqual(result.status, 0, `${label} must be rejected`);
+  }
 });
 
 test("checker rejects tenant-supplied scope in customer order requests", () => {
@@ -36,7 +80,10 @@ test("checker rejects tenant-supplied scope in customer order requests", () => {
     const specPath = path.join(directory, "openapi.yaml");
     const spec = fs
       .readFileSync(specPath, "utf8")
-      .replace("additionalProperties: false", "additionalProperties: true");
+      .replace(
+        '    CreateOrderRequest:\n      type: object\n      required: [offeringId, optionId]\n      properties:\n        offeringId:\n          type: string\n          pattern: "^off_[A-Za-z0-9_-]+$"\n        optionId:\n          type: string\n          pattern: "^opt_[A-Za-z0-9_-]+$"\n      additionalProperties: false',
+        '    CreateOrderRequest:\n      type: object\n      required: [offeringId, optionId]\n      properties:\n        offeringId:\n          type: string\n          pattern: "^off_[A-Za-z0-9_-]+$"\n        optionId:\n          type: string\n          pattern: "^opt_[A-Za-z0-9_-]+$"\n        tenantId:\n          type: string\n      additionalProperties: false',
+      );
     fs.writeFileSync(specPath, spec);
   });
   assert.notEqual(result.status, 0);

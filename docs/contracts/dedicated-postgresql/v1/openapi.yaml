@@ -27,13 +27,48 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
+                $ref: "#/components/schemas/OfferingCatalogResponse"
+              examples:
+                dedicatedDatabase:
+                  value:
                     items:
-                      $ref: "#/components/schemas/Offering"
+                      - offeringId: off_dedicated_database
+                        kind: dedicatedDatabase
+                        displayName: Dedicated database
+                        optionIds: [opt_database_small]
+                        includedCapabilities:
+                          replicas:
+                            ha: true
+                            dedicated: false
+                            readAccess: consistentPrimaryOnly
+                            reservedCapacity: false
+                          backupRecovery:
+                            backups: null
+                            physicalPitr: null
+                            recoveryScope: unconfirmed
+                            retentionDays: null
+                        selectableEntitlements:
+                          - entitlementId: ent_replica_read
+                            capability: replicaReadAccess
+                dedicatedCluster:
+                  value:
+                    items:
+                      - offeringId: off_dedicated_cluster
+                        kind: dedicatedCluster
+                        displayName: Dedicated cluster
+                        optionIds: [opt_cluster_small]
+                        includedCapabilities:
+                          replicas:
+                            ha: true
+                            dedicated: true
+                            readAccess: staleTolerantReplicaAvailable
+                            reservedCapacity: true
+                          backupRecovery:
+                            backups: null
+                            physicalPitr: null
+                            recoveryScope: unconfirmed
+                            retentionDays: null
+                        selectableEntitlements: []
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -447,9 +482,18 @@ components:
         minLength: 16
         maxLength: 128
   schemas:
+    OfferingCatalogResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Offering"
+      additionalProperties: true
     Offering:
       type: object
-      required: [offeringId, displayName, optionIds]
+      required: [offeringId, displayName, optionIds, kind, includedCapabilities, selectableEntitlements]
       properties:
         offeringId:
           type: string
@@ -464,7 +508,74 @@ components:
             pattern: "^opt_[A-Za-z0-9_-]+$"
         description:
           type: [string, "null"]
+        kind:
+          type: string
+          enum: [dedicatedDatabase, dedicatedCluster]
+        includedCapabilities:
+          $ref: "#/components/schemas/IncludedCapabilities"
+        selectableEntitlements:
+          type: array
+          items:
+            $ref: "#/components/schemas/SelectableEntitlement"
       additionalProperties: true
+    IncludedCapabilities:
+      type: object
+      required: [replicas, backupRecovery]
+      properties:
+        replicas:
+          $ref: "#/components/schemas/ReplicaCapabilities"
+        backupRecovery:
+          $ref: "#/components/schemas/BackupRecoveryCapabilities"
+      additionalProperties: false
+    ReplicaCapabilities:
+      type: object
+      required: [ha, dedicated, readAccess, reservedCapacity]
+      properties:
+        ha:
+          type: boolean
+          description: Platform baseline HA policy, not an individually selectable entitlement.
+        dedicated:
+          type: boolean
+          description: Whether replicas are isolated to this offering rather than shared with other tenants.
+        readAccess:
+          type: string
+          enum: [consistentPrimaryOnly, staleTolerantReplicaAvailable]
+          description: Read semantics currently included; this does not assert dedicated replica capacity.
+        reservedCapacity:
+          type: boolean
+          description: Whether replica compute capacity is reserved for this offering.
+      additionalProperties: false
+    BackupRecoveryCapabilities:
+      type: object
+      required: [backups, physicalPitr, recoveryScope, retentionDays]
+      properties:
+        backups:
+          type: [boolean, "null"]
+          description: Backup availability is server-owned; null means launch validation has not confirmed availability.
+        physicalPitr:
+          type: [boolean, "null"]
+          description: Independent physical PITR remains unconfirmed for these launch-tier examples.
+        recoveryScope:
+          type: string
+          enum: [tenantDataExtraction, independentClusterRestore, unconfirmed]
+          description: Recovery boundary; tenant extraction from shared infrastructure is not independent physical PITR.
+        retentionDays:
+          type: [integer, "null"]
+          minimum: 0
+          description: Server-owned retention window; null means not currently advertised or confirmed.
+      additionalProperties: false
+    SelectableEntitlement:
+      type: object
+      required: [entitlementId, capability]
+      properties:
+        entitlementId:
+          type: string
+          pattern: "^ent_[A-Za-z0-9_-]+$"
+        capability:
+          type: string
+          enum: [replicaReadAccess, reservedReplicaCapacity, backupRetention]
+          description: Available for selection; not included until selected and activated.
+      additionalProperties: false
     Option:
       type: object
       required: [optionId, offeringId, displayName, price]

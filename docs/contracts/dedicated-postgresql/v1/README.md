@@ -2,6 +2,12 @@
 
 The OpenAPI file and SignalR JSON Schema are the normative, versioned JSON wire contracts for the customer gateway and Admin → Orders surface. Examples are executable fixtures checked by `bun run verify:dedicated-postgresql-contract`. Do not add persistence, Host implementation, cluster operations, activation automation or deletion endpoints here.
 
+## Offering catalog and capability claims
+
+`GET /v1/dedicated-database/offerings` is the authoritative source for offering classification and capabilities. Consumers branch on the stable `kind` (`dedicatedDatabase` or `dedicatedCluster`), never on offering IDs or display labels. `includedCapabilities` describes the server-provided baseline; `selectableEntitlements` lists optional capabilities that may be purchased. Neither list grants access by itself; activated server state remains authoritative.
+
+Replica isolation and capacity are distinct: shared-infrastructure dedicated databases advertise neither dedicated replicas nor reserved replica capacity. Backup, physical PITR, retention, and recovery scope remain unconfirmed until launch validation; `unconfirmed` does not promise a recovery path. Restore and backup-retention entitlements are not advertised until validation confirms them.
+
 ## Identity, tenant scope and visibility
 
 Customer routes derive tenant identity from the authenticated principal. They accept no tenant ID, tenant slug, connection string, host, or secret. Customer order and operation reads are constrained to that tenant. A resource outside the principal's visible scope returns the same `404 RESOURCE_NOT_VISIBLE` shape as an absent resource so existence is not disclosed. `401 UNAUTHENTICATED` means no valid principal. `403 RESOURCE_NOT_VISIBLE` may be used where existence disclosure is not a risk and a distinct authorization failure is useful; clients must not infer tenant existence from either response.

@@ -280,6 +280,60 @@ assert.deepEqual(
   "customer requests must reject tenant scope input",
 );
 
+const catalogExamples = [
+  ["example-offerings-dedicated-database.json", "dedicatedDatabase"],
+  ["example-offerings-dedicated-cluster.json", "dedicatedCluster"],
+];
+const catalogItems = [];
+for (const [fileName, expectedKind] of catalogExamples) {
+  const catalog = JSON.parse(fs.readFileSync(path.join(root, fileName), "utf8"));
+  assertMatches({ $ref: "#/components/schemas/OfferingCatalogResponse" }, catalog, fileName);
+  assert.equal(catalog.items.length, 1, `${fileName} has one tier fixture`);
+  const [offering] = catalog.items;
+  const routeExample =
+    openApi.paths["/v1/dedicated-database/offerings"].get.responses["200"].content[
+      "application/json"
+    ].examples[expectedKind]?.value;
+  assert.ok(routeExample, `OpenAPI must publish the ${expectedKind} catalog example`);
+  assertMatches(
+    { $ref: "#/components/schemas/OfferingCatalogResponse" },
+    routeExample,
+    `${expectedKind} OpenAPI example`,
+  );
+  assert.deepEqual(routeExample, catalog, `${expectedKind} OpenAPI example matches its fixture`);
+  assert.ok(offering.includedCapabilities, `${fileName} describes included capabilities`);
+  assert.ok(
+    Array.isArray(offering.selectableEntitlements),
+    `${fileName} separates selectable entitlements`,
+  );
+  assert.equal(offering.includedCapabilities.backupRecovery.backups, null);
+  assert.equal(offering.includedCapabilities.backupRecovery.physicalPitr, null);
+  assert.equal(offering.includedCapabilities.backupRecovery.retentionDays, null);
+  assert.ok(
+    !offering.selectableEntitlements.some(({ capability }) =>
+      ["restore", "backupRetention"].includes(capability),
+    ),
+  );
+  if (expectedKind === "dedicatedDatabase") {
+    assert.equal(offering.includedCapabilities.replicas.dedicated, false);
+    assert.equal(offering.includedCapabilities.replicas.reservedCapacity, false);
+    assert.equal(offering.includedCapabilities.backupRecovery.recoveryScope, "unconfirmed");
+  } else {
+    assert.equal(offering.includedCapabilities.replicas.dedicated, true);
+    assert.equal(offering.includedCapabilities.replicas.reservedCapacity, true);
+    assert.equal(offering.includedCapabilities.backupRecovery.recoveryScope, "unconfirmed");
+  }
+  catalogItems.push(...catalog.items);
+}
+assertMatches(
+  { $ref: "#/components/schemas/OfferingCatalogResponse" },
+  { items: catalogItems },
+  "combined offering catalog",
+);
+assert.ok(
+  openApi.paths["/v1/dedicated-database/offerings"]?.get,
+  "authoritative offerings route is required",
+);
 const exampleFiles = fs
   .readdirSync(root)
   .filter((name) => name.endsWith(".json") && name.startsWith("example-"));
@@ -290,6 +344,8 @@ const requiredFixtures = [
   "example-stale-overlapping-notifications.json",
   "example-manual-exception.json",
   "example-problems.json",
+  "example-offerings-dedicated-database.json",
+  "example-offerings-dedicated-cluster.json",
 ];
 for (const name of requiredFixtures)
   assert.ok(exampleFiles.includes(name), `missing required example fixture ${name}`);
@@ -431,6 +487,11 @@ for (const file of exampleFiles) {
   } else if (example.kind === "problemCatalog") {
     for (const problem of example.examples)
       assertMatches({ $ref: "#/components/schemas/Problem" }, problem, `${file} problem`);
+  } else if (
+    file === "example-offerings-dedicated-database.json" ||
+    file === "example-offerings-dedicated-cluster.json"
+  ) {
+    assert.ok(example.items.length === 1, `${file} has exactly one catalog item`);
   } else {
     assert.fail(`${file} has unknown fixture kind ${example.kind}`);
   }
