@@ -1,5 +1,6 @@
 {
   "kind": "notificationRace",
+  "orderId": "ord_migration_demo",
   "stale": {
     "type": 1,
     "target": "OperationChanged",
@@ -10,5 +11,16 @@
     "target": "OperationChanged",
     "arguments": [{ "operationId": "op_migration_demo", "revision": "9007199254740993" }]
   },
-  "consumerRule": "Fetch the authoritative snapshot for every hint; ignore duplicate/stale hints and only apply snapshots whose decimal-string revision compares greater by arbitrary-precision integer arithmetic."
+  "reconnect": {
+    "subscribe": {
+      "type": 1,
+      "invocationId": "27",
+      "target": "SubscribeToOrder",
+      "arguments": [{ "orderId": "ord_migration_demo" }]
+    },
+    "completion": { "type": 3, "invocationId": "27", "result": null },
+    "snapshotRequest": "GET /v1/dedicated-database/operations/op_migration_demo"
+  },
+  "consumerRule": "Fetch the authoritative snapshot for every hint; ignore duplicate/stale hints and only apply snapshots whose decimal-string revision compares greater by arbitrary-precision integer arithmetic.",
+  "reconnectRule": "After reconnect, resubscribe to the authenticated order, await the matching completion, then fetch and apply the authoritative snapshot before considering notifications current."
 }

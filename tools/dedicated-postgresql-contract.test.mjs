@@ -75,3 +75,26 @@ test("checker rejects examples that imply manual activation", () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /does not imply activation authorization/);
 });
+test("checker rejects reconnect snapshots fetched before resubscription completion", () => {
+  const result = verify((directory) => {
+    const fixturePath = path.join(directory, "example-stale-overlapping-notifications.json");
+    const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8"));
+    fixture.reconnect.completion.invocationId = "999";
+    fs.writeFileSync(fixturePath, JSON.stringify(fixture));
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /reconnect\.completion\.invocationId/);
+});
+
+test("checker rejects client subscription requests that supply tenant or group scope", () => {
+  const result = verify((directory) => {
+    const schemaPath = path.join(directory, "realtime-subscription.schema.json");
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+    schema.$defs.subscribeToOrder.properties.arguments.prefixItems[0].properties.tenantId = {
+      type: "string",
+    };
+    fs.writeFileSync(schemaPath, JSON.stringify(schema));
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /tenantId/);
+});

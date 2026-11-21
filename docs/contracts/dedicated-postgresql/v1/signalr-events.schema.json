@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://api.teck.cloud/contracts/dedicated-postgresql/v1/signalr-events.schema.json",
-  "title": "Dedicated PostgreSQL SignalR event hint",
-  "description": "SignalR OperationChanged notifications are hints only. The authenticated HTTP operation snapshot is authoritative.",
+  "title": "Dedicated PostgreSQL SignalR protocol messages",
+  "description": "OperationChanged notifications are hints only. The authenticated HTTP operation snapshot is authoritative. Subscribe completion confirms a connection's order membership before the client refetches that snapshot.",
   "$ref": "#/$defs/operationChangedInvocation",
   "$defs": {
     "revision": {
@@ -14,13 +14,8 @@
       "type": "object",
       "required": ["operationId", "revision"],
       "properties": {
-        "operationId": {
-          "type": "string",
-          "pattern": "^op_[A-Za-z0-9_-]+$"
-        },
-        "revision": {
-          "$ref": "#/$defs/revision"
-        }
+        "operationId": { "type": "string", "pattern": "^op_[A-Za-z0-9_-]+$" },
+        "revision": { "$ref": "#/$defs/revision" }
       },
       "additionalProperties": false
     },
@@ -28,24 +23,25 @@
       "type": "object",
       "required": ["type", "target", "arguments"],
       "properties": {
-        "type": {
-          "const": 1,
-          "description": "SignalR JSON Hub Protocol Invocation message."
-        },
-        "target": {
-          "const": "OperationChanged"
-        },
+        "type": { "const": 1, "description": "SignalR JSON Hub Protocol Invocation message." },
+        "target": { "const": "OperationChanged" },
         "arguments": {
           "type": "array",
-          "prefixItems": [
-            {
-              "$ref": "#/$defs/operationChangedHint"
-            }
-          ],
+          "prefixItems": [{ "$ref": "#/$defs/operationChangedHint" }],
           "items": false,
           "minItems": 1,
           "maxItems": 1
         }
+      },
+      "additionalProperties": false
+    },
+    "completionMessage": {
+      "type": "object",
+      "required": ["type", "invocationId", "result"],
+      "properties": {
+        "type": { "const": 3, "description": "SignalR JSON Hub Protocol Completion message." },
+        "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "result": { "type": "null" }
       },
       "additionalProperties": false
     }

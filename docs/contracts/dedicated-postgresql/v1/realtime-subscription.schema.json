@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api.teck.cloud/contracts/dedicated-postgresql/v1/realtime-subscription.schema.json",
+  "title": "Dedicated PostgreSQL SignalR client subscription invocations",
+  "description": "Client-to-server Hub Protocol invocations. The server derives tenant selection from the authenticated principal and authorizes each requested order before adding the connection to a group.",
+  "oneOf": [{ "$ref": "#/$defs/subscribeToOrder" }, { "$ref": "#/$defs/unsubscribeFromOrder" }],
+  "$defs": {
+    "subscribeToOrder": {
+      "type": "object",
+      "required": ["type", "invocationId", "target", "arguments"],
+      "properties": {
+        "type": { "const": 1 },
+        "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "target": { "const": "SubscribeToOrder" },
+        "arguments": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "object",
+              "required": ["orderId"],
+              "properties": {
+                "orderId": { "type": "string", "pattern": "^ord_[A-Za-z0-9_-]+$" }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "items": false,
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "unsubscribeFromOrder": {
+      "type": "object",
+      "required": ["type", "invocationId", "target", "arguments"],
+      "properties": {
+        "type": { "const": 1 },
+        "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "target": { "const": "UnsubscribeFromOrder" },
+        "arguments": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "object",
+              "required": ["orderId"],
+              "properties": {
+                "orderId": { "type": "string", "pattern": "^ord_[A-Za-z0-9_-]+$" }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "items": false,
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

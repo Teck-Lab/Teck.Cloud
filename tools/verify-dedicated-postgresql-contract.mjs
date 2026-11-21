@@ -12,6 +12,9 @@ const root =
   );
 const openApi = parse(fs.readFileSync(path.join(root, "openapi.yaml"), "utf8"));
 const signalR = JSON.parse(fs.readFileSync(path.join(root, "signalr-events.schema.json"), "utf8"));
+const realtimeSubscription = JSON.parse(
+  fs.readFileSync(path.join(root, "realtime-subscription.schema.json"), "utf8"),
+);
 
 function schemaErrors(schema, value, path = "$", seen = new Set(), document = openApi) {
   if (schema.$ref) {
@@ -128,11 +131,38 @@ function assertMatches(schema, value, label) {
 assert.equal(openApi.openapi, "3.1.0", "OpenAPI must use 3.1.0");
 assert.equal(openApi.info.version, "1.0.0", "contract must be versioned 1.0.0");
 assert.ok(Object.keys(openApi.paths).length > 0, "OpenAPI must define routes");
-assert.equal(signalR.$schema, "https://json-schema.org/draft/2020-12/schema");
+for (const schema of [signalR, realtimeSubscription]) {
+  assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
+  assert.match(
+    schema.$id,
+    /^https:\/\/api\.teck\.cloud\/contracts\/dedicated-postgresql\/v1\/.+\.schema\.json$/,
+  );
+}
 assert.equal(
   signalR.$id,
   "https://api.teck.cloud/contracts/dedicated-postgresql/v1/signalr-events.schema.json",
 );
+assert.equal(
+  realtimeSubscription.$id,
+  "https://api.teck.cloud/contracts/dedicated-postgresql/v1/realtime-subscription.schema.json",
+);
+assert.deepEqual(
+  realtimeSubscription.oneOf.map((branch) => branch.$ref),
+  ["#/$defs/subscribeToOrder", "#/$defs/unsubscribeFromOrder"],
+);
+for (const [name, schema] of Object.entries(realtimeSubscription.$defs)) {
+  assert.deepEqual(schema.required, ["type", "invocationId", "target", "arguments"]);
+  assert.equal(schema.properties.arguments.minItems, 1);
+  assert.equal(schema.properties.arguments.maxItems, 1);
+  assert.equal(schema.properties.arguments.items, false);
+  const selection = schema.properties.arguments.prefixItems[0];
+  assert.deepEqual(selection.required, ["orderId"]);
+  assert.equal(selection.properties.orderId.pattern, "^ord_[A-Za-z0-9_-]+$");
+  assert.equal(selection.additionalProperties, false);
+  assert.equal(selection.properties.tenantId, undefined, `${name} cannot supply tenantId`);
+  assert.equal(selection.properties.groupName, undefined, `${name} cannot supply groupName`);
+  assert.match(name, /^(subscribeToOrder|unsubscribeFromOrder)$/);
+}
 
 const operations = Object.values(openApi.paths).flatMap((pathItem) =>
   Object.values(pathItem).filter(
@@ -280,6 +310,45 @@ for (const file of exampleFiles) {
         BigInt(example.overlapping.arguments[0].revision),
       `${file} compares revisions numerically`,
     );
+    assert.ok(example.orderId, `${file} has an order subscription scope`);
+    assert.deepEqual(
+      schemaErrors(
+        realtimeSubscription.$defs.subscribeToOrder,
+        example.reconnect.subscribe,
+        "$",
+        new Set(),
+        realtimeSubscription,
+      ),
+      [],
+      `${file} reconnect subscription must match the client-to-server schema`,
+    );
+    assert.equal(example.reconnect.subscribe.arguments[0].orderId, example.orderId);
+    assert.equal(example.reconnect.completion.type, 3);
+    assert.equal(
+      example.reconnect.completion.invocationId,
+      example.reconnect.subscribe.invocationId,
+      `${file} reconnect.completion.invocationId must match reconnect.subscribe.invocationId`,
+    );
+    assert.equal(example.reconnect.completion.result, null);
+    assert.equal(
+      example.reconnect.snapshotRequest,
+      "GET /v1/dedicated-database/operations/op_migration_demo",
+    );
+    assert.deepEqual(
+      schemaErrors(
+        signalR.$defs.completionMessage,
+        example.reconnect.completion,
+        "$",
+        new Set(),
+        signalR,
+      ),
+      [],
+      `${file} resubscription completion must match the server-to-client schema`,
+    );
+    assert.ok(
+      example.reconnectRule.indexOf("resubscribe") < example.reconnectRule.indexOf("fetch"),
+    );
+    assert.ok(example.reconnectRule.includes("await"));
   } else if (example.kind === "problemCatalog") {
     for (const problem of example.examples)
       assertMatches({ $ref: "#/components/schemas/Problem" }, problem, `${file} problem`);
@@ -330,6 +399,27 @@ for (const hint of [signalRFixture.stale, signalRFixture.overlapping])
     schemaErrors(signalR.$defs.operationChangedHint, hint.arguments[0], "$", new Set(), signalR),
     [],
     "SignalR hint arguments must match the declared schema",
+  );
+
+const clientInvocations = [
+  {
+    type: 1,
+    invocationId: "1",
+    target: "SubscribeToOrder",
+    arguments: [{ orderId: "ord_migration_demo" }],
+  },
+  {
+    type: 1,
+    invocationId: "2",
+    target: "UnsubscribeFromOrder",
+    arguments: [{ orderId: "ord_migration_demo" }],
+  },
+];
+for (const invocation of clientInvocations)
+  assert.deepEqual(
+    schemaErrors(realtimeSubscription, invocation, "$", new Set(), realtimeSubscription),
+    [],
+    `Client invocation ${invocation.target} must match the realtime subscription schema`,
   );
 
 console.log(
