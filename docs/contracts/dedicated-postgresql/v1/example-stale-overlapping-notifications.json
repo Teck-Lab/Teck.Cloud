@@ -1,0 +1,30 @@
+{
+  "kind": "notificationRace",
+  "orderId": "ord_migration_demo",
+  "stale": {
+    "type": 1,
+    "target": "OperationChanged",
+    "arguments": [{ "operationId": "op_migration_demo", "revision": "9007199254740992" }]
+  },
+  "overlapping": {
+    "type": 1,
+    "target": "OperationChanged",
+    "arguments": [{ "operationId": "op_migration_demo", "revision": "9007199254740993" }]
+  },
+  "reconnect": {
+    "subscribe": {
+      "type": 1,
+      "invocationId": "27",
+      "target": "SubscribeToOrder",
+      "arguments": [{ "orderId": "ord_migration_demo" }]
+    },
+    "completion": { "type": 3, "invocationId": "27" },
+    "snapshotRequest": "GET /v1/dedicated-database/operations/op_migration_demo"
+  },
+  "subscriptionFailureExamples": {
+    "notVisible": { "type": 3, "invocationId": "28", "error": "RESOURCE_NOT_VISIBLE" },
+    "unavailable": { "type": 3, "invocationId": "29", "error": "SERVICE_UNAVAILABLE" }
+  },
+  "consumerRule": "Fetch the authoritative snapshot for every hint; ignore duplicate/stale hints and only apply snapshots whose decimal-string revision compares greater by arbitrary-precision integer arithmetic.",
+  "reconnectRule": "After reconnect, resubscribe and await the matching completion. On success, fetch and apply the authoritative snapshot before processing current hints. On RESOURCE_NOT_VISIBLE, stop watching and do not fetch a snapshot. On SERVICE_UNAVAILABLE, do not treat the order as subscribed or fetch a snapshot; retry with bounded exponential backoff and jitter capped at 30 seconds."
+}

@@ -1,0 +1,25 @@
+{
+  "kind": "paymentPendingOrder",
+  "order": {
+    "orderId": "ord_demo_01",
+    "status": "paymentPending",
+    "paymentStatus": "pending",
+    "offeringId": "off_dedicated_postgresql",
+    "optionId": "opt_standard_small",
+    "priceSnapshot": {
+      "amountMinor": 4900,
+      "currency": "EUR",
+      "interval": "month",
+      "capturedAt": "2026-11-20T12:00:00Z"
+    },
+    "createdAt": "2026-11-20T12:00:00Z",
+    "updatedAt": "2026-11-20T12:00:00Z",
+    "placementSummary": null,
+    "entitlementSummary": {
+      "status": "pending",
+      "validFrom": null,
+      "validUntil": null
+    },
+    "operationId": null
+  }
+}

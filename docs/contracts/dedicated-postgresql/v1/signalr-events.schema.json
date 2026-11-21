@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api.teck.cloud/contracts/dedicated-postgresql/v1/signalr-events.schema.json",
+  "title": "Dedicated PostgreSQL SignalR protocol messages",
+  "description": "OperationChanged notifications are hints only; the authenticated HTTP operation snapshot is authoritative. A matching successful void SubscribeToOrder Completion permits the authenticated snapshot fetch. For a failed SubscribeToOrder Completion, RESOURCE_NOT_VISIBLE is terminal: stop watching, do not retry or fetch the snapshot, and show not-found behavior indistinguishably from an absent resource. SERVICE_UNAVAILABLE is transient: leave unsubscribed, do not fetch the snapshot, and retry SubscribeToOrder with bounded exponential backoff and jitter capped at 30 seconds. Unknown error codes are non-retryable: stop watching and do not fetch. Completion error values are stable codes only; never expose exception text or secrets.",
+  "$ref": "#/$defs/operationChangedInvocation",
+  "$defs": {
+    "revision": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "description": "Monotonically increasing per operation. Decimal string avoids IEEE-754 precision loss; compare as arbitrary-precision integers, never lexicographically."
+    },
+    "operationChangedHint": {
+      "type": "object",
+      "required": ["operationId", "revision"],
+      "properties": {
+        "operationId": { "type": "string", "pattern": "^op_[A-Za-z0-9_-]+$" },
+        "revision": { "$ref": "#/$defs/revision" }
+      },
+      "additionalProperties": false
+    },
+    "operationChangedInvocation": {
+      "type": "object",
+      "required": ["type", "target", "arguments"],
+      "properties": {
+        "type": { "const": 1, "description": "SignalR JSON Hub Protocol Invocation message." },
+        "target": { "const": "OperationChanged" },
+        "arguments": {
+          "type": "array",
+          "prefixItems": [{ "$ref": "#/$defs/operationChangedHint" }],
+          "items": false,
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "completionMessage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "invocationId"],
+          "properties": {
+            "type": { "const": 3, "description": "SignalR JSON Hub Protocol Completion message." },
+            "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" }
+          },
+          "additionalProperties": false,
+          "description": "Successful void completion has no result or error; after matching invocation correlation the client may fetch the authenticated snapshot."
+        },
+        {
+          "type": "object",
+          "required": ["type", "invocationId", "error"],
+          "properties": {
+            "type": { "const": 3, "description": "SignalR JSON Hub Protocol Completion message." },
+            "invocationId": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+            "error": {
+              "type": "string",
+              "enum": ["RESOURCE_NOT_VISIBLE", "SERVICE_UNAVAILABLE"],
+              "description": "Stable non-sensitive code. RESOURCE_NOT_VISIBLE is terminal: stop watching, do not retry or fetch, and show not-found indistinguishably from absent. SERVICE_UNAVAILABLE is transient: stay unsubscribed, do not fetch, and retry SubscribeToOrder with bounded exponential backoff and jitter capped at 30s. Unknown codes are non-retryable: stop watching and do not fetch. Never include exception text or secrets."
+            }
+          },
+          "additionalProperties": false,
+          "description": "Failure completion has no result. RESOURCE_NOT_VISIBLE is terminal: stop watching, no retry or fetch, present like absent. SERVICE_UNAVAILABLE is transient: stay unsubscribed, no fetch, retry SubscribeToOrder with bounded jittered exponential backoff capped at 30s. Unknown codes stop watching without fetching. Codes MUST NOT contain exceptions or secrets."
+        }
+      ]
+    }
+  }
+}

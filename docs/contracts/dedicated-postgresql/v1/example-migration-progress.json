@@ -1,0 +1,27 @@
+{
+  "kind": "operationSnapshot",
+  "snapshot": {
+    "operationId": "op_migration_demo",
+    "orderId": "ord_demo_02",
+    "revision": "12",
+    "status": "needsAttention",
+    "phase": "copy",
+    "requiredStepCount": 10,
+    "succeededStepCount": 3,
+    "failedStepCount": 1,
+    "steps": [
+      { "stepId": "copy-schema", "status": "succeeded" },
+      { "stepId": "copy-data", "status": "succeeded" },
+      { "stepId": "validate-source", "status": "succeeded" },
+      { "stepId": "validate-target", "status": "failed", "failedCode": "TARGET_VALIDATION_FAILED" },
+      { "stepId": "prepare-cutover", "status": "pending" },
+      { "stepId": "pause-writes", "status": "pending" },
+      { "stepId": "final-copy", "status": "pending" },
+      { "stepId": "switch-endpoint", "status": "pending" },
+      { "stepId": "verify-cutover", "status": "pending" },
+      { "stepId": "resume-writes", "status": "pending" }
+    ],
+    "createdAt": "2026-11-20T12:00:00Z",
+    "updatedAt": "2026-11-20T12:03:00Z"
+  }
+}
