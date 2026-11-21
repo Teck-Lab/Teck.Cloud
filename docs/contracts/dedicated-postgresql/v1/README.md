@@ -6,7 +6,7 @@ The OpenAPI file and SignalR JSON Schema are the normative, versioned JSON wire 
 
 `GET /v1/dedicated-database/offerings` is the authoritative source for offering classification and capabilities. Consumers branch on the stable `kind` (`dedicatedDatabase` or `dedicatedCluster`), never on offering IDs or display labels. `includedCapabilities` describes the server-provided baseline; `selectableEntitlements` lists optional capabilities that may be purchased. Neither list grants access by itself; activated server state remains authoritative.
 
-Replica isolation and capacity are distinct: shared-infrastructure dedicated databases advertise neither dedicated replicas nor reserved replica capacity. Backup, physical PITR, retention, and recovery scope remain unconfirmed until launch validation; `unconfirmed` does not promise a recovery path. Restore and backup-retention entitlements are not advertised until validation confirms them.
+Replica isolation and capacity are distinct: shared-infrastructure dedicated databases advertise neither dedicated replicas nor reserved replica capacity. Backup, physical PITR, retention, and recovery scope remain unconfirmed until launch validation. `unconfirmed` does not promise a recovery path. Restore and backup-retention entitlements are not advertised until validation confirms them.
 
 ## Identity, tenant scope and visibility
 
