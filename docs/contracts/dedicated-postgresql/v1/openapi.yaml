@@ -493,7 +493,8 @@ components:
       additionalProperties: true
     Offering:
       type: object
-      required: [offeringId, displayName, optionIds, kind, includedCapabilities, selectableEntitlements]
+      required:
+        [offeringId, displayName, optionIds, kind, includedCapabilities, selectableEntitlements]
       properties:
         offeringId:
           type: string
