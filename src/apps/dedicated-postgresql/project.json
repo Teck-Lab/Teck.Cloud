@@ -1,0 +1,10 @@
+{
+  "name": "dedicated-postgresql",
+  "sourceRoot": "src/apps/dedicated-postgresql/src",
+  "tags": ["scope:dedicated-postgresql", "type:app", "platform:web"],
+  "targets": {
+    "typecheck": { "executor": "nx:run-commands", "options": { "command": "bun run typecheck", "cwd": "src/apps/dedicated-postgresql" } },
+    "build": { "executor": "nx:run-commands", "outputs": ["{projectRoot}/dist"], "options": { "command": "bun run build", "cwd": "src/apps/dedicated-postgresql" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "node --test client.test.mjs", "cwd": "src/apps/dedicated-postgresql" } }
+  }
+}
