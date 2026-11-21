@@ -53,7 +53,7 @@
     "@nx/js": "24.1.0-beta.2",
     "nx": "24.1.0-beta.2",
     "typescript": "6.0.2",
-    "yaml": "2.9.0",
+    "yaml": "2.9.1",
     "@nx/vite": "24.1.0-beta.2"
   },
   "trustedDependencies": [
