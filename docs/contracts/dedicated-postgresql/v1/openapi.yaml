@@ -22,7 +22,7 @@ paths:
       summary: List offerings visible to the authenticated tenant
       x-required-permission: dedicated-database.customer
       responses:
-        '200':
+        "200":
           description: Tenant-visible offerings and server-defined options
           content:
             application/json:
@@ -33,13 +33,13 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Offering'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                      $ref: "#/components/schemas/Offering"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/dedicated-database/options:
     get:
       operationId: listDedicatedDatabaseOptions
@@ -47,7 +47,7 @@ paths:
       summary: List selectable server-priced options
       x-required-permission: dedicated-database.customer
       responses:
-        '200':
+        "200":
           description: Available option identifiers and display-safe labels
           content:
             application/json:
@@ -58,13 +58,13 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Option'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                      $ref: "#/components/schemas/Option"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/dedicated-database/orders:
     get:
       operationId: listCustomerDedicatedDatabaseOrders
@@ -76,21 +76,21 @@ paths:
         the deterministic tie-breaker.
       x-required-permission: dedicated-database.customer
       parameters:
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/Cursor'
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
       responses:
-        '200':
+        "200":
           description: A stable cursor page
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderPage'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                $ref: "#/components/schemas/OrderPage"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
     post:
       operationId: createCustomerDedicatedDatabaseOrder
       tags: [Customer orders]
@@ -101,33 +101,33 @@ paths:
         still be awaiting payment; it does not imply payment or provisioning.
       x-required-permission: dedicated-database.customer
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateOrderRequest'
+              $ref: "#/components/schemas/CreateOrderRequest"
       responses:
-        '202':
+        "202":
           description: Order accepted; payment may be pending
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerOrder'
+                $ref: "#/components/schemas/CustomerOrder"
               examples:
                 paymentPending:
-                  $ref: '#/components/examples/PaymentPendingOrder'
-        '400':
-          $ref: '#/components/responses/ValidationProblem'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '409':
-          $ref: '#/components/responses/IdempotencyConflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                  $ref: "#/components/examples/PaymentPendingOrder"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "409":
+          $ref: "#/components/responses/IdempotencyConflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/dedicated-database/orders/{orderId}:
     get:
       operationId: getCustomerDedicatedDatabaseOrder
@@ -135,22 +135,22 @@ paths:
       summary: Get one order and customer-safe placement/entitlement summary
       x-required-permission: dedicated-database.customer
       parameters:
-        - $ref: '#/components/parameters/OrderId'
+        - $ref: "#/components/parameters/OrderId"
       responses:
-        '200':
+        "200":
           description: Customer-safe order snapshot
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerOrder'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                $ref: "#/components/schemas/CustomerOrder"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/dedicated-database/operations/{operationId}:
     get:
       operationId: getCustomerDedicatedDatabaseOperation
@@ -162,27 +162,27 @@ paths:
         resource and apply only snapshots with a greater decimal-string revision.
       x-required-permission: dedicated-database.customer
       parameters:
-        - $ref: '#/components/parameters/OperationId'
+        - $ref: "#/components/parameters/OperationId"
       responses:
-        '200':
+        "200":
           description: Current authoritative customer-safe progress snapshot
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OperationSnapshot'
+                $ref: "#/components/schemas/OperationSnapshot"
               examples:
                 migrating:
-                  $ref: '#/components/examples/MigrationProgress'
+                  $ref: "#/components/examples/MigrationProgress"
                 complete:
-                  $ref: '#/components/examples/OperationComplete'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                  $ref: "#/components/examples/OperationComplete"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/orders:
     get:
       operationId: listAdminDedicatedDatabaseOrders
@@ -190,8 +190,8 @@ paths:
       summary: Search orders visible to the caller's admin permissions
       x-required-permission: dedicated-database.orders.read
       parameters:
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/Cursor'
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
         - name: status
           in: query
           required: false
@@ -199,18 +199,18 @@ paths:
             type: string
             description: Extensible order state; unknown values must be handled safely by clients.
       responses:
-        '200':
+        "200":
           description: Stable cursor page of admin order projections
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminOrderPage'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                $ref: "#/components/schemas/AdminOrderPage"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/orders/{orderId}:
     get:
       operationId: getAdminDedicatedDatabaseOrder
@@ -218,22 +218,22 @@ paths:
       summary: Get role-gated order details and currently permitted actions
       x-required-permission: dedicated-database.orders.read
       parameters:
-        - $ref: '#/components/parameters/OrderId'
+        - $ref: "#/components/parameters/OrderId"
       responses:
-        '200':
+        "200":
           description: Admin-visible order projection
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminOrder'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                $ref: "#/components/schemas/AdminOrder"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/orders/{orderId}/diagnostics:
     get:
       operationId: getAdminDedicatedDatabaseOrderDiagnostics
@@ -241,22 +241,22 @@ paths:
       summary: Read redacted diagnostics for an order
       x-required-permission: dedicated-database.diagnostics.read
       parameters:
-        - $ref: '#/components/parameters/OrderId'
+        - $ref: "#/components/parameters/OrderId"
       responses:
-        '200':
+        "200":
           description: Redacted diagnostics with stable diagnostic codes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Diagnostics'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                $ref: "#/components/schemas/Diagnostics"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/orders/{orderId}/actions/retry:
     post:
       operationId: retryAdminDedicatedDatabaseOrder
@@ -264,29 +264,29 @@ paths:
       summary: Request an audited retry of an eligible operation
       x-required-permission: dedicated-database.actions.retry
       parameters:
-        - $ref: '#/components/parameters/OrderId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ActionRequest'
+              $ref: "#/components/schemas/ActionRequest"
       responses:
-        '202':
-          $ref: '#/components/responses/ActionAccepted'
-        '400':
-          $ref: '#/components/responses/ValidationProblem'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '409':
-          $ref: '#/components/responses/TransitionConflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+        "202":
+          $ref: "#/components/responses/ActionAccepted"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "409":
+          $ref: "#/components/responses/TransitionConflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/orders/{orderId}/actions/restore:
     post:
       operationId: restoreAdminDedicatedDatabaseOrder
@@ -294,29 +294,29 @@ paths:
       summary: Request an audited restore to an approved recovery point
       x-required-permission: dedicated-database.actions.restore
       parameters:
-        - $ref: '#/components/parameters/OrderId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RestoreActionRequest'
+              $ref: "#/components/schemas/RestoreActionRequest"
       responses:
-        '202':
-          $ref: '#/components/responses/ActionAccepted'
-        '400':
-          $ref: '#/components/responses/ValidationProblem'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '409':
-          $ref: '#/components/responses/TransitionConflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+        "202":
+          $ref: "#/components/responses/ActionAccepted"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "409":
+          $ref: "#/components/responses/TransitionConflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/orders/{orderId}/actions/hold:
     post:
       operationId: holdAdminDedicatedDatabaseOrder
@@ -324,29 +324,29 @@ paths:
       summary: Request an audited operational hold
       x-required-permission: dedicated-database.actions.hold
       parameters:
-        - $ref: '#/components/parameters/OrderId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ActionRequest'
+              $ref: "#/components/schemas/ActionRequest"
       responses:
-        '202':
-          $ref: '#/components/responses/ActionAccepted'
-        '400':
-          $ref: '#/components/responses/ValidationProblem'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '409':
-          $ref: '#/components/responses/TransitionConflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+        "202":
+          $ref: "#/components/responses/ActionAccepted"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "409":
+          $ref: "#/components/responses/TransitionConflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/orders/{orderId}/actions/refund:
     post:
       operationId: refundAdminDedicatedDatabaseOrder
@@ -355,29 +355,29 @@ paths:
       description: Requests a Billing refund; it never deletes or mutates database infrastructure.
       x-required-permission: dedicated-database.actions.refund
       parameters:
-        - $ref: '#/components/parameters/OrderId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefundActionRequest'
+              $ref: "#/components/schemas/RefundActionRequest"
       responses:
-        '202':
-          $ref: '#/components/responses/ActionAccepted'
-        '400':
-          $ref: '#/components/responses/ValidationProblem'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '409':
-          $ref: '#/components/responses/TransitionConflict'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+        "202":
+          $ref: "#/components/responses/ActionAccepted"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "409":
+          $ref: "#/components/responses/TransitionConflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /v1/admin/dedicated-database/operations/{operationId}:
     get:
       operationId: getAdminDedicatedDatabaseOperation
@@ -385,22 +385,22 @@ paths:
       summary: Fetch the authoritative admin operation snapshot
       x-required-permission: dedicated-database.orders.read
       parameters:
-        - $ref: '#/components/parameters/OperationId'
+        - $ref: "#/components/parameters/OperationId"
       responses:
-        '200':
+        "200":
           description: Admin-visible progress and exception evidence
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminOperationSnapshot'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/NotVisible'
-        '404':
-          $ref: '#/components/responses/NotVisible'
-        '503':
-          $ref: '#/components/responses/Unavailable'
+                $ref: "#/components/schemas/AdminOperationSnapshot"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/NotVisible"
+        "404":
+          $ref: "#/components/responses/NotVisible"
+        "503":
+          $ref: "#/components/responses/Unavailable"
 components:
   securitySchemes:
     bearerAuth:
@@ -414,14 +414,14 @@ components:
       required: true
       schema:
         type: string
-        pattern: '^ord_[A-Za-z0-9_-]+$'
+        pattern: "^ord_[A-Za-z0-9_-]+$"
     OperationId:
       name: operationId
       in: path
       required: true
       schema:
         type: string
-        pattern: '^op_[A-Za-z0-9_-]+$'
+        pattern: "^op_[A-Za-z0-9_-]+$"
     Limit:
       name: limit
       in: query
@@ -453,7 +453,7 @@ components:
       properties:
         offeringId:
           type: string
-          pattern: '^off_[A-Za-z0-9_-]+$'
+          pattern: "^off_[A-Za-z0-9_-]+$"
         displayName:
           type: string
           minLength: 1
@@ -461,9 +461,9 @@ components:
           type: array
           items:
             type: string
-            pattern: '^opt_[A-Za-z0-9_-]+$'
+            pattern: "^opt_[A-Za-z0-9_-]+$"
         description:
-          type: [string, 'null']
+          type: [string, "null"]
       additionalProperties: true
     Option:
       type: object
@@ -471,10 +471,10 @@ components:
       properties:
         optionId:
           type: string
-          pattern: '^opt_[A-Za-z0-9_-]+$'
+          pattern: "^opt_[A-Za-z0-9_-]+$"
         offeringId:
           type: string
-          pattern: '^off_[A-Za-z0-9_-]+$'
+          pattern: "^off_[A-Za-z0-9_-]+$"
         displayName:
           type: string
           minLength: 1
@@ -485,7 +485,7 @@ components:
           type: integer
           minimum: 1
         price:
-          $ref: '#/components/schemas/Price'
+          $ref: "#/components/schemas/Price"
       additionalProperties: true
     Price:
       type: object
@@ -496,7 +496,7 @@ components:
           minimum: 0
         currency:
           type: string
-          pattern: '^[A-Z]{3}$'
+          pattern: "^[A-Z]{3}$"
         interval:
           type: string
           x-known-enum-values: [month, year, oneTime]
@@ -507,10 +507,10 @@ components:
       properties:
         offeringId:
           type: string
-          pattern: '^off_[A-Za-z0-9_-]+$'
+          pattern: "^off_[A-Za-z0-9_-]+$"
         optionId:
           type: string
-          pattern: '^opt_[A-Za-z0-9_-]+$'
+          pattern: "^opt_[A-Za-z0-9_-]+$"
       additionalProperties: false
     PriceSnapshot:
       type: object
@@ -521,7 +521,7 @@ components:
           minimum: 0
         currency:
           type: string
-          pattern: '^[A-Z]{3}$'
+          pattern: "^[A-Z]{3}$"
         interval:
           type: string
           x-known-enum-values: [month, year, oneTime]
@@ -532,25 +532,49 @@ components:
       additionalProperties: true
     CustomerOrder:
       type: object
-      required: [orderId, status, paymentStatus, offeringId, optionId, priceSnapshot, createdAt, updatedAt, placementSummary, entitlementSummary]
+      required:
+        [
+          orderId,
+          status,
+          paymentStatus,
+          offeringId,
+          optionId,
+          priceSnapshot,
+          createdAt,
+          updatedAt,
+          placementSummary,
+          entitlementSummary,
+        ]
       properties:
         orderId:
           type: string
-          pattern: '^ord_[A-Za-z0-9_-]+$'
+          pattern: "^ord_[A-Za-z0-9_-]+$"
         status:
           type: string
-          x-known-enum-values: [paymentPending, paid, fulfillmentPending, fulfilling, provisioned, held, failed, refundPending, refunded, cancelled]
+          x-known-enum-values:
+            [
+              paymentPending,
+              paid,
+              fulfillmentPending,
+              fulfilling,
+              provisioned,
+              held,
+              failed,
+              refundPending,
+              refunded,
+              cancelled,
+            ]
         paymentStatus:
           type: string
           x-known-enum-values: [pending, authorized, paid, failed, refundPending, refunded]
         offeringId:
           type: string
-          pattern: '^off_[A-Za-z0-9_-]+$'
+          pattern: "^off_[A-Za-z0-9_-]+$"
         optionId:
           type: string
-          pattern: '^opt_[A-Za-z0-9_-]+$'
+          pattern: "^opt_[A-Za-z0-9_-]+$"
         priceSnapshot:
-          $ref: '#/components/schemas/PriceSnapshot'
+          $ref: "#/components/schemas/PriceSnapshot"
         createdAt:
           type: string
           format: date-time
@@ -561,15 +585,15 @@ components:
           description: RFC 3339 UTC timestamp; offset must be Z.
         placementSummary:
           oneOf:
-            - $ref: '#/components/schemas/PlacementSummary'
-            - type: 'null'
+            - $ref: "#/components/schemas/PlacementSummary"
+            - type: "null"
         entitlementSummary:
           oneOf:
-            - $ref: '#/components/schemas/EntitlementSummary'
-            - type: 'null'
+            - $ref: "#/components/schemas/EntitlementSummary"
+            - type: "null"
         operationId:
-          type: [string, 'null']
-          pattern: '^op_[A-Za-z0-9_-]+$'
+          type: [string, "null"]
+          pattern: "^op_[A-Za-z0-9_-]+$"
       additionalProperties: true
     PlacementSummary:
       type: object
@@ -577,7 +601,7 @@ components:
       properties:
         placementId:
           type: string
-          pattern: '^plc_[A-Za-z0-9_-]+$'
+          pattern: "^plc_[A-Za-z0-9_-]+$"
         status:
           type: string
           x-known-enum-values: [requested, active, suspended, released]
@@ -590,10 +614,10 @@ components:
           type: string
           x-known-enum-values: [pending, active, suspended, expired, revoked]
         validFrom:
-          type: [string, 'null']
+          type: [string, "null"]
           format: date-time
         validUntil:
-          type: [string, 'null']
+          type: [string, "null"]
           format: date-time
       additionalProperties: true
     OrderPage:
@@ -603,9 +627,9 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/CustomerOrder'
+            $ref: "#/components/schemas/CustomerOrder"
         nextCursor:
-          type: [string, 'null']
+          type: [string, "null"]
       additionalProperties: true
     AdminOrderPage:
       type: object
@@ -614,13 +638,13 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/AdminOrder'
+            $ref: "#/components/schemas/AdminOrder"
         nextCursor:
-          type: [string, 'null']
+          type: [string, "null"]
       additionalProperties: true
     AdminOrder:
       allOf:
-        - $ref: '#/components/schemas/CustomerOrder'
+        - $ref: "#/components/schemas/CustomerOrder"
         - type: object
           required: [tenant, allowedActions]
           properties:
@@ -630,7 +654,7 @@ components:
               properties:
                 tenantId:
                   type: string
-                  pattern: '^ten_[A-Za-z0-9_-]+$'
+                  pattern: "^ten_[A-Za-z0-9_-]+$"
               additionalProperties: true
             allowedActions:
               type: array
@@ -640,11 +664,11 @@ components:
             diagnosticsSummary:
               type: array
               items:
-                $ref: '#/components/schemas/Diagnostic'
+                $ref: "#/components/schemas/Diagnostic"
             manualException:
               oneOf:
-                - $ref: '#/components/schemas/ManualException'
-                - type: 'null'
+                - $ref: "#/components/schemas/ManualException"
+                - type: "null"
           additionalProperties: true
     Diagnostic:
       type: object
@@ -652,7 +676,7 @@ components:
       properties:
         code:
           type: string
-          pattern: '^[A-Z][A-Z0-9_]+$'
+          pattern: "^[A-Z][A-Z0-9_]+$"
         severity:
           type: string
           x-known-enum-values: [info, warning, error]
@@ -669,18 +693,18 @@ components:
       properties:
         orderId:
           type: string
-          pattern: '^ord_[A-Za-z0-9_-]+$'
+          pattern: "^ord_[A-Za-z0-9_-]+$"
         items:
           type: array
           items:
-            $ref: '#/components/schemas/Diagnostic'
+            $ref: "#/components/schemas/Diagnostic"
       additionalProperties: true
     ActionRequest:
       type: object
       required: [expectedRevision, reason]
       properties:
         expectedRevision:
-          $ref: '#/components/schemas/Revision'
+          $ref: "#/components/schemas/Revision"
         reason:
           type: string
           minLength: 1
@@ -688,7 +712,7 @@ components:
       additionalProperties: false
     RestoreActionRequest:
       allOf:
-        - $ref: '#/components/schemas/ActionRequest'
+        - $ref: "#/components/schemas/ActionRequest"
         - type: object
           required: [recoveryPoint]
           properties:
@@ -698,7 +722,7 @@ components:
               description: Approved recovery point in UTC; retention policy is enforced server-side.
     RefundActionRequest:
       allOf:
-        - $ref: '#/components/schemas/ActionRequest'
+        - $ref: "#/components/schemas/ActionRequest"
         - type: object
           properties:
             amountMinor:
@@ -711,38 +735,51 @@ components:
       properties:
         orderId:
           type: string
-          pattern: '^ord_[A-Za-z0-9_-]+$'
+          pattern: "^ord_[A-Za-z0-9_-]+$"
         operationId:
           type: string
-          pattern: '^op_[A-Za-z0-9_-]+$'
+          pattern: "^op_[A-Za-z0-9_-]+$"
         auditRecordId:
           type: string
-          pattern: '^aud_[A-Za-z0-9_-]+$'
+          pattern: "^aud_[A-Za-z0-9_-]+$"
         revision:
-          $ref: '#/components/schemas/Revision'
+          $ref: "#/components/schemas/Revision"
         acceptedAt:
           type: string
           format: date-time
       additionalProperties: true
     Revision:
       type: string
-      pattern: '^(0|[1-9][0-9]*)$'
+      pattern: "^(0|[1-9][0-9]*)$"
       description: >-
         Monotonically increasing per operation. Encode as an unsigned decimal
         string to avoid JSON/JavaScript integer precision loss. Compare with
         arbitrary-precision integer arithmetic, never lexicographically.
     OperationSnapshot:
       type: object
-      required: [operationId, orderId, revision, status, phase, requiredStepCount, succeededStepCount, failedStepCount, steps, createdAt, updatedAt]
+      required:
+        [
+          operationId,
+          orderId,
+          revision,
+          status,
+          phase,
+          requiredStepCount,
+          succeededStepCount,
+          failedStepCount,
+          steps,
+          createdAt,
+          updatedAt,
+        ]
       properties:
         operationId:
           type: string
-          pattern: '^op_[A-Za-z0-9_-]+$'
+          pattern: "^op_[A-Za-z0-9_-]+$"
         orderId:
           type: string
-          pattern: '^ord_[A-Za-z0-9_-]+$'
+          pattern: "^ord_[A-Za-z0-9_-]+$"
         revision:
-          $ref: '#/components/schemas/Revision'
+          $ref: "#/components/schemas/Revision"
         status:
           type: string
           x-known-enum-values: [pending, running, needsAttention, complete, failed]
@@ -762,7 +799,7 @@ components:
         steps:
           type: array
           items:
-            $ref: '#/components/schemas/OperationStep'
+            $ref: "#/components/schemas/OperationStep"
         createdAt:
           type: string
           format: date-time
@@ -772,17 +809,17 @@ components:
       additionalProperties: true
     AdminOperationSnapshot:
       allOf:
-        - $ref: '#/components/schemas/OperationSnapshot'
+        - $ref: "#/components/schemas/OperationSnapshot"
         - type: object
           properties:
             manualException:
               oneOf:
-                - $ref: '#/components/schemas/ManualException'
-                - type: 'null'
+                - $ref: "#/components/schemas/ManualException"
+                - type: "null"
             diagnostics:
               type: array
               items:
-                $ref: '#/components/schemas/Diagnostic'
+                $ref: "#/components/schemas/Diagnostic"
           additionalProperties: true
     OperationStep:
       type: object
@@ -790,12 +827,12 @@ components:
       properties:
         stepId:
           type: string
-          pattern: '^[a-z][a-z0-9-]+$'
+          pattern: "^[a-z][a-z0-9-]+$"
         status:
           type: string
           x-known-enum-values: [pending, running, succeeded, failed, skipped]
         failedCode:
-          type: [string, 'null']
+          type: [string, "null"]
           description: Stable safe error code; no provider secrets.
       additionalProperties: true
     ManualException:
@@ -804,19 +841,19 @@ components:
       properties:
         exceptionId:
           type: string
-          pattern: '^exc_[A-Za-z0-9_-]+$'
+          pattern: "^exc_[A-Za-z0-9_-]+$"
         status:
           type: string
           x-known-enum-values: [awaitingEvidence, awaitingReview, approved, rejected, activated]
         evidenceUrl:
-          type: [string, 'null']
+          type: [string, "null"]
           format: uri
           description: Link to the manually reviewed exception PR/evidence; may be null before evidence exists.
         activationRequired:
           type: boolean
           const: true
         activatedAt:
-          type: [string, 'null']
+          type: [string, "null"]
           format: date-time
           description: Set only after separately authorized activation and preflight.
         blockedReasons:
@@ -852,46 +889,46 @@ components:
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Problem'
+            $ref: "#/components/schemas/Problem"
           examples:
             validation:
-              $ref: '#/components/examples/ValidationProblem'
+              $ref: "#/components/examples/ValidationProblem"
     Unauthenticated:
       description: Missing or invalid credentials (401)
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Problem'
+            $ref: "#/components/schemas/Problem"
           examples:
             unauthenticated:
-              $ref: '#/components/examples/UnauthenticatedProblem'
+              $ref: "#/components/examples/UnauthenticatedProblem"
     NotVisible:
       description: Authenticated but not authorized or resource is not visible (403)
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Problem'
+            $ref: "#/components/schemas/Problem"
           examples:
             unauthorized:
-              $ref: '#/components/examples/NotVisibleProblem'
+              $ref: "#/components/examples/NotVisibleProblem"
     IdempotencyConflict:
       description: The same idempotency key was reused for a different request (409)
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Problem'
+            $ref: "#/components/schemas/Problem"
           examples:
             idempotencyConflict:
-              $ref: '#/components/examples/IdempotencyConflictProblem'
+              $ref: "#/components/examples/IdempotencyConflictProblem"
     TransitionConflict:
       description: Stale expected revision or invalid state transition (409)
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Problem'
+            $ref: "#/components/schemas/Problem"
           examples:
             transitionConflict:
-              $ref: '#/components/examples/TransitionConflictProblem'
+              $ref: "#/components/examples/TransitionConflictProblem"
     Unavailable:
       description: Transient service unavailability (503); retry with backoff
       headers:
@@ -902,16 +939,16 @@ components:
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/Problem'
+            $ref: "#/components/schemas/Problem"
           examples:
             unavailable:
-              $ref: '#/components/examples/UnavailableProblem'
+              $ref: "#/components/examples/UnavailableProblem"
     ActionAccepted:
       description: Audited action accepted asynchronously (202)
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ActionAccepted'
+            $ref: "#/components/schemas/ActionAccepted"
   examples:
     PaymentPendingOrder:
       value:
@@ -924,9 +961,9 @@ components:
           amountMinor: 4900
           currency: EUR
           interval: month
-          capturedAt: '2026-11-20T12:00:00Z'
-        createdAt: '2026-11-20T12:00:00Z'
-        updatedAt: '2026-11-20T12:00:00Z'
+          capturedAt: "2026-11-20T12:00:00Z"
+        createdAt: "2026-11-20T12:00:00Z"
+        updatedAt: "2026-11-20T12:00:00Z"
         placementSummary: null
         entitlementSummary:
           status: pending

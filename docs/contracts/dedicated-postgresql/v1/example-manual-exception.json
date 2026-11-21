@@ -24,7 +24,12 @@
       "blockedReasons": ["Two-person review required", "Run activation preflight"]
     },
     "diagnostics": [
-      { "code": "DATA_REQUIRES_REVIEW", "severity": "warning", "occurredAt": "2026-11-20T12:05:00Z", "message": "A reviewed exception is required before activation." }
+      {
+        "code": "DATA_REQUIRES_REVIEW",
+        "severity": "warning",
+        "occurredAt": "2026-11-20T12:05:00Z",
+        "message": "A reviewed exception is required before activation."
+      }
     ]
   }
 }
