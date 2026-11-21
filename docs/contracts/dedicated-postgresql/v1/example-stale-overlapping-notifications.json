@@ -18,7 +18,7 @@
       "target": "SubscribeToOrder",
       "arguments": [{ "orderId": "ord_migration_demo" }]
     },
-    "completion": { "type": 3, "invocationId": "27", "result": null },
+    "completion": { "type": 3, "invocationId": "27" },
     "snapshotRequest": "GET /v1/dedicated-database/operations/op_migration_demo"
   },
   "consumerRule": "Fetch the authoritative snapshot for every hint; ignore duplicate/stale hints and only apply snapshots whose decimal-string revision compares greater by arbitrary-precision integer arithmetic.",

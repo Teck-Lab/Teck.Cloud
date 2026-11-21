@@ -329,7 +329,7 @@ for (const file of exampleFiles) {
       example.reconnect.subscribe.invocationId,
       `${file} reconnect.completion.invocationId must match reconnect.subscribe.invocationId`,
     );
-    assert.equal(example.reconnect.completion.result, null);
+    assert.equal("result" in example.reconnect.completion, false);
     assert.equal(
       example.reconnect.snapshotRequest,
       "GET /v1/dedicated-database/operations/op_migration_demo",
