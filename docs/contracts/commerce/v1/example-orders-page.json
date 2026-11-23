@@ -1,0 +1,37 @@
+{
+  "kind": "orderPage",
+  "page": {
+    "items": [
+      {
+        "orderId": "0f0e0d0c-0b0a-4999-8877-665544332211",
+        "subscriptionId": "1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3",
+        "tier": "shared",
+        "addOnCodes": [],
+        "total": { "amountMinor": 1000, "currency": "USD" },
+        "status": "active",
+        "revision": 4,
+        "createdAt": "2026-11-23T19:00:00Z",
+        "updatedAt": "2026-11-23T20:15:00Z",
+        "license": {
+          "document": "eyJhbGciOiJFZERTQSJ9.eyJ0ZW5hbnRJZCI6IjNmMGYwZjZlLTZiMWEtNGQxZS05ZjRhLTFjMmIzZDRlNWY2MCJ9.cGxhY2Vob2xkZXItc2lnbmF0dXJl",
+          "keyId": "K1",
+          "revision": 1,
+          "expiresAt": "2026-12-23T20:00:00Z"
+        }
+      },
+      {
+        "orderId": "3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293",
+        "subscriptionId": "5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4",
+        "tier": "shared",
+        "addOnCodes": [],
+        "total": { "amountMinor": 1000, "currency": "USD" },
+        "status": "pendingPayment",
+        "revision": 1,
+        "createdAt": "2026-11-23T19:10:00Z",
+        "updatedAt": "2026-11-23T19:10:00Z",
+        "license": null
+      }
+    ],
+    "nextCursor": "cursor_orders_page_2"
+  }
+}

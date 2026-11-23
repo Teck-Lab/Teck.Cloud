@@ -1,0 +1,18 @@
+{
+  "kind": "checkoutCreated",
+  "response": {
+    "order": {
+      "orderId": "0f0e0d0c-0b0a-4999-8877-665544332211",
+      "subscriptionId": "1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3",
+      "tier": "shared",
+      "addOnCodes": [],
+      "total": { "amountMinor": 1000, "currency": "USD" },
+      "status": "pendingPayment",
+      "revision": 1,
+      "createdAt": "2026-11-23T19:00:00Z",
+      "updatedAt": "2026-11-23T19:00:00Z",
+      "license": null
+    },
+    "checkoutUrl": "https://checkout.stripe.com/c/pay/cs_test_shared_example"
+  }
+}

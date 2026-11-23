@@ -1,0 +1,296 @@
+syntax = "proto3";
+
+package teck.cloud.commerce.orders.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Teck.Cloud.Commerce.Orders.V1";
+
+// Orders is the authoritative internal order service. The customer and admin
+// gateways map their HTTP messages to these RPCs; they do not keep a second
+// state model. Delegated identity and tenant scope travel in call metadata and
+// are validated by the handler, never accepted from a trusted request field.
+service Orders {
+  // Catalog and basket.
+  rpc GetCatalog(GetCatalogRequest) returns (GetCatalogResponse);
+  rpc GetBasket(GetBasketRequest) returns (Basket);
+  rpc PutBasket(PutBasketRequest) returns (Basket);
+
+  // Checkout and customer reads.
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc ListCustomerOrders(ListCustomerOrdersRequest) returns (ListCustomerOrdersResponse);
+  rpc GetCustomerOrder(GetCustomerOrderRequest) returns (GetCustomerOrderResponse);
+
+  // Staff reads and audited decisions.
+  rpc ListAdminOrders(ListAdminOrdersRequest) returns (ListAdminOrdersResponse);
+  rpc GetAdminOrder(GetAdminOrderRequest) returns (GetAdminOrderResponse);
+  rpc DecideOrder(DecideOrderRequest) returns (DecideOrderResponse);
+  rpc RecordPlacementEvidence(RecordPlacementEvidenceRequest)
+      returns (RecordPlacementEvidenceResponse);
+
+  // Internal entitlement check. Only the scoped Licensing workload may call this;
+  // it is not an edge endpoint and Orders answers from its own durable facts.
+  rpc CheckCurrentEntitlement(CheckCurrentEntitlementRequest)
+      returns (CheckCurrentEntitlementResponse);
+}
+
+// Database tier. `dedicated` means a tenant-specific database, not a cluster.
+enum Tier {
+  TIER_UNSPECIFIED = 0;
+  TIER_SHARED = 1;
+  TIER_DEDICATED = 2;
+}
+
+// Effective customer-visible order status.
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING_PAYMENT = 1;
+  ORDER_STATUS_PENDING_APPROVAL = 2;
+  ORDER_STATUS_PENDING_READINESS = 3;
+  ORDER_STATUS_ACTIVE = 4;
+  ORDER_STATUS_REJECTED = 5;
+  ORDER_STATUS_FAILED = 6;
+}
+
+// Verified payment state. Stripe Billing is the authority.
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PAID = 2;
+}
+
+// Separate and final staff approval decision.
+enum ApprovalStatus {
+  APPROVAL_STATUS_UNSPECIFIED = 0;
+  APPROVAL_STATUS_PENDING = 1;
+  APPROVAL_STATUS_APPROVED = 2;
+  APPROVAL_STATUS_REJECTED = 3;
+}
+
+// Asynchronous internal verification of recorded placement evidence.
+enum FulfillmentStatus {
+  FULFILLMENT_STATUS_UNSPECIFIED = 0;
+  FULFILLMENT_STATUS_AWAITING_EVIDENCE = 1;
+  FULFILLMENT_STATUS_VERIFYING = 2;
+  FULFILLMENT_STATUS_READY = 3;
+  FULFILLMENT_STATUS_FAILED = 4;
+}
+
+// Stable terminal readiness failure classification.
+enum FulfillmentFailureCode {
+  FULFILLMENT_FAILURE_CODE_UNSPECIFIED = 0;
+  FULFILLMENT_FAILURE_CODE_BINDING_MISMATCH = 1;
+  FULFILLMENT_FAILURE_CODE_CAPABILITY_UNAVAILABLE = 2;
+  FULFILLMENT_FAILURE_CODE_PROBE_UNAVAILABLE = 3;
+}
+
+// Final staff decision.
+enum Decision {
+  DECISION_UNSPECIFIED = 0;
+  DECISION_APPROVE = 1;
+  DECISION_REJECT = 2;
+}
+
+// Recorded staff action.
+enum AuditAction {
+  AUDIT_ACTION_UNSPECIFIED = 0;
+  AUDIT_ACTION_APPROVE = 1;
+  AUDIT_ACTION_REJECT = 2;
+  AUDIT_ACTION_RECORD_PLACEMENT_EVIDENCE = 3;
+}
+
+// Positive amount in minor units, bounded by the JavaScript safe-integer limit.
+message Money {
+  int64 amount_minor = 1;
+  // ISO 4217 uppercase currency code.
+  string currency = 2;
+}
+
+message AddOn {
+  string code = 1;
+  string display_name = 2;
+  Money price = 3;
+}
+
+message Offer {
+  string offer_id = 1;
+  Tier tier = 2;
+  string display_name = 3;
+  Money base_price = 4;
+  repeated AddOn add_ons = 5;
+}
+
+message GetCatalogRequest {}
+
+message GetCatalogResponse {
+  repeated Offer offers = 1;
+}
+
+message BasketSelection {
+  string offer_id = 1;
+  repeated string add_on_codes = 2;
+}
+
+message Basket {
+  // Absent when the basket has no selection; empty initial revision is 0.
+  BasketSelection selection = 1;
+  uint32 revision = 2;
+  // Absent for an empty basket.
+  Money total = 3;
+}
+
+message GetBasketRequest {}
+
+message PutBasketRequest {
+  // Absent clears the selection; the persisted revision still increments.
+  BasketSelection selection = 1;
+  uint32 expected_revision = 2;
+}
+
+message CreateOrderRequest {
+  uint32 basket_revision = 1;
+  // UUID string; the gateway supplies it from the Idempotency-Key header.
+  string idempotency_key = 2;
+}
+
+message CreateOrderResponse {
+  CustomerOrder order = 1;
+  // Absent while the order exists but checkout is not payable.
+  optional string checkout_url = 2;
+}
+
+message ListCustomerOrdersRequest {
+  uint32 limit = 1;
+  optional string cursor = 2;
+}
+
+message ListCustomerOrdersResponse {
+  repeated CustomerOrder items = 1;
+  optional string next_cursor = 2;
+}
+
+message GetCustomerOrderRequest {
+  string order_id = 1;
+}
+
+message GetCustomerOrderResponse {
+  CustomerOrder order = 1;
+}
+
+message CustomerOrder {
+  string order_id = 1;
+  string subscription_id = 2;
+  Tier tier = 3;
+  repeated string add_on_codes = 4;
+  Money total = 5;
+  OrderStatus status = 6;
+  uint32 revision = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  // Present only for the caller's own active order.
+  License license = 10;
+}
+
+message License {
+  // Signed document; opaque to clients.
+  string document = 1;
+  // Opaque signing key identifier used for rotation.
+  string key_id = 2;
+  uint32 revision = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message ListAdminOrdersRequest {
+  uint32 limit = 1;
+  optional string cursor = 2;
+}
+
+message ListAdminOrdersResponse {
+  repeated AdminOrder items = 1;
+  optional string next_cursor = 2;
+}
+
+message GetAdminOrderRequest {
+  string order_id = 1;
+}
+
+message GetAdminOrderResponse {
+  AdminOrder order = 1;
+}
+
+message DecideOrderRequest {
+  Decision decision = 1;
+  // Trimmed nonblank, at most 512 characters.
+  string reason = 2;
+  uint32 expected_revision = 3;
+}
+
+message DecideOrderResponse {
+  AdminOrder order = 1;
+}
+
+message RecordPlacementEvidenceRequest {
+  string placement_id = 1;
+  // Bounded nonsecret audit reference; it is not proof and is never fetched.
+  string evidence_reference = 2;
+  uint32 expected_revision = 3;
+}
+
+message RecordPlacementEvidenceResponse {
+  AdminOrder order = 1;
+}
+
+message AdminOrder {
+  string order_id = 1;
+  string subscription_id = 2;
+  Tier tier = 3;
+  repeated string add_on_codes = 4;
+  Money total = 5;
+  OrderStatus status = 6;
+  uint32 revision = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  Payment payment = 10;
+  Approval approval = 11;
+  Fulfillment fulfillment = 12;
+  repeated AuditEntry audit = 13;
+}
+
+message Payment {
+  PaymentStatus status = 1;
+  google.protobuf.Timestamp paid_through = 2;
+}
+
+message Approval {
+  ApprovalStatus status = 1;
+  optional string actor_id = 2;
+  optional string reason = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+}
+
+message Fulfillment {
+  FulfillmentStatus status = 1;
+  optional string placement_id = 2;
+  optional string evidence_reference = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  FulfillmentFailureCode failure_code = 5;
+}
+
+message AuditEntry {
+  string order_id = 1;
+  string actor_id = 2;
+  AuditAction action = 3;
+  optional string reason = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}
+
+message CheckCurrentEntitlementRequest {
+  string tenant_id = 1;
+  string order_id = 2;
+  string subscription_id = 3;
+  uint32 desired_revision = 4;
+}
+
+message CheckCurrentEntitlementResponse {
+  bool eligible = 1;
+}

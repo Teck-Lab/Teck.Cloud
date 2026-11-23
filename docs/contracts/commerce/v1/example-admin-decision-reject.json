@@ -1,0 +1,8 @@
+{
+  "kind": "decisionRequest",
+  "request": {
+    "decision": "reject",
+    "reason": "Purchase order did not match the requesting organization.",
+    "expectedRevision": 2
+  }
+}
