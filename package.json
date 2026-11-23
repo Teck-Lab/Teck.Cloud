@@ -49,12 +49,12 @@
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/lint": "21.2.4",
     "@commitlint/load": "21.2.4",
-    "@nx/dotnet": "24.1.0-beta.2",
-    "@nx/js": "24.1.0-beta.2",
-    "nx": "24.1.0-beta.2",
+    "@nx/dotnet": "24.1.0-canary.20261113-51292c7",
+    "@nx/js": "24.1.0-canary.20261113-51292c7",
+    "nx": "24.1.0-canary.20261113-51292c7",
     "typescript": "6.0.2",
     "yaml": "2.9.0",
-    "@nx/vite": "24.1.0-beta.2"
+    "@nx/vite": "24.1.0-canary.20261113-51292c7"
   },
   "trustedDependencies": [
     "nx"
