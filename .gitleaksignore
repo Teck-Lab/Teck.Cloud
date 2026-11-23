@@ -13,3 +13,11 @@
 03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/login/pages/SelectAuthenticator.stories.tsx:generic-api-key:63
 03a5de79e6723c19a3a6224d37794ea337c04886:tests/fixtures/keycloak-kete/README.md:generic-api-key:9
 03a5de79e6723c19a3a6224d37794ea337c04886:tests/integration/SharedKernel.Infrastructure.IntegrationTests/KeycloakKeteEvaluationTests.cs:generic-api-key:23
+
+# Superseded TECCL-11 draft branch: the fixture license document was a JWT-shaped placeholder, not a credential. The published contract uses a plain-text placeholder.
+de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/customer.openapi.yaml:jwt:696
+de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/customer.openapi.yaml:jwt:759
+de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/customer.openapi.yaml:jwt:777
+de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/example-order-dedicated-active.json:jwt:14
+de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/example-order-shared-active.json:jwt:14
+de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/example-orders-page.json:jwt:16
