@@ -53,14 +53,14 @@ jobs:
           fi
       - name: Update the stable draft
         if: steps.gate.outputs.publish == 'true'
-        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+        uses: release-drafter/release-drafter@d1a19e60e81a7e650d00a7de9277f87e439117ea # v7.11.0
         with:
           config-name: release-drafter.yml
           prerelease: false
           commitish: ${{ github.event.workflow_run.head_sha }}
       - name: Publish the RC
         if: steps.gate.outputs.publish == 'true'
-        uses: release-drafter/release-drafter@978bb0b30c5ee8cdd332ced253758157150d43f0 # v7.10.0
+        uses: release-drafter/release-drafter@d1a19e60e81a7e650d00a7de9277f87e439117ea # v7.11.0
         with:
           config-name: release-drafter.yml
           prerelease-identifier: rc
