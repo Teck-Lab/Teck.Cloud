@@ -235,6 +235,23 @@ for (const entry of customerRoutes) {
 }
 for (const { operation } of operationsOf(customer))
   assert.equal(operation["x-required-permission"], "commerce.customer");
+for (const { operation } of operationsOf(customer)) {
+  assert.equal(
+    operation.responses["403"]?.$ref,
+    "#/components/responses/Forbidden",
+    `${operation.operationId} must declare the reachable 403 permission failure`,
+  );
+  assert.equal(
+    operation.responses["401"]?.$ref,
+    "#/components/responses/Unauthenticated",
+    `${operation.operationId} must declare 401`,
+  );
+}
+assert.equal(
+  customer.paths["/v1/commerce/orders/{orderId}"].get.responses["400"]?.$ref,
+  "#/components/responses/ValidationProblem",
+  "customer order detail must declare 400 for a malformed orderId",
+);
 
 const adminPermissions = new Map([
   ["listAdminCommerceOrders", "CommerceOrdersRead"],
@@ -446,10 +463,12 @@ const customerExampleSchemas = {
   OrdersPage: "OrderPage",
   CreatedSharedCheckout: "CreateOrderResponse",
   CreatedDedicatedCheckout: "CreateOrderResponse",
+  CreatedCheckoutPending: "CreateOrderResponse",
   SharedActiveOrder: "CustomerOrder",
   DedicatedActiveOrder: "CustomerOrder",
   PaymentPendingOrder: "CustomerOrder",
   ReadinessFailedOrder: "CustomerOrder",
+  RejectedOrder: "CustomerOrder",
   InvalidRequestProblem: "Problem",
   UnauthenticatedProblem: "Problem",
   ForbiddenProblem: "Problem",
@@ -465,6 +484,8 @@ const adminExampleSchemas = {
   AdminOrderApproved: "AdminOrder",
   AdminOrderVerifying: "AdminOrder",
   AdminOrderReady: "AdminOrder",
+  AdminOrderApprovalPending: "AdminOrder",
+  AdminOrderFailed: "AdminOrder",
   ApproveDecision: "DecisionRequest",
   RejectDecision: "DecisionRequest",
   RecordPlacementEvidence: "PlacementEvidenceRequest",
@@ -500,15 +521,19 @@ const fixtureExample = new Map([
   ["example-basket-empty.json", [customer, "EmptyBasket"]],
   ["example-basket-dedicated.json", [customer, "DedicatedBasket"]],
   ["example-checkout-created-shared.json", [customer, "CreatedSharedCheckout"]],
+  ["example-checkout-pending.json", [customer, "CreatedCheckoutPending"]],
   ["example-orders-page.json", [customer, "OrdersPage"]],
   ["example-order-payment-pending.json", [customer, "PaymentPendingOrder"]],
   ["example-order-shared-active.json", [customer, "SharedActiveOrder"]],
   ["example-order-dedicated-active.json", [customer, "DedicatedActiveOrder"]],
   ["example-order-readiness-failed.json", [customer, "ReadinessFailedOrder"]],
+  ["example-order-rejected.json", [customer, "RejectedOrder"]],
   ["example-admin-orders-page.json", [admin, "AdminOrdersPage"]],
   ["example-admin-order-approved.json", [admin, "AdminOrderApproved"]],
   ["example-admin-order-verifying.json", [admin, "AdminOrderVerifying"]],
   ["example-admin-order-ready.json", [admin, "AdminOrderReady"]],
+  ["example-admin-order-approval-pending.json", [admin, "AdminOrderApprovalPending"]],
+  ["example-admin-order-failed.json", [admin, "AdminOrderFailed"]],
   ["example-admin-decision-approve.json", [admin, "ApproveDecision"]],
   ["example-admin-decision-reject.json", [admin, "RejectDecision"]],
   ["example-admin-placement-evidence.json", [admin, "RecordPlacementEvidence"]],
@@ -522,16 +547,21 @@ const requiredFixtures = [
   "example-basket-empty.json",
   "example-basket-dedicated.json",
   "example-checkout-created-shared.json",
+  "example-checkout-pending.json",
   "example-orders-page.json",
   "example-order-payment-pending.json",
   "example-order-approval-only.json",
   "example-order-shared-active.json",
   "example-order-dedicated-active.json",
   "example-order-readiness-failed.json",
+  "example-order-pending-approval.json",
+  "example-order-rejected.json",
   "example-admin-orders-page.json",
   "example-admin-order-approved.json",
   "example-admin-order-verifying.json",
   "example-admin-order-ready.json",
+  "example-admin-order-approval-pending.json",
+  "example-admin-order-failed.json",
   "example-admin-order-rejected.json",
   "example-admin-decision-approve.json",
   "example-admin-decision-reject.json",
@@ -612,7 +642,9 @@ for (const file of fixtureFiles) {
       );
       assert.equal(fixture.response.order.status, "pendingPayment", `${file} status`);
       assert.equal(fixture.response.order.license, null, `${file} license`);
-      assert.match(fixture.response.checkoutUrl, /^https:\/\//, `${file} checkout URL`);
+      if (fixture.response.checkoutUrl === null)
+        assert.equal(fixture.response.order.status, "pendingPayment", `${file} pending checkout`);
+      else assert.match(fixture.response.checkoutUrl, /^https:\/\//u, `${file} checkout URL`);
       break;
     case "customerOrder": {
       assertMatches(customer, { $ref: "#/components/schemas/CustomerOrder" }, fixture.order, file);
@@ -801,6 +833,26 @@ assert.deepEqual(licenseVerification.valid.claims.addOnCodes, verifiedCustomer.a
 assert.equal(licenseVerification.valid.claims.keyId, verifiedCustomer.license.keyId);
 assert.equal(licenseVerification.valid.claims.revision, verifiedCustomer.license.revision);
 assert.equal(licenseVerification.valid.claims.expiresAt, verifiedCustomer.license.expiresAt);
+
+// Branch coverage for the states the consumer sign-off named explicitly.
+assert.equal(
+  readJson("example-checkout-pending.json").response.checkoutUrl,
+  null,
+  "the contract keeps an example for an order whose checkout is not yet available",
+);
+assert.equal(
+  readJson("example-admin-order-approval-pending.json").order.approval.status,
+  "pending",
+  "the patient-admin queue state has a pending-approval example",
+);
+assert.equal(
+  readJson("example-order-rejected.json").order.status,
+  "rejected",
+  "the customer rejection state has an example",
+);
+const failedFulfillment = readJson("example-admin-order-failed.json").order.fulfillment;
+assert.equal(failedFulfillment.status, "failed", "the failed fulfillment state has an example");
+assert.equal(failedFulfillment.failureCode, "binding_mismatch", "failed fulfillment sets a code");
 
 // Event schema metadata and shared shape.
 for (const [name, schema] of [

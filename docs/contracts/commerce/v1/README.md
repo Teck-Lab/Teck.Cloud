@@ -66,6 +66,11 @@ caller's own tenant and subject. An order outside that scope returns the same
 | Admin approve/reject decision       | `CommerceOrdersDecide`                               | Gateway and Orders                                                                                |
 | Admin placement evidence            | `CommercePlacementRecord`                            | Gateway and Orders                                                                                |
 
+All six customer operations declare `403 forbidden`; operations with a path or
+body also declare `400 invalid_request`, including a malformed `orderId` UUID.
+An authenticated customer principal without `commerce.customer` receives
+`403 forbidden`.
+
 Each Admin policy binds to a same-named staff role on the admin audience. Staff
 select exactly one tenant per request; there is no unrestricted global query,
 and tenant scope is validated before delegation. Reading an order does not

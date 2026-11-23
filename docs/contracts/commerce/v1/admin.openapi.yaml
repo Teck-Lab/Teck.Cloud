@@ -74,6 +74,10 @@ paths:
                   $ref: "#/components/examples/AdminOrderApproved"
                 ready:
                   $ref: "#/components/examples/AdminOrderReady"
+                approvalPending:
+                  $ref: "#/components/examples/AdminOrderApprovalPending"
+                failed:
+                  $ref: "#/components/examples/AdminOrderFailed"
         "400":
           $ref: "#/components/responses/ValidationProblem"
         "401":
@@ -689,6 +693,72 @@ components:
             reason: Verified purchase order and tenant intent.
             occurredAt: 2026-11-23T20:05:00Z
           - orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
+            actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+            action: recordPlacementEvidence
+            reason: evidence://ops/2026-11-23/dedicated-primary-check
+            occurredAt: 2026-11-23T20:10:00Z
+    AdminOrderApprovalPending:
+      value:
+        orderId: 3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293
+        subscriptionId: 5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4
+        tier: shared
+        addOnCodes: []
+        total:
+          amountMinor: 1000
+          currency: USD
+        status: pendingApproval
+        revision: 2
+        createdAt: 2026-11-23T19:10:00Z
+        updatedAt: 2026-11-23T19:30:00Z
+        payment:
+          status: paid
+          paidThrough: 2026-12-23T20:00:00Z
+        approval:
+          status: pending
+          actorId: null
+          reason: null
+          occurredAt: null
+        fulfillment:
+          status: awaitingEvidence
+          placementId: null
+          evidenceReference: null
+          observedAt: null
+          failureCode: null
+        audit: []
+    AdminOrderFailed:
+      value:
+        orderId: 4b5c6d7e-8fa0-4b3c-9d4e-5f60718293a4
+        subscriptionId: 6c7d8e9f-a0b1-4c4d-8e5f-60718293a4b5
+        tier: dedicated
+        addOnCodes: []
+        total:
+          amountMinor: 3000
+          currency: USD
+        status: failed
+        revision: 6
+        createdAt: 2026-11-23T19:15:00Z
+        updatedAt: 2026-11-23T20:30:00Z
+        payment:
+          status: paid
+          paidThrough: 2026-12-23T20:00:00Z
+        approval:
+          status: approved
+          actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+          reason: Verified purchase order and tenant intent.
+          occurredAt: 2026-11-23T20:05:00Z
+        fulfillment:
+          status: failed
+          placementId: 5d6e7f80-91a2-4c3d-9e4f-506172839405
+          evidenceReference: evidence://ops/2026-11-23/dedicated-primary-check
+          observedAt: 2026-11-23T20:30:00Z
+          failureCode: binding_mismatch
+        audit:
+          - orderId: 4b5c6d7e-8fa0-4b3c-9d4e-5f60718293a4
+            actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+            action: approve
+            reason: Verified purchase order and tenant intent.
+            occurredAt: 2026-11-23T20:05:00Z
+          - orderId: 4b5c6d7e-8fa0-4b3c-9d4e-5f60718293a4
             actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
             action: recordPlacementEvidence
             reason: evidence://ops/2026-11-23/dedicated-primary-check

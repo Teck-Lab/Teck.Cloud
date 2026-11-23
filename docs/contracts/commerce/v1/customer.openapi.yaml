@@ -38,6 +38,8 @@ paths:
                   $ref: "#/components/examples/Catalog"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "503":
           $ref: "#/components/responses/Unavailable"
   /v1/commerce/basket:
@@ -63,6 +65,8 @@ paths:
                   $ref: "#/components/examples/DedicatedBasket"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "503":
           $ref: "#/components/responses/Unavailable"
     put:
@@ -100,6 +104,8 @@ paths:
           $ref: "#/components/responses/ValidationProblem"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/StaleRevision"
         "422":
@@ -132,6 +138,8 @@ paths:
           $ref: "#/components/responses/ValidationProblem"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "503":
           $ref: "#/components/responses/Unavailable"
     post:
@@ -172,10 +180,14 @@ paths:
                   $ref: "#/components/examples/CreatedSharedCheckout"
                 dedicated:
                   $ref: "#/components/examples/CreatedDedicatedCheckout"
+                pending:
+                  $ref: "#/components/examples/CreatedCheckoutPending"
         "400":
           $ref: "#/components/responses/ValidationProblem"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
         "503":
@@ -210,8 +222,14 @@ paths:
                   $ref: "#/components/examples/PaymentPendingOrder"
                 readinessFailed:
                   $ref: "#/components/examples/ReadinessFailedOrder"
+                rejected:
+                  $ref: "#/components/examples/RejectedOrder"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "503":
@@ -742,6 +760,22 @@ components:
           updatedAt: 2026-11-23T19:05:00Z
           license: null
         checkoutUrl: https://checkout.stripe.com/c/pay/cs_test_dedicated_example
+    CreatedCheckoutPending:
+      value:
+        order:
+          orderId: 3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293
+          subscriptionId: 5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4
+          tier: shared
+          addOnCodes: []
+          total:
+            amountMinor: 1000
+            currency: USD
+          status: pendingPayment
+          revision: 1
+          createdAt: 2026-11-23T19:10:00Z
+          updatedAt: 2026-11-23T19:10:00Z
+          license: null
+        checkoutUrl: null
     SharedActiveOrder:
       value:
         orderId: 0f0e0d0c-0b0a-4999-8877-665544332211
@@ -805,6 +839,20 @@ components:
         revision: 6
         createdAt: 2026-11-23T19:15:00Z
         updatedAt: 2026-11-23T20:30:00Z
+        license: null
+    RejectedOrder:
+      value:
+        orderId: 7c8d9e0f-a1b2-4c3d-8e4f-506172839405
+        subscriptionId: 8d9e0fa1-b2c3-4d4e-9f50-617283940516
+        tier: shared
+        addOnCodes: []
+        total:
+          amountMinor: 1000
+          currency: USD
+        status: rejected
+        revision: 3
+        createdAt: 2026-11-23T19:20:00Z
+        updatedAt: 2026-11-23T20:25:00Z
         license: null
     InvalidRequestProblem:
       value:
