@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api.teck.cloud/contracts/commerce/v1/license-desired-event.schema.json",
+  "title": "commerce.license-desired.v1",
+  "description": "Orders -> Licensing desired entitlement snapshot. Licensing ignores a lower or equal desired revision, processes the full snapshot and returns the effective revision. The desired revision is a durable monotonically increasing Orders generation. Broker messages contain no license document, credentials or private key. Tenant context additionally travels in established message middleware and the handler verifies it matches the binding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "messageId",
+    "occurredAt",
+    "tenantId",
+    "orderId",
+    "subscriptionId",
+    "revision",
+    "enabled",
+    "tier",
+    "addOnCodes",
+    "notAfter"
+  ],
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Stable event identity retained across transport retries."
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 UTC instant."
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Immutable Keycloak organization UUID."
+    },
+    "orderId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "subscriptionId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295,
+      "description": "Desired entitlement generation this message is about."
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether effective entitlement is currently desired."
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["shared", "dedicated"],
+      "description": "`dedicated` means a tenant-specific database, not a cluster."
+    },
+    "addOnCodes": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+      }
+    },
+    "notAfter": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Upper bound for the issued license, already clamped by Orders; null when entitlement is disabled."
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["enabled", "notAfter"],
+      "properties": {
+        "enabled": {
+          "const": true
+        },
+        "notAfter": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "type": "object"
+    },
+    {
+      "required": ["enabled", "notAfter"],
+      "properties": {
+        "enabled": {
+          "const": false
+        },
+        "notAfter": {
+          "type": "null"
+        }
+      },
+      "type": "object"
+    }
+  ]
+}

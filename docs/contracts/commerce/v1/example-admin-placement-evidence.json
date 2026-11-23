@@ -1,0 +1,8 @@
+{
+  "kind": "placementEvidenceRequest",
+  "request": {
+    "placementId": "5d6e7f80-91a2-4c3d-9e4f-506172839405",
+    "evidenceReference": "evidence://ops/2026-11-23/dedicated-primary-check",
+    "expectedRevision": 3
+  }
+}

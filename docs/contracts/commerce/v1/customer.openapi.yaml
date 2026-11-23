@@ -1,0 +1,877 @@
+openapi: 3.1.0
+info:
+  title: Commerce customer gateway API
+  version: 1.0.0
+  description: >-
+    Normative v1 JSON contract for the customer commerce gateway. Tenant and
+    subject scope come only from the authenticated principal; requests never
+    accept tenant, price, provider or actor input. Prices, selections and order
+    facts are server-owned snapshots. The signed license document appears only
+    for the caller's own active order.
+servers:
+  - url: https://api.teck.cloud
+security:
+  - bearerAuth: []
+tags:
+  - name: Customer catalog
+  - name: Customer basket
+  - name: Customer orders
+paths:
+  /v1/commerce/catalog:
+    get:
+      operationId: getCommerceCatalog
+      tags: [Customer catalog]
+      summary: List the offered database tiers and optional add-ons
+      description: >-
+        Server-priced catalog for the authenticated tenant. Consumers branch on
+        `tier`, never on `offerId` or display labels. Add-on codes are opaque.
+      x-required-permission: commerce.customer
+      responses:
+        "200":
+          description: Server-priced offers and add-ons
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogResponse"
+              examples:
+                catalog:
+                  $ref: "#/components/examples/Catalog"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/commerce/basket:
+    get:
+      operationId: getCommerceBasket
+      tags: [Customer basket]
+      summary: Read the caller's basket
+      description: >-
+        One basket per authenticated tenant and subject. An untouched basket is
+        `{selection: null, revision: 0, total: null}`.
+      x-required-permission: commerce.customer
+      responses:
+        "200":
+          description: Current basket with its persisted revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Basket"
+              examples:
+                empty:
+                  $ref: "#/components/examples/EmptyBasket"
+                dedicatedWithAddOn:
+                  $ref: "#/components/examples/DedicatedBasket"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    put:
+      operationId: putCommerceBasket
+      tags: [Customer basket]
+      summary: Replace or clear the selection using an expected revision
+      description: >-
+        `expectedRevision` is the revision the client last observed.
+        `expectedRevision: 0` creates the basket's first selection. Create,
+        update and clear each increment the persisted revision; the revision is
+        not reset when the selection is cleared. The server canonicalizes the
+        selection by sorting and deduplicating add-on codes, recomputes `total`
+        from catalog prices, and rejects codes that are not offered.
+      x-required-permission: commerce.customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutBasketRequest"
+            examples:
+              dedicatedWithAddOn:
+                $ref: "#/components/examples/PutDedicatedBasket"
+      responses:
+        "200":
+          description: Stored basket with the incremented revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Basket"
+              examples:
+                dedicatedWithAddOn:
+                  $ref: "#/components/examples/DedicatedBasket"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/StaleRevision"
+        "422":
+          $ref: "#/components/responses/UnsupportedOption"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/commerce/orders:
+    get:
+      operationId: listCommerceOrders
+      tags: [Customer orders]
+      summary: List the caller's own tenant and subject orders
+      description: >-
+        Bounded newest-first page. Default limit is 25, maximum 100. Cursors are
+        opaque and include a deterministic `orderId` tie-breaker.
+      x-required-permission: commerce.customer
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: A stable cursor page of the caller's orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderPage"
+              examples:
+                orders:
+                  $ref: "#/components/examples/OrdersPage"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      operationId: createCommerceOrder
+      tags: [Customer orders]
+      summary: Create an order from the current basket revision
+      description: >-
+        Requires an `Idempotency-Key` UUID. The first create and every successful
+        replay of the same intent return HTTP 201 with the same `orderId`. A
+        replay whose `basketRevision` differs from the stored intent is
+        `409 idempotency_conflict`. An empty basket is `409 invalid_transition`.
+        A consumed revision submitted under a new key is `409 stale_revision`.
+        The order can exist before checkout is available: `checkoutUrl` is null
+        after a retryable provider failure while the intent stays bound to the
+        order. Replays return the current `checkoutUrl` while the order is still
+        payable, otherwise null.
+      x-required-permission: commerce.customer
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+            examples:
+              shared:
+                $ref: "#/components/examples/CreateSharedOrder"
+      responses:
+        "201":
+          description: The bound order and its current checkout URL, if payable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateOrderResponse"
+              examples:
+                shared:
+                  $ref: "#/components/examples/CreatedSharedCheckout"
+                dedicated:
+                  $ref: "#/components/examples/CreatedDedicatedCheckout"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /v1/commerce/orders/{orderId}:
+    get:
+      operationId: getCommerceOrder
+      tags: [Customer orders]
+      summary: Read one of the caller's own orders
+      description: >-
+        Tenant and subject scope come from authentication. An order outside that
+        scope returns the same `404 not_found` shape as an absent order. Only a
+        currently active order exposes `license`; every other status returns
+        `license: null`. The customer gateway reads the license from Licensing
+        only for an eligible order.
+      x-required-permission: commerce.customer
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Customer order facts and, when active, the signed license
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerOrder"
+              examples:
+                sharedActive:
+                  $ref: "#/components/examples/SharedActiveOrder"
+                dedicatedActive:
+                  $ref: "#/components/examples/DedicatedActiveOrder"
+                pendingPayment:
+                  $ref: "#/components/examples/PaymentPendingOrder"
+                readinessFailed:
+                  $ref: "#/components/examples/ReadinessFailedOrder"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/OrderId"
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        $ref: "#/components/schemas/IdempotencyKey"
+  schemas:
+    OrderId:
+      type: string
+      format: uuid
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    IdempotencyKey:
+      type: string
+      format: uuid
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    Revision:
+      type: integer
+      minimum: 1
+      maximum: 4294967295
+      description: Bounded uint32 order or license revision.
+    BasketRevision:
+      type: integer
+      minimum: 0
+      maximum: 4294967295
+      description: Bounded uint32 basket revision; 0 exists only before the first write.
+    Money:
+      type: object
+      required: [amountMinor, currency]
+      properties:
+        amountMinor:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+          description: Positive amount in minor units, bounded by the JavaScript safe-integer limit.
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 uppercase currency code.
+      additionalProperties: false
+    Tier:
+      type: string
+      enum: [shared, dedicated]
+      description: >-
+        `dedicated` means a tenant-specific database, not a dedicated cluster.
+    OrderStatus:
+      type: string
+      enum: [pendingPayment, pendingApproval, pendingReadiness, active, rejected, failed]
+      description: >-
+        Effective customer status. `pendingPayment` waits for a verified paid
+        period, `pendingApproval` for the final staff decision,
+        `pendingReadiness` for a current verified placement, `active` satisfies
+        all three gates, `rejected` carries a final staff rejection, and
+        `failed` records a terminal fulfillment failure.
+    AddOnCode:
+      type: string
+      pattern: "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+    CatalogResponse:
+      type: object
+      required: [offers]
+      properties:
+        offers:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Offer"
+      additionalProperties: true
+    Offer:
+      type: object
+      required: [offerId, tier, displayName, basePrice, addOns]
+      properties:
+        offerId:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Opaque server-issued offer identifier; clients must not parse it.
+        tier:
+          $ref: "#/components/schemas/Tier"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        basePrice:
+          $ref: "#/components/schemas/Money"
+        addOns:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/AddOn"
+      additionalProperties: true
+    AddOn:
+      type: object
+      required: [code, displayName, price]
+      properties:
+        code:
+          $ref: "#/components/schemas/AddOnCode"
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        price:
+          $ref: "#/components/schemas/Money"
+      additionalProperties: true
+    BasketSelection:
+      type: object
+      required: [offerId, addOnCodes]
+      properties:
+        offerId:
+          type: string
+          minLength: 1
+          maxLength: 64
+        addOnCodes:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/AddOnCode"
+      additionalProperties: false
+    Basket:
+      type: object
+      required: [selection, revision, total]
+      properties:
+        selection:
+          oneOf:
+            - $ref: "#/components/schemas/BasketSelection"
+            - type: "null"
+        revision:
+          $ref: "#/components/schemas/BasketRevision"
+        total:
+          oneOf:
+            - $ref: "#/components/schemas/Money"
+            - type: "null"
+      additionalProperties: true
+    PutBasketRequest:
+      type: object
+      required: [selection, expectedRevision]
+      properties:
+        selection:
+          oneOf:
+            - $ref: "#/components/schemas/BasketSelection"
+            - type: "null"
+        expectedRevision:
+          $ref: "#/components/schemas/BasketRevision"
+      additionalProperties: false
+    CreateOrderRequest:
+      type: object
+      required: [basketRevision]
+      properties:
+        basketRevision:
+          $ref: "#/components/schemas/BasketRevision"
+      additionalProperties: false
+    CreateOrderResponse:
+      type: object
+      required: [order, checkoutUrl]
+      properties:
+        order:
+          $ref: "#/components/schemas/CustomerOrder"
+        checkoutUrl:
+          oneOf:
+            - type: string
+              format: uri
+              pattern: "^https://"
+            - type: "null"
+      additionalProperties: true
+    CustomerOrder:
+      type: object
+      required:
+        [
+          orderId,
+          subscriptionId,
+          tier,
+          addOnCodes,
+          total,
+          status,
+          revision,
+          createdAt,
+          updatedAt,
+          license,
+        ]
+      properties:
+        orderId:
+          $ref: "#/components/schemas/OrderId"
+        subscriptionId:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        tier:
+          $ref: "#/components/schemas/Tier"
+        addOnCodes:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/AddOnCode"
+        total:
+          $ref: "#/components/schemas/Money"
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        revision:
+          $ref: "#/components/schemas/Revision"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        license:
+          oneOf:
+            - $ref: "#/components/schemas/License"
+            - type: "null"
+      additionalProperties: true
+    License:
+      type: object
+      required: [document, keyId, revision, expiresAt]
+      properties:
+        document:
+          type: string
+          minLength: 1
+          maxLength: 16384
+          description: >-
+            Signed license document. Opaque to clients; never parsed to infer
+            entitlement.
+        keyId:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Opaque signing key identifier used for rotation.
+        revision:
+          $ref: "#/components/schemas/Revision"
+        expiresAt:
+          type: string
+          format: date-time
+          description: >-
+            UTC instant clamped to the paid period end and to the verified
+            readiness proof freshness.
+      additionalProperties: true
+    OrderPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CustomerOrder"
+        nextCursor:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 512
+            - type: "null"
+      additionalProperties: true
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          minLength: 1
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: integer
+          enum: [400, 401, 403, 404, 409, 422, 503]
+        code:
+          type: string
+          enum:
+            - invalid_request
+            - unauthenticated
+            - forbidden
+            - not_found
+            - idempotency_conflict
+            - stale_revision
+            - invalid_transition
+            - unsupported_option
+            - dependency_unavailable
+        detail:
+          type: string
+          maxLength: 1024
+        instance:
+          type: string
+          maxLength: 512
+      additionalProperties: true
+  responses:
+    ValidationProblem:
+      description: Invalid input (400 invalid_request)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            invalidRequest:
+              $ref: "#/components/examples/InvalidRequestProblem"
+    Unauthenticated:
+      description: Missing or invalid credentials (401 unauthenticated)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            unauthenticated:
+              $ref: "#/components/examples/UnauthenticatedProblem"
+    Forbidden:
+      description: Authenticated but not permitted (403 forbidden)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            forbidden:
+              $ref: "#/components/examples/ForbiddenProblem"
+    NotFound:
+      description: Absent or out-of-scope resource (404 not_found)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            notFound:
+              $ref: "#/components/examples/NotFoundProblem"
+    StaleRevision:
+      description: Expected revision does not match current state (409 stale_revision)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            staleRevision:
+              $ref: "#/components/examples/StaleRevisionProblem"
+    IdempotencyConflict:
+      description: Idempotency key reused with a different intent (409 idempotency_conflict)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            idempotencyConflict:
+              $ref: "#/components/examples/IdempotencyConflictProblem"
+    InvalidTransition:
+      description: Illegal domain transition (409 invalid_transition)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            invalidTransition:
+              $ref: "#/components/examples/InvalidTransitionProblem"
+    Conflict:
+      description: >-
+        Revision, idempotency or transition conflict (409 stale_revision,
+        idempotency_conflict or invalid_transition)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            staleRevision:
+              $ref: "#/components/examples/StaleRevisionProblem"
+            idempotencyConflict:
+              $ref: "#/components/examples/IdempotencyConflictProblem"
+            invalidTransition:
+              $ref: "#/components/examples/InvalidTransitionProblem"
+    UnsupportedOption:
+      description: Selection is not currently offered (422 unsupported_option)
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            unsupportedOption:
+              $ref: "#/components/examples/UnsupportedOptionProblem"
+    Unavailable:
+      description: Transient dependency failure (503 dependency_unavailable)
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          examples:
+            unavailable:
+              $ref: "#/components/examples/UnavailableProblem"
+  examples:
+    Catalog:
+      value:
+        offers:
+          - offerId: postgres-shared-monthly
+            tier: shared
+            displayName: Shared PostgreSQL
+            basePrice:
+              amountMinor: 1000
+              currency: USD
+            addOns: []
+          - offerId: postgres-dedicated-monthly
+            tier: dedicated
+            displayName: Dedicated PostgreSQL
+            basePrice:
+              amountMinor: 3000
+              currency: USD
+            addOns:
+              - code: replicaReadAccess
+                displayName: Read replica access
+                price:
+                  amountMinor: 500
+                  currency: USD
+    EmptyBasket:
+      value:
+        selection: null
+        revision: 0
+        total: null
+    DedicatedBasket:
+      value:
+        selection:
+          offerId: postgres-dedicated-monthly
+          addOnCodes: [replicaReadAccess]
+        revision: 2
+        total:
+          amountMinor: 3500
+          currency: USD
+    PutDedicatedBasket:
+      value:
+        selection:
+          offerId: postgres-dedicated-monthly
+          addOnCodes: [replicaReadAccess]
+        expectedRevision: 1
+    CreateSharedOrder:
+      value:
+        basketRevision: 2
+    OrdersPage:
+      value:
+        items:
+          - orderId: 0f0e0d0c-0b0a-4999-8877-665544332211
+            subscriptionId: 1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3
+            tier: shared
+            addOnCodes: []
+            total:
+              amountMinor: 1000
+              currency: USD
+            status: active
+            revision: 4
+            createdAt: 2026-11-23T19:00:00Z
+            updatedAt: 2026-11-23T20:15:00Z
+            license:
+              document: fixture-license-document-v1
+              keyId: K1
+              revision: 1
+              expiresAt: 2026-12-23T20:00:00Z
+          - orderId: 3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293
+            subscriptionId: 5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4
+            tier: shared
+            addOnCodes: []
+            total:
+              amountMinor: 1000
+              currency: USD
+            status: pendingPayment
+            revision: 1
+            createdAt: 2026-11-23T19:10:00Z
+            updatedAt: 2026-11-23T19:10:00Z
+            license: null
+        nextCursor: cursor_orders_page_2
+    CreatedSharedCheckout:
+      value:
+        order:
+          orderId: 0f0e0d0c-0b0a-4999-8877-665544332211
+          subscriptionId: 1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3
+          tier: shared
+          addOnCodes: []
+          total:
+            amountMinor: 1000
+            currency: USD
+          status: pendingPayment
+          revision: 1
+          createdAt: 2026-11-23T19:00:00Z
+          updatedAt: 2026-11-23T19:00:00Z
+          license: null
+        checkoutUrl: https://checkout.stripe.com/c/pay/cs_test_shared_example
+    CreatedDedicatedCheckout:
+      value:
+        order:
+          orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
+          subscriptionId: 4c5d6e7f-8091-4b2c-8d3e-4f5061728394
+          tier: dedicated
+          addOnCodes: [replicaReadAccess]
+          total:
+            amountMinor: 3500
+            currency: USD
+          status: pendingPayment
+          revision: 1
+          createdAt: 2026-11-23T19:05:00Z
+          updatedAt: 2026-11-23T19:05:00Z
+          license: null
+        checkoutUrl: https://checkout.stripe.com/c/pay/cs_test_dedicated_example
+    SharedActiveOrder:
+      value:
+        orderId: 0f0e0d0c-0b0a-4999-8877-665544332211
+        subscriptionId: 1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3
+        tier: shared
+        addOnCodes: []
+        total:
+          amountMinor: 1000
+          currency: USD
+        status: active
+        revision: 4
+        createdAt: 2026-11-23T19:00:00Z
+        updatedAt: 2026-11-23T20:15:00Z
+        license:
+          document: fixture-license-document-v1
+          keyId: K1
+          revision: 1
+          expiresAt: 2026-12-23T20:00:00Z
+    DedicatedActiveOrder:
+      value:
+        orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
+        subscriptionId: 4c5d6e7f-8091-4b2c-8d3e-4f5061728394
+        tier: dedicated
+        addOnCodes: [replicaReadAccess]
+        total:
+          amountMinor: 3500
+          currency: USD
+        status: active
+        revision: 5
+        createdAt: 2026-11-23T19:05:00Z
+        updatedAt: 2026-11-23T20:20:00Z
+        license:
+          document: fixture-license-document-v1
+          keyId: K1
+          revision: 1
+          expiresAt: 2026-11-23T20:30:00Z
+    PaymentPendingOrder:
+      value:
+        orderId: 3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293
+        subscriptionId: 5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4
+        tier: shared
+        addOnCodes: []
+        total:
+          amountMinor: 1000
+          currency: USD
+        status: pendingPayment
+        revision: 1
+        createdAt: 2026-11-23T19:10:00Z
+        updatedAt: 2026-11-23T19:10:00Z
+        license: null
+    ReadinessFailedOrder:
+      value:
+        orderId: 4b5c6d7e-8fa0-4b3c-9d4e-5f60718293a4
+        subscriptionId: 6c7d8e9f-a0b1-4c4d-8e5f-60718293a4b5
+        tier: dedicated
+        addOnCodes: []
+        total:
+          amountMinor: 3000
+          currency: USD
+        status: failed
+        revision: 6
+        createdAt: 2026-11-23T19:15:00Z
+        updatedAt: 2026-11-23T20:30:00Z
+        license: null
+    InvalidRequestProblem:
+      value:
+        type: https://api.teck.cloud/problems/invalid-request
+        title: Request validation failed
+        status: 400
+        code: invalid_request
+        detail: The request body does not match the published schema.
+        instance: /v1/commerce/basket
+    UnauthenticatedProblem:
+      value:
+        type: https://api.teck.cloud/problems/unauthenticated
+        title: Authentication required
+        status: 401
+        code: unauthenticated
+        detail: A valid access token is required.
+    ForbiddenProblem:
+      value:
+        type: https://api.teck.cloud/problems/forbidden
+        title: Not permitted
+        status: 403
+        code: forbidden
+        detail: The principal is not permitted to perform this operation.
+    NotFoundProblem:
+      value:
+        type: https://api.teck.cloud/problems/not-found
+        title: Resource not available
+        status: 404
+        code: not_found
+        detail: The resource does not exist or is not visible to this principal.
+        instance: /v1/commerce/orders/0f0e0d0c-0b0a-4999-8877-665544332211
+    StaleRevisionProblem:
+      value:
+        type: https://api.teck.cloud/problems/stale-revision
+        title: Revision conflict
+        status: 409
+        code: stale_revision
+        detail: The expected revision does not match the current revision.
+        instance: /v1/commerce/basket
+    IdempotencyConflictProblem:
+      value:
+        type: https://api.teck.cloud/problems/idempotency-conflict
+        title: Idempotency key conflict
+        status: 409
+        code: idempotency_conflict
+        detail: The idempotency key was already used with a different basket revision.
+        instance: /v1/commerce/orders
+    InvalidTransitionProblem:
+      value:
+        type: https://api.teck.cloud/problems/invalid-transition
+        title: Order state does not allow this operation
+        status: 409
+        code: invalid_transition
+        detail: The current order state does not allow this transition.
+        instance: /v1/commerce/orders
+    UnsupportedOptionProblem:
+      value:
+        type: https://api.teck.cloud/problems/unsupported-option
+        title: Selection is not offered
+        status: 422
+        code: unsupported_option
+        detail: One or more offer or add-on codes are not currently offered.
+        instance: /v1/commerce/basket
+    UnavailableProblem:
+      value:
+        type: https://api.teck.cloud/problems/dependency-unavailable
+        title: Dependency unavailable
+        status: 503
+        code: dependency_unavailable
+        detail: A required dependency is temporarily unavailable; retry with backoff.

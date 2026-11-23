@@ -1,0 +1,69 @@
+{
+  "kind": "problemCatalog",
+  "examples": [
+    {
+      "type": "https://api.teck.cloud/problems/invalid-request",
+      "title": "Request validation failed",
+      "status": 400,
+      "code": "invalid_request",
+      "detail": "The request body does not match the published schema.",
+      "instance": "/v1/commerce/basket"
+    },
+    {
+      "type": "https://api.teck.cloud/problems/unauthenticated",
+      "title": "Authentication required",
+      "status": 401,
+      "code": "unauthenticated",
+      "detail": "A valid access token is required."
+    },
+    {
+      "type": "https://api.teck.cloud/problems/forbidden",
+      "title": "Not permitted",
+      "status": 403,
+      "code": "forbidden",
+      "detail": "The principal is not permitted to perform this operation."
+    },
+    {
+      "type": "https://api.teck.cloud/problems/not-found",
+      "title": "Resource not available",
+      "status": 404,
+      "code": "not_found",
+      "detail": "The resource does not exist or is not visible to this principal."
+    },
+    {
+      "type": "https://api.teck.cloud/problems/idempotency-conflict",
+      "title": "Idempotency key conflict",
+      "status": 409,
+      "code": "idempotency_conflict",
+      "detail": "The idempotency key was already used with a different basket revision."
+    },
+    {
+      "type": "https://api.teck.cloud/problems/stale-revision",
+      "title": "Revision conflict",
+      "status": 409,
+      "code": "stale_revision",
+      "detail": "The expected revision does not match the current revision."
+    },
+    {
+      "type": "https://api.teck.cloud/problems/invalid-transition",
+      "title": "Order state does not allow this operation",
+      "status": 409,
+      "code": "invalid_transition",
+      "detail": "The current order state does not allow this transition."
+    },
+    {
+      "type": "https://api.teck.cloud/problems/unsupported-option",
+      "title": "Selection is not offered",
+      "status": 422,
+      "code": "unsupported_option",
+      "detail": "One or more offer or add-on codes are not currently offered."
+    },
+    {
+      "type": "https://api.teck.cloud/problems/dependency-unavailable",
+      "title": "Dependency unavailable",
+      "status": 503,
+      "code": "dependency_unavailable",
+      "detail": "A required dependency is temporarily unavailable; retry with backoff."
+    }
+  ]
+}

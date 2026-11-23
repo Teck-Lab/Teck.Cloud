@@ -1,0 +1,20 @@
+{
+  "kind": "customerOrder",
+  "order": {
+    "orderId": "0f0e0d0c-0b0a-4999-8877-665544332211",
+    "subscriptionId": "1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3",
+    "tier": "shared",
+    "addOnCodes": [],
+    "total": { "amountMinor": 1000, "currency": "USD" },
+    "status": "active",
+    "revision": 4,
+    "createdAt": "2026-11-23T19:00:00Z",
+    "updatedAt": "2026-11-23T20:15:00Z",
+    "license": {
+      "document": "fixture-license-document-v1",
+      "keyId": "K1",
+      "revision": 1,
+      "expiresAt": "2026-12-23T20:00:00Z"
+    }
+  }
+}

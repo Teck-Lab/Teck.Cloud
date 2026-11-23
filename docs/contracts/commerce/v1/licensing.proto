@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package teck.cloud.commerce.licensing.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Teck.Cloud.Commerce.Licensing.V1";
+
+// Licensing issues and verifies signed entitlement documents. Both RPCs are
+// internal workload APIs, never edge endpoints. Tenant context travels in call
+// metadata; the handler verifies it matches the requested binding.
+service Licensing {
+  // Returns the current active license envelope for the binding, or NOT_FOUND
+  // when no active grant matches the desired generation.
+  rpc GetCurrentLicense(GetCurrentLicenseRequest) returns (GetCurrentLicenseResponse);
+
+  // Verifies a signed document against expected tenant and subscription and
+  // returns either valid effective claims or a stable rejection code.
+  rpc VerifyLicense(VerifyLicenseRequest) returns (VerifyLicenseResponse);
+}
+
+// Database tier recorded in the license. `dedicated` means a tenant-specific
+// database, not a cluster.
+enum Tier {
+  TIER_UNSPECIFIED = 0;
+  TIER_SHARED = 1;
+  TIER_DEDICATED = 2;
+}
+
+// Stable verification rejection. UNSPECIFIED means valid.
+enum RejectionCode {
+  REJECTION_CODE_UNSPECIFIED = 0;
+  REJECTION_CODE_INVALID_SIGNATURE = 1;
+  REJECTION_CODE_EXPIRED = 2;
+  REJECTION_CODE_REVOKED = 3;
+  REJECTION_CODE_WRONG_BINDING = 4;
+  REJECTION_CODE_UNKNOWN_KEY = 5;
+}
+
+// Signed license envelope returned to an eligible caller.
+message LicenseEnvelope {
+  // Signed document; opaque to clients.
+  string document = 1;
+  // Opaque signing key identifier used for rotation.
+  string key_id = 2;
+  uint32 revision = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message GetCurrentLicenseRequest {
+  string tenant_id = 1;
+  string order_id = 2;
+  string subscription_id = 3;
+  uint32 desired_revision = 4;
+}
+
+message GetCurrentLicenseResponse {
+  LicenseEnvelope license = 1;
+}
+
+message VerifyLicenseRequest {
+  string document = 1;
+  string expected_tenant_id = 2;
+  string expected_subscription_id = 3;
+}
+
+message VerifyLicenseResponse {
+  bool valid = 1;
+  // Present only when valid.
+  LicenseClaims claims = 2;
+  // UNSPECIFIED when valid; stable rejection otherwise.
+  RejectionCode rejection = 3;
+}
+
+message LicenseClaims {
+  string tenant_id = 1;
+  string order_id = 2;
+  string subscription_id = 3;
+  Tier tier = 4;
+  repeated string add_on_codes = 5;
+  uint32 revision = 6;
+  string key_id = 7;
+  google.protobuf.Timestamp expires_at = 8;
+}
