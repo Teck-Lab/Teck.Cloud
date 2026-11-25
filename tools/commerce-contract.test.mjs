@@ -119,7 +119,8 @@ test("checker rejects an unknown license rejection code", () => {
   expectRejected(
     (directory) =>
       mutateJson(directory, "example-license-verification.json", (fixture) => {
-        fixture.rejections.find((rejection) => rejection.rejection === "expired").rejection = "unknown_reason";
+        fixture.rejections.find((rejection) => rejection.rejection === "expired").rejection =
+          "unknown_reason";
       }),
     "unknown license rejection",
     /rejections\[1\]\.rejection has unsupported code unknown_reason/u,

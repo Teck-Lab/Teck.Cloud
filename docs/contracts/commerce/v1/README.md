@@ -46,15 +46,15 @@ rejected and failed.
 
 Customer status is derived; it is never supplied by a client.
 
-| `status`           | Paid | Approved | Current proof    | `license` on customer order |
-| ------------------ | ---- | -------- | ---------------- | --------------------------- |
-| `pendingPayment`   | no   | —        | —                | `null`                      |
-| `pendingApproval`  | yes  | pending  | —                | `null`                      |
-| `pendingReadiness` | yes  | approved | missing/stale/retrying | `null`                 |
-| `pendingReadiness` | yes  | approved | fresh; grant not observed | `null`               |
-| `active`           | yes  | approved | current          | signed envelope             |
-| `rejected`         | —    | rejected | —                | `null`                      |
-| `failed`           | —    | —        | terminal failure | `null`                      |
+| `status`           | Paid | Approved | Current proof             | `license` on customer order |
+| ------------------ | ---- | -------- | ------------------------- | --------------------------- |
+| `pendingPayment`   | no   | —        | —                         | `null`                      |
+| `pendingApproval`  | yes  | pending  | —                         | `null`                      |
+| `pendingReadiness` | yes  | approved | missing/stale/retrying    | `null`                      |
+| `pendingReadiness` | yes  | approved | fresh; grant not observed | `null`                      |
+| `active`           | yes  | approved | current                   | signed envelope             |
+| `rejected`         | —    | rejected | —                         | `null`                      |
+| `failed`           | —    | —        | terminal failure          | `null`                      |
 
 `active` is the only status that exposes the signed document, and only for the
 caller's own tenant and subject. An order outside that scope returns the same
