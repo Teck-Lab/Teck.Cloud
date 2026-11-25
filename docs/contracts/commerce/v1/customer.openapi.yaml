@@ -153,7 +153,10 @@ paths:
       description: >-
         Requires an `Idempotency-Key` UUID. The first create and every successful
         replay of the same intent return HTTP 201 with the same `orderId`. A
-        replay whose `basketRevision` differs from the stored intent is
+        replay checks the stored receipt before validating the current basket.
+        Retry with the original idempotency key and submitted `basketRevision`,
+        even after the basket is cleared or changed. A replay whose
+        `basketRevision` differs from the stored intent is
         `409 idempotency_conflict`. An empty basket is `409 invalid_transition`.
         A consumed revision submitted under a new key is `409 stale_revision`.
         The order can exist before checkout is available: `checkoutUrl` is null

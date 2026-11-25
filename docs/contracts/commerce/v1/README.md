@@ -143,8 +143,10 @@ audit string of at most 512 characters. Newest evidence receives a fresh
 revision even for the same placement, and a result for an older evidence
 revision never overwrites it. Verification is asynchronous and internal; the
 operation returns the updated Admin order, never a staff- or browser-supplied
-`ready` flag. Stable terminal failure codes are `binding_mismatch`,
-`capability_unavailable` and `probe_unavailable`.
+`ready` flag. `probe_unavailable` is retryable and nonterminal: Admin remains
+`fulfillment.status: "verifying"` with `failureCode: "probe_unavailable"`, and
+the customer remains `pendingReadiness` with no license. `binding_mismatch` and
+`capability_unavailable` are terminal fulfillment failures.
 
 Admin order shapes add `payment`, `approval`, `fulfillment` and `audit` to the
 customer metadata and omit the `license` document, provider references and
