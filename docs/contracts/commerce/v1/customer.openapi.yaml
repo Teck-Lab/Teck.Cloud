@@ -61,6 +61,8 @@ paths:
               examples:
                 empty:
                   $ref: "#/components/examples/EmptyBasket"
+                cleared:
+                  $ref: "#/components/examples/ClearedBasket"
                 dedicatedWithAddOn:
                   $ref: "#/components/examples/DedicatedBasket"
         "401":
@@ -77,7 +79,9 @@ paths:
         `expectedRevision` is the revision the client last observed.
         `expectedRevision: 0` creates the basket's first selection. Create,
         update and clear each increment the persisted revision; the revision is
-        not reset when the selection is cleared. The server canonicalizes the
+        not reset when the selection is cleared. A cleared basket has
+        `{selection: null, revision: N, total: null}` for its positive persisted revision.
+        The server canonicalizes the
         selection by sorting and deduplicating add-on codes, recomputes `total`
         from catalog prices, and rejects codes that are not offered.
       x-required-permission: commerce.customer
@@ -182,6 +186,8 @@ paths:
                   $ref: "#/components/examples/CreatedDedicatedCheckout"
                 pending:
                   $ref: "#/components/examples/CreatedCheckoutPending"
+                paidReplay:
+                  $ref: "#/components/examples/PaidCheckoutReplay"
         "400":
           $ref: "#/components/responses/ValidationProblem"
         "401":
@@ -678,6 +684,11 @@ components:
         selection: null
         revision: 0
         total: null
+    ClearedBasket:
+      value:
+        selection: null
+        revision: 5
+        total: null
     DedicatedBasket:
       value:
         selection:
@@ -714,7 +725,7 @@ components:
               document: fixture-license-document-v1
               keyId: K1
               revision: 1
-              expiresAt: 2026-12-23T20:00:00Z
+              expiresAt: 2026-11-23T20:30:00Z
           - orderId: 3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293
             subscriptionId: 5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4
             tier: shared
@@ -760,6 +771,26 @@ components:
           updatedAt: 2026-11-23T19:05:00Z
           license: null
         checkoutUrl: https://checkout.stripe.com/c/pay/cs_test_dedicated_example
+    PaidCheckoutReplay:
+      value:
+        order:
+          orderId: 0f0e0d0c-0b0a-4999-8877-665544332211
+          subscriptionId: 1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3
+          tier: shared
+          addOnCodes: []
+          total:
+            amountMinor: 1000
+            currency: USD
+          status: active
+          revision: 4
+          createdAt: 2026-11-23T19:00:00Z
+          updatedAt: 2026-11-23T20:15:00Z
+          license:
+            document: fixture-license-document-v1
+            keyId: K1
+            revision: 1
+            expiresAt: 2026-11-23T20:30:00Z
+        checkoutUrl: null
     CreatedCheckoutPending:
       value:
         order:
@@ -793,7 +824,7 @@ components:
           document: fixture-license-document-v1
           keyId: K1
           revision: 1
-          expiresAt: 2026-12-23T20:00:00Z
+          expiresAt: 2026-11-23T20:30:00Z
     DedicatedActiveOrder:
       value:
         orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
@@ -825,6 +856,62 @@ components:
         revision: 1
         createdAt: 2026-11-23T19:10:00Z
         updatedAt: 2026-11-23T19:10:00Z
+        license: null
+    GrantPendingOrder:
+      value:
+        orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
+        subscriptionId: a0b1c2d3-e4f5-4678-9a0b-1c2d3e4f5061
+        tier: shared
+        addOnCodes: []
+        total:
+          amountMinor: 1000
+          currency: USD
+        status: pendingReadiness
+        revision: 4
+        createdAt: 2026-11-23T19:50:00Z
+        updatedAt: 2026-11-23T20:16:00Z
+        license: null
+    RetryPendingOrder:
+      value:
+        orderId: 5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4
+        subscriptionId: 6c7d8e9f-a0b1-4c4d-8e5f-60718293a4b5
+        tier: dedicated
+        addOnCodes: []
+        total:
+          amountMinor: 3000
+          currency: USD
+        status: pendingReadiness
+        revision: 6
+        createdAt: 2026-11-23T19:15:00Z
+        updatedAt: 2026-11-23T20:30:00Z
+        license: null
+    PendingApprovalOrder:
+      value:
+        orderId: 3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293
+        subscriptionId: 5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4
+        tier: shared
+        addOnCodes: []
+        total:
+          amountMinor: 1000
+          currency: USD
+        status: pendingApproval
+        revision: 2
+        createdAt: 2026-11-23T19:10:00Z
+        updatedAt: 2026-11-23T19:30:00Z
+        license: null
+    ApprovalOnlyOrder:
+      value:
+        orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
+        subscriptionId: 4c5d6e7f-8091-4b2c-8d3e-4f5061728394
+        tier: dedicated
+        addOnCodes: [replicaReadAccess]
+        total:
+          amountMinor: 3500
+          currency: USD
+        status: pendingReadiness
+        revision: 3
+        createdAt: 2026-11-23T19:05:00Z
+        updatedAt: 2026-11-23T20:05:00Z
         license: null
     ReadinessFailedOrder:
       value:

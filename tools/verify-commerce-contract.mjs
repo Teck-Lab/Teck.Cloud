@@ -186,6 +186,29 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(path.join(root, file), "utf8"));
 }
 
+const CUSTOMER_FORBIDDEN = new Set([
+  "tenantId", "actorId", "payment", "approval", "fulfillment", "audit",
+  "paidThrough", "evidenceReference", "failureCode",
+]);
+const ADMIN_FORBIDDEN = new Set([
+  "license", "checkoutUrl", "secretReference", "connectionString", "stripeCustomerId",
+  "stripeSessionId", "stripeInvoiceId", "stripeSubscriptionId", "stripePriceId",
+  "providerCustomerId", "providerSessionId", "providerInvoiceId", "providerSubscriptionId",
+  "providerPriceId", "providerReference", "rawProviderReference",
+]);
+
+function assertProjection(value, forbidden, label) {
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    for (const [index, child] of value.entries()) assertProjection(child, forbidden, `${label}[${index}]`);
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    assert.ok(!forbidden.has(key), `${label}.${key} is forbidden in this projection`);
+    assertProjection(child, forbidden, `${label}.${key}`);
+  }
+}
+
 // OpenAPI structure and authority.
 for (const [name, document] of [
   ["customer", customer],
@@ -457,6 +480,7 @@ assert.equal(customerSchemas.IdempotencyKey.format, "uuid");
 const customerExampleSchemas = {
   Catalog: "CatalogResponse",
   EmptyBasket: "Basket",
+  ClearedBasket: "Basket",
   DedicatedBasket: "Basket",
   PutDedicatedBasket: "PutBasketRequest",
   CreateSharedOrder: "CreateOrderRequest",
@@ -464,6 +488,12 @@ const customerExampleSchemas = {
   CreatedSharedCheckout: "CreateOrderResponse",
   CreatedDedicatedCheckout: "CreateOrderResponse",
   CreatedCheckoutPending: "CreateOrderResponse",
+  SharedActiveOrder: "CustomerOrder",
+  PaidCheckoutReplay: "CreateOrderResponse",
+  GrantPendingOrder: "CustomerOrder",
+  RetryPendingOrder: "CustomerOrder",
+  PendingApprovalOrder: "CustomerOrder",
+  ApprovalOnlyOrder: "CustomerOrder",
   SharedActiveOrder: "CustomerOrder",
   DedicatedActiveOrder: "CustomerOrder",
   PaymentPendingOrder: "CustomerOrder",
@@ -482,6 +512,9 @@ const customerExampleSchemas = {
 const adminExampleSchemas = {
   AdminOrdersPage: "AdminOrderPage",
   AdminOrderApproved: "AdminOrder",
+  AdminOrderGrantPending: "AdminOrder",
+  AdminOrderProbeRetrying: "AdminOrder",
+  AdminOrderRejected: "AdminOrder",
   AdminOrderVerifying: "AdminOrder",
   AdminOrderReady: "AdminOrder",
   AdminOrderApprovalPending: "AdminOrder",
@@ -519,21 +552,30 @@ for (const [name, document, mapping] of [
 const fixtureExample = new Map([
   ["example-catalog.json", [customer, "Catalog"]],
   ["example-basket-empty.json", [customer, "EmptyBasket"]],
+  ["example-basket-cleared.json", [customer, "ClearedBasket"]],
   ["example-basket-dedicated.json", [customer, "DedicatedBasket"]],
   ["example-checkout-created-shared.json", [customer, "CreatedSharedCheckout"]],
   ["example-checkout-pending.json", [customer, "CreatedCheckoutPending"]],
+  ["example-checkout-replay-paid.json", [customer, "PaidCheckoutReplay"]],
   ["example-orders-page.json", [customer, "OrdersPage"]],
   ["example-order-payment-pending.json", [customer, "PaymentPendingOrder"]],
   ["example-order-shared-active.json", [customer, "SharedActiveOrder"]],
   ["example-order-dedicated-active.json", [customer, "DedicatedActiveOrder"]],
+  ["example-order-grant-pending.json", [customer, "GrantPendingOrder"]],
+  ["example-order-probe-retrying.json", [customer, "RetryPendingOrder"]],
   ["example-order-readiness-failed.json", [customer, "ReadinessFailedOrder"]],
+  ["example-order-pending-approval.json", [customer, "PendingApprovalOrder"]],
+  ["example-order-approval-only.json", [customer, "ApprovalOnlyOrder"]],
   ["example-order-rejected.json", [customer, "RejectedOrder"]],
   ["example-admin-orders-page.json", [admin, "AdminOrdersPage"]],
   ["example-admin-order-approved.json", [admin, "AdminOrderApproved"]],
   ["example-admin-order-verifying.json", [admin, "AdminOrderVerifying"]],
   ["example-admin-order-ready.json", [admin, "AdminOrderReady"]],
+  ["example-admin-order-grant-pending.json", [admin, "AdminOrderGrantPending"]],
+  ["example-admin-order-probe-retrying.json", [admin, "AdminOrderProbeRetrying"]],
   ["example-admin-order-approval-pending.json", [admin, "AdminOrderApprovalPending"]],
   ["example-admin-order-failed.json", [admin, "AdminOrderFailed"]],
+  ["example-admin-order-rejected.json", [admin, "AdminOrderRejected"]],
   ["example-admin-decision-approve.json", [admin, "ApproveDecision"]],
   ["example-admin-decision-reject.json", [admin, "RejectDecision"]],
   ["example-admin-placement-evidence.json", [admin, "RecordPlacementEvidence"]],
@@ -623,7 +665,8 @@ for (const file of fixtureFiles) {
       assertMatches(customer, { $ref: "#/components/schemas/Basket" }, fixture.response, file);
       const { selection, revision, total } = fixture.response;
       if (selection === null) {
-        assert.equal(revision, 0, `${file} empty basket revision`);
+        if (file === "example-basket-empty.json") assert.equal(revision, 0, `${file} untouched revision`);
+        else assert.ok(revision >= 1, `${file} cleared basket keeps its positive revision`);
         assert.equal(total, null, `${file} empty basket total`);
       } else {
         assert.ok(revision >= 1, `${file} populated basket revision`);
@@ -640,18 +683,30 @@ for (const file of fixtureFiles) {
         fixture.response,
         file,
       );
-      assert.equal(fixture.response.order.status, "pendingPayment", `${file} status`);
-      assert.equal(fixture.response.order.license, null, `${file} license`);
-      if (fixture.response.checkoutUrl === null)
-        assert.equal(fixture.response.order.status, "pendingPayment", `${file} pending checkout`);
-      else assert.match(fixture.response.checkoutUrl, /^https:\/\//u, `${file} checkout URL`);
+      assertProjection(fixture.response, CUSTOMER_FORBIDDEN, file);
+      if (fixture.response.order.status === "active")
+        customerOrders.set(fixture.response.order.orderId, fixture.response.order);
+      if (fixture.response.order.status === "pendingPayment") {
+        assert.equal(fixture.response.order.license, null, `${file} pending payment has no license`);
+        if (fixture.response.checkoutUrl !== null)
+          assert.match(fixture.response.checkoutUrl, /^https:\/\//u, `${file} checkout URL`);
+      } else {
+        assert.equal(fixture.response.order.status, "active", `${file} paid replay state`);
+        assert.notEqual(fixture.response.order.license, null, `${file} active order license`);
+        assert.equal(fixture.response.checkoutUrl, null, `${file} paid replay has no checkout URL`);
+      }
       break;
     case "customerOrder": {
       assertMatches(customer, { $ref: "#/components/schemas/CustomerOrder" }, fixture.order, file);
+      assertProjection(fixture.order, CUSTOMER_FORBIDDEN, file);
       const order = fixture.order;
       assert.deepEqual(order.total, priceFor(order.tier, order.addOnCodes), `${file} total`);
       if (order.status === "active") assert.notEqual(order.license, null, `${file} active license`);
       else assert.equal(order.license, null, `${file} non-active license`);
+      if (order.status === "pendingApproval")
+        assert.equal(order.license, null, `${file} pending approval has no license`);
+      if (order.status === "pendingReadiness")
+        assert.equal(order.license, null, `${file} pending readiness has no license`);
       const existing = customerOrders.get(order.orderId);
       if (existing) {
         assert.equal(existing.subscriptionId, order.subscriptionId, `${file} subscription`);
@@ -661,17 +716,44 @@ for (const file of fixtureFiles) {
         if (Date.parse(order.updatedAt) > Date.parse(existing.updatedAt))
           assert.ok(order.revision > existing.revision, `${file} later snapshot revision`);
       }
-      customerOrders.set(order.orderId, order);
+      if (!existing || Date.parse(order.updatedAt) >= Date.parse(existing.updatedAt))
+        customerOrders.set(order.orderId, order);
       break;
     }
     case "orderPage":
       assertMatches(customer, { $ref: "#/components/schemas/OrderPage" }, fixture.page, file);
       assert.ok(fixture.page.items.length > 0, `${file} has items`);
+      for (const [index, order] of fixture.page.items.entries()) {
+        const label = `${file}.items[${index}]`;
+        assertProjection(order, CUSTOMER_FORBIDDEN, label);
+        assert.deepEqual(order.total, priceFor(order.tier, order.addOnCodes), `${label} total`);
+        if (order.status === "active") assert.notEqual(order.license, null, `${label} active license`);
+        else assert.equal(order.license, null, `${label} non-active license`);
+      }
       break;
     case "adminOrder": {
       assertMatches(admin, { $ref: "#/components/schemas/AdminOrder" }, fixture.order, file);
-      assert.equal("license" in fixture.order, false, `${file} omits license`);
+      assertProjection(fixture.order, ADMIN_FORBIDDEN, file);
       const order = fixture.order;
+      assert.deepEqual(order.total, priceFor(order.tier, order.addOnCodes), `${file} total`);
+      if (order.status === "pendingPayment") assert.equal(order.payment.status, "pending", `${file} payment gate`);
+      if (order.status === "pendingApproval") {
+        assert.equal(order.payment.status, "paid", `${file} approval gate paid`);
+        assert.equal(order.approval.status, "pending", `${file} approval gate pending`);
+      }
+      if (order.status === "pendingReadiness") {
+        assert.equal(order.payment.status, "paid", `${file} readiness gate paid`);
+        assert.equal(order.approval.status, "approved", `${file} readiness gate approved`);
+      }
+      if (order.status === "active") {
+        assert.equal(order.payment.status, "paid", `${file} active gate paid`);
+        assert.ok(Date.parse(order.payment.paidThrough) > Date.parse(order.updatedAt), `${file} active paid window`);
+        assert.equal(order.approval.status, "approved", `${file} active gate approved`);
+        assert.equal(order.fulfillment.status, "ready", `${file} active gate ready`);
+        assert.ok(Date.parse(order.fulfillment.observedAt) <= Date.parse(order.updatedAt), `${file} active proof observed`);
+        assert.ok(Date.parse(order.updatedAt) < Date.parse(order.fulfillment.observedAt) + 15 * 60 * 1000, `${file} active proof fresh`);
+      }
+      if (order.payment.status === "pending") assert.equal(order.payment.paidThrough, null, `${file} unpaid period`);
       const approval = order.approval;
       if (approval.status === "pending")
         assert.deepEqual(
@@ -684,7 +766,10 @@ for (const file of fixtureFiles) {
           assert.notEqual(approval[field], null, `${file} decided approval ${field}`);
       const fulfillment = order.fulfillment;
       if (fulfillment.status === "ready") {
-        assert.equal(order.status, "active", `${file} ready implies active`);
+        assert.ok(
+          order.status === "active" || order.status === "pendingReadiness",
+          `${file} ready requires active grant or pending readiness`,
+        );
         assert.notEqual(fulfillment.placementId, null);
         assert.notEqual(fulfillment.evidenceReference, null);
         assert.notEqual(fulfillment.observedAt, null);
@@ -720,11 +805,24 @@ for (const file of fixtureFiles) {
         if (Date.parse(order.updatedAt) > Date.parse(existing.updatedAt))
           assert.ok(order.revision > existing.revision, `${file} later snapshot revision`);
       }
-      adminOrders.set(order.orderId, order);
+      if (!existing || Date.parse(order.updatedAt) >= Date.parse(existing.updatedAt))
+        adminOrders.set(order.orderId, order);
       break;
     }
     case "adminOrderPage":
       assertMatches(admin, { $ref: "#/components/schemas/AdminOrderPage" }, fixture.page, file);
+      for (const [index, order] of fixture.page.items.entries()) {
+        const label = `${file}.items[${index}]`;
+        assertProjection(order, ADMIN_FORBIDDEN, label);
+        assert.deepEqual(order.total, priceFor(order.tier, order.addOnCodes), `${label} total`);
+        if (order.status === "active") {
+          assert.equal(order.payment.status, "paid", `${label} active paid`);
+          assert.equal(order.approval.status, "approved", `${label} active approved`);
+          assert.equal(order.fulfillment.status, "ready", `${label} active ready`);
+          assert.ok(Date.parse(order.payment.paidThrough) > Date.parse(order.updatedAt), `${label} paid window`);
+          assert.ok(Date.parse(order.updatedAt) < Date.parse(order.fulfillment.observedAt) + 15 * 60 * 1000, `${label} proof freshness`);
+        }
+      }
       break;
     case "decisionRequest": {
       assertMatches(admin, { $ref: "#/components/schemas/DecisionRequest" }, fixture.request, file);
@@ -772,13 +870,19 @@ for (const file of fixtureFiles) {
       const { valid, rejections } = fixture;
       assert.equal(valid.valid, true, `${file} valid result`);
       assert.equal(valid.rejection, null, `${file} valid rejection`);
-      assert.deepEqual(rejections.map(({ rejection }) => rejection).sort(), [
+      const expectedRejections = [
         "expired",
         "invalid_signature",
         "revoked",
         "unknown_key",
         "wrong_binding",
-      ]);
+      ];
+      for (const [index, item] of rejections.entries())
+        assert.ok(
+          expectedRejections.includes(item.rejection),
+          `${file}.rejections[${index}].rejection has unsupported code ${item.rejection}`,
+        );
+      assert.deepEqual(rejections.map(({ rejection }) => rejection).sort(), expectedRejections);
       for (const rejection of rejections) {
         assert.equal(rejection.valid, false, `${file} rejection valid flag`);
         assert.equal(rejection.claims, null, `${file} rejection claims`);
@@ -803,19 +907,25 @@ for (const file of fixtureFiles) {
 // Lifecycle cross-checks between customer and admin projections.
 for (const [orderId, order] of adminOrders) {
   const customerOrder = customerOrders.get(orderId);
-  if (!customerOrder) continue;
+  assert.ok(customerOrder, `${orderId} admin fixture has a matching customer fixture`);
+  assert.equal(order.subscriptionId, customerOrder.subscriptionId, `${orderId} subscription binding`);
   assert.equal(order.tier, customerOrder.tier, `${orderId} tier matches customer projection`);
   assert.deepEqual(order.addOnCodes, customerOrder.addOnCodes);
   assert.deepEqual(order.total, customerOrder.total);
-  if (order.fulfillment.status === "ready" && customerOrder.license) {
-    const paidThrough = Date.parse(order.payment.paidThrough);
-    const proofDeadline = Date.parse(order.fulfillment.observedAt) + 15 * 60 * 1000;
-    assert.equal(
-      Date.parse(customerOrder.license.expiresAt),
-      Math.min(paidThrough, proofDeadline),
-      `${orderId} license expiry is clamped to the paid period and proof freshness`,
+  if (customerOrder.status === "active") {
+    assert.ok(
+      order.status === "active" || order.status === "pendingReadiness",
+      `${orderId} active customer has ready Admin facts`,
     );
+    assert.equal(order.fulfillment.status, "ready", `${orderId} active customer has ready proof`);
+    const paidThrough = Date.parse(order.payment.paidThrough);
+    const observedAt = Date.parse(order.fulfillment.observedAt);
+    assert.ok(observedAt <= Date.parse(customerOrder.updatedAt), `${orderId} proof observed by customer snapshot`);
+    const expectedExpiry = Math.min(paidThrough, observedAt + 15 * 60 * 1000);
+    assert.equal(Date.parse(customerOrder.license.expiresAt), expectedExpiry, `${orderId} license expiry clamp`);
   }
+  if (order.status === "active" && !customerOrder.license)
+    assert.ok(customerOrder.status === "pendingReadiness", `${orderId} ready grant-pending projection`);
 }
 const activeLicenseState = readJson("example-license-state-active.json").event;
 const activeCustomer = customerOrders.get(activeLicenseState.orderId);
@@ -827,6 +937,8 @@ assert.equal(activeLicenseState.expiresAt, activeCustomer.license.expiresAt);
 const licenseVerification = readJson("example-license-verification.json");
 const verifiedCustomer = customerOrders.get(licenseVerification.valid.claims.orderId);
 assert.ok(verifiedCustomer?.license, "license verification binds a licensed customer order");
+assert.match(licenseVerification.valid.claims.tenantId, UUID, "license claims tenant is a UUID");
+assert.equal(licenseVerification.valid.claims.tenantId, activeLicenseState.tenantId, "license claims tenant binding");
 assert.equal(licenseVerification.valid.claims.subscriptionId, verifiedCustomer.subscriptionId);
 assert.equal(licenseVerification.valid.claims.tier, verifiedCustomer.tier);
 assert.deepEqual(licenseVerification.valid.claims.addOnCodes, verifiedCustomer.addOnCodes);

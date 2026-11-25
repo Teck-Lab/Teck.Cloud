@@ -1,0 +1,15 @@
+{
+  "kind": "customerOrder",
+  "order": {
+    "orderId": "9c0d1e2f-3a4b-4c5d-8e9f-001122334455",
+    "subscriptionId": "a0b1c2d3-e4f5-4678-9a0b-1c2d3e4f5061",
+    "tier": "shared",
+    "addOnCodes": [],
+    "total": { "amountMinor": 1000, "currency": "USD" },
+    "status": "pendingReadiness",
+    "revision": 4,
+    "createdAt": "2026-11-23T19:50:00Z",
+    "updatedAt": "2026-11-23T20:16:00Z",
+    "license": null
+  }
+}

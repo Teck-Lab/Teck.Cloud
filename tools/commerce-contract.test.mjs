@@ -27,16 +27,17 @@ function runVerifier(root) {
   });
 }
 
-function expectRejected(mutate, label) {
+function expectRejected(mutate, label, expectedDiagnostic) {
   const temporary = copyContract();
   try {
     mutate(temporary);
     const result = runVerifier(temporary);
-    assert.notEqual(
-      result.status,
-      0,
-      `${label} must be rejected\n${result.stdout}${result.stderr}`,
-    );
+    assert.equal(result.error, undefined, `${label} verifier process starts`);
+    assert.equal(result.signal, null, `${label} verifier process is not signalled`);
+    assert.equal(result.status, 1, `${label} exits with a contract assertion failure`);
+    const output = `${result.stdout}${result.stderr}`;
+    assert.match(output, expectedDiagnostic, `${label} reports its semantic diagnostic`);
+    assert.doesNotMatch(output, /ERR_MODULE_NOT_FOUND|parity mismatch/u);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
@@ -69,6 +70,7 @@ test("checker rejects an invalid tenant UUID in a durable event", () => {
         fixture.event.tenantId = "not-a-uuid";
       }),
     "invalid tenant UUID",
+    /tenantId must be a lowercase UUID/u,
   );
 });
 
@@ -79,6 +81,7 @@ test("checker rejects an unknown customer order status", () => {
         fixture.order.status = "futureState";
       }),
     "unknown order status",
+    /status must be one of/u,
   );
 });
 
@@ -89,6 +92,7 @@ test("checker rejects staff-only fields exposed in a customer example", () => {
         fixture.order.payment = { status: "paid", paidThrough: null };
       }),
     "staff-only customer field",
+    /\.payment is forbidden/u,
   );
 });
 
@@ -99,6 +103,7 @@ test("checker rejects a wrong required field type in an example", () => {
         fixture.order.total.amountMinor = "1000";
       }),
     "invalid money type",
+    /amountMinor must be integer/u,
   );
 });
 
@@ -106,6 +111,7 @@ test("checker rejects a missing required fixture", () => {
   expectRejected(
     (directory) => fs.rmSync(path.join(directory, "example-problems.json")),
     "missing required fixture",
+    /ENOENT.*example-problems\.json/su,
   );
 });
 
@@ -113,9 +119,10 @@ test("checker rejects an unknown license rejection code", () => {
   expectRejected(
     (directory) =>
       mutateJson(directory, "example-license-verification.json", (fixture) => {
-        fixture.rejections[1].rejection = "unknown_reason";
+        fixture.rejections.find((rejection) => rejection.rejection === "expired").rejection = "unknown_reason";
       }),
     "unknown license rejection",
+    /rejections\[1\]\.rejection has unsupported code unknown_reason/u,
   );
 });
 
@@ -129,6 +136,7 @@ test("checker rejects protobuf field numbering out of schema order", () => {
         "  uint32 desired_revision = 5;",
       ),
     "protobuf field numbering",
+    /CheckCurrentEntitlementRequest\.desired_revision must use field number 4/u,
   );
 });
 
@@ -142,6 +150,7 @@ test("checker rejects a missing internal entitlement RPC", () => {
         "",
       ),
     "missing CheckCurrentEntitlement RPC",
+    /CheckCurrentEntitlement/u,
   );
 });
 
@@ -155,6 +164,7 @@ test("checker rejects a delete operation on the customer gateway", () => {
         '  /v1/commerce/orders/{orderId}:\n    delete:\n      operationId: deleteCommerceOrder\n      tags: [Customer orders]\n      x-required-permission: commerce.customer\n      responses:\n        "200":\n          description: Deleted\n    get:',
       ),
     "forbidden delete operation",
+    /customer forbids delete on \/v1\/commerce\/orders\/\{orderId\}/u,
   );
 });
 

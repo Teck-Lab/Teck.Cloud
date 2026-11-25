@@ -50,7 +50,8 @@ Customer status is derived; it is never supplied by a client.
 | ------------------ | ---- | -------- | ---------------- | --------------------------- |
 | `pendingPayment`   | no   | —        | —                | `null`                      |
 | `pendingApproval`  | yes  | pending  | —                | `null`                      |
-| `pendingReadiness` | yes  | approved | missing/stale    | `null`                      |
+| `pendingReadiness` | yes  | approved | missing/stale/retrying | `null`                 |
+| `pendingReadiness` | yes  | approved | fresh; grant not observed | `null`               |
 | `active`           | yes  | approved | current          | signed envelope             |
 | `rejected`         | —    | rejected | —                | `null`                      |
 | `failed`           | —    | —        | terminal failure | `null`                      |
@@ -112,7 +113,10 @@ data never determines the price mapping.
 
 `POST /v1/commerce/orders` requires an `Idempotency-Key` UUID and the current
 `basketRevision`. The first create and every successful replay of the same
-intent return HTTP 201 with the same `orderId`. A replay with a different
+intent return HTTP 201 with the same `orderId`. On replay, the Orders receipt is
+checked before current basket state; retry with the original `{basketRevision}`
+and key even after basket clear or change. The replay projects the order's
+current lifecycle status and includes `checkoutUrl: null` when no longer payable. A replay with a different
 `basketRevision` is `409 idempotency_conflict`. A new key against an
 already-consumed revision is `409 stale_revision`; an empty basket is
 `409 invalid_transition`. The immutable selection and price snapshot, order and
