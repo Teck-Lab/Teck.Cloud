@@ -319,10 +319,12 @@ components:
       enum: [pendingPayment, pendingApproval, pendingReadiness, active, rejected, failed]
       description: >-
         Effective customer status. `pendingPayment` waits for a verified paid
-        period, `pendingApproval` for the final staff decision,
-        `pendingReadiness` for a current verified placement, `active` satisfies
-        all three gates, `rejected` carries a final staff rejection, and
-        `failed` records a terminal fulfillment failure.
+        period, and `pendingApproval` waits for the final staff decision.
+        `pendingReadiness`
+        covers missing, stale or retrying placement proof, and fresh proof while
+        awaiting the matching current grant. `active` satisfies all three gates;
+        `rejected` carries a final staff rejection; `failed` records a terminal
+        fulfillment failure.
     AddOnCode:
       type: string
       pattern: "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
