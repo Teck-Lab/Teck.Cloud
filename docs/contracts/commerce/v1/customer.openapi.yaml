@@ -128,10 +128,11 @@ paths:
         delegated tenant context to retrieve the exact license binding. On an
         absent, revoked or mismatching grant (including Licensing `NOT_FOUND`),
         reread that order once with the original authenticated tenant and subject.
-        If gone, omit it as scoped 404; if now nonactive, return its latest
-        projection with `license:null`; if still active, confirm that reread's
-        generation once. If still unconfirmed, the active generation is missing,
-        or either dependency is unavailable, fail the whole page with 503 and no
+        If gone or now outside scope, fail the whole request with the existing
+        scoped `404 not_found`; if still in scope but now nonactive, return its
+        latest projection with `license:null`; if still active, confirm that
+        reread's generation once. If still unconfirmed, the active generation
+        is missing, or either dependency is unavailable, fail the whole response with 503 and no
         partial response. Never return a cached grant or fabricate a status.
       x-required-permission: commerce.customer
       parameters:
@@ -832,11 +833,15 @@ components:
           total:
             amountMinor: 1000
             currency: USD
-          status: pendingReadiness
-          revision: 3
+          status: active
+          revision: 4
           createdAt: 2026-11-23T19:00:00Z
-          updatedAt: 2026-11-23T20:14:00Z
-          license: null
+          updatedAt: 2026-11-23T20:15:00Z
+          license:
+            document: fixture-license-document-v1
+            keyId: K1
+            revision: 1
+            expiresAt: 2026-11-23T20:30:00Z
         checkoutUrl: null
     CreatedCheckoutPending:
       value:

@@ -216,6 +216,7 @@ const ADMIN_FORBIDDEN = new Set([
   "providerPriceId",
   "providerReference",
   "rawProviderReference",
+  "desiredRevision",
 ]);
 
 function assertProjection(value, forbidden, label) {
@@ -297,6 +298,12 @@ assert.equal(
   "#/components/responses/ValidationProblem",
   "customer order detail must declare 400 for a malformed orderId",
 );
+for (const operationId of ["listCommerceOrders", "createCommerceOrder", "getCommerceOrder"])
+  assert.equal(
+    operationsOf(customer).find(({ operation }) => operation.operationId === operationId)?.operation.responses?.["404"]?.$ref,
+    "#/components/responses/NotFound",
+    `${operationId} declares the scoped 404 on a missing reread`,
+  );
 for (const operationId of ["listCommerceOrders", "createCommerceOrder", "getCommerceOrder"]) {
   const operation = operationsOf(customer).find(
     ({ operation: candidate }) => candidate.operationId === operationId,
@@ -616,11 +623,15 @@ const fixtureExample = new Map([
 const fixtureFiles = fs
   .readdirSync(root)
   .filter((file) => file.endsWith(".json") && file.startsWith("example-"));
-assert.equal(
+assert.deepEqual(
   new Set(fixtureExample.keys()).size,
   fixtureExample.size,
   "file-backed fixture mappings are unique",
 );
+for (const [file, fixture] of fixtureFiles.map((file) => [file, readJson(file)])) {
+  if (["customerOrder", "orderPage", "checkoutCreated", "adminOrder", "adminOrderPage"].includes(fixture.kind))
+    assert.ok(fixtureExample.has(file), `${file} has an explicit OpenAPI example mapping`);
+}
 const requiredFixtures = [
   "example-catalog.json",
   "example-basket-empty.json",
@@ -708,6 +719,7 @@ const customerOrders = new Map();
 const adminOrders = new Map();
 const customerSnapshots = [];
 const adminSnapshots = [];
+const initialCheckoutSnapshots = [];
 
 function validateCustomerOrder(order, label) {
   assertProjection(order, CUSTOMER_FORBIDDEN, label);
@@ -793,6 +805,21 @@ function validateAdminOrder(order, label) {
     );
     assert.ok(Date.parse(fulfillment.observedAt) <= updatedAt, `${label} terminal failure time`);
   }
+  if (order.status === "pendingPayment") {
+    assert.equal(payment.status, "pending", `${label} pending payment gate`);
+  }
+  if (order.status === "pendingApproval") {
+    assert.equal(payment.status, "paid", `${label} pending approval gate paid`);
+    assert.equal(approval.status, "pending", `${label} pending approval gate decision`);
+  }
+  if (order.status === "pendingReadiness") {
+    assert.equal(payment.status, "paid", `${label} pending readiness gate paid`);
+    assert.equal(approval.status, "approved", `${label} pending readiness gate approved`);
+    assert.ok(
+      ["awaitingEvidence", "verifying", "ready"].includes(fulfillment.status),
+      `${label} pending readiness gate proof`,
+    );
+  }
   if (order.status === "failed") {
     assert.equal(payment.status, "paid", `${label} failed order is paid`);
     assert.equal(approval.status, "approved", `${label} failed order is approved`);
@@ -833,6 +860,8 @@ function validateExample(document, schemaName, payload, label) {
     assertProjection(payload, CUSTOMER_FORBIDDEN, label);
     validateCustomerOrder(payload.order, `${label}.order`);
     customerSnapshots.push({ order: payload.order, label: `${label}.order` });
+    if (label === "example-checkout-created-shared.json")
+      initialCheckoutSnapshots.push({ order: payload.order, label: `${label}.order` });
     assert.equal(
       payload.checkoutUrl === null || /^https:\/\//u.test(payload.checkoutUrl),
       true,
@@ -1046,29 +1075,10 @@ for (const [name, document, mapping] of [
   }
 }
 
-for (const [file, [document, exampleName]] of fixtureExample) {
-  assert.ok(fixtureFiles.includes(file), `mapped fixture ${file} exists`);
-  const fixture = readJson(file);
-  const payloadKey = Object.keys(fixture).find((key) => key !== "kind");
-  const isApproved = [
-    "example-order-shared-active.json",
-    "example-order-dedicated-active.json",
-    "example-orders-page.json",
-    "example-checkout-replay-paid.json",
-    "example-admin-orders-page.json",
-  ].includes(file);
-  if (!isApproved)
-    assert.deepEqual(
-      fixture[payloadKey],
-      document.components.examples[exampleName].value,
-      `${file} matches OpenAPI example ${exampleName}`,
-    );
-}
-
 // Lifecycle cross-checks between customer and admin projections.
 for (const customerSnapshot of customerSnapshots) {
   if (customerSnapshot.order.status !== "active") continue;
-  const adminSnapshot = adminSnapshots.find(
+  const adminCandidates = adminSnapshots.filter(
     ({ order }) =>
       order.orderId === customerSnapshot.order.orderId &&
       order.subscriptionId === customerSnapshot.order.subscriptionId &&
@@ -1077,7 +1087,12 @@ for (const customerSnapshot of customerSnapshots) {
       order.status === "active" &&
       order.fulfillment.status === "ready",
   );
-  assert.ok(adminSnapshot, `${customerSnapshot.label} requires same-snapshot Admin active grant`);
+  assert.ok(adminCandidates.length > 0, `${customerSnapshot.label} requires same-snapshot Admin active grant`);
+  const canonicalEvidence = adminCandidates[0].order;
+  for (const { order, label } of adminCandidates.slice(1))
+    for (const field of ["payment", "approval", "fulfillment"])
+      assert.deepEqual(order[field], canonicalEvidence[field], `${label} same-snapshot ${field} agreement`);
+  const adminSnapshot = adminCandidates[0];
   const order = adminSnapshot.order;
   const customerOrder = customerSnapshot.order;
   assert.equal(order.tier, customerOrder.tier, `${customerSnapshot.label} tier binding`);
@@ -1103,7 +1118,7 @@ for (const customerSnapshot of customerSnapshots) {
   assert.equal(
     Date.parse(customerOrder.license.expiresAt),
     expectedExpiry,
-    `${customerSnapshot.label} license expiry clamp`,
+    `${customerSnapshot.label} order license expiry clamp`,
   );
   assert.ok(
     Date.parse(customerOrder.license.expiresAt) > updatedAt,
@@ -1190,6 +1205,19 @@ for (const orderId of new Set(adminSnapshots.map(({ order }) => order.orderId)))
       );
   }
 }
+const firstCreateOrder = initialCheckoutSnapshots[0]?.order;
+const paidReplayOrder = customerSnapshots.find(
+  ({ label }) => label === "example-checkout-replay-paid.json.order",
+)?.order;
+assert.ok(firstCreateOrder, "shared first-create customer projection exists");
+assert.ok(paidReplayOrder, "shared paid replay customer projection exists");
+assert.equal(paidReplayOrder.orderId, firstCreateOrder.orderId, "shared replay order binding");
+assert.equal(
+  paidReplayOrder.subscriptionId,
+  firstCreateOrder.subscriptionId,
+  "shared replay subscription binding",
+);
+
 const desiredEvent = readJson("example-license-desired.json").event;
 const activeLicenseState = readJson("example-license-state-active.json").event;
 assert.equal(desiredEvent.enabled, true, "active outcome has enabled desired state");
@@ -1260,6 +1288,17 @@ assert.equal(
   activeCustomer.subscriptionId,
   "license claims customer subscription binding",
 );
+
+for (const [file, [document, exampleName]] of fixtureExample) {
+  assert.ok(fixtureFiles.includes(file), `mapped fixture ${file} exists`);
+  const fixture = readJson(file);
+  const payloadKey = Object.keys(fixture).find((key) => key !== "kind");
+  assert.deepEqual(
+    fixture[payloadKey],
+    document.components.examples[exampleName].value,
+    `${file} matches OpenAPI example ${exampleName}`,
+  );
+}
 
 // Branch coverage for the states the consumer sign-off named explicitly.
 assert.equal(

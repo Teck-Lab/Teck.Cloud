@@ -72,9 +72,10 @@ caller's own tenant and subject. An order outside that scope returns the same
 For an active Orders snapshot the customer gateway obtains the license for that
 exact desired generation. If the grant is absent, revoked or mismatched
 (including Licensing `NOT_FOUND`), it rereads that order once using the original
-authenticated tenant and subject. A gone order returns the existing scoped 404;
-a now-nonactive order returns its latest projection with `license:null`; a
-still-active order is confirmed once against the reread generation. If confirmation
+authenticated tenant and subject. If gone or now outside scope, fail the whole
+request with the existing scoped `404 not_found`; if still in scope but now
+nonactive, return its latest projection with `license:null`; if still active,
+confirm once against the reread generation. If confirmation
 still fails, the active generation is absent/zero, or Orders/Licensing is
 transport/store unavailable, the entire detail, list or checkout response is
 `503 dependency_unavailable`: no partial page, cached license, invented status

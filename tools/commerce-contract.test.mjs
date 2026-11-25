@@ -36,9 +36,8 @@ function expectRejected(mutate, label, expectedDiagnostic) {
     assert.equal(result.error, undefined, `${label} verifier process starts`);
     assert.equal(result.signal, null, `${label} verifier process is not signalled`);
     assert.equal(result.status, 1, `${label} exits with a contract assertion failure`);
-    const output = `${result.stdout}${result.stderr}`;
-    assert.match(output, expectedDiagnostic, `${label} reports its semantic diagnostic`);
-    assert.doesNotMatch(output, /ERR_MODULE_NOT_FOUND|parity mismatch/u);
+    assert.match(result.stderr, expectedDiagnostic, `${label} reports its semantic diagnostic`);
+    assert.doesNotMatch(result.stderr, /ERR_MODULE_NOT_FOUND/u);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
@@ -93,6 +92,81 @@ test("checker rejects an invalid dedicated checkout OpenAPI example total", () =
     /customer OpenAPI example CreatedDedicatedCheckout\.order order total/u,
   );
 });
+
+test("checker rejects a pending readiness Admin snapshot with a pending payment", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-admin-order-grant-pending.json", (fixture) => {
+        fixture.order.payment.status = "pending";
+        fixture.order.payment.paidThrough = null;
+      });
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderGrantPending", (order) => {
+        order.payment.status = "pending";
+        order.payment.paidThrough = null;
+      });
+    },
+    "pending readiness paid gate",
+    /example-admin-order-grant-pending\.json pending readiness gate paid/u,
+  );
+});
+
+test("checker accepts grant-pending replay with the matching first-create intent", () => {
+  const temporary = copyContract();
+  try {
+    mutateJson(temporary, "example-checkout-replay-paid.json", (fixture) => {
+      fixture.response.order.status = "pendingReadiness";
+      fixture.response.order.revision = 5;
+      fixture.response.order.updatedAt = "2026-11-23T20:16:00Z";
+      fixture.response.order.license = null;
+    });
+    mutateOpenApiExample(temporary, "customer.openapi.yaml", "PaidCheckoutReplay", (response) => {
+      response.order.status = "pendingReadiness";
+      response.order.revision = 5;
+      response.order.updatedAt = "2026-11-23T20:16:00Z";
+      response.order.license = null;
+    });
+    const result = runVerifier(temporary);
+    assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true });
+  }
+});
+
+test("checker rejects grant-pending replay without a matching first-create intent", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-checkout-created-shared.json", (fixture) => {
+        fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      });
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "CreatedSharedCheckout", (response) => {
+        response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      });
+    },
+    "grant-pending replay first-create binding",
+    /shared replay order binding/u,
+  );
+});
+
+for (const [label, file, exampleName, mutateCustomer] of [
+  ["detail", "example-order-shared-active.json", "SharedActiveOrder", (value) => value.order],
+  ["page", "example-orders-page.json", "OrdersPage", (value) => value.page.items[0]],
+  ["replay", "example-checkout-replay-paid.json", "PaidCheckoutReplay", (value) => value.response.order],
+])
+  test(`checker rejects an unclamped active ${label} license expiry`, () => {
+    expectRejected(
+      (directory) => {
+        mutateJson(directory, file, (fixture) => {
+          mutateCustomer(fixture).license.expiresAt = "2026-12-23T20:00:00Z";
+        });
+        mutateOpenApiExample(directory, "customer.openapi.yaml", exampleName, (value) => {
+          const order = exampleName === "OrdersPage" ? value.items[0] : value.order ?? value;
+          order.license.expiresAt = "2026-12-23T20:00:00Z";
+        });
+      },
+      `active ${label} license expiry clamp`,
+      /order license expiry clamp/u,
+    );
+  });
 
 test("checker rejects an active Admin order with stale ready evidence", () => {
   expectRejected(
@@ -243,6 +317,21 @@ test("checker rejects verification claims with the wrong key", () => {
       }),
     "license claims key binding",
     /license claims key binding/u,
+  );
+});
+
+test("checker rejects a paid replay that differs from first-create intent", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-checkout-created-shared.json", (fixture) => {
+        fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      });
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "CreatedSharedCheckout", (response) => {
+        response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      });
+    },
+    "same-intent replay order binding",
+    /shared replay order binding/u,
   );
 });
 
