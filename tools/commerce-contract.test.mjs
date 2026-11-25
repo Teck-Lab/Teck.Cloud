@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { parse, stringify } from "yaml";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contractRoot = path.join(repoRoot, "docs/contracts/commerce/v1");
@@ -56,6 +57,248 @@ function mutateText(directory, file, from, to) {
   assert.ok(text.includes(from), `mutation anchor exists in ${file}: ${from}`);
   fs.writeFileSync(target, text.replace(from, to));
 }
+
+function mutateOpenApiExample(directory, file, exampleName, mutate) {
+  const target = path.join(directory, file);
+  const document = parse(fs.readFileSync(target, "utf8"));
+  const example = document.components.examples[exampleName];
+  assert.ok(example, `example mutation anchor exists: ${file} ${exampleName}`);
+  mutate(example.value);
+  fs.writeFileSync(target, stringify(document));
+}
+
+test("checker rejects an invalid Admin-only OpenAPI response example", () => {
+  expectRejected(
+    (directory) =>
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderVerifying", (order) => {
+        order.stripeInvoiceId = "in_test_private";
+      }),
+    "Admin OpenAPI privacy",
+    /admin mutation response AdminOrderVerifying\.stripeInvoiceId is forbidden/u,
+  );
+});
+
+test("checker rejects an invalid dedicated checkout OpenAPI example total", () => {
+  expectRejected(
+    (directory) =>
+      mutateOpenApiExample(
+        directory,
+        "customer.openapi.yaml",
+        "CreatedDedicatedCheckout",
+        (response) => {
+          response.order.total.amountMinor = 3501;
+        },
+      ),
+    "OpenAPI-only dedicated checkout total",
+    /customer OpenAPI example CreatedDedicatedCheckout\.order order total/u,
+  );
+});
+
+test("checker rejects an active Admin order with stale ready evidence", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-admin-order-ready.json", (fixture) => {
+        fixture.order.fulfillment.observedAt = "2026-11-23T19:30:00Z";
+      });
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderReady", (order) => {
+        order.fulfillment.observedAt = "2026-11-23T19:30:00Z";
+      });
+    },
+    "active Admin stale ready proof",
+    /ready proof is fresh/u,
+  );
+});
+
+test("checker rejects a shared page total mismatch", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-orders-page.json", (fixture) => {
+        fixture.page.items[0].total.amountMinor = 1001;
+      });
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "OrdersPage", (page) => {
+        page.items[0].total.amountMinor = 1001;
+      });
+    },
+    "customer page item total",
+    /example-orders-page\.json\.items\[0\] order total/u,
+  );
+});
+
+test("checker rejects an active page item without a license", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-orders-page.json", (fixture) => {
+        fixture.page.items[0].license = null;
+      });
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "OrdersPage", (page) => {
+        page.items[0].license = null;
+      });
+    },
+    "active page customer license",
+    /example-orders-page\.json\.items\[0\] active license/u,
+  );
+});
+
+test("checker rejects invalid Admin active gate facts", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-admin-order-ready.json", (fixture) => {
+        fixture.order.payment.status = "pending";
+        fixture.order.payment.paidThrough = null;
+      });
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderReady", (order) => {
+        order.payment.status = "pending";
+        order.payment.paidThrough = null;
+      });
+    },
+    "active Admin payment gate",
+    /example-admin-order-ready\.json active gate paid/u,
+  );
+});
+
+test("checker rejects terminal probe_unavailable on an Admin page item", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-admin-orders-page.json", (fixture) => {
+        const order = fixture.page.items[0];
+        order.status = "failed";
+        order.fulfillment = {
+          status: "failed",
+          placementId: "5d6e7f80-91a2-4c3d-9e4f-506172839405",
+          evidenceReference: "evidence://ops/2026-11-23/dedicated-primary-check",
+          observedAt: order.updatedAt,
+          failureCode: "probe_unavailable",
+        };
+      });
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrdersPage", (page) => {
+        const order = page.items[0];
+        order.status = "failed";
+        order.fulfillment = {
+          status: "failed",
+          placementId: "5d6e7f80-91a2-4c3d-9e4f-506172839405",
+          evidenceReference: "evidence://ops/2026-11-23/dedicated-primary-check",
+          observedAt: order.updatedAt,
+          failureCode: "probe_unavailable",
+        };
+      });
+    },
+    "terminal page probe failure",
+    /terminal fulfillment failure code/u,
+  );
+});
+
+test("checker rejects a retryable probe failure marked terminal", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-admin-order-failed.json", (fixture) => {
+        fixture.order.fulfillment.failureCode = "probe_unavailable";
+      });
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderFailed", (order) => {
+        order.fulfillment.failureCode = "probe_unavailable";
+      });
+    },
+    "terminal probe failure",
+    /terminal fulfillment failure code/u,
+  );
+});
+
+test("checker rejects a desired event tenant mismatch", () => {
+  expectRejected(
+    (directory) =>
+      mutateJson(directory, "example-license-desired.json", (fixture) => {
+        fixture.event.tenantId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      }),
+    "desired outcome tenant binding",
+    /desired outcome tenant binding|license claims tenant binding/u,
+  );
+});
+
+test("checker rejects desired/outcome generation mismatch", () => {
+  expectRejected(
+    (directory) =>
+      mutateJson(directory, "example-license-desired.json", (fixture) => {
+        fixture.event.revision = 8;
+      }),
+    "desired outcome generation",
+    /desired outcome generation/u,
+  );
+});
+
+test("checker rejects desired/outcome expiry mismatch", () => {
+  expectRejected(
+    (directory) =>
+      mutateJson(directory, "example-license-desired.json", (fixture) => {
+        fixture.event.notAfter = "2026-11-23T20:31:00Z";
+      }),
+    "desired outcome expiry",
+    /desired outcome expiry/u,
+  );
+});
+
+test("checker rejects verification claims with the wrong key", () => {
+  expectRejected(
+    (directory) =>
+      mutateJson(directory, "example-license-verification.json", (fixture) => {
+        fixture.valid.claims.keyId = "K2";
+      }),
+    "license claims key binding",
+    /license claims key binding/u,
+  );
+});
+
+test("checker rejects an active replay with missing Admin generation proof", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-checkout-replay-paid.json", (fixture) => {
+        fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+        fixture.response.order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
+      });
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "PaidCheckoutReplay", (response) => {
+        response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+        response.order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
+      });
+    },
+    "active replay Admin evidence binding",
+    /requires same-snapshot Admin active grant/u,
+  );
+});
+
+test("checker rejects a missing newly required fixture", () => {
+  expectRejected(
+    (directory) => fs.rmSync(path.join(directory, "example-basket-cleared.json")),
+    "missing cleared basket fixture",
+    /missing required fixture example-basket-cleared\.json/u,
+  );
+});
+
+test("checker rejects protobuf desired_revision presence being removed", () => {
+  expectRejected(
+    (directory) =>
+      mutateText(
+        directory,
+        "orders.proto",
+        "  optional uint32 desired_revision = 11;",
+        "  uint32 desired_revision = 11;",
+      ),
+    "desired revision optional presence",
+    /Expected values to be strictly deep-equal/u,
+  );
+});
+
+test("checker rejects a customer example that leaks the internal generation", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-order-shared-active.json", (fixture) => {
+        fixture.order.desiredRevision = 7;
+      });
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "SharedActiveOrder", (order) => {
+        order.desiredRevision = 7;
+      });
+    },
+    "customer desired revision privacy",
+    /desiredRevision is forbidden in this projection/u,
+  );
+});
 
 test("valid commerce contract passes schema, example, lifecycle and protobuf checks", () => {
   const result = runVerifier(contractRoot);

@@ -76,7 +76,8 @@ enum FulfillmentStatus {
   FULFILLMENT_STATUS_FAILED = 4;
 }
 
-// Stable terminal readiness failure classification.
+// Readiness failure classification. PROBE_UNAVAILABLE is retryable/nonterminal;
+// BINDING_MISMATCH and CAPABILITY_UNAVAILABLE are terminal.
 enum FulfillmentFailureCode {
   FULFILLMENT_FAILURE_CODE_UNSPECIFIED = 0;
   FULFILLMENT_FAILURE_CODE_BINDING_MISMATCH = 1;
@@ -187,8 +188,12 @@ message CustomerOrder {
   uint32 revision = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
-  // Present only for the caller's own active order.
+  // Orders leaves this unset; the customer gateway fills it from Licensing
+  // only after confirming the exact desired generation.
   License license = 10;
+  // Internal desired entitlement generation; present and positive only when active.
+  // Never serialize this field on either HTTP surface. This is not order or license revision.
+  optional uint32 desired_revision = 11;
 }
 
 message License {

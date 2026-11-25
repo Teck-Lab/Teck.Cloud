@@ -38,6 +38,88 @@
             "occurredAt": "2026-11-23T20:05:00Z"
           }
         ]
+      },
+      {
+        "orderId": "9c0d1e2f-3a4b-4c5d-8e9f-001122334455",
+        "subscriptionId": "a0b1c2d3-e4f5-4678-9a0b-1c2d3e4f5061",
+        "tier": "shared",
+        "addOnCodes": [],
+        "total": { "amountMinor": 1000, "currency": "USD" },
+        "status": "pendingReadiness",
+        "revision": 3,
+        "createdAt": "2026-11-23T19:50:00Z",
+        "updatedAt": "2026-11-23T20:14:00Z",
+        "payment": { "status": "paid", "paidThrough": "2026-12-23T20:00:00Z" },
+        "approval": {
+          "status": "approved",
+          "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+          "reason": "Verified purchase order and tenant intent.",
+          "occurredAt": "2026-11-23T20:00:00Z"
+        },
+        "fulfillment": {
+          "status": "ready",
+          "placementId": "7e8f9012-3456-4a78-9bcd-ef0123456789",
+          "evidenceReference": "evidence://ops/2026-11-23/shared-current-check",
+          "observedAt": "2026-11-23T20:14:00Z",
+          "failureCode": null
+        },
+        "audit": [
+          {
+            "orderId": "9c0d1e2f-3a4b-4c5d-8e9f-001122334455",
+            "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+            "action": "approve",
+            "reason": "Verified purchase order and tenant intent.",
+            "occurredAt": "2026-11-23T20:00:00Z"
+          },
+          {
+            "orderId": "9c0d1e2f-3a4b-4c5d-8e9f-001122334455",
+            "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+            "action": "recordPlacementEvidence",
+            "reason": "evidence://ops/2026-11-23/shared-current-check",
+            "occurredAt": "2026-11-23T20:10:00Z"
+          }
+        ]
+      },
+      {
+        "orderId": "0f0e0d0c-0b0a-4999-8877-665544332211",
+        "subscriptionId": "1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3",
+        "tier": "shared",
+        "addOnCodes": [],
+        "total": { "amountMinor": 1000, "currency": "USD" },
+        "status": "active",
+        "revision": 4,
+        "createdAt": "2026-11-23T19:00:00Z",
+        "updatedAt": "2026-11-23T20:15:00Z",
+        "payment": { "status": "paid", "paidThrough": "2026-12-23T20:00:00Z" },
+        "approval": {
+          "status": "approved",
+          "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+          "reason": "Verified purchase order and tenant intent.",
+          "occurredAt": "2026-11-23T20:00:00Z"
+        },
+        "fulfillment": {
+          "status": "ready",
+          "placementId": "7e8f9012-3456-4a78-9bcd-ef0123456789",
+          "evidenceReference": "evidence://ops/2026-11-23/shared-current-check",
+          "observedAt": "2026-11-23T20:15:00Z",
+          "failureCode": null
+        },
+        "audit": [
+          {
+            "orderId": "0f0e0d0c-0b0a-4999-8877-665544332211",
+            "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+            "action": "approve",
+            "reason": "Verified purchase order and tenant intent.",
+            "occurredAt": "2026-11-23T20:00:00Z"
+          },
+          {
+            "orderId": "0f0e0d0c-0b0a-4999-8877-665544332211",
+            "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+            "action": "recordPlacementEvidence",
+            "reason": "evidence://ops/2026-11-23/shared-current-check",
+            "occurredAt": "2026-11-23T20:10:00Z"
+          }
+        ]
       }
     ],
     "nextCursor": null

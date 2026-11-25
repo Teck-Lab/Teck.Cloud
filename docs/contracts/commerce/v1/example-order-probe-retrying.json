@@ -7,7 +7,7 @@
     "addOnCodes": [],
     "total": { "amountMinor": 3000, "currency": "USD" },
     "status": "pendingReadiness",
-    "revision": 6,
+    "revision": 7,
     "createdAt": "2026-11-23T19:15:00Z",
     "updatedAt": "2026-11-23T20:30:00Z",
     "license": null

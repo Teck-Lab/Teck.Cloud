@@ -123,7 +123,16 @@ paths:
       summary: List the caller's own tenant and subject orders
       description: >-
         Bounded newest-first page. Default limit is 25, maximum 100. Cursors are
-        opaque and include a deterministic `orderId` tie-breaker.
+        opaque and include a deterministic `orderId` tie-breaker. For each active
+        Orders snapshot, use its desired entitlement generation with the validated
+        delegated tenant context to retrieve the exact license binding. On an
+        absent, revoked or mismatching grant (including Licensing `NOT_FOUND`),
+        reread that order once with the original authenticated tenant and subject.
+        If gone, omit it as scoped 404; if now nonactive, return its latest
+        projection with `license:null`; if still active, confirm that reread's
+        generation once. If still unconfirmed, the active generation is missing,
+        or either dependency is unavailable, fail the whole page with 503 and no
+        partial response. Never return a cached grant or fabricate a status.
       x-required-permission: commerce.customer
       parameters:
         - $ref: "#/components/parameters/Limit"
@@ -144,6 +153,8 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "503":
           $ref: "#/components/responses/Unavailable"
     post:
@@ -162,7 +173,10 @@ paths:
         The order can exist before checkout is available: `checkoutUrl` is null
         after a retryable provider failure while the intent stays bound to the
         order. Replays return the current `checkoutUrl` while the order is still
-        payable, otherwise null.
+        payable, otherwise null. For the returned order, the customer gateway
+        populates `license` only after confirming the current grant generation; a
+        generation-confirmation failure follows the same fail-closed reread and
+        whole-response 503 rule as the list and detail operations.
       x-required-permission: commerce.customer
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
@@ -199,6 +213,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "503":
           $ref: "#/components/responses/Unavailable"
   /v1/commerce/orders/{orderId}:
@@ -211,7 +227,15 @@ paths:
         scope returns the same `404 not_found` shape as an absent order. Only a
         currently active order exposes `license`; every other status returns
         `license: null`. The customer gateway reads the license from Licensing
-        only for an eligible order.
+        only for an eligible order, using the Orders snapshot's desired generation
+        with validated delegated tenant context; order revision is not that
+        generation. On an absent, revoked or mismatching grant (including
+        Licensing `NOT_FOUND`), reread once with the original authenticated tenant
+        and subject. If gone, return the ordinary scoped 404; if now nonactive,
+        return its latest projection with `license:null`; if still active, confirm
+        the reread's generation once. Still unconfirmed, missing/zero active
+        generation, or either dependency unavailable means 503 with no partial
+        response, cached grant or fabricated status.
       x-required-permission: commerce.customer
       parameters:
         - $ref: "#/components/parameters/OrderId"
@@ -321,13 +345,11 @@ components:
       type: string
       enum: [pendingPayment, pendingApproval, pendingReadiness, active, rejected, failed]
       description: >-
-        Effective customer status. `pendingPayment` waits for a verified paid
-        period, and `pendingApproval` waits for the final staff decision.
-        `pendingReadiness`
-        covers missing, stale or retrying placement proof, and fresh proof while
-        awaiting the matching current grant. `active` satisfies all three gates;
-        `rejected` carries a final staff rejection; `failed` records a terminal
-        fulfillment failure.
+        `pendingReadiness` covers missing, stale or retrying placement proof, and
+        fresh proof while awaiting the matching current grant. `active` requires
+        paid and approved state, fresh current proof and the matching current grant.
+        `failed` follows a terminal binding or capability failure; `rejected` is
+        the final staff rejection.
     AddOnCode:
       type: string
       pattern: "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
@@ -743,6 +765,30 @@ components:
             createdAt: 2026-11-23T19:10:00Z
             updatedAt: 2026-11-23T19:10:00Z
             license: null
+          - orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
+            subscriptionId: a0b1c2d3-e4f5-4678-9a0b-1c2d3e4f5061
+            tier: shared
+            addOnCodes: []
+            total:
+              amountMinor: 1000
+              currency: USD
+            status: pendingReadiness
+            revision: 5
+            createdAt: 2026-11-23T19:50:00Z
+            updatedAt: 2026-11-23T20:16:00Z
+            license: null
+          - orderId: 5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4
+            subscriptionId: 6c7d8e9f-a0b1-4c4d-8e5f-60718293a4b5
+            tier: dedicated
+            addOnCodes: []
+            total:
+              amountMinor: 3000
+              currency: USD
+            status: pendingReadiness
+            revision: 7
+            createdAt: 2026-11-23T19:15:00Z
+            updatedAt: 2026-11-23T20:30:00Z
+            license: null
         nextCursor: cursor_orders_page_2
     CreatedSharedCheckout:
       value:
@@ -786,15 +832,11 @@ components:
           total:
             amountMinor: 1000
             currency: USD
-          status: active
-          revision: 4
+          status: pendingReadiness
+          revision: 3
           createdAt: 2026-11-23T19:00:00Z
-          updatedAt: 2026-11-23T20:15:00Z
-          license:
-            document: fixture-license-document-v1
-            keyId: K1
-            revision: 1
-            expiresAt: 2026-11-23T20:30:00Z
+          updatedAt: 2026-11-23T20:14:00Z
+          license: null
         checkoutUrl: null
     CreatedCheckoutPending:
       value:
@@ -872,7 +914,7 @@ components:
           amountMinor: 1000
           currency: USD
         status: pendingReadiness
-        revision: 4
+        revision: 5
         createdAt: 2026-11-23T19:50:00Z
         updatedAt: 2026-11-23T20:16:00Z
         license: null
@@ -886,7 +928,7 @@ components:
           amountMinor: 3000
           currency: USD
         status: pendingReadiness
-        revision: 6
+        revision: 7
         createdAt: 2026-11-23T19:15:00Z
         updatedAt: 2026-11-23T20:30:00Z
         license: null

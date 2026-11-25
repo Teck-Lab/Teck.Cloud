@@ -36,7 +36,12 @@ hand-maintained protocol copy.
 
 Effective entitlement requires paid **and** approved **and** a matching
 nonstale readiness proof. A higher monotonic desired generation supersedes prior
-facts. Orders publishes desired state through its outbox; Licensing answers with
+facts. `CustomerOrder` carries this generation internally as optional protobuf
+`desired_revision = 11`, positive only when its status is `active`; it is neither
+the order revision nor the signed-license revision and is never serialized on
+customer or Admin HTTP. For all three customer entry points, the gateway uses
+validated delegated tenant context and the same Orders snapshot's order,
+subscription and desired generation to retrieve the current license. Orders publishes desired state through its outbox; Licensing answers with
 a versioned event that Orders applies through a durable inbox. License expiry is
 clamped to `min(paidPeriodEnd, probeObservedAt + 15 minutes)`. The customer UI
 distinguishes pending payment, pending approval, pending readiness, active,
@@ -46,19 +51,37 @@ rejected and failed.
 
 Customer status is derived; it is never supplied by a client.
 
-| `status`           | Paid | Approved | Current proof             | `license` on customer order |
-| ------------------ | ---- | -------- | ------------------------- | --------------------------- |
-| `pendingPayment`   | no   | —        | —                         | `null`                      |
-| `pendingApproval`  | yes  | pending  | —                         | `null`                      |
-| `pendingReadiness` | yes  | approved | missing/stale/retrying    | `null`                      |
-| `pendingReadiness` | yes  | approved | fresh; grant not observed | `null`                      |
-| `active`           | yes  | approved | current                   | signed envelope             |
-| `rejected`         | —    | rejected | —                         | `null`                      |
-| `failed`           | —    | —        | terminal failure          | `null`                      |
+| `status`           | Paid | Approved | Current proof                   | `license` on customer order |
+| ------------------ | ---- | -------- | ------------------------------- | --------------------------- |
+| `pendingPayment`   | no   | —        | —                               | `null`                      |
+| `pendingApproval`  | yes  | pending  | —                               | `null`                      |
+| `pendingReadiness` | yes  | approved | missing/stale/retrying proof    | `null`                      |
+| `pendingReadiness` | yes  | approved | fresh proof; grant not observed | `null`                      |
+| `active`           | yes  | approved | current                         | signed envelope             |
+| `rejected`         | —    | rejected | —                               | `null`                      |
+| `failed`           | yes  | approved | terminal failure                | `null`                      |
+
+`failed` is a paid and approved order with a current terminal placement failure.
+Retryable `probe_unavailable` is never terminal: it remains Admin `verifying` and
+customer `pendingReadiness` with no license.
 
 `active` is the only status that exposes the signed document, and only for the
 caller's own tenant and subject. An order outside that scope returns the same
 `404 not_found` shape as an absent order.
+
+For an active Orders snapshot the customer gateway obtains the license for that
+exact desired generation. If the grant is absent, revoked or mismatched
+(including Licensing `NOT_FOUND`), it rereads that order once using the original
+authenticated tenant and subject. A gone order returns the existing scoped 404;
+a now-nonactive order returns its latest projection with `license:null`; a
+still-active order is confirmed once against the reread generation. If confirmation
+still fails, the active generation is absent/zero, or Orders/Licensing is
+transport/store unavailable, the entire detail, list or checkout response is
+`503 dependency_unavailable`: no partial page, cached license, invented status
+or second reread. Nonactive snapshots never call Licensing. Checkout replay
+first finds the receipt scoped to tenant, subject and idempotency key, then
+compares the original basket revision before current basket validation; it
+preserves the bound order and uses `checkoutUrl:null` when non-payable.
 
 | Surface                             | Required permission                                  | Enforced                                                                                          |
 | ----------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -152,6 +175,13 @@ Admin order shapes add `payment`, `approval`, `fulfillment` and `audit` to the
 customer metadata and omit the `license` document, provider references and
 secret identifiers. `audit[].action` is `approve`, `reject` or
 `recordPlacementEvidence`.
+
+The Admin status matrix uses the same lifecycle precedence as the customer
+projection. A `failed` status is paid and approved with a current terminal
+fulfillment failure; only `binding_mismatch` and `capability_unavailable` are
+terminal. `probe_unavailable` remains `verifying` and is retried. `active`
+requires a current paid period, approved decision, fresh ready proof, and a
+matching active grant for the current desired generation.
 
 ## Internal gRPC contract
 
