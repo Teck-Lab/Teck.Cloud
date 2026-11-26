@@ -1,0 +1,6 @@
+{
+  "name": "tailwind-config",
+  "sourceRoot": "src/packages/tailwind-config",
+  "tags": ["scope:shared", "type:lib", "platform:web"],
+  "implicitDependencies": ["design-tokens"]
+}

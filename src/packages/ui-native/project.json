@@ -1,0 +1,20 @@
+{
+  "name": "ui-native",
+  "sourceRoot": "src/packages/ui-native/src",
+  "tags": ["scope:shared", "type:lib", "platform:native"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install tsc --noEmit -p src/packages/ui-native/tsconfig.json"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install biome check src/packages/ui-native"
+      }
+    }
+  },
+  "implicitDependencies": ["design-tokens"]
+}

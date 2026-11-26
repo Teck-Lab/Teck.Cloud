@@ -34,7 +34,11 @@
       "options": {
         "command": "node src/apps/keycloak-theme/image/build.mjs"
       },
-      "inputs": ["default", "{workspaceRoot}/src/aspire/Teck.Cloud.AppHost/Identity/runtime.json"]
+      "inputs": [
+        "default",
+        "{workspaceRoot}/src/aspire/Teck.Cloud.AppHost/Identity/runtime.json",
+        "{workspaceRoot}/src/packages/tailwind-config/**/*"
+      ]
     },
     "lint": {
       "executor": "nx:run-commands",
@@ -51,5 +55,5 @@
       }
     }
   },
-  "implicitDependencies": ["design-tokens"]
+  "implicitDependencies": ["design-tokens", "tailwind-config"]
 }

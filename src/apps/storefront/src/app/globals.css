@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@teck/tailwind-config/web.css";
+
+@source "../../../../packages/ui/src";
+
+@layer base {
+  *,
+  ::after,
+  ::before {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@teck/ui-native",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./blocks/*": "./src/blocks/*.tsx",
+    "./components/*": "./src/components/*.tsx",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@teck/design-tokens": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=19.3.0 <20",
+    "react-native": ">=0.88.0 <1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.3",
+    "react": "19.3.1",
+    "react-native": "0.88.1"
+  },
+  "nx": {
+    "includedScripts": []
+  }
+}

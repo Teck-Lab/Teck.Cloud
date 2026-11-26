@@ -1,0 +1,17 @@
+{
+  "name": "@teck/tailwind-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./web.css": "./web.css",
+    "./keycloak": "./keycloak.mjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@teck/design-tokens": "workspace:*"
+  },
+  "nx": {
+    "includedScripts": []
+  }
+}
