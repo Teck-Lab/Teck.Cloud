@@ -198,6 +198,13 @@ exposes `GetCurrentLicense` and `VerifyLicense`.
 - Delegated identity and tenant context travel in established call metadata, not
   as trusted request fields. The handler verifies metadata matches the requested
   binding. A customer middleware path cannot reach staff RPCs.
+- For both Admin mutations, the gateway validates the route's `{orderId}` UUID
+  and copies it into `DecideOrderRequest.order_id` or
+  `RecordPlacementEvidenceRequest.order_id` (tag 4 in each). The HTTP bodies do
+  not carry the target, tenant, or actor. Orders resolves the target by the
+  verified delegated tenant and the request's `order_id` before checking its
+  revision. A missing or out-of-scope order returns scoped `404 not_found`;
+  a matching revision never substitutes for the target or grants access.
 - `CheckCurrentEntitlement` takes `{tenantId, orderId, subscriptionId,
   desiredRevision}` and answers `{eligible}` from Orders' own durable facts. It
   is callable only by the scoped Licensing workload and creates no synchronous

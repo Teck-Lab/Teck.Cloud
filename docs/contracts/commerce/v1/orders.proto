@@ -10,6 +10,8 @@ option csharp_namespace = "Teck.Cloud.Commerce.Orders.V1";
 // gateways map their HTTP messages to these RPCs; they do not keep a second
 // state model. Delegated identity and tenant scope travel in call metadata and
 // are validated by the handler, never accepted from a trusted request field.
+// For staff mutations the gateway maps the HTTP route's orderId to order_id.
+// Orders resolves that UUID only within the verified delegated tenant scope.
 service Orders {
   // Catalog and basket.
   rpc GetCatalog(GetCatalogRequest) returns (GetCatalogResponse);
@@ -228,6 +230,8 @@ message DecideOrderRequest {
   // Trimmed nonblank, at most 512 characters.
   string reason = 2;
   uint32 expected_revision = 3;
+  // Nonempty UUID from the decision route; not an identity or tenant claim.
+  string order_id = 4;
 }
 
 message DecideOrderResponse {
@@ -239,6 +243,8 @@ message RecordPlacementEvidenceRequest {
   // Bounded nonsecret audit reference; it is not proof and is never fetched.
   string evidence_reference = 2;
   uint32 expected_revision = 3;
+  // Nonempty UUID from the placement-evidence route; not a tenant claim.
+  string order_id = 4;
 }
 
 message RecordPlacementEvidenceResponse {

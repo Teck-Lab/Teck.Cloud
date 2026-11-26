@@ -186,6 +186,11 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(path.join(root, file), "utf8"));
 }
 
+function fixturePayload(fixture) {
+  if (fixture.kind === "checkoutCreated") return fixture.response;
+  return fixture[Object.keys(fixture).find((key) => key !== "kind")];
+}
+
 const CUSTOMER_FORBIDDEN = new Set([
   "tenantId",
   "actorId",
@@ -265,17 +270,19 @@ const requiredResponseExamples = [
   [admin, "decideAdminCommerceOrder", "200", { approved: "AdminOrderApproved" }],
   [admin, "recordAdminPlacementEvidence", "200", { verifying: "AdminOrderVerifying" }],
 ];
+const mountedResponses = [];
 for (const [document, operationId, status, slots] of requiredResponseExamples) {
   const match = operationsOf(document).find(
     ({ operation }) => operation.operationId === operationId,
   );
-  const examples = match?.operation.responses?.[status]?.content?.["application/json"]?.examples;
+  const media = match?.operation.responses?.[status]?.content?.["application/json"];
   for (const [slot, component] of Object.entries(slots))
     assert.equal(
-      examples?.[slot]?.$ref,
+      media?.examples?.[slot]?.$ref,
       `#/components/examples/${component}`,
       `${operationId} ${status} application/json ${slot} must reference ${component}`,
     );
+  mountedResponses.push({ document, operationId, status, media, slots });
 }
 
 for (const [name, document] of [
@@ -393,6 +400,68 @@ for (const { operation } of adminOperations) {
     parameter.$ref ? parameter.$ref.split("/").at(-1) : parameter.name,
   );
   assert.ok(names.includes("TenantId"), `${operation.operationId} requires a tenant parameter`);
+}
+
+const adminMutationRoutes = [
+  [
+    "decideAdminCommerceOrder",
+    "decision",
+    "DecisionRequest",
+    "DecideOrder",
+    "DecideOrderRequest",
+    [
+      ["Decision", "decision"],
+      ["string", "reason"],
+    ],
+  ],
+  [
+    "recordAdminPlacementEvidence",
+    "placement-evidence",
+    "PlacementEvidenceRequest",
+    "RecordPlacementEvidence",
+    "RecordPlacementEvidenceRequest",
+    [
+      ["string", "placement_id"],
+      ["string", "evidence_reference"],
+    ],
+  ],
+];
+for (const [operationId, action, bodySchema] of adminMutationRoutes) {
+  const route = `/v1/admin/commerce/tenants/{tenantId}/orders/{orderId}/${action}`;
+  const operation = admin.paths[route]?.post;
+  assert.equal(
+    operation?.operationId,
+    operationId,
+    `${operationId} targets the tenant and order route`,
+  );
+  for (const [parameter, name] of [
+    ["TenantId", "tenantId"],
+    ["OrderId", "orderId"],
+  ]) {
+    const ref = `#/components/parameters/${parameter}`;
+    const label = `${operationId} requires the ${name} UUID path parameter`;
+    assert.ok(
+      operation.parameters?.some((p) => p.$ref === ref),
+      label,
+    );
+    const definition = admin.components.parameters[parameter];
+    assert.equal(definition?.name, name, label);
+    assert.equal(definition?.in, "path", label);
+    assert.equal(definition?.required, true, label);
+    const schema =
+      definition.schema?.$ref === "#/components/schemas/TenantId"
+        ? admin.components.schemas.TenantId
+        : definition.schema;
+    assert.equal(schema?.format, "uuid", label);
+  }
+  assert.equal(
+    operation.requestBody?.content?.["application/json"]?.schema?.$ref,
+    `#/components/schemas/${bodySchema}`,
+    `${operationId} preserves its HTTP mutation body`,
+  );
+  const properties = admin.components.schemas[bodySchema].properties;
+  for (const name of ["tenantId", "orderId", "actorId"])
+    assert.ok(!Object.hasOwn(properties, name), `${bodySchema} does not accept ${name}`);
 }
 
 // Schema shape and no cross-plane leakage.
@@ -978,8 +1047,7 @@ for (const file of fixtureFiles) {
   if (fixtureSchemaName) {
     const document =
       fixture.kind.startsWith("admin") || fixture.kind.endsWith("Request") ? admin : customer;
-    const payloadKey = Object.keys(fixture).find((key) => key !== "kind");
-    validateExample(document, fixtureSchemaName, fixture[payloadKey], file);
+    validateExample(document, fixtureSchemaName, fixturePayload(fixture), file);
   }
   switch (fixture.kind) {
     case "catalog":
@@ -1120,6 +1188,23 @@ for (const [name, document, mapping] of [
   }
 }
 
+// Also apply the schema published at each mount, not just the component's semantic mapping.
+for (const { document, operationId, status, media, slots } of mountedResponses) {
+  const label = `${operationId} ${status} application/json response schema`;
+  const schema = media.schema;
+  assert.ok(
+    schema && typeof schema === "object" && !Array.isArray(schema),
+    `${label} is missing or invalid`,
+  );
+  for (const [slot, component] of Object.entries(slots))
+    assertMatches(
+      document,
+      schema,
+      document.components.examples[component].value,
+      `${label} for ${slot} (${component})`,
+    );
+}
+
 // Check replay intent before lifecycle joins so a foreign replay cannot mask the binding error.
 const firstCreatedOrder = initialCheckoutSnapshots[0]?.order;
 const replayedOrder = checkoutResponses.find(
@@ -1133,6 +1218,19 @@ assert.equal(
   firstCreatedOrder.subscriptionId,
   "shared replay subscription binding",
 );
+
+// Optional fixture-only expectation: pendingReadiness itself says nothing about proof readiness.
+const { expectReadyPlacement } = readJson("example-checkout-replay-paid.json");
+if (expectReadyPlacement !== undefined)
+  assert.equal(
+    expectReadyPlacement,
+    true,
+    "paid replay expectReadyPlacement must be true when set",
+  );
+const paidReplayOrderLabels = new Set([
+  "example-checkout-replay-paid.json.order",
+  "customer OpenAPI example PaidCheckoutReplay.order",
+]);
 
 // Lifecycle cross-checks between customer and admin projections.
 const adminEvidenceFields = {
@@ -1152,12 +1250,13 @@ function assertAdminEvidenceAgreement(order, reference, label) {
 
 for (const { order: customerOrder, label } of customerSnapshots) {
   const active = customerOrder.status === "active";
-  const grantPendingReplay =
-    customerOrder.status === "pendingReadiness" &&
-    [
-      "example-checkout-replay-paid.json.order",
-      "customer OpenAPI example PaidCheckoutReplay.order",
-    ].includes(label);
+  const grantPendingReplay = expectReadyPlacement === true && paidReplayOrderLabels.has(label);
+  if (grantPendingReplay)
+    assert.equal(
+      customerOrder.status,
+      "pendingReadiness",
+      `${label} explicit grant-pending replay status`,
+    );
   if (!active && !grantPendingReplay) continue;
 
   const sameInstantAdmin = adminSnapshots.filter(
@@ -1352,9 +1451,8 @@ assert.equal(
 for (const [file, [document, exampleName]] of fixtureExample) {
   assert.ok(fixtureFiles.includes(file), `mapped fixture ${file} exists`);
   const fixture = readJson(file);
-  const payloadKey = Object.keys(fixture).find((key) => key !== "kind");
   assert.deepEqual(
-    fixture[payloadKey],
+    fixturePayload(fixture),
     document.components.examples[exampleName].value,
     `${file} matches OpenAPI example ${exampleName}`,
   );
@@ -1518,6 +1616,17 @@ assert.equal(orderRpc.get("PutBasket").response, "Basket");
 assert.equal(orderRpc.get("CreateOrder").response, "CreateOrderResponse");
 assert.equal(orderRpc.get("CheckCurrentEntitlement").request, "CheckCurrentEntitlementRequest");
 assert.equal(orderRpc.get("CheckCurrentEntitlement").response, "CheckCurrentEntitlementResponse");
+for (const [, , , rpc, request, actionFields] of adminMutationRoutes) {
+  assert.equal(orderRpc.get(rpc).request, request, `${rpc} request carries its route target`);
+  assert.equal(orderRpc.get(rpc).response, `${rpc}Response`, `${rpc} response type`);
+  assert.deepEqual(
+    orders.messages.get(request),
+    [...actionFields, ["uint32", "expected_revision"], ["string", "order_id"]].map(
+      ([type, name], index) => ({ label: null, type, name, number: index + 1 }),
+    ),
+    `${request} preserves action fields and appends order_id at tag 4 (tenant and actor are delegated)`,
+  );
+}
 
 for (const messageName of orders.messages.keys()) assertSequentialFields(orders, messageName);
 const entitlementRequest = orders.messages.get("CheckCurrentEntitlementRequest");

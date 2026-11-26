@@ -100,7 +100,7 @@ function readFixture(directory, file) {
   return JSON.parse(fs.readFileSync(path.join(directory, file), "utf8"));
 }
 
-function setGrantPendingReplay(directory) {
+function setPendingReadinessReplay(directory) {
   mutatePaidReplay(directory, (response) => {
     Object.assign(response.order, {
       status: "pendingReadiness",
@@ -109,6 +109,13 @@ function setGrantPendingReplay(directory) {
       license: null,
     });
     response.checkoutUrl = null;
+  });
+}
+
+function setGrantPendingReplay(directory) {
+  setPendingReadinessReplay(directory);
+  mutateJson(directory, "example-checkout-replay-paid.json", (fixture) => {
+    fixture.expectReadyPlacement = true;
   });
 }
 
@@ -252,6 +259,28 @@ test("checker rejects grant-pending replay without exact same-intent Admin evide
   );
 });
 
+for (const fulfillment of [
+  { status: "awaitingEvidence", placementId: null, evidenceReference: null, failureCode: null },
+  { status: "verifying", failureCode: "probe_unavailable" },
+]) {
+  test(`checker accepts a same-intent replay with ${fulfillment.status} placement`, () => {
+    const temporary = copyContract();
+    try {
+      setPendingReadinessReplay(temporary);
+      const { response: replay } = readFixture(temporary, "example-checkout-replay-paid.json");
+      insertSharedAdminSnapshot(temporary, (order) => {
+        order.status = replay.order.status;
+        order.revision = replay.order.revision;
+        order.updatedAt = replay.order.updatedAt;
+        Object.assign(order.fulfillment, fulfillment, { observedAt: null });
+      });
+      const result = runVerifier(temporary);
+      assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+    } finally {
+      fs.rmSync(temporary, { recursive: true, force: true });
+    }
+  });
+}
 test("checker rejects grant-pending replay without a matching first-create intent", () => {
   expectRejected(
     (directory) => {
@@ -567,6 +596,19 @@ for (const destination of ["removed", "200 JSON", "201 problem+json"]) {
   });
 }
 
+test("checker rejects a checkout replay incompatible with its published 201 schema", () => {
+  expectRejected(
+    (directory) =>
+      mutateOpenApi(directory, "customer.openapi.yaml", ({ paths }) => {
+        paths["/v1/commerce/orders"].post.responses["201"].content["application/json"].schema = {
+          $ref: "#/components/schemas/Basket",
+        };
+      }),
+    "checkout examples under another response schema",
+    /createCommerceOrder 201 application\/json response schema for shared \(CreatedSharedCheckout\)/u,
+  );
+});
+
 const ADMIN_ORDER_PATH = "/v1/admin/commerce/tenants/{tenantId}/orders/{orderId}";
 function adminMutationExamples(paths, route) {
   return paths[`${ADMIN_ORDER_PATH}/${route}`].post.responses["200"].content["application/json"]
@@ -596,6 +638,57 @@ test("checker requires decision approved mount even with the detail approved mou
     /decideAdminCommerceOrder 200 application\/json approved must reference AdminOrderApproved/u,
   );
 });
+
+test("checker rejects an intact Admin decision mount without a response schema", () => {
+  expectRejected(
+    (directory) =>
+      mutateOpenApi(directory, "admin.openapi.yaml", ({ paths }) => {
+        delete paths[`${ADMIN_ORDER_PATH}/decision`].post.responses["200"].content[
+          "application/json"
+        ].schema;
+      }),
+    "Admin decision response schema absent",
+    /decideAdminCommerceOrder 200 application\/json response schema is missing or invalid/u,
+  );
+});
+
+for (const [request, route, operationId] of [
+  ["DecideOrderRequest", "decision", "decideAdminCommerceOrder"],
+  ["RecordPlacementEvidenceRequest", "placement-evidence", "recordAdminPlacementEvidence"],
+]) {
+  test(`checker rejects ${request} without the route order_id`, () => {
+    expectRejected(
+      (directory) => {
+        const body = readProtoMessage(directory, request);
+        assert.ok(body.includes("  string order_id = 4;\n"));
+        mutateText(directory, "orders.proto", body, body.replace("  string order_id = 4;\n", ""));
+      },
+      `${request} missing route target`,
+      new RegExp(`${request} preserves action fields and appends order_id at tag 4`, "u"),
+    );
+  });
+
+  test(`checker rejects ${operationId} without its order UUID parameter`, () => {
+    expectRejected(
+      (directory) =>
+        mutateOpenApi(directory, "admin.openapi.yaml", ({ paths }) => {
+          const operation = paths[`${ADMIN_ORDER_PATH}/${route}`].post;
+          operation.parameters = operation.parameters.filter(
+            (p) => p.$ref !== "#/components/parameters/OrderId",
+          );
+        }),
+      `${operationId} missing route order parameter`,
+      new RegExp(`${operationId} requires the orderId UUID path parameter`, "u"),
+    );
+  });
+}
+
+function readProtoMessage(directory, request) {
+  const source = fs.readFileSync(path.join(directory, "orders.proto"), "utf8");
+  const body = source.match(new RegExp(`message ${request} \\{[^}]*\\}`, "u"))?.[0];
+  assert.ok(body, `${request} exists`);
+  return body;
+}
 
 for (const page of [CUSTOMER_PAGE, ADMIN_PAGE]) {
   for (const key of ["updatedAt", "orderId tie-breaker"]) {

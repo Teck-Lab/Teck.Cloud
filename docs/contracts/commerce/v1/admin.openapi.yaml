@@ -109,6 +109,8 @@ paths:
         attempt is `409 invalid_transition`. The actor comes from the
         authenticated staff principal and is recorded with the server UTC time
         and order ID.
+        The gateway passes the route's `orderId` as `DecideOrderRequest.order_id`.
+        Orders resolves the target only within validated delegated tenant scope.
       x-required-permission: CommerceOrdersDecide
       parameters:
         - $ref: "#/components/parameters/TenantId"
@@ -159,6 +161,8 @@ paths:
         order is approved and currently paid. Newest evidence gets a fresh
         revision even for the same placement; a result for an older revision
         never overwrites it.
+        The gateway passes the route's `orderId` as `RecordPlacementEvidenceRequest.order_id`.
+        Orders resolves the target only within validated delegated tenant scope.
       x-required-permission: CommercePlacementRecord
       parameters:
         - $ref: "#/components/parameters/TenantId"
