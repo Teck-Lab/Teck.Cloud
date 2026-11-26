@@ -1,0 +1,40 @@
+{
+  "kind": "adminOrder",
+  "order": {
+    "orderId": "7c8d9e0f-a1b2-4c3d-8e4f-506172839405",
+    "subscriptionId": "8d9e0fa1-b2c3-4d4e-9f50-617283940516",
+    "tier": "shared",
+    "addOnCodes": [],
+    "total": { "amountMinor": 1000, "currency": "USD" },
+    "status": "rejected",
+    "revision": 3,
+    "createdAt": "2026-11-23T19:20:00Z",
+    "updatedAt": "2026-11-23T20:25:00Z",
+    "payment": {
+      "status": "paid",
+      "paidThrough": "2026-12-23T20:00:00Z"
+    },
+    "approval": {
+      "status": "rejected",
+      "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+      "reason": "Purchase order did not match the requesting organization.",
+      "occurredAt": "2026-11-23T20:25:00Z"
+    },
+    "fulfillment": {
+      "status": "awaitingEvidence",
+      "placementId": null,
+      "evidenceReference": null,
+      "observedAt": null,
+      "failureCode": null
+    },
+    "audit": [
+      {
+        "orderId": "7c8d9e0f-a1b2-4c3d-8e4f-506172839405",
+        "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+        "action": "reject",
+        "reason": "Purchase order did not match the requesting organization.",
+        "occurredAt": "2026-11-23T20:25:00Z"
+      }
+    ]
+  }
+}

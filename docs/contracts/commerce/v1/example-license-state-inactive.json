@@ -1,0 +1,16 @@
+{
+  "kind": "licenseStateEvent",
+  "event": {
+    "messageId": "90a1b2c3-d4e5-4f60-8172-93a4b5c6d7e8",
+    "occurredAt": "2026-11-24T00:00:00Z",
+    "tenantId": "3f0f0f6e-6b1a-4d1e-9f4a-1c2b3d4e5f60",
+    "orderId": "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283",
+    "subscriptionId": "4c5d6e7f-8091-4b2c-8d3e-4f5061728394",
+    "revision": 8,
+    "desiredRevision": 8,
+    "state": "inactive",
+    "licenseRevision": null,
+    "keyId": null,
+    "expiresAt": null
+  }
+}

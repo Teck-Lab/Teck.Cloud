@@ -1,0 +1,27 @@
+{
+  "kind": "catalog",
+  "response": {
+    "offers": [
+      {
+        "offerId": "postgres-shared-monthly",
+        "tier": "shared",
+        "displayName": "Shared PostgreSQL",
+        "basePrice": { "amountMinor": 1000, "currency": "USD" },
+        "addOns": []
+      },
+      {
+        "offerId": "postgres-dedicated-monthly",
+        "tier": "dedicated",
+        "displayName": "Dedicated PostgreSQL",
+        "basePrice": { "amountMinor": 3000, "currency": "USD" },
+        "addOns": [
+          {
+            "code": "replicaReadAccess",
+            "displayName": "Read replica access",
+            "price": { "amountMinor": 500, "currency": "USD" }
+          }
+        ]
+      }
+    ]
+  }
+}

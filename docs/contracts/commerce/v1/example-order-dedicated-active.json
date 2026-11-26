@@ -1,0 +1,20 @@
+{
+  "kind": "customerOrder",
+  "order": {
+    "orderId": "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283",
+    "subscriptionId": "4c5d6e7f-8091-4b2c-8d3e-4f5061728394",
+    "tier": "dedicated",
+    "addOnCodes": ["replicaReadAccess"],
+    "total": { "amountMinor": 3500, "currency": "USD" },
+    "status": "active",
+    "revision": 5,
+    "createdAt": "2026-11-23T19:05:00Z",
+    "updatedAt": "2026-11-23T20:20:00Z",
+    "license": {
+      "document": "fixture-license-document-v1",
+      "keyId": "K1",
+      "revision": 1,
+      "expiresAt": "2026-11-23T20:30:00Z"
+    }
+  }
+}

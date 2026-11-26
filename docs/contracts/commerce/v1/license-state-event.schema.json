@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api.teck.cloud/contracts/commerce/v1/license-state-event.schema.json",
+  "title": "commerce.license-state.v1",
+  "description": "Licensing -> Orders grant outcome. Orders accepts an outcome only when desiredRevision matches its current desired generation. `revision` is the desired entitlement generation this message is about and must equal desiredRevision; a lower or equal generation never supersedes a newer one. Active-only values are null when inactive. Broker messages contain no license document, credentials or private key.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "messageId",
+    "occurredAt",
+    "tenantId",
+    "orderId",
+    "subscriptionId",
+    "revision",
+    "desiredRevision",
+    "state",
+    "licenseRevision",
+    "keyId",
+    "expiresAt"
+  ],
+  "properties": {
+    "messageId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Stable event identity retained across transport retries."
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 UTC instant."
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Immutable Keycloak organization UUID."
+    },
+    "orderId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "subscriptionId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295,
+      "description": "Desired entitlement generation answered by this outcome."
+    },
+    "desiredRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295,
+      "description": "Echo of the answered desired generation; must equal revision."
+    },
+    "state": {
+      "type": "string",
+      "enum": ["active", "inactive"]
+    },
+    "licenseRevision": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 4294967295,
+      "description": "Monotonic license revision for active outcomes; null when inactive."
+    },
+    "keyId": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Opaque signing key identifier for active outcomes; null when inactive."
+    },
+    "expiresAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "License expiry for active outcomes; null when inactive."
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["state", "licenseRevision", "keyId", "expiresAt"],
+      "properties": {
+        "state": {
+          "const": "active"
+        },
+        "licenseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "keyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "type": "object"
+    },
+    {
+      "required": ["state", "licenseRevision", "keyId", "expiresAt"],
+      "properties": {
+        "state": {
+          "const": "inactive"
+        },
+        "licenseRevision": {
+          "type": "null"
+        },
+        "keyId": {
+          "type": "null"
+        },
+        "expiresAt": {
+          "type": "null"
+        }
+      },
+      "type": "object"
+    }
+  ]
+}

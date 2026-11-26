@@ -1,0 +1,8 @@
+{
+  "kind": "decisionRequest",
+  "request": {
+    "decision": "approve",
+    "reason": "Verified purchase order and tenant intent.",
+    "expectedRevision": 2
+  }
+}

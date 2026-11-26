@@ -1,0 +1,11 @@
+{
+  "kind": "basket",
+  "response": {
+    "selection": {
+      "offerId": "postgres-dedicated-monthly",
+      "addOnCodes": ["replicaReadAccess"]
+    },
+    "revision": 2,
+    "total": { "amountMinor": 3500, "currency": "USD" }
+  }
+}

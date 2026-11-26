@@ -1,0 +1,21 @@
+{
+  "kind": "licenseVerification",
+  "verifiedContext": {
+    "tenantId": "3f0f0f6e-6b1a-4d1e-9f4a-1c2b3d4e5f60",
+    "subscriptionId": "1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3"
+  },
+  "valid": {
+    "valid": true,
+    "claims": {
+      "tenantId": "3f0f0f6e-6b1a-4d1e-9f4a-1c2b3d4e5f60",
+      "orderId": "0f0e0d0c-0b0a-4999-8877-665544332211",
+      "subscriptionId": "1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3",
+      "tier": "shared",
+      "addOnCodes": [],
+      "revision": 1,
+      "keyId": "K1",
+      "expiresAt": "2026-11-23T20:30:00Z"
+    },
+    "rejection": null
+  }
+}
