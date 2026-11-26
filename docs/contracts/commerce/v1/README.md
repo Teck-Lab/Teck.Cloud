@@ -79,14 +79,23 @@ never emitted as an HTTP 404 by itself. If that reread finds the order gone or
 now outside scope, fail the whole request with the existing scoped `404
 not_found`; if it is still in scope but now nonactive, return its latest
 projection with `license:null`; if still active, confirm that reread generation
-once with a confirmation lookup. A confirmation-phase Licensing `NOT_FOUND`
-(`otherwise: fail-closed`), a still-unconfirmed active generation, an
-absent/zero active generation, or Orders or Licensing being transport/store
-unavailable makes the entire detail, list or checkout response `503
-dependency_unavailable`: no further reread or retry, no partial page, cached
-license or invented status. Nonactive snapshots never call Licensing. Checkout
-replay first finds the receipt scoped to tenant, subject and idempotency key,
-then compares the original basket revision before current basket validation; it
+once with the `confirmation` license lookup. That internal workload confirmation
+is governed by `licensingConfirmation`: every non-OK `GetCurrentLicense` result,
+including a well-formed `PERMISSION_DENIED` with the `forbidden` trailer,
+fails closed before the ordinary code table or the initial-only exception. A
+clean OK is not an error, but the gateway must still confirm the exact tenant,
+order, subscription and
+desired generation grant; a malformed OK stays fail-closed. The same
+whole-response outcome applies to a confirmation-phase miss, a still-unconfirmed
+active generation, an absent/zero active generation, or Orders or Licensing
+being transport/store unavailable: the entire detail, list or checkout response
+is `503 dependency_unavailable`, with no second reread, retry, cursor, partial
+result, cached license or invented status. Ordinary caller authorization denials
+keep `403 forbidden`, and an Orders `NOT_FOUND` keeps the scoped `404 not_found`;
+they are not internal workload confirmation
+failures. Nonactive snapshots never call Licensing. Checkout replay first finds
+the receipt scoped to tenant, subject and idempotency key, then compares the
+original basket revision before current basket validation; it
 preserves the bound order and uses `checkoutUrl:null` when non-payable.
 
 Customer page membership is fixed by the original scoped Orders page. That page
@@ -309,21 +318,38 @@ pair does not equal the observed status; a success response that carries the
 error trailer is also malformed. Malformed, unknown, missing and mismatched
 responses fail closed as `503 dependency_unavailable`, never as a guessed 4xx.
 
-Licensing `NOT_FOUND` on `GetCurrentLicense` is the one deliberate exception. It
-is resolved by call phase rather than by the ordinary code table and is never
-emitted as an HTTP error by itself; the extension records `phase: initial` with
-`action: reread-order-once` and `otherwise: fail-closed`. Only a valid
-`GetCurrentLicense` `NOT_FOUND` in the `initial` phase gets the reread action:
-exactly one Orders `GetCustomerOrder` reread of the same order within the
-original authenticated tenant and subject scope described above. Only that
-reread outcome decides between the scoped `404 not_found`, the latest nonactive
-projection, and the confirmation lookup. A `confirmation` phase miss (the order
-was still active but the reread generation is still unconfirmed), any other
-phase, and a missing phase all resolve as `otherwise: fail-closed` to the
-whole-response `503 dependency_unavailable`, with no further reread or retry and
-no partial result; they never fall through to the ordinary scoped `404
-not_found`. Retryable dependency failures never advance state. `503` may carry
-an integer `Retry-After`.
+One call class takes precedence over the generic map. The `confirmation`
+`GetCurrentLicense` lookup is the internal workload confirmation performed after
+a still-active Orders reread. The extension declares its sibling
+`licensingConfirmation` mapping as `operation: GetCurrentLicense`, `phase:
+confirmation`, `when: unsuccessful`, `action: fail-closed`, evaluated ahead of
+the ordinary `codes` table and the initial-only `licensingNotFound` exception.
+Every non-OK result of that call, including a well-formed `PERMISSION_DENIED`
+with the `forbidden` trailer, fails closed to whole-response `503
+dependency_unavailable`. The gateway does not reread Orders again, retry, or
+emit a cursor or partial result. A clean OK is not an error, but the gateway
+must still confirm the exact tenant, order, subscription and desired generation
+grant; a malformed OK, such as one carrying an error trailer, remains
+fail-closed. This is an internal workload failure, distinct from caller
+authorization: ordinary gateway or Orders denials keep `403 forbidden`, and an
+Orders `NOT_FOUND` keeps the scoped `404 not_found`.
+
+Licensing `NOT_FOUND` on `GetCurrentLicense` is the one deliberate exception to
+the ordinary code table, and only for the `initial` phase. It is resolved by
+call phase rather than by the ordinary table and is never emitted as an HTTP
+error by itself; the extension records `phase: initial` with `action:
+reread-order-once` and `otherwise: fail-closed`. Only a valid `GetCurrentLicense`
+`NOT_FOUND` in the `initial` phase gets the reread action: exactly one Orders
+`GetCustomerOrder` reread of the same order within the original authenticated
+tenant and subject scope described above. Only that reread outcome decides
+between the scoped `404 not_found`, the latest nonactive projection, and the
+confirmation lookup. The `initial` exception never applies to `confirmation`:
+that phase is governed by `licensingConfirmation` above. Any other phase and a
+missing phase resolve as `otherwise: fail-closed` to the whole-response `503
+dependency_unavailable`, with no further reread or retry and no partial result;
+they never fall through to the ordinary scoped `404 not_found`. Retryable
+dependency failures never advance state. `503` may carry an integer
+`Retry-After`.
 
 ## Compatibility and versioning
 

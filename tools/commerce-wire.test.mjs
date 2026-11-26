@@ -41,6 +41,15 @@ function failClosed() {
 }
 
 function dependencyOutcome({ operation, phase, grpcStatusCode, trailers }) {
+  const confirmation = wire.licensingConfirmation;
+  assert.ok(confirmation, "customer contract declares the licensing confirmation rule");
+  if (confirmation.when !== "unsuccessful")
+    throw new Error(`unexpected licensing confirmation when: ${confirmation.when}`);
+  if (confirmation.action !== "fail-closed")
+    throw new Error(`unexpected licensing confirmation action: ${confirmation.action}`);
+  const licensingConfirmation =
+    operation === confirmation.operation && phase === confirmation.phase && grpcStatusCode !== 0;
+  if (licensingConfirmation) return failClosed();
   const licensing = wire.licensingNotFound;
   const licensingNotFound =
     operation === licensing.operation &&
@@ -214,6 +223,110 @@ test("Licensing NOT_FOUND keeps its single initial-phase reread exception", () =
     );
 });
 
+test("licensing confirmation fails closed ahead of generic mappings for every unsuccessful result", () => {
+  const confirmation = wire.licensingConfirmation;
+  assert.deepEqual(
+    {
+      operation: confirmation.operation,
+      phase: confirmation.phase,
+      when: confirmation.when,
+      action: confirmation.action,
+    },
+    {
+      operation: "GetCurrentLicense",
+      phase: "confirmation",
+      when: "unsuccessful",
+      action: "fail-closed",
+    },
+  );
+  assert.deepEqual(
+    Object.keys(confirmation)
+      .filter((key) => key !== "description")
+      .sort(),
+    ["action", "operation", "phase", "when"],
+    "the confirmation rule declares exactly its matching fields",
+  );
+
+  const confirmationOutcome = (grpcStatusCode, trailers) =>
+    dependencyOutcome({
+      operation: confirmation.operation,
+      phase: confirmation.phase,
+      grpcStatusCode,
+      trailers,
+    });
+
+  assert.deepEqual(
+    confirmationOutcome(0, []),
+    { ok: true },
+    "a clean OK is not an error even though the caller still confirms the exact grant",
+  );
+  for (const [label, grpcStatusCode, trailers] of [
+    ["canonical NOT_FOUND", 5, ["not_found"]],
+    ["canonical PERMISSION_DENIED", 7, ["forbidden"]],
+    ["canonical INVALID_ARGUMENT", 3, ["invalid_request"]],
+    ["missing trailer", 7, []],
+    ["duplicate trailer", 5, ["not_found", "not_found"]],
+    ["unknown code", 7, ["unknown_code"]],
+    ["mismatched pair", 5, ["forbidden"]],
+    ["malformed success", 0, ["forbidden"]],
+  ])
+    assert.deepEqual(
+      confirmationOutcome(grpcStatusCode, trailers),
+      failClosed(),
+      `${label} fails closed as 503 instead of taking a generic mapping`,
+    );
+
+  for (const [label, response, expected] of [
+    [
+      "an ordinary caller denial at confirmation",
+      {
+        operation: "GetCustomerOrder",
+        phase: "confirmation",
+        grpcStatusCode: 7,
+        trailers: ["forbidden"],
+      },
+      { httpStatus: 403, code: "forbidden" },
+    ],
+    [
+      "an Orders scoped 404 at confirmation",
+      {
+        operation: "GetCustomerOrder",
+        phase: "confirmation",
+        grpcStatusCode: 5,
+        trailers: ["not_found"],
+      },
+      { httpStatus: 404, code: "not_found" },
+    ],
+    [
+      "a canonical denial outside confirmation",
+      {
+        operation: confirmation.operation,
+        phase: "initial",
+        grpcStatusCode: 7,
+        trailers: ["forbidden"],
+      },
+      { httpStatus: 403, code: "forbidden" },
+    ],
+    [
+      "a canonical denial without a phase",
+      { operation: confirmation.operation, grpcStatusCode: 7, trailers: ["forbidden"] },
+      { httpStatus: 403, code: "forbidden" },
+    ],
+  ])
+    assert.deepEqual(dependencyOutcome(response), expected, `${label} keeps its existing path`);
+
+  assert.deepEqual(
+    dependencyOutcome({
+      operation: confirmation.operation,
+      phase: "initial",
+      grpcStatusCode: 5,
+      trailers: ["not_found"],
+    }),
+    { action: wire.licensingNotFound.action },
+    "the initial-only Licensing NOT_FOUND exception still applies outside confirmation",
+  );
+});
+
 test("README error table matches the frozen wire map", () => {
   const errorsSection = readme.slice(
     readme.indexOf("## Errors"),
@@ -338,7 +451,7 @@ test("nonactive reread reorders the fixed page without refilling it", () => {
   );
 });
 
-test("a still-active reread confirms once on its new generation then fails the whole page closed", () => {
+test("a still-active reread confirms once then fails the whole page closed without a partial result", () => {
   const scope = paging.scope;
   const [activeOrder] = paging.originalPage.items;
   const nonactiveOrder = paging.rereads[0].snapshot;
@@ -358,88 +471,79 @@ test("a still-active reread confirms once on its new generation then fails the w
   assert.equal(rereadSnapshot.status, "active", "the reread is still active");
   assert.notEqual(rereadSnapshot.desiredRevision, originalGeneration);
 
-  const calls = [];
-  const licensingReplies = [
-    { grpcStatusCode: 5, trailers: ["not_found"] },
-    { grpcStatusCode: 5, trailers: ["not_found"] },
-  ];
+  function reader(confirmationReply) {
+    const calls = [];
+    const licensingReplies = [{ grpcStatusCode: 5, trailers: ["not_found"] }, confirmationReply];
 
-  function licensingLookup({ phase, orderId, desiredRevision }) {
-    const reply = licensingReplies.shift();
-    assert.ok(reply, "Licensing is called only for the contract's two phases");
-    calls.push({
-      operation: wire.licensingNotFound.operation,
-      phase,
-      tenantId: scope.tenantId,
-      subjectId: scope.subjectId,
-      orderId,
-      desiredRevision,
-    });
-    return dependencyOutcome({
-      operation: wire.licensingNotFound.operation,
-      phase,
-      ...reply,
-    });
-  }
-
-  function rereadOrder(orderId) {
-    calls.push({
-      operation: "GetCustomerOrder",
-      tenantId: scope.tenantId,
-      subjectId: scope.subjectId,
-      orderId,
-    });
-    return rereadSnapshot;
-  }
-
-  function unavailable(outcome) {
-    return { httpStatus: outcome.httpStatus, code: outcome.code, page: null };
-  }
-
-  function verifyActiveOrder(order) {
-    const initial = licensingLookup({
-      phase: "initial",
-      orderId: order.orderId,
-      desiredRevision: order.desiredRevision,
-    });
-    if (initial.ok === true) return { order };
-    if (initial.action !== wire.licensingNotFound.action)
-      return { unavailable: unavailable(initial) };
-    const snapshot = rereadOrder(order.orderId);
-    if (snapshot.status !== "active") return { order: snapshot };
-    const confirmation = licensingLookup({
-      phase: "confirmation",
-      orderId: snapshot.orderId,
-      desiredRevision: snapshot.desiredRevision,
-    });
-    return confirmation.ok === true
-      ? { order: snapshot }
-      : { unavailable: unavailable(confirmation) };
-  }
-
-  function readPage() {
-    const items = [];
-    for (const order of page.items) {
-      if (order.status !== "active") {
-        items.push(order);
-        continue;
-      }
-      const verified = verifyActiveOrder(order);
-      if (verified.unavailable) return verified.unavailable;
-      items.push(verified.order);
+    function licensingLookup({ operation, phase, orderId, desiredRevision }) {
+      const reply = licensingReplies.shift();
+      assert.ok(reply, "Licensing is called only for the contract's two phases");
+      calls.push({
+        operation,
+        phase,
+        tenantId: scope.tenantId,
+        subjectId: scope.subjectId,
+        orderId,
+        desiredRevision,
+      });
+      return dependencyOutcome({ operation, phase, ...reply });
     }
-    return { httpStatus: 200, items, nextCursor: page.nextCursor };
+
+    function rereadOrder(orderId) {
+      calls.push({
+        operation: "GetCustomerOrder",
+        tenantId: scope.tenantId,
+        subjectId: scope.subjectId,
+        orderId,
+      });
+      return rereadSnapshot;
+    }
+
+    function unavailable(outcome) {
+      return { httpStatus: outcome.httpStatus, code: outcome.code, page: null };
+    }
+
+    function verifyActiveOrder(order) {
+      const initial = licensingLookup({
+        operation: wire.licensingNotFound.operation,
+        phase: "initial",
+        orderId: order.orderId,
+        desiredRevision: order.desiredRevision,
+      });
+      if (initial.ok === true) return { order };
+      if (initial.action !== wire.licensingNotFound.action)
+        return { unavailable: unavailable(initial) };
+      const snapshot = rereadOrder(order.orderId);
+      if (snapshot.status !== "active") return { order: snapshot };
+      const confirmation = licensingLookup({
+        operation: wire.licensingConfirmation.operation,
+        phase: wire.licensingConfirmation.phase,
+        orderId: snapshot.orderId,
+        desiredRevision: snapshot.desiredRevision,
+      });
+      return confirmation.ok === true
+        ? { order: snapshot }
+        : { unavailable: unavailable(confirmation) };
+    }
+
+    function readPage() {
+      const items = [];
+      for (const order of page.items) {
+        if (order.status !== "active") {
+          items.push(order);
+          continue;
+        }
+        const verified = verifyActiveOrder(order);
+        if (verified.unavailable) return verified.unavailable;
+        items.push(verified.order);
+      }
+      return { httpStatus: 200, items, nextCursor: page.nextCursor };
+    }
+
+    return { calls, readPage };
   }
 
-  const response = readPage();
-  assert.deepEqual(response, {
-    httpStatus: 503,
-    code: "dependency_unavailable",
-    page: null,
-  });
-  assert.equal(response.page, null, "no partial page is returned");
-
-  assert.deepEqual(calls, [
+  const expectedCalls = [
     {
       operation: "GetCurrentLicense",
       phase: "initial",
@@ -462,12 +566,44 @@ test("a still-active reread confirms once on its new generation then fails the w
       orderId: activeOrder.orderId,
       desiredRevision: rereadGeneration,
     },
-  ]);
-  assert.equal(
-    calls.filter(({ operation }) => operation === "GetCustomerOrder").length,
-    1,
-    "the order is reread exactly once, even after the failed confirmation",
-  );
+  ];
+
+  for (const [label, confirmationReply] of [
+    ["a confirmation NOT_FOUND", { grpcStatusCode: 5, trailers: ["not_found"] }],
+    [
+      "a matching canonical PERMISSION_DENIED confirmation",
+      { grpcStatusCode: 7, trailers: ["forbidden"] },
+    ],
+  ]) {
+    const { calls, readPage } = reader(confirmationReply);
+    const response = readPage();
+    assert.deepEqual(
+      response,
+      { httpStatus: 503, code: "dependency_unavailable", page: null },
+      `${label} fails the whole page closed`,
+    );
+    assert.equal(Object.hasOwn(response, "items"), false, `${label} returns no partial items`);
+    assert.equal(
+      Object.hasOwn(response, "nextCursor"),
+      false,
+      `${label} returns no cursor for an unconfirmed page`,
+    );
+    assert.deepEqual(
+      calls,
+      expectedCalls,
+      `${label} keeps the initial lookup and exactly one original-scope reread`,
+    );
+    assert.equal(
+      calls.filter(({ operation }) => operation === "GetCustomerOrder").length,
+      1,
+      `${label} performs no second reread`,
+    );
+    assert.equal(
+      calls.filter(({ operation }) => operation === "GetCurrentLicense").length,
+      2,
+      `${label} performs no extra Licensing lookup`,
+    );
+  }
 });
 
 test("customer list keeps scoped not-found and whole-page unavailability responses", () => {
