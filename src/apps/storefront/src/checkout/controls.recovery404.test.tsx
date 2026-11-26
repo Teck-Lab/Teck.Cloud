@@ -196,13 +196,12 @@ describe("scoped replay 404 recovery", () => {
     });
     expect(screen.queryByText(CHECKOUT_RECOVERY_UNCONFIRMED)).toBeNull();
     expect(screen.queryByRole("button", { name: "Set aside previous checkout" })).toBeNull();
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Proceed to checkout",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(false);
+    await waitFor(() => {
+      const proceed = screen.getByRole<HTMLButtonElement>("button", {
+        name: "Proceed to checkout",
+      });
+      expect(proceed.disabled).toBe(false);
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Retry checkout" }));
     await waitFor(() => {

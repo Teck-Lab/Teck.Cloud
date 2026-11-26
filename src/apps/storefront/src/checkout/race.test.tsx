@@ -302,9 +302,11 @@ describe("cross-tab checkout races", () => {
       ),
     ).toMatchObject({ kind: "bound", orderId: ORDER_O });
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirm set aside" }));
+    const confirm = screen.getByRole<HTMLButtonElement>("button", { name: "Confirm set aside" });
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    fireEvent.click(confirm);
     await waitFor(() => {
-      expect(screen.queryByText(CHECKOUT_SET_ASIDE_CONFIRMATION)).toBeNull();
+      expect(Boolean(screen.queryByText(CHECKOUT_SET_ASIDE_CONFIRMATION))).toBe(false);
     });
     expect(stub.calls).toHaveLength(0);
     expect(navigations).toEqual([]);

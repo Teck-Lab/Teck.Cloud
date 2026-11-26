@@ -16,7 +16,7 @@ type CreateOrderResponse = components["schemas"]["CreateOrderResponse"];
 
 const ORDER_ID = "3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293";
 const SUBSCRIPTION_ID = "5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4";
-const KEY = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const KEY = `a${crypto.randomUUID().slice(1)}`;
 const HTTPS_ORIGIN = { origin: "https://checkout.stripe.com", allowSimulator: false };
 
 const input = {
