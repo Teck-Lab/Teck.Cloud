@@ -122,21 +122,28 @@ paths:
       tags: [Customer orders]
       summary: List the caller's own tenant and subject orders
       description: >-
-        Bounded newest-first page ordered by `updatedAt` descending, then
-        `orderId` ascending as a deterministic tie-breaker. Default limit is 25,
-        maximum 100. Cursors are opaque. For each active
-        Orders snapshot, use its desired entitlement generation with the validated
-        delegated tenant context to retrieve the exact license binding. On an
-        absent, revoked or mismatching grant (including Licensing `NOT_FOUND`),
-        reread that order once with the original authenticated tenant and subject.
-        If gone or now outside scope, fail the whole request with the existing
-        scoped `404 not_found`; if still in scope but now nonactive, return its
-        latest projection with `license:null`; if still active, confirm that
-        reread's generation once. If still unconfirmed, the active generation
-        is missing, or either dependency is unavailable, fail the whole response
-        with 503 and no partial page. Never return a cached grant or fabricate a
-        status. The order is a shared projection with detail and checkout replay;
-        customer pages sort by `updatedAt` descending, then `orderId` ascending.
+        Bounded page of the caller's own orders. The original scoped Orders page
+        fixes membership and page boundaries and supplies the opaque
+        `nextCursor`, which is returned unchanged as a string or `null` (null on
+        the final page); it is never recomputed from replacements or client
+        input. Default limit is 25, maximum 100. For each active item, use its
+        desired entitlement generation with the validated delegated tenant
+        context to retrieve the exact license binding. On an absent, revoked or
+        mismatching grant (including Licensing `NOT_FOUND`), reread that order
+        once with the original authenticated tenant and subject. A reread may
+        replace only the projection of that same order and only within the same
+        validated tenant and subject scope; it never adds, removes or promotes
+        an order, so the page has no refill or backfill. After replacements,
+        emit the page sorted by `updatedAt` descending, then `orderId` ascending
+        as the deterministic tie-breaker. If gone or now outside scope, fail the
+        whole request with the existing scoped `404 not_found`; if still in
+        scope but now nonactive, emit its latest projection with `license:null`;
+        if still active, confirm that reread's generation once. If still
+        unconfirmed, the active generation is missing/zero, or either dependency
+        is unavailable, fail the whole response with `503
+        dependency_unavailable` and no partial page. Never return a cached grant
+        or fabricate a status. The order projection and license rules are shared
+        with detail and checkout replay.
       x-required-permission: commerce.customer
       parameters:
         - $ref: "#/components/parameters/Limit"
@@ -161,6 +168,106 @@ paths:
           $ref: "#/components/responses/NotFound"
         "503":
           $ref: "#/components/responses/Unavailable"
+      x-commerce-paging-example:
+        title: A nonactive reread reorders the fixed page without refilling it
+        description: >-
+          The original scoped Orders page supplies A then B and its cursor.
+          originalPage records the original sort keys in customer projection
+          shape, not the raw Orders RPC response. B's original license envelope
+          is illustrative and is never emitted on this path. B's reread returns
+          a newer nonactive projection in the same scope. The emitted page
+          contains B then A, with the original cursor unchanged.
+        scope:
+          tenantId: 3f0f0f6e-6b1a-4d1e-9f4a-1c2b3d4e5f60
+          subjectId: customer-subject-7f3a
+        originalPage:
+          items:
+            - orderId: 0f0e0d0c-0b0a-4999-8877-665544332211
+              subscriptionId: 1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3
+              tier: shared
+              addOnCodes: []
+              total:
+                amountMinor: 1000
+                currency: USD
+              status: active
+              revision: 4
+              createdAt: "2026-11-23T19:00:00Z"
+              updatedAt: "2026-11-23T20:15:00Z"
+              license:
+                document: fixture-license-document-v1
+                keyId: K1
+                revision: 1
+                expiresAt: "2026-11-23T20:30:00Z"
+            - orderId: 7d8e9fa0-b1c2-4d3e-8f40-516273849506
+              subscriptionId: 8e9fa0b1-c2d3-4e4f-9051-627384950617
+              tier: shared
+              addOnCodes: []
+              total:
+                amountMinor: 1000
+                currency: USD
+              status: active
+              revision: 4
+              createdAt: "2026-11-23T19:30:00Z"
+              updatedAt: "2026-11-23T20:10:00Z"
+              license:
+                document: fixture-license-document-v1
+                keyId: K1
+                revision: 1
+                expiresAt: "2026-11-23T20:25:00Z"
+          nextCursor: cursor_orders_page_2
+        rereads:
+          - orderId: 7d8e9fa0-b1c2-4d3e-8f40-516273849506
+            scope:
+              tenantId: 3f0f0f6e-6b1a-4d1e-9f4a-1c2b3d4e5f60
+              subjectId: customer-subject-7f3a
+            snapshot:
+              orderId: 7d8e9fa0-b1c2-4d3e-8f40-516273849506
+              subscriptionId: 8e9fa0b1-c2d3-4e4f-9051-627384950617
+              tier: shared
+              addOnCodes: []
+              total:
+                amountMinor: 1000
+                currency: USD
+              status: pendingReadiness
+              revision: 5
+              createdAt: "2026-11-23T19:30:00Z"
+              updatedAt: "2026-11-23T20:16:00Z"
+              license: null
+        emittedPage:
+          items:
+            - orderId: 7d8e9fa0-b1c2-4d3e-8f40-516273849506
+              subscriptionId: 8e9fa0b1-c2d3-4e4f-9051-627384950617
+              tier: shared
+              addOnCodes: []
+              total:
+                amountMinor: 1000
+                currency: USD
+              status: pendingReadiness
+              revision: 5
+              createdAt: "2026-11-23T19:30:00Z"
+              updatedAt: "2026-11-23T20:16:00Z"
+              license: null
+            - orderId: 0f0e0d0c-0b0a-4999-8877-665544332211
+              subscriptionId: 1a1b1c1d-2e2f-4a3b-8c4d-5e6f708192a3
+              tier: shared
+              addOnCodes: []
+              total:
+                amountMinor: 1000
+                currency: USD
+              status: active
+              revision: 4
+              createdAt: "2026-11-23T19:00:00Z"
+              updatedAt: "2026-11-23T20:15:00Z"
+              license:
+                document: fixture-license-document-v1
+                keyId: K1
+                revision: 1
+                expiresAt: "2026-11-23T20:30:00Z"
+          nextCursor: cursor_orders_page_2
+        invariants:
+          membership: unchanged
+          refill: none
+          cursor: original opaque value unchanged
     post:
       operationId: createCommerceOrder
       tags: [Customer orders]
@@ -1067,3 +1174,73 @@ components:
         status: 503
         code: dependency_unavailable
         detail: A required dependency is temporarily unavailable; retry with backoff.
+x-commerce-error-wire:
+  description: >-
+    Frozen v1 error wire map shared by Orders and Licensing. One stable HTTP
+    code maps to exactly one gRPC status/code pair, and each pair is delivered
+    in a single lowercase ASCII trailer value. This document-level extension is
+    the machine-readable mirror of the README error table; changing any pair is
+    a breaking contract change.
+  trailer:
+    key: teck-commerce-error-code
+    encoding: ascii
+    pattern: "^[a-z][a-z0-9_]*$"
+    occurrences: 1
+    matching: exact
+  forwarding:
+    dependencyMessage: never
+    detailSource: gateway
+  failClosed:
+    httpStatus: 503
+    code: dependency_unavailable
+    when:
+      - malformed
+      - unknown_code
+      - missing_code
+      - status_code_mismatch
+  licensingNotFound:
+    operation: GetCurrentLicense
+    grpcStatusCode: 5
+    grpcCode: NOT_FOUND
+    action: reread-order-once
+    description: >-
+      Licensing NOT_FOUND is consumed by the single scoped Orders reread and is
+      never emitted as an HTTP 404 by itself; the reread outcome decides the
+      response.
+  codes:
+    invalid_request:
+      httpStatus: 400
+      grpcStatusCode: 3
+      grpcCode: INVALID_ARGUMENT
+    unauthenticated:
+      httpStatus: 401
+      grpcStatusCode: 16
+      grpcCode: UNAUTHENTICATED
+    forbidden:
+      httpStatus: 403
+      grpcStatusCode: 7
+      grpcCode: PERMISSION_DENIED
+    not_found:
+      httpStatus: 404
+      grpcStatusCode: 5
+      grpcCode: NOT_FOUND
+    idempotency_conflict:
+      httpStatus: 409
+      grpcStatusCode: 6
+      grpcCode: ALREADY_EXISTS
+    stale_revision:
+      httpStatus: 409
+      grpcStatusCode: 10
+      grpcCode: ABORTED
+    invalid_transition:
+      httpStatus: 409
+      grpcStatusCode: 9
+      grpcCode: FAILED_PRECONDITION
+    unsupported_option:
+      httpStatus: 422
+      grpcStatusCode: 9
+      grpcCode: FAILED_PRECONDITION
+    dependency_unavailable:
+      httpStatus: 503
+      grpcStatusCode: 14
+      grpcCode: UNAVAILABLE

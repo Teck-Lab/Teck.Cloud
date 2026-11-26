@@ -239,6 +239,19 @@ function assertProjection(value, forbidden, label) {
 
 // OpenAPI structure and authority.
 const requiredResponseExamples = [
+  [customer, "getCommerceCatalog", "200", { catalog: "Catalog" }, "CatalogResponse"],
+  [
+    customer,
+    "getCommerceBasket",
+    "200",
+    {
+      empty: "EmptyBasket",
+      cleared: "ClearedBasket",
+      dedicatedWithAddOn: "DedicatedBasket",
+    },
+    "Basket",
+  ],
+  [customer, "putCommerceBasket", "200", { dedicatedWithAddOn: "DedicatedBasket" }, "Basket"],
   [
     customer,
     "createCommerceOrder",
@@ -249,9 +262,23 @@ const requiredResponseExamples = [
       pending: "CreatedCheckoutPending",
       paidReplay: "PaidCheckoutReplay",
     },
+    "CreateOrderResponse",
   ],
-  [customer, "listCommerceOrders", "200", { orders: "OrdersPage" }],
-  [admin, "listAdminCommerceOrders", "200", { orders: "AdminOrdersPage" }],
+  [customer, "listCommerceOrders", "200", { orders: "OrdersPage" }, "OrderPage"],
+  [
+    customer,
+    "getCommerceOrder",
+    "200",
+    {
+      sharedActive: "SharedActiveOrder",
+      dedicatedActive: "DedicatedActiveOrder",
+      pendingPayment: "PaymentPendingOrder",
+      readinessFailed: "ReadinessFailedOrder",
+      rejected: "RejectedOrder",
+    },
+    "CustomerOrder",
+  ],
+  [admin, "listAdminCommerceOrders", "200", { orders: "AdminOrdersPage" }, "AdminOrderPage"],
   [
     admin,
     "getAdminCommerceOrder",
@@ -266,12 +293,19 @@ const requiredResponseExamples = [
       probeRetrying: "AdminOrderProbeRetrying",
       rejected: "AdminOrderRejected",
     },
+    "AdminOrder",
   ],
-  [admin, "decideAdminCommerceOrder", "200", { approved: "AdminOrderApproved" }],
-  [admin, "recordAdminPlacementEvidence", "200", { verifying: "AdminOrderVerifying" }],
+  [admin, "decideAdminCommerceOrder", "200", { approved: "AdminOrderApproved" }, "AdminOrder"],
+  [
+    admin,
+    "recordAdminPlacementEvidence",
+    "200",
+    { verifying: "AdminOrderVerifying" },
+    "AdminOrder",
+  ],
 ];
 const mountedResponses = [];
-for (const [document, operationId, status, slots] of requiredResponseExamples) {
+for (const [document, operationId, status, slots, schemaName] of requiredResponseExamples) {
   const match = operationsOf(document).find(
     ({ operation }) => operation.operationId === operationId,
   );
@@ -282,7 +316,7 @@ for (const [document, operationId, status, slots] of requiredResponseExamples) {
       `#/components/examples/${component}`,
       `${operationId} ${status} application/json ${slot} must reference ${component}`,
     );
-  mountedResponses.push({ document, operationId, status, media, slots });
+  mountedResponses.push({ document, operationId, status, media, slots, schemaName });
 }
 
 for (const [name, document] of [
@@ -793,6 +827,7 @@ const requiredFixtures = [
   "example-license-state-active.json",
   "example-license-state-inactive.json",
   "example-license-verification.json",
+  "example-license-verification-shared.json",
 ];
 for (const file of requiredFixtures)
   assert.ok(fixtureFiles.includes(file), `missing required fixture ${file}`);
@@ -1133,6 +1168,11 @@ for (const file of fixtureFiles) {
       break;
     }
     case "licenseVerification": {
+      if (file === "example-license-verification-shared.json") {
+        assert.equal(fixture.valid.valid, true, `${file} valid result`);
+        assert.equal(fixture.valid.rejection, null, `${file} valid rejection`);
+        break;
+      }
       const { valid, rejections } = fixture;
       assert.equal(valid.valid, true, `${file} valid result`);
       assert.equal(valid.rejection, null, `${file} valid rejection`);
@@ -1189,13 +1229,15 @@ for (const [name, document, mapping] of [
 }
 
 // Also apply the schema published at each mount, not just the component's semantic mapping.
-for (const { document, operationId, status, media, slots } of mountedResponses) {
+for (const { document, operationId, status, media, slots, schemaName } of mountedResponses) {
   const label = `${operationId} ${status} application/json response schema`;
   const schema = media.schema;
   assert.ok(
     schema && typeof schema === "object" && !Array.isArray(schema),
     `${label} is missing or invalid`,
   );
+  const schemaRef = `#/components/schemas/${schemaName}`;
+  assert.equal(schema.$ref, schemaRef, `${label} must reference ${schemaName}`);
   for (const [slot, component] of Object.entries(slots))
     assertMatches(
       document,
@@ -1206,31 +1248,43 @@ for (const { document, operationId, status, media, slots } of mountedResponses) 
 }
 
 // Check replay intent before lifecycle joins so a foreign replay cannot mask the binding error.
+const paidReplayFixture = readJson("example-checkout-replay-paid.json");
 const firstCreatedOrder = initialCheckoutSnapshots[0]?.order;
-const replayedOrder = checkoutResponses.find(
-  ({ label }) => label === "example-checkout-replay-paid.json",
-)?.response.order;
 assert.ok(firstCreatedOrder, "shared first-create customer projection exists");
-assert.ok(replayedOrder, "shared paid replay response exists");
-assert.equal(replayedOrder.orderId, firstCreatedOrder.orderId, "shared replay order binding");
-assert.equal(
-  replayedOrder.subscriptionId,
-  firstCreatedOrder.subscriptionId,
-  "shared replay subscription binding",
-);
+const paidReplayLabels = [
+  "example-checkout-replay-paid.json",
+  "customer OpenAPI example PaidCheckoutReplay",
+];
+for (const label of paidReplayLabels) {
+  const response = checkoutResponses.find((entry) => entry.label === label)?.response;
+  assert.ok(response, `${label} shared paid replay response exists`);
+  assert.equal(
+    response.order.orderId,
+    firstCreatedOrder.orderId,
+    `${label} shared replay order binding`,
+  );
+  assert.equal(
+    response.order.subscriptionId,
+    firstCreatedOrder.subscriptionId,
+    `${label} shared replay subscription binding`,
+  );
+  assert.notEqual(
+    response.order.status,
+    "pendingPayment",
+    `${label} shared PaidCheckoutReplay must be paid, not pendingPayment`,
+  );
+  assert.equal(response.checkoutUrl, null, `${label} shared PaidCheckoutReplay is nonpayable`);
+}
 
 // Optional fixture-only expectation: pendingReadiness itself says nothing about proof readiness.
-const { expectReadyPlacement } = readJson("example-checkout-replay-paid.json");
+const { expectReadyPlacement } = paidReplayFixture;
 if (expectReadyPlacement !== undefined)
   assert.equal(
     expectReadyPlacement,
     true,
     "paid replay expectReadyPlacement must be true when set",
   );
-const paidReplayOrderLabels = new Set([
-  "example-checkout-replay-paid.json.order",
-  "customer OpenAPI example PaidCheckoutReplay.order",
-]);
+const paidReplayOrderLabels = new Set(paidReplayLabels.map((label) => `${label}.order`));
 
 // Lifecycle cross-checks between customer and admin projections.
 const adminEvidenceFields = {
@@ -1250,14 +1304,15 @@ function assertAdminEvidenceAgreement(order, reference, label) {
 
 for (const { order: customerOrder, label } of customerSnapshots) {
   const active = customerOrder.status === "active";
-  const grantPendingReplay = expectReadyPlacement === true && paidReplayOrderLabels.has(label);
+  const paidReplay = paidReplayOrderLabels.has(label);
+  const grantPendingReplay = expectReadyPlacement === true && paidReplay;
   if (grantPendingReplay)
     assert.equal(
       customerOrder.status,
       "pendingReadiness",
       `${label} explicit grant-pending replay status`,
     );
-  if (!active && !grantPendingReplay) continue;
+  if (!active && !paidReplay) continue;
 
   const sameInstantAdmin = adminSnapshots.filter(
     ({ order }) =>
@@ -1265,19 +1320,22 @@ for (const { order: customerOrder, label } of customerSnapshots) {
   );
   for (const { order, label: adminLabel } of sameInstantAdmin.slice(1))
     assertAdminEvidenceAgreement(order, sameInstantAdmin[0].order, adminLabel);
+  const requiresReadyGrant = active || grantPendingReplay;
   const evidence = sameInstantAdmin.find(
     ({ order }) =>
       order.subscriptionId === customerOrder.subscriptionId &&
       order.revision === customerOrder.revision &&
       order.status === customerOrder.status &&
       order.payment.status === "paid" &&
-      order.approval.status === "approved" &&
-      order.fulfillment.status === "ready",
+      (!requiresReadyGrant ||
+        (order.approval.status === "approved" && order.fulfillment.status === "ready")),
   );
-  assert.ok(
-    evidence,
-    `${label} requires same-snapshot Admin ${active ? "active grant" : "ready grant-pending evidence"}`,
-  );
+  const requirement = active
+    ? "active grant"
+    : grantPendingReplay
+      ? "ready grant-pending evidence"
+      : "paid replay evidence";
+  assert.ok(evidence, `${label} requires same-snapshot Admin ${requirement}`);
   const { order } = evidence;
   assert.equal(order.tier, customerOrder.tier, `${label} tier binding`);
   assert.deepEqual(order.addOnCodes, customerOrder.addOnCodes, `${label} add-on binding`);
@@ -1289,10 +1347,11 @@ for (const { order: customerOrder, label } of customerSnapshots) {
     order.payment.status === "paid" && paidThrough > updatedAt,
     `${label} current paid period`,
   );
-  assert.ok(
-    observedAt <= updatedAt && updatedAt < observedAt + 15 * 60 * 1000,
-    `${label} fresh proof`,
-  );
+  if (requiresReadyGrant)
+    assert.ok(
+      observedAt <= updatedAt && updatedAt < observedAt + 15 * 60 * 1000,
+      `${label} fresh proof`,
+    );
   if (!active) continue;
   const expectedExpiry = Math.min(paidThrough, observedAt + 15 * 60 * 1000);
   assert.equal(
@@ -1446,6 +1505,106 @@ assert.equal(
   claims.subscriptionId,
   activeCustomer.subscriptionId,
   "license claims customer subscription binding",
+);
+
+// Shared-tier verification binds the exact active customer/Admin snapshot and its envelope.
+const sharedLicenseVerification = readJson("example-license-verification-shared.json");
+const sharedClaims = sharedLicenseVerification.valid.claims;
+const sharedVerifiedContext = sharedLicenseVerification.verifiedContext;
+assert.ok(sharedVerifiedContext, "shared license verification declares its verified context");
+assert.match(sharedVerifiedContext.tenantId, UUID, "shared verified tenant context is a UUID");
+assert.equal(
+  sharedClaims.tenantId,
+  sharedVerifiedContext.tenantId,
+  "shared license claims verified tenant context",
+);
+assert.equal(
+  sharedClaims.subscriptionId,
+  sharedVerifiedContext.subscriptionId,
+  "shared license claims verified subscription context",
+);
+const sharedActiveCustomer = customerSnapshots.find(
+  ({ label }) => label === "example-order-shared-active.json",
+)?.order;
+const sharedActiveAdmin = adminSnapshots.find(
+  ({ label }) => label === "example-admin-order-shared-ready.json",
+)?.order;
+assert.ok(
+  sharedActiveCustomer?.license,
+  "shared verification binds an active licensed customer order",
+);
+assert.ok(sharedActiveAdmin, "shared verification binds the active Admin order");
+assert.equal(
+  sharedActiveCustomer.status,
+  "active",
+  "shared verification customer snapshot is active",
+);
+assert.equal(sharedActiveAdmin.status, "active", "shared verification Admin snapshot is active");
+assert.equal(
+  sharedActiveAdmin.orderId,
+  sharedActiveCustomer.orderId,
+  "shared verification exact Admin order binding",
+);
+assert.equal(
+  sharedActiveAdmin.subscriptionId,
+  sharedActiveCustomer.subscriptionId,
+  "shared verification exact Admin subscription binding",
+);
+assert.equal(
+  sharedActiveAdmin.updatedAt,
+  sharedActiveCustomer.updatedAt,
+  "shared verification exact Admin snapshot time",
+);
+assert.equal(
+  sharedActiveAdmin.revision,
+  sharedActiveCustomer.revision,
+  "shared verification exact Admin snapshot revision",
+);
+assert.equal(
+  sharedActiveAdmin.status,
+  sharedActiveCustomer.status,
+  "shared verification exact Admin snapshot status",
+);
+assert.equal(sharedActiveAdmin.payment.status, "paid", "shared verification Admin payment is paid");
+assert.ok(
+  Date.parse(sharedActiveAdmin.payment.paidThrough) > Date.parse(sharedActiveAdmin.updatedAt),
+  "shared verification current paid period",
+);
+assert.equal(
+  sharedClaims.orderId,
+  sharedActiveCustomer.orderId,
+  "shared license claims order binding",
+);
+assert.equal(
+  sharedClaims.subscriptionId,
+  sharedActiveCustomer.subscriptionId,
+  "shared license claims customer subscription binding",
+);
+assert.equal(sharedClaims.tier, sharedActiveCustomer.tier, "shared license claims tier binding");
+assert.equal(sharedClaims.tier, "shared", "shared license claims shared tier");
+assert.deepEqual(
+  sharedClaims.addOnCodes,
+  sharedActiveCustomer.addOnCodes,
+  "shared license claims add-on binding",
+);
+assert.equal(
+  sharedClaims.keyId,
+  sharedActiveCustomer.license.keyId,
+  "shared license claims key binding",
+);
+assert.equal(
+  sharedClaims.revision,
+  sharedActiveCustomer.license.revision,
+  "shared license claims revision binding",
+);
+assert.equal(
+  sharedClaims.expiresAt,
+  sharedActiveCustomer.license.expiresAt,
+  "shared license claims expiry binding",
+);
+assert.ok(
+  Date.parse(sharedClaims.expiresAt) > Date.parse(sharedActiveCustomer.updatedAt),
+  "shared license claims expiry is current",
 );
 
 for (const [file, [document, exampleName]] of fixtureExample) {

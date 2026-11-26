@@ -514,6 +514,28 @@ test("checker rejects verification claims for a different tenant", () => {
   );
 });
 
+test("checker rejects shared verification claims that drift from the active snapshot", () => {
+  expectRejected(
+    (directory) =>
+      mutateJson(directory, "example-license-verification-shared.json", (fixture) => {
+        fixture.valid.claims.orderId = DEDICATED_APPROVED_ID;
+      }),
+    "shared license claims order binding",
+    /shared license claims order binding/u,
+  );
+});
+
+test("checker rejects shared verification claims for a different verified tenant", () => {
+  expectRejected(
+    (directory) =>
+      mutateJson(directory, "example-license-verification-shared.json", (fixture) => {
+        fixture.valid.claims.tenantId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      }),
+    "shared license claims verified tenant context",
+    /shared license claims verified tenant context/u,
+  );
+});
+
 test("checker rejects paid replay with a different order binding", () => {
   expectRejected(
     (directory) => {
@@ -526,6 +548,27 @@ test("checker rejects paid replay with a different order binding", () => {
     },
     "paid replay order binding",
     /shared replay order binding/u,
+  );
+});
+
+test("checker rejects a non-ready paid replay without exact Admin payment evidence", () => {
+  expectRejected(
+    setPendingReadinessReplay,
+    "pending readiness paid replay without matching Admin snapshot",
+    /example-checkout-replay-paid\.json\.order requires same-snapshot Admin paid replay evidence/u,
+  );
+});
+
+test("checker rejects a paid replay copied from the unpaid first-create response", () => {
+  expectRejected(
+    (directory) => {
+      const { response: created } = readFixture(directory, "example-checkout-created-shared.json");
+      mutatePaidReplay(directory, (replay) => {
+        Object.assign(replay, structuredClone(created));
+      });
+    },
+    "paid replay copied from unpaid create",
+    /shared PaidCheckoutReplay must be paid/u,
   );
 });
 
@@ -596,7 +639,18 @@ for (const destination of ["removed", "200 JSON", "201 problem+json"]) {
   });
 }
 
-test("checker rejects a checkout replay incompatible with its published 201 schema", () => {
+test("checker rejects a vacuous empty 201 schema with intact example refs", () => {
+  expectRejected(
+    (directory) =>
+      mutateOpenApi(directory, "customer.openapi.yaml", ({ paths }) => {
+        paths["/v1/commerce/orders"].post.responses["201"].content["application/json"].schema = {};
+      }),
+    "vacuous customer checkout response schema",
+    /createCommerceOrder 201 application\/json response schema must reference CreateOrderResponse/u,
+  );
+});
+
+test("checker rejects a checkout response mounted under another 201 schema", () => {
   expectRejected(
     (directory) =>
       mutateOpenApi(directory, "customer.openapi.yaml", ({ paths }) => {
@@ -605,7 +659,7 @@ test("checker rejects a checkout replay incompatible with its published 201 sche
         };
       }),
     "checkout examples under another response schema",
-    /createCommerceOrder 201 application\/json response schema for shared \(CreatedSharedCheckout\)/u,
+    /createCommerceOrder 201 application\/json response schema must reference CreateOrderResponse/u,
   );
 });
 

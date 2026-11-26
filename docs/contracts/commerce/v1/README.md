@@ -6,7 +6,8 @@ gRPC contracts, and the durable `commerce.license-desired.v1` and
 `commerce.license-state.v1` RabbitMQ events. `customer.openapi.yaml` and
 `admin.openapi.yaml` are OpenAPI 3.1; `orders.proto` and `licensing.proto` are
 protobuf; the two event JSON Schemas are draft 2020-12. Executable fixtures are
-checked by `tools/commerce-contract.test.mjs`.
+checked by `tools/commerce-contract.test.mjs`; the frozen error wire map and the
+paging reread example are checked by `tools/commerce-wire.test.mjs`.
 
 This change is contract-only. It adds no application behavior, persistence,
 Aspire composition, deployment or GitOps. The existing draft
@@ -84,8 +85,18 @@ first finds the receipt scoped to tenant, subject and idempotency key, then
 compares the original basket revision before current basket validation; it
 preserves the bound order and uses `checkoutUrl:null` when non-payable.
 
-Customer and Admin order pages sort by `updatedAt` descending, then `orderId`
-ascending as the deterministic tie-breaker.
+Customer page membership is fixed by the original scoped Orders page. That page
+also supplies the opaque `nextCursor`, a string or `null` including `null` on
+the final page, and the gateway returns that exact value; the cursor is never
+recomputed from replacements or client input. The per-order license-confirmation
+reread may replace only the projection of that same order, and only within the
+same validated tenant and subject scope. A reread never adds, removes, promotes
+or backfills an order, so there is no refill and page boundaries never move.
+After replacements, emit the customer page sorted by `updatedAt` descending,
+then `orderId` ascending as the deterministic tie-breaker. Admin pages use the
+same sort without license rereads. The scoped whole-request `404 not_found`
+and `503 dependency_unavailable` behavior above is unchanged; a partial page
+is never returned.
 
 | Surface                             | Required permission                                  | Enforced                                                                                          |
 | ----------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -267,22 +278,40 @@ Errors use `application/problem+json` with a stable `code` plus `type`, `title`,
 `status`, and `detail` only when sanitized. Details never contain secrets,
 provider exception text, raw SQL errors or placement connection data.
 
-| HTTP | `code`                   | Meaning                                          |
-| ---- | ------------------------ | ------------------------------------------------ |
-| 400  | `invalid_request`        | Schema or semantic validation failure            |
-| 401  | `unauthenticated`        | Missing or invalid credentials                   |
-| 403  | `forbidden`              | Authenticated but not permitted                  |
-| 404  | `not_found`              | Absent or another tenant's resource              |
-| 409  | `idempotency_conflict`   | Same key, changed intent                         |
-| 409  | `stale_revision`         | Optimistic concurrency failure                   |
-| 409  | `invalid_transition`     | Illegal domain transition                        |
-| 422  | `unsupported_option`     | Offer or add-on not currently offered            |
-| 503  | `dependency_unavailable` | Retryable dependency failure; retry with backoff |
+Each stable HTTP code is frozen to exactly one gRPC status/code pair:
 
-gRPC `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DENIED`, `NOT_FOUND`,
-`ALREADY_EXISTS`/`ABORTED`, `FAILED_PRECONDITION` and `UNAVAILABLE` map to these
-HTTP outcomes, carrying the stable code as error metadata. Retryable dependency
-failures never advance state. `503` may carry an integer `Retry-After`.
+| HTTP | `code`                   | gRPC status | gRPC code             | Meaning                                          |
+| ---- | ------------------------ | ----------- | --------------------- | ------------------------------------------------ |
+| 400  | `invalid_request`        | 3           | `INVALID_ARGUMENT`    | Schema or semantic validation failure            |
+| 401  | `unauthenticated`        | 16          | `UNAUTHENTICATED`     | Missing or invalid credentials                   |
+| 403  | `forbidden`              | 7           | `PERMISSION_DENIED`   | Authenticated but not permitted                  |
+| 404  | `not_found`              | 5           | `NOT_FOUND`           | Absent or another tenant's resource              |
+| 409  | `idempotency_conflict`   | 6           | `ALREADY_EXISTS`      | Same key, changed intent                         |
+| 409  | `stale_revision`         | 10          | `ABORTED`             | Optimistic concurrency failure                   |
+| 409  | `invalid_transition`     | 9           | `FAILED_PRECONDITION` | Illegal domain transition                        |
+| 422  | `unsupported_option`     | 9           | `FAILED_PRECONDITION` | Offer or add-on not currently offered            |
+| 503  | `dependency_unavailable` | 14          | `UNAVAILABLE`         | Retryable dependency failure; retry with backoff |
+
+This table is the normative wire map; `customer.openapi.yaml` mirrors it as the
+document-level `x-commerce-error-wire` extension and
+`tools/commerce-wire.test.mjs` executes it. Every Orders or Licensing failure
+that reaches the edge carries exactly one lowercase ASCII value in the
+`teck-commerce-error-code` trailer. The gateway matches that value exactly
+against this table and rejects any other form. It never forwards a dependency's
+message text, details or status string. A dependency response is malformed when
+the trailer is missing on a non-OK response, repeated, non-ASCII or otherwise
+invalid, when the value is unknown, or when the value's frozen gRPC status/code
+pair does not equal the observed status; a success response that carries the
+error trailer is also malformed. Malformed, unknown, missing and mismatched
+responses fail closed as `503 dependency_unavailable`, never as a guessed 4xx.
+
+Licensing `NOT_FOUND` on `GetCurrentLicense` is the one deliberate exception. It
+is not emitted as an HTTP error by itself; it triggers the single Orders reread
+of the same order within the original tenant and subject scope described above.
+The reread outcome decides between the scoped `404 not_found`, the latest
+nonactive projection, another active confirmation, or the whole-request 503.
+Retryable dependency failures never advance state. `503` may carry an integer
+`Retry-After`.
 
 ## Compatibility and versioning
 
@@ -290,7 +319,9 @@ Within v1, add optional response properties, endpoints, optional query
 parameters and new stable error codes while preserving existing behavior. Do not
 add required request properties, remove or rename properties, change
 types/nullability or status semantics, repurpose a field, or remove an error
-code. Breaking semantics require `.v2` routes/events and new protobuf packages
+code. Changing a stable code's HTTP status, its frozen gRPC status/code pair or
+the `teck-commerce-error-code` trailer key is also breaking. Breaking semantics
+require `.v2` routes/events and new protobuf packages
 (`teck.cloud.commerce.orders.v2`, `teck.cloud.commerce.licensing.v2`), with a
 migration and dual-version plan. Never silently rewrite a published v1 file.
 Expanding required response properties is also breaking for clients that
@@ -307,6 +338,13 @@ both protos:
 ```bash
 dotnet build docs/contracts/commerce/v1/Commerce.Contract.Protos.csproj -p:RestoreLockedMode=true
 ```
+
+`bun run test:tooling` also runs `tools/commerce-wire.test.mjs`, which reads the
+`x-commerce-error-wire` and `x-commerce-paging-example` extensions from
+`customer.openapi.yaml`, compares the error map with this README's table,
+executes the fail-closed resolver for every error class including the pairs that
+share an HTTP status, and replays the paging example to prove fixed membership,
+the B-then-A reorder and the unchanged original cursor.
 
 `Commerce.Contract.Protos.csproj` references the central `Grpc.Tools` and
 `Google.Protobuf` versions, compiles `orders.proto` and `licensing.proto` with
