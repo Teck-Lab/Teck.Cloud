@@ -576,73 +576,6 @@ components:
     AdminOrdersPage:
       value:
         items:
-          - orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
-            subscriptionId: 4c5d6e7f-8091-4b2c-8d3e-4f5061728394
-            tier: dedicated
-            addOnCodes: [replicaReadAccess]
-            total:
-              amountMinor: 3500
-              currency: USD
-            status: pendingReadiness
-            revision: 3
-            createdAt: 2026-11-23T19:05:00Z
-            updatedAt: 2026-11-23T20:05:00Z
-            payment:
-              status: paid
-              paidThrough: 2026-12-23T20:00:00Z
-            approval:
-              status: approved
-              actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
-              reason: Verified purchase order and tenant intent.
-              occurredAt: 2026-11-23T20:05:00Z
-            fulfillment:
-              status: awaitingEvidence
-              placementId: null
-              evidenceReference: null
-              observedAt: null
-              failureCode: null
-            audit:
-              - orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
-                actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
-                action: approve
-                reason: Verified purchase order and tenant intent.
-                occurredAt: 2026-11-23T20:05:00Z
-          - orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
-            subscriptionId: a0b1c2d3-e4f5-4678-9a0b-1c2d3e4f5061
-            tier: shared
-            addOnCodes: []
-            total:
-              amountMinor: 1000
-              currency: USD
-            status: pendingReadiness
-            revision: 5
-            createdAt: 2026-11-23T19:50:00Z
-            updatedAt: 2026-11-23T20:16:00Z
-            payment:
-              status: paid
-              paidThrough: 2026-12-23T20:00:00Z
-            approval:
-              status: approved
-              actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
-              reason: Verified purchase order and tenant intent.
-              occurredAt: 2026-11-23T20:00:00Z
-            fulfillment:
-              status: ready
-              placementId: 7e8f9012-3456-4a78-9bcd-ef0123456789
-              evidenceReference: evidence://ops/2026-11-23/shared-current-check
-              observedAt: 2026-11-23T20:15:00Z
-              failureCode: null
-            audit:
-              - orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
-                actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
-                action: approve
-                reason: Verified purchase order and tenant intent.
-                occurredAt: 2026-11-23T20:00:00Z
-              - orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
-                actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
-                action: recordPlacementEvidence
-                reason: evidence://ops/2026-11-23/shared-current-check
-                occurredAt: 2026-11-23T20:10:00Z
           - orderId: 5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4
             subscriptionId: 6c7d8e9f-a0b1-4c4d-8e5f-60718293a4b5
             tier: dedicated
@@ -679,6 +612,73 @@ components:
                 action: recordPlacementEvidence
                 reason: evidence://ops/2026-11-23/dedicated-primary-check
                 occurredAt: 2026-11-23T20:10:00Z
+          - orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
+            subscriptionId: a0b1c2d3-e4f5-4678-9a0b-1c2d3e4f5061
+            tier: shared
+            addOnCodes: []
+            total:
+              amountMinor: 1000
+              currency: USD
+            status: pendingReadiness
+            revision: 5
+            createdAt: 2026-11-23T19:50:00Z
+            updatedAt: 2026-11-23T20:16:00Z
+            payment:
+              status: paid
+              paidThrough: 2026-12-23T20:00:00Z
+            approval:
+              status: approved
+              actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+              reason: Verified purchase order and tenant intent.
+              occurredAt: 2026-11-23T20:00:00Z
+            fulfillment:
+              status: ready
+              placementId: 7e8f9012-3456-4a78-9bcd-ef0123456789
+              evidenceReference: evidence://ops/2026-11-23/shared-current-check
+              observedAt: 2026-11-23T20:15:00Z
+              failureCode: null
+            audit:
+              - orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
+                actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+                action: approve
+                reason: Verified purchase order and tenant intent.
+                occurredAt: 2026-11-23T20:00:00Z
+              - orderId: 9c0d1e2f-3a4b-4c5d-8e9f-001122334455
+                actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+                action: recordPlacementEvidence
+                reason: evidence://ops/2026-11-23/shared-current-check
+                occurredAt: 2026-11-23T20:10:00Z
+          - orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
+            subscriptionId: 4c5d6e7f-8091-4b2c-8d3e-4f5061728394
+            tier: dedicated
+            addOnCodes: [replicaReadAccess]
+            total:
+              amountMinor: 3500
+              currency: USD
+            status: pendingReadiness
+            revision: 3
+            createdAt: 2026-11-23T19:05:00Z
+            updatedAt: 2026-11-23T20:05:00Z
+            payment:
+              status: paid
+              paidThrough: 2026-12-23T20:00:00Z
+            approval:
+              status: approved
+              actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+              reason: Verified purchase order and tenant intent.
+              occurredAt: 2026-11-23T20:05:00Z
+            fulfillment:
+              status: awaitingEvidence
+              placementId: null
+              evidenceReference: null
+              observedAt: null
+              failureCode: null
+            audit:
+              - orderId: 2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283
+                actorId: f0e1d2c3-b4a5-4968-8778-99aabbccddee
+                action: approve
+                reason: Verified purchase order and tenant intent.
+                occurredAt: 2026-11-23T20:05:00Z
         nextCursor: null
     AdminOrderApproved:
       value:

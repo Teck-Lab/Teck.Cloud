@@ -10,6 +10,11 @@ import { parse, stringify } from "yaml";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contractRoot = path.join(repoRoot, "docs/contracts/commerce/v1");
 const verifier = path.join(repoRoot, "tools/verify-commerce-contract.mjs");
+const SHARED_ACTIVE_ID = "0f0e0d0c-0b0a-4999-8877-665544332211";
+const DEDICATED_APPROVED_ID = "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283";
+const GRANT_PENDING_ID = "9c0d1e2f-3a4b-4c5d-8e9f-001122334455";
+const CUSTOMER_PAGE = ["example-orders-page.json", "customer.openapi.yaml", "OrdersPage"];
+const ADMIN_PAGE = ["example-admin-orders-page.json", "admin.openapi.yaml", "AdminOrdersPage"];
 
 function copyContract() {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "teck-commerce-contract-"));
@@ -37,7 +42,10 @@ function expectRejected(mutate, label, expectedDiagnostic) {
     assert.equal(result.signal, null, `${label} verifier process is not signalled`);
     assert.equal(result.status, 1, `${label} exits with a contract assertion failure`);
     assert.match(result.stderr, expectedDiagnostic, `${label} reports its semantic diagnostic`);
-    assert.doesNotMatch(result.stderr, /ERR_MODULE_NOT_FOUND/u);
+    assert.doesNotMatch(
+      result.stderr,
+      /ERR_MODULE_NOT_FOUND|matches OpenAPI example|fixture parity/u,
+    );
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
@@ -57,13 +65,62 @@ function mutateText(directory, file, from, to) {
   fs.writeFileSync(target, text.replace(from, to));
 }
 
-function mutateOpenApiExample(directory, file, exampleName, mutate) {
+function mutateOpenApi(directory, file, mutate) {
   const target = path.join(directory, file);
   const document = parse(fs.readFileSync(target, "utf8"));
-  const example = document.components.examples[exampleName];
-  assert.ok(example, `example mutation anchor exists: ${file} ${exampleName}`);
-  mutate(example.value);
+  mutate(document);
   fs.writeFileSync(target, stringify(document));
+}
+
+function mutateOpenApiExample(directory, file, exampleName, mutate) {
+  mutateOpenApi(directory, file, (document) => {
+    const example = document.components.examples[exampleName];
+    assert.ok(example, `example mutation anchor exists: ${file} ${exampleName}`);
+    mutate(example.value);
+  });
+}
+
+function mutatePage(directory, [file, openApi, component], mutate) {
+  mutateJson(directory, file, ({ page }) => mutate(page.items));
+  mutateOpenApiExample(directory, openApi, component, ({ items }) => mutate(items));
+}
+
+function pageOrder(items, orderId) {
+  const order = items.find((item) => item.orderId === orderId);
+  assert.ok(order, `page fixture contains ${orderId}`);
+  return order;
+}
+
+function mutatePaidReplay(directory, mutate) {
+  mutateJson(directory, "example-checkout-replay-paid.json", ({ response }) => mutate(response));
+  mutateOpenApiExample(directory, "customer.openapi.yaml", "PaidCheckoutReplay", mutate);
+}
+
+function readFixture(directory, file) {
+  return JSON.parse(fs.readFileSync(path.join(directory, file), "utf8"));
+}
+
+function setGrantPendingReplay(directory) {
+  mutatePaidReplay(directory, (response) => {
+    Object.assign(response.order, {
+      status: "pendingReadiness",
+      revision: 3,
+      updatedAt: "2026-11-23T20:14:00Z",
+      license: null,
+    });
+    response.checkoutUrl = null;
+  });
+}
+
+function insertSharedAdminSnapshot(directory, mutate) {
+  const { order } = readFixture(directory, "example-admin-order-shared-ready.json");
+  mutate(order);
+  mutatePage(directory, ADMIN_PAGE, (items) => {
+    assert.ok(!items.some((item) => item.orderId === order.orderId));
+    const index = items.findIndex((item) => item.orderId === DEDICATED_APPROVED_ID);
+    assert.ok(index >= 0);
+    items.splice(index, 0, order);
+  });
 }
 
 test("checker rejects an invalid Admin-only OpenAPI response example", () => {
@@ -164,26 +221,35 @@ test("checker rejects desiredRevision in either public order schema", () => {
     );
 });
 
-test("checker accepts grant-pending replay with the matching first-create intent", () => {
+test("checker accepts grant-pending replay with exact same-intent Admin evidence", () => {
   const temporary = copyContract();
   try {
-    mutateJson(temporary, "example-checkout-replay-paid.json", (fixture) => {
-      fixture.response.order.status = "pendingReadiness";
-      fixture.response.order.revision = 5;
-      fixture.response.order.updatedAt = "2026-11-23T20:16:00Z";
-      fixture.response.order.license = null;
-    });
-    mutateOpenApiExample(temporary, "customer.openapi.yaml", "PaidCheckoutReplay", (response) => {
-      response.order.status = "pendingReadiness";
-      response.order.revision = 5;
-      response.order.updatedAt = "2026-11-23T20:16:00Z";
-      response.order.license = null;
+    setGrantPendingReplay(temporary);
+    const { response: replay } = readFixture(temporary, "example-checkout-replay-paid.json");
+    const { response: created } = readFixture(temporary, "example-checkout-created-shared.json");
+    assert.equal(replay.order.orderId, created.order.orderId);
+    assert.equal(replay.order.subscriptionId, created.order.subscriptionId);
+    assert.equal(replay.order.license, null);
+    assert.equal(replay.checkoutUrl, null);
+    insertSharedAdminSnapshot(temporary, (order) => {
+      order.status = replay.order.status;
+      order.revision = replay.order.revision;
+      order.updatedAt = replay.order.updatedAt;
+      order.fulfillment.observedAt = replay.order.updatedAt;
     });
     const result = runVerifier(temporary);
     assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
+});
+
+test("checker rejects grant-pending replay without exact same-intent Admin evidence", () => {
+  expectRejected(
+    setGrantPendingReplay,
+    "grant-pending replay Admin evidence",
+    /example-checkout-replay-paid\.json\.order requires same-snapshot Admin ready grant-pending evidence/u,
+  );
 });
 
 test("checker rejects grant-pending replay without a matching first-create intent", () => {
@@ -208,7 +274,12 @@ test("checker rejects grant-pending replay without a matching first-create inten
 
 for (const [label, file, exampleName, mutateCustomer] of [
   ["detail", "example-order-shared-active.json", "SharedActiveOrder", (value) => value.order],
-  ["page", "example-orders-page.json", "OrdersPage", (value) => value.page.items[0]],
+  [
+    "page",
+    "example-orders-page.json",
+    "OrdersPage",
+    (value) => pageOrder(value.page.items, SHARED_ACTIVE_ID),
+  ],
   [
     "replay",
     "example-checkout-replay-paid.json",
@@ -223,7 +294,10 @@ for (const [label, file, exampleName, mutateCustomer] of [
           mutateCustomer(fixture).license.expiresAt = "2026-12-23T20:00:00Z";
         });
         mutateOpenApiExample(directory, "customer.openapi.yaml", exampleName, (value) => {
-          const order = exampleName === "OrdersPage" ? value.items[0] : (value.order ?? value);
+          const order =
+            exampleName === "OrdersPage"
+              ? pageOrder(value.items, SHARED_ACTIVE_ID)
+              : (value.order ?? value);
           order.license.expiresAt = "2026-12-23T20:00:00Z";
         });
       },
@@ -249,56 +323,84 @@ test("checker rejects an active Admin order with stale ready evidence", () => {
 
 test("checker rejects a shared page total mismatch", () => {
   expectRejected(
-    (directory) => {
-      mutateJson(directory, "example-orders-page.json", (fixture) => {
-        fixture.page.items[0].total.amountMinor = 1001;
-      });
-      mutateOpenApiExample(directory, "customer.openapi.yaml", "OrdersPage", (page) => {
-        page.items[0].total.amountMinor = 1001;
-      });
-    },
+    (directory) =>
+      mutatePage(directory, CUSTOMER_PAGE, (items) => {
+        pageOrder(items, SHARED_ACTIVE_ID).total.amountMinor = 1001;
+      }),
     "customer page item total",
-    /example-orders-page\.json\.items\[0\] order total/u,
+    /example-orders-page\.json\.items\[\d+\] order total/u,
   );
 });
 
 test("checker rejects an active page item without a license", () => {
   expectRejected(
-    (directory) => {
-      mutateJson(directory, "example-orders-page.json", (fixture) => {
-        fixture.page.items[0].license = null;
-      });
-      mutateOpenApiExample(directory, "customer.openapi.yaml", "OrdersPage", (page) => {
-        page.items[0].license = null;
-      });
-    },
+    (directory) =>
+      mutatePage(directory, CUSTOMER_PAGE, (items) => {
+        pageOrder(items, SHARED_ACTIVE_ID).license = null;
+      }),
     "active page customer license",
-    /example-orders-page\.json\.items\[0\] active license/u,
+    /example-orders-page\.json\.items\[\d+\] active license/u,
   );
 });
 
-test("checker rejects invalid Admin active gate facts", () => {
+for (const [gate, mutate] of [
+  ["paid", (order) => Object.assign(order.payment, { status: "pending", paidThrough: null })],
+  [
+    "approved",
+    (order) =>
+      Object.assign(order.approval, {
+        status: "pending",
+        actorId: null,
+        reason: null,
+        occurredAt: null,
+      }),
+  ],
+  ["ready", (order) => Object.assign(order.fulfillment, { status: "verifying", observedAt: null })],
+]) {
+  test(`checker rejects an active Admin order without the ${gate} gate`, () => {
+    expectRejected(
+      (directory) => {
+        mutateJson(directory, "example-admin-order-ready.json", ({ order }) => mutate(order));
+        mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderReady", mutate);
+      },
+      `active Admin ${gate} gate`,
+      new RegExp(`example-admin-order-ready\\.json active gate ${gate}`, "u"),
+    );
+  });
+}
+
+test("checker rejects an Admin page total mismatch", () => {
+  expectRejected(
+    (directory) =>
+      mutatePage(directory, ADMIN_PAGE, (items) => {
+        pageOrder(items, DEDICATED_APPROVED_ID).total.amountMinor = 3501;
+      }),
+    "Admin page item total",
+    /example-admin-orders-page\.json\.items\[\d+\] order total/u,
+  );
+});
+
+test("checker rejects grant-pending evidence exactly at its freshness limit", () => {
   expectRejected(
     (directory) => {
-      mutateJson(directory, "example-admin-order-ready.json", (fixture) => {
-        fixture.order.payment.status = "pending";
-        fixture.order.payment.paidThrough = null;
-      });
-      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderReady", (order) => {
-        order.payment.status = "pending";
-        order.payment.paidThrough = null;
-      });
+      const expireProof = (order) => {
+        order.fulfillment.observedAt = "2026-11-23T20:01:00Z";
+      };
+      mutateJson(directory, "example-admin-order-grant-pending.json", ({ order }) =>
+        expireProof(order),
+      );
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderGrantPending", expireProof);
     },
-    "active Admin payment gate",
-    /example-admin-order-ready\.json active gate paid/u,
+    "grant-pending Admin freshness boundary",
+    /example-admin-order-grant-pending\.json ready proof is fresh/u,
   );
 });
 
 test("checker rejects terminal probe_unavailable on an Admin page item", () => {
   expectRejected(
-    (directory) => {
-      mutateJson(directory, "example-admin-orders-page.json", (fixture) => {
-        const order = fixture.page.items[0];
+    (directory) =>
+      mutatePage(directory, ADMIN_PAGE, (items) => {
+        const order = pageOrder(items, DEDICATED_APPROVED_ID);
         order.status = "failed";
         order.fulfillment = {
           status: "failed",
@@ -307,19 +409,7 @@ test("checker rejects terminal probe_unavailable on an Admin page item", () => {
           observedAt: order.updatedAt,
           failureCode: "probe_unavailable",
         };
-      });
-      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrdersPage", (page) => {
-        const order = page.items[0];
-        order.status = "failed";
-        order.fulfillment = {
-          status: "failed",
-          placementId: "5d6e7f80-91a2-4c3d-9e4f-506172839405",
-          evidenceReference: "evidence://ops/2026-11-23/dedicated-primary-check",
-          observedAt: order.updatedAt,
-          failureCode: "probe_unavailable",
-        };
-      });
-    },
+      }),
     "terminal page probe failure",
     /terminal fulfillment failure code/u,
   );
@@ -384,6 +474,17 @@ test("checker rejects verification claims with the wrong key", () => {
   );
 });
 
+test("checker rejects verification claims for a different tenant", () => {
+  expectRejected(
+    (directory) =>
+      mutateJson(directory, "example-license-verification.json", (fixture) => {
+        fixture.valid.claims.tenantId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      }),
+    "license claims tenant binding",
+    /license claims tenant binding/u,
+  );
+});
+
 test("checker rejects paid replay with a different order binding", () => {
   expectRejected(
     (directory) => {
@@ -399,38 +500,131 @@ test("checker rejects paid replay with a different order binding", () => {
   );
 });
 
-test("checker rejects an active replay with missing Admin generation proof", () => {
+test("checker rejects an active replay without exact same-intent Admin evidence", () => {
   expectRejected(
-    (directory) => {
-      mutateJson(directory, "example-checkout-replay-paid.json", (fixture) => {
-        fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-        fixture.response.order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
-      });
-      mutateOpenApiExample(directory, "customer.openapi.yaml", "PaidCheckoutReplay", (response) => {
-        response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-        response.order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
-      });
-      mutateJson(directory, "example-admin-order-shared-ready.json", (fixture) => {
-        fixture.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-        fixture.order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
-      });
-      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderSharedReady", (order) => {
-        order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-        order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
-      });
-    },
-    "active replay order binding precedes Admin evidence join",
-    /shared replay order binding/u,
+    (directory) =>
+      mutatePaidReplay(directory, ({ order }) => {
+        order.revision = 5;
+        order.updatedAt = "2026-11-23T20:17:00Z";
+      }),
+    "active replay Admin evidence",
+    /example-checkout-replay-paid\.json\.order requires same-snapshot Admin active grant/u,
   );
 });
 
-test("checker rejects a missing newly required fixture", () => {
+test("checker rejects conflicting Admin fulfillment at the active replay instant", () => {
   expectRejected(
-    (directory) => fs.rmSync(path.join(directory, "example-basket-cleared.json")),
-    "missing cleared basket fixture",
-    /missing required fixture example-basket-cleared\.json/u,
+    (directory) =>
+      insertSharedAdminSnapshot(directory, (order) => {
+        order.fulfillment.evidenceReference = "evidence://ops/2026-11-23/shared-other-check";
+      }),
+    "conflicting exact-instant Admin fulfillment",
+    /same-snapshot fulfillment agreement \(evidenceReference\)/u,
   );
 });
+
+for (const file of [
+  "example-basket-cleared.json",
+  "example-checkout-replay-paid.json",
+  "example-order-grant-pending.json",
+  "example-order-probe-retrying.json",
+  "example-admin-order-grant-pending.json",
+  "example-admin-order-probe-retrying.json",
+  "example-admin-order-shared-ready.json",
+]) {
+  test(`checker rejects missing ${file}`, () => {
+    expectRejected(
+      (directory) => fs.rmSync(path.join(directory, file)),
+      `missing ${file}`,
+      new RegExp(`missing required fixture ${RegExp.escape(file)}`, "u"),
+    );
+  });
+}
+
+for (const destination of ["removed", "200 JSON", "201 problem+json"]) {
+  test(`checker rejects a paid replay mount ${destination}`, () => {
+    expectRejected(
+      (directory) =>
+        mutateOpenApi(directory, "customer.openapi.yaml", ({ paths }) => {
+          const responses = paths["/v1/commerce/orders"].post.responses;
+          const content = responses["201"].content;
+          const json = content["application/json"];
+          const { paidReplay } = json.examples;
+          delete json.examples.paidReplay;
+          const media = { schema: json.schema, examples: { paidReplay } };
+          if (destination === "200 JSON") {
+            responses["200"] = {
+              description: "Misplaced replay",
+              content: { "application/json": media },
+            };
+          } else if (destination === "201 problem+json") {
+            content["application/problem+json"] = media;
+          }
+        }),
+      `checkout paid replay mount ${destination}`,
+      /createCommerceOrder 201 application\/json paidReplay must reference PaidCheckoutReplay/u,
+    );
+  });
+}
+
+const ADMIN_ORDER_PATH = "/v1/admin/commerce/tenants/{tenantId}/orders/{orderId}";
+function adminMutationExamples(paths, route) {
+  return paths[`${ADMIN_ORDER_PATH}/${route}`].post.responses["200"].content["application/json"]
+    .examples;
+}
+
+test("checker rejects evidence response mounted on the decision instead", () => {
+  expectRejected(
+    (directory) =>
+      mutateOpenApi(directory, "admin.openapi.yaml", ({ paths }) => {
+        const evidence = adminMutationExamples(paths, "placement-evidence");
+        adminMutationExamples(paths, "decision").verifying = evidence.verifying;
+        delete evidence.verifying;
+      }),
+    "misplaced Admin verifying mount",
+    /recordAdminPlacementEvidence 200 application\/json verifying must reference AdminOrderVerifying/u,
+  );
+});
+
+test("checker requires decision approved mount even with the detail approved mount", () => {
+  expectRejected(
+    (directory) =>
+      mutateOpenApi(directory, "admin.openapi.yaml", ({ paths }) => {
+        delete adminMutationExamples(paths, "decision").approved;
+      }),
+    "missing Admin approved decision mount",
+    /decideAdminCommerceOrder 200 application\/json approved must reference AdminOrderApproved/u,
+  );
+});
+
+for (const page of [CUSTOMER_PAGE, ADMIN_PAGE]) {
+  for (const key of ["updatedAt", "orderId tie-breaker"]) {
+    test(`checker rejects ${page[2]} with inverted ${key} order`, () => {
+      expectRejected(
+        (directory) =>
+          mutatePage(directory, page, (items) => {
+            const [latest, next] = items;
+            assert.equal(next.orderId, GRANT_PENDING_ID);
+            if (key === "orderId tie-breaker") {
+              assert.ok(latest.orderId < next.orderId);
+              next.updatedAt = latest.updatedAt;
+              // Keep the Admin ready proof fresh at the retimed page snapshot.
+              if (page === ADMIN_PAGE) next.fulfillment.observedAt = next.updatedAt;
+              assert.equal(latest.updatedAt, next.updatedAt);
+            } else {
+              assert.ok(Date.parse(latest.updatedAt) > Date.parse(next.updatedAt));
+            }
+            [items[0], items[1]] = [next, latest];
+          }),
+        `${page[2]} inverted ${key} order`,
+        new RegExp(
+          `${RegExp.escape(page[0])}\\.items\\[1\\] page order updatedAt desc, orderId asc`,
+          "u",
+        ),
+      );
+    });
+  }
+}
 
 test("checker rejects protobuf desired_revision presence being removed", () => {
   expectRejected(

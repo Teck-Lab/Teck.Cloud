@@ -3,18 +3,18 @@
   "page": {
     "items": [
       {
-        "orderId": "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283",
-        "subscriptionId": "4c5d6e7f-8091-4b2c-8d3e-4f5061728394",
+        "orderId": "5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4",
+        "subscriptionId": "6c7d8e9f-a0b1-4c4d-8e5f-60718293a4b5",
         "tier": "dedicated",
-        "addOnCodes": ["replicaReadAccess"],
+        "addOnCodes": [],
         "total": {
-          "amountMinor": 3500,
+          "amountMinor": 3000,
           "currency": "USD"
         },
         "status": "pendingReadiness",
-        "revision": 3,
-        "createdAt": "2026-11-23T19:05:00Z",
-        "updatedAt": "2026-11-23T20:05:00Z",
+        "revision": 7,
+        "createdAt": "2026-11-23T19:15:00Z",
+        "updatedAt": "2026-11-23T20:30:00Z",
         "payment": {
           "status": "paid",
           "paidThrough": "2026-12-23T20:00:00Z"
@@ -26,19 +26,26 @@
           "occurredAt": "2026-11-23T20:05:00Z"
         },
         "fulfillment": {
-          "status": "awaitingEvidence",
-          "placementId": null,
-          "evidenceReference": null,
+          "status": "verifying",
+          "placementId": "5d6e7f80-91a2-4c3d-9e4f-506172839405",
+          "evidenceReference": "evidence://ops/2026-11-23/dedicated-primary-check",
           "observedAt": null,
-          "failureCode": null
+          "failureCode": "probe_unavailable"
         },
         "audit": [
           {
-            "orderId": "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283",
+            "orderId": "5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4",
             "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
             "action": "approve",
             "reason": "Verified purchase order and tenant intent.",
             "occurredAt": "2026-11-23T20:05:00Z"
+          },
+          {
+            "orderId": "5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4",
+            "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
+            "action": "recordPlacementEvidence",
+            "reason": "evidence://ops/2026-11-23/dedicated-primary-check",
+            "occurredAt": "2026-11-23T20:10:00Z"
           }
         ]
       },
@@ -90,18 +97,18 @@
         ]
       },
       {
-        "orderId": "5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4",
-        "subscriptionId": "6c7d8e9f-a0b1-4c4d-8e5f-60718293a4b5",
+        "orderId": "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283",
+        "subscriptionId": "4c5d6e7f-8091-4b2c-8d3e-4f5061728394",
         "tier": "dedicated",
-        "addOnCodes": [],
+        "addOnCodes": ["replicaReadAccess"],
         "total": {
-          "amountMinor": 3000,
+          "amountMinor": 3500,
           "currency": "USD"
         },
         "status": "pendingReadiness",
-        "revision": 7,
-        "createdAt": "2026-11-23T19:15:00Z",
-        "updatedAt": "2026-11-23T20:30:00Z",
+        "revision": 3,
+        "createdAt": "2026-11-23T19:05:00Z",
+        "updatedAt": "2026-11-23T20:05:00Z",
         "payment": {
           "status": "paid",
           "paidThrough": "2026-12-23T20:00:00Z"
@@ -113,26 +120,19 @@
           "occurredAt": "2026-11-23T20:05:00Z"
         },
         "fulfillment": {
-          "status": "verifying",
-          "placementId": "5d6e7f80-91a2-4c3d-9e4f-506172839405",
-          "evidenceReference": "evidence://ops/2026-11-23/dedicated-primary-check",
+          "status": "awaitingEvidence",
+          "placementId": null,
+          "evidenceReference": null,
           "observedAt": null,
-          "failureCode": "probe_unavailable"
+          "failureCode": null
         },
         "audit": [
           {
-            "orderId": "5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4",
+            "orderId": "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283",
             "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
             "action": "approve",
             "reason": "Verified purchase order and tenant intent.",
             "occurredAt": "2026-11-23T20:05:00Z"
-          },
-          {
-            "orderId": "5e6f7081-92a3-4b5c-8d6e-7f8091a2b3c4",
-            "actorId": "f0e1d2c3-b4a5-4968-8778-99aabbccddee",
-            "action": "recordPlacementEvidence",
-            "reason": "evidence://ops/2026-11-23/dedicated-primary-check",
-            "occurredAt": "2026-11-23T20:10:00Z"
           }
         ]
       }
