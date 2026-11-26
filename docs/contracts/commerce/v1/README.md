@@ -84,6 +84,9 @@ first finds the receipt scoped to tenant, subject and idempotency key, then
 compares the original basket revision before current basket validation; it
 preserves the bound order and uses `checkoutUrl:null` when non-payable.
 
+Customer and Admin order pages sort by `updatedAt` descending, then `orderId`
+ascending as the deterministic tie-breaker.
+
 | Surface                             | Required permission                                  | Enforced                                                                                          |
 | ----------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | Customer catalog, basket and orders | `commerce.customer` on the customer gateway audience | Gateway validates the token and delegates; Orders independently enforces tenant and subject scope |

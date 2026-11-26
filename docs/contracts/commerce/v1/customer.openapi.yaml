@@ -122,8 +122,9 @@ paths:
       tags: [Customer orders]
       summary: List the caller's own tenant and subject orders
       description: >-
-        Bounded newest-first page. Default limit is 25, maximum 100. Cursors are
-        opaque and include a deterministic `orderId` tie-breaker. For each active
+        Bounded newest-first page ordered by `updatedAt` descending, then
+        `orderId` ascending as a deterministic tie-breaker. Default limit is 25,
+        maximum 100. Cursors are opaque. For each active
         Orders snapshot, use its desired entitlement generation with the validated
         delegated tenant context to retrieve the exact license binding. On an
         absent, revoked or mismatching grant (including Licensing `NOT_FOUND`),
@@ -132,8 +133,10 @@ paths:
         scoped `404 not_found`; if still in scope but now nonactive, return its
         latest projection with `license:null`; if still active, confirm that
         reread's generation once. If still unconfirmed, the active generation
-        is missing, or either dependency is unavailable, fail the whole response with 503 and no
-        partial response. Never return a cached grant or fabricate a status.
+        is missing, or either dependency is unavailable, fail the whole response
+        with 503 and no partial page. Never return a cached grant or fabricate a
+        status. The order is a shared projection with detail and checkout replay;
+        customer pages sort by `updatedAt` descending, then `orderId` ascending.
       x-required-permission: commerce.customer
       parameters:
         - $ref: "#/components/parameters/Limit"
@@ -177,7 +180,9 @@ paths:
         payable, otherwise null. For the returned order, the customer gateway
         populates `license` only after confirming the current grant generation; a
         generation-confirmation failure follows the same fail-closed reread and
-        whole-response 503 rule as the list and detail operations.
+        whole-response 503 rule as the list and detail operations. Customer pages
+        sort by `updatedAt` descending, then `orderId` ascending; the order shape
+        and projection rules are shared with list and detail.
       x-required-permission: commerce.customer
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"

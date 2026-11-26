@@ -372,6 +372,11 @@ assert.deepEqual(customerSchemas.Money.properties.amountMinor.maximum, SAFE_INTE
 assert.equal(customerSchemas.Money.properties.amountMinor.minimum, 1);
 assert.equal(customerSchemas.Money.properties.currency.pattern, "^[A-Z]{3}$");
 assert.equal(customerSchemas.Revision.maximum, MAX_UINT32);
+assert.equal(
+  "desiredRevision" in customerOrder.properties,
+  false,
+  "CustomerOrder hides desiredRevision",
+);
 assert.equal(customerSchemas.BasketRevision.minimum, 0);
 assert.equal(customerSchemas.BasketRevision.maximum, MAX_UINT32);
 assert.equal(customerSchemas.PutBasketRequest.additionalProperties, false);
@@ -416,6 +421,7 @@ for (const required of [
 ])
   assert.ok(adminOrder.required.includes(required), `AdminOrder requires ${required}`);
 assert.equal("license" in adminOrder.properties, false, "AdminOrder omits the license");
+assert.equal("desiredRevision" in adminOrder.properties, false, "AdminOrder hides desiredRevision");
 assert.deepEqual(adminSchemas.Payment.required, ["status", "paidThrough"]);
 assert.deepEqual(adminSchemas.Payment.properties.status.enum, ["pending", "paid"]);
 assert.deepEqual(adminSchemas.Approval.properties.status.enum, ["pending", "approved", "rejected"]);
@@ -720,11 +726,10 @@ assert.deepEqual(
   "dedicated fixture price",
 );
 
-const customerOrders = new Map();
-const adminOrders = new Map();
 const customerSnapshots = [];
 const adminSnapshots = [];
 const initialCheckoutSnapshots = [];
+const checkoutResponses = [];
 
 function validateCustomerOrder(order, label) {
   assertProjection(order, CUSTOMER_FORBIDDEN, label);
@@ -810,6 +815,14 @@ function validateAdminOrder(order, label) {
     );
     assert.ok(Date.parse(fulfillment.observedAt) <= updatedAt, `${label} terminal failure time`);
   }
+  if (approval.status === "rejected") {
+    assert.equal(order.status, "rejected", `${label} rejection is final`);
+    return;
+  }
+  if (order.status === "rejected") {
+    assert.equal(approval.status, "rejected", `${label} rejected order has final decision`);
+    return;
+  }
   if (order.status === "pendingPayment") {
     assert.equal(payment.status, "pending", `${label} pending payment gate`);
   }
@@ -835,8 +848,6 @@ function validateAdminOrder(order, label) {
     assert.equal(approval.status, "approved", `${label} active gate approved`);
     assert.equal(fulfillment.status, "ready", `${label} active gate ready`);
   }
-  if (order.status === "rejected")
-    assert.equal(approval.status, "rejected", `${label} rejection is final`);
 }
 
 function validateExample(document, schemaName, payload, label) {
@@ -847,7 +858,10 @@ function validateExample(document, schemaName, payload, label) {
     validateCustomerOrder(payload, label);
     customerSnapshots.push({ order: payload, label });
   }
-  if (schemaName === "AdminOrder") validateAdminOrder(payload, label);
+  if (schemaName === "AdminOrder") {
+    validateAdminOrder(payload, label);
+    adminSnapshots.push({ order: payload, label });
+  }
   if (schemaName === "DecisionRequest") {
     assert.equal(payload.reason, payload.reason.trim(), `${label} reason is trimmed`);
     assert.ok(payload.reason.length <= 512, `${label} reason length`);
@@ -863,6 +877,7 @@ function validateExample(document, schemaName, payload, label) {
   }
   if (schemaName === "CreateOrderResponse") {
     assertProjection(payload, CUSTOMER_FORBIDDEN, label);
+    checkoutResponses.push({ response: payload, label });
     validateCustomerOrder(payload.order, `${label}.order`);
     customerSnapshots.push({ order: payload.order, label: `${label}.order` });
     if (label === "example-checkout-created-shared.json")
@@ -878,6 +893,9 @@ function validateExample(document, schemaName, payload, label) {
   if (schemaName === "OrderPage" || schemaName === "AdminOrderPage") {
     const customerPlane = schemaName === "OrderPage";
     const snapshots = customerPlane ? customerSnapshots : adminSnapshots;
+    if (!customerPlane)
+      for (const [index, order] of payload.items.entries())
+        adminSnapshots.push({ order, label: `${label}.items[${index}]` });
     assertProjection(payload, customerPlane ? CUSTOMER_FORBIDDEN : ADMIN_FORBIDDEN, label);
     assert.ok(
       typeof payload.nextCursor === "string" || payload.nextCursor === null,
@@ -951,47 +969,23 @@ for (const file of fixtureFiles) {
       break;
     }
     case "checkoutCreated":
-      customerSnapshots.push({ order: fixture.response.order, label: `${file}.order` });
-      if (fixture.response.order.status === "active")
-        customerOrders.set(fixture.response.order.orderId, fixture.response.order);
+      validateExample(customer, "CreateOrderResponse", fixture.response, file);
       break;
-    case "customerOrder": {
-      const order = fixture.order;
-      customerSnapshots.push({ order, label: file });
-      const existing = customerOrders.get(order.orderId);
-      if (existing) {
-        assert.equal(existing.subscriptionId, order.subscriptionId, `${file} subscription`);
-        assert.equal(existing.tier, order.tier, `${file} tier`);
-        assert.deepEqual(existing.addOnCodes, order.addOnCodes, `${file} add-ons`);
-        assert.deepEqual(existing.total, order.total, `${file} total`);
-        if (Date.parse(order.updatedAt) > Date.parse(existing.updatedAt))
-          assert.ok(order.revision > existing.revision, `${file} later snapshot revision`);
-      }
-      if (!existing || Date.parse(order.updatedAt) >= Date.parse(existing.updatedAt))
-        customerOrders.set(order.orderId, order);
+    case "customerOrder":
+      validateExample(customer, "CustomerOrder", fixture.order, file);
       break;
-    }
     case "orderPage":
-      for (const [index, order] of fixture.page.items.entries())
-        customerSnapshots.push({ order, label: `${file}.items[${index}]` });
+      validateExample(customer, "OrderPage", fixture.page, file);
       break;
-    case "adminOrder": {
-      const order = fixture.order;
-      adminSnapshots.push({ order, label: file });
-      const existing = adminOrders.get(order.orderId);
-      if (existing && Date.parse(order.updatedAt) > Date.parse(existing.updatedAt))
-        assert.ok(order.revision > existing.revision, `${file} later snapshot revision`);
-      if (!existing || Date.parse(order.updatedAt) >= Date.parse(existing.updatedAt))
-        adminOrders.set(order.orderId, order);
+    case "adminOrder":
+      validateExample(admin, "AdminOrder", fixture.order, file);
       break;
-    }
     case "adminOrderPage":
-      for (const [index, order] of fixture.page.items.entries())
-        adminSnapshots.push({ order, label: `${file}.items[${index}]` });
+      validateExample(admin, "AdminOrderPage", fixture.page, file);
       break;
     case "adminDecisionMutationResponse":
     case "adminEvidenceMutationResponse":
-      adminSnapshots.push({ order: fixture.order, label: file });
+      validateExample(admin, "AdminOrder", fixture.order, file);
       break;
     case "decisionRequest": {
       validateExample(admin, "DecisionRequest", fixture.request, file);
@@ -1063,6 +1057,21 @@ for (const [name, document, mapping] of [
     );
     const mountedAsOrderResponse =
       operationExampleRefs.includes(exampleName) && schemaName === "AdminOrder";
+    if (schemaName === "CreateOrderResponse" && operationExampleRefs.includes(exampleName)) {
+      const mounted = operationsOf(document).flatMap(({ operation }) =>
+        Object.values(operation.responses ?? {}).flatMap((response) =>
+          Object.values(response.content?.["application/json"]?.examples ?? {})
+            .filter((item) => item.$ref?.split("/").at(-1) === exampleName)
+            .map(({ $ref }) => ({ operation, exampleName: $ref.split("/").at(-1) })),
+        ),
+      );
+      assert.ok(mounted.length > 0, `${exampleName} is mounted on an operation response`);
+      if (exampleName === "PaidCheckoutReplay")
+        assert.ok(
+          mounted.some(({ operation }) => operation.operationId === "createCommerceOrder"),
+          "PaidCheckoutReplay is mounted on checkout 201",
+        );
+    }
     const actualSchema =
       exampleName === "CreateSharedOrder"
         ? "CreateOrderRequest"
@@ -1080,10 +1089,49 @@ for (const [name, document, mapping] of [
   }
 }
 
+// Check replay intent before lifecycle joins so a foreign replay cannot mask the binding error.
+const firstCreatedOrder = initialCheckoutSnapshots[0]?.order;
+const replayedOrder = checkoutResponses.find(
+  ({ label }) => label === "example-checkout-replay-paid.json",
+)?.response.order;
+assert.ok(firstCreatedOrder, "shared first-create customer projection exists");
+assert.ok(replayedOrder, "shared paid replay response exists");
+assert.equal(replayedOrder.orderId, firstCreatedOrder.orderId, "shared replay order binding");
+assert.equal(
+  replayedOrder.subscriptionId,
+  firstCreatedOrder.subscriptionId,
+  "shared replay subscription binding",
+);
+
 // Lifecycle cross-checks between customer and admin projections.
+const customerInstantKey = ({ order }) => `${order.orderId}\u0000${order.updatedAt}`;
+const activeCustomerInstants = new Set(
+  customerSnapshots.filter(({ order }) => order.status === "active").map(customerInstantKey),
+);
+const replayActiveInstant = customerSnapshots.find(
+  ({ label, order }) =>
+    label === "example-checkout-replay-paid.json.order" && order.status === "active",
+);
+if (replayActiveInstant) activeCustomerInstants.add(customerInstantKey(replayActiveInstant));
 for (const customerSnapshot of customerSnapshots) {
-  if (customerSnapshot.order.status !== "active") continue;
-  const adminCandidates = adminSnapshots.filter(
+  if (
+    customerSnapshot.order.status !== "active" ||
+    !activeCustomerInstants.has(customerInstantKey(customerSnapshot))
+  )
+    continue;
+  const sameInstantAdmin = adminSnapshots.filter(
+    ({ order }) =>
+      order.orderId === customerSnapshot.order.orderId &&
+      order.updatedAt === customerSnapshot.order.updatedAt,
+  );
+  for (const { order, label } of sameInstantAdmin.slice(1))
+    for (const field of ["payment", "approval", "fulfillment"])
+      assert.deepEqual(
+        order[field],
+        sameInstantAdmin[0].order[field],
+        `${label} same-snapshot ${field} agreement`,
+      );
+  const adminCandidates = sameInstantAdmin.filter(
     ({ order }) =>
       order.orderId === customerSnapshot.order.orderId &&
       order.subscriptionId === customerSnapshot.order.subscriptionId &&
@@ -1155,25 +1203,31 @@ for (const orderId of new Set(adminSnapshots.map(({ order }) => order.orderId)))
       byInstant.set(timestamp, entry);
     }
   const history = [...byInstant.values()].sort((a, b) => a.timestamp - b.timestamp);
+  const immutableReference = history[0]?.customer[0]?.order ?? history[0]?.admin[0]?.order;
+  assert.ok(immutableReference, `${orderId} has a historical snapshot`);
+  for (const { order, label } of [...customerHistory, ...adminHistory])
+    for (const field of ["subscriptionId", "tier", "addOnCodes", "total", "createdAt"])
+      assert.deepEqual(
+        order[field],
+        immutableReference[field],
+        `${label} immutable ${field} binding`,
+      );
   for (let index = 0; index < history.length; index++) {
     const current = history[index];
+    assert.ok(
+      current.customer.length || current.admin.length,
+      `${orderId} snapshot group is nonempty`,
+    );
     const records = [...current.customer, ...current.admin];
     const reference = records[0].order;
     for (const { order, label } of records.slice(1)) {
-      for (const field of [
-        "orderId",
-        "subscriptionId",
-        "tier",
-        "addOnCodes",
-        "total",
-        "createdAt",
-        "updatedAt",
-      ])
-        assert.deepEqual(order[field], reference[field], `${label} same-instant ${field} binding`);
-      if (current.customer.length && current.admin.length)
+      for (const field of ["orderId", "subscriptionId", "tier", "addOnCodes", "total", "createdAt"])
+        assert.deepEqual(order[field], reference[field], `${label} immutable ${field} binding`);
+      assert.equal(order.updatedAt, reference.updatedAt, `${label} same-instant updatedAt binding`);
+      if (current.customer.length && current.admin.length) {
         assert.equal(order.status, reference.status, `${label} same-instant status`);
-      if (order.status === reference.status)
         assert.equal(order.revision, reference.revision, `${label} same-instant revision`);
+      }
       if ("license" in order && "license" in reference)
         assert.deepEqual(order.license, reference.license, `${label} same-instant license binding`);
       if ("payment" in order && "payment" in reference)
@@ -1217,17 +1271,20 @@ for (const orderId of new Set(adminSnapshots.map(({ order }) => order.orderId)))
       );
   }
 }
-const firstCreateOrder = initialCheckoutSnapshots[0]?.order;
-const paidReplayOrder = customerSnapshots.find(
-  ({ label }) => label === "example-checkout-replay-paid.json.order",
-)?.order;
-assert.ok(firstCreateOrder, "shared first-create customer projection exists");
-assert.ok(paidReplayOrder, "shared paid replay customer projection exists");
-assert.equal(paidReplayOrder.orderId, firstCreateOrder.orderId, "shared replay order binding");
+const firstCreateOrder = firstCreatedOrder;
+const paidReplayResponse = checkoutResponses.find(
+  ({ label }) => label === "example-checkout-replay-paid.json",
+)?.response;
+assert.ok(paidReplayResponse, "shared paid replay response exists");
 assert.equal(
-  paidReplayOrder.subscriptionId,
+  paidReplayResponse.order.orderId,
+  firstCreateOrder.orderId,
+  "shared replay response order binding",
+);
+assert.equal(
+  paidReplayResponse.order.subscriptionId,
   firstCreateOrder.subscriptionId,
-  "shared replay subscription binding",
+  "shared replay response subscription binding",
 );
 
 const desiredEvent = readJson("example-license-desired.json").event;

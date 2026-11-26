@@ -23,8 +23,9 @@ paths:
       summary: List one tenant's orders with a bounded per-tenant query
       description: >-
         Staff select a tenant; there is no unrestricted global query. Results are
-        bounded newest-first pages with an opaque cursor and a deterministic
-        `orderId` tie-breaker. Default limit is 25, maximum 100.
+        bounded newest-first pages ordered by `updatedAt` descending, then
+        `orderId` ascending as a deterministic tie-breaker. Cursors are opaque.
+        Default limit is 25, maximum 100.
       x-required-permission: CommerceOrdersRead
       parameters:
         - $ref: "#/components/parameters/TenantId"

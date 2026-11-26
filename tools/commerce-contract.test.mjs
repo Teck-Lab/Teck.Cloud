@@ -110,6 +110,60 @@ test("checker rejects a pending readiness Admin snapshot with a pending payment"
   );
 });
 
+test("checker rejects a final rejection hidden by pending payment", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-admin-order-rejected.json", (fixture) => {
+        fixture.order.status = "pendingPayment";
+        fixture.order.payment.status = "pending";
+        fixture.order.payment.paidThrough = null;
+      });
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderRejected", (order) => {
+        order.status = "pendingPayment";
+        order.payment.status = "pending";
+        order.payment.paidThrough = null;
+      });
+    },
+    "rejected status precedence",
+    /example-admin-order-rejected\.json rejection is final/u,
+  );
+});
+
+test("checker rejects immutable order facts changed across projection instants", () => {
+  expectRejected(
+    (directory) => {
+      mutateJson(directory, "example-order-shared-active.json", (fixture) => {
+        fixture.order.createdAt = "2026-11-23T18:59:00Z";
+      });
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "SharedActiveOrder", (order) => {
+        order.createdAt = "2026-11-23T18:59:00Z";
+      });
+    },
+    "immutable order creation instant",
+    /immutable createdAt binding/u,
+  );
+});
+
+test("checker rejects desiredRevision in either public order schema", () => {
+  for (const [filename, schemaName] of [
+    ["customer.openapi.yaml", "CustomerOrder"],
+    ["admin.openapi.yaml", "AdminOrder"],
+  ])
+    expectRejected(
+      (directory) => {
+        const target = path.join(directory, filename);
+        const document = parse(fs.readFileSync(target, "utf8"));
+        document.components.schemas[schemaName].properties.desiredRevision = {
+          type: "integer",
+          minimum: 1,
+        };
+        fs.writeFileSync(target, stringify(document));
+      },
+      `${schemaName} internal generation schema privacy`,
+      new RegExp(`${schemaName} hides desiredRevision`, "u"),
+    );
+});
+
 test("checker accepts grant-pending replay with the matching first-create intent", () => {
   const temporary = copyContract();
   try {
@@ -135,17 +189,17 @@ test("checker accepts grant-pending replay with the matching first-create intent
 test("checker rejects grant-pending replay without a matching first-create intent", () => {
   expectRejected(
     (directory) => {
-      mutateJson(directory, "example-checkout-created-shared.json", (fixture) => {
-        fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      const grantPending = JSON.parse(
+        fs.readFileSync(path.join(directory, "example-order-grant-pending.json"), "utf8"),
+      ).order;
+      mutateJson(directory, "example-checkout-replay-paid.json", (fixture) => {
+        fixture.response.order = grantPending;
+        fixture.response.checkoutUrl = null;
       });
-      mutateOpenApiExample(
-        directory,
-        "customer.openapi.yaml",
-        "CreatedSharedCheckout",
-        (response) => {
-          response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-        },
-      );
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "PaidCheckoutReplay", (response) => {
+        response.order = grantPending;
+        response.checkoutUrl = null;
+      });
     },
     "grant-pending replay first-create binding",
     /shared replay order binding/u,
@@ -330,22 +384,17 @@ test("checker rejects verification claims with the wrong key", () => {
   );
 });
 
-test("checker rejects a paid replay that differs from first-create intent", () => {
+test("checker rejects paid replay with a different order binding", () => {
   expectRejected(
     (directory) => {
-      mutateJson(directory, "example-checkout-created-shared.json", (fixture) => {
+      mutateJson(directory, "example-checkout-replay-paid.json", (fixture) => {
         fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
       });
-      mutateOpenApiExample(
-        directory,
-        "customer.openapi.yaml",
-        "CreatedSharedCheckout",
-        (response) => {
-          response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-        },
-      );
+      mutateOpenApiExample(directory, "customer.openapi.yaml", "PaidCheckoutReplay", (response) => {
+        response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+      });
     },
-    "same-intent replay order binding",
+    "paid replay order binding",
     /shared replay order binding/u,
   );
 });
@@ -361,9 +410,17 @@ test("checker rejects an active replay with missing Admin generation proof", () 
         response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
         response.order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
       });
+      mutateJson(directory, "example-admin-order-shared-ready.json", (fixture) => {
+        fixture.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+        fixture.order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
+      });
+      mutateOpenApiExample(directory, "admin.openapi.yaml", "AdminOrderSharedReady", (order) => {
+        order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+        order.subscriptionId = "9f0e0d0c-0b0a-4999-8877-665544332211";
+      });
     },
-    "active replay Admin evidence binding",
-    /requires same-snapshot Admin active grant/u,
+    "active replay order binding precedes Admin evidence join",
+    /shared replay order binding/u,
   );
 });
 
