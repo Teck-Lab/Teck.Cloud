@@ -138,9 +138,14 @@ test("checker rejects grant-pending replay without a matching first-create inten
       mutateJson(directory, "example-checkout-created-shared.json", (fixture) => {
         fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
       });
-      mutateOpenApiExample(directory, "customer.openapi.yaml", "CreatedSharedCheckout", (response) => {
-        response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-      });
+      mutateOpenApiExample(
+        directory,
+        "customer.openapi.yaml",
+        "CreatedSharedCheckout",
+        (response) => {
+          response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+        },
+      );
     },
     "grant-pending replay first-create binding",
     /shared replay order binding/u,
@@ -150,7 +155,12 @@ test("checker rejects grant-pending replay without a matching first-create inten
 for (const [label, file, exampleName, mutateCustomer] of [
   ["detail", "example-order-shared-active.json", "SharedActiveOrder", (value) => value.order],
   ["page", "example-orders-page.json", "OrdersPage", (value) => value.page.items[0]],
-  ["replay", "example-checkout-replay-paid.json", "PaidCheckoutReplay", (value) => value.response.order],
+  [
+    "replay",
+    "example-checkout-replay-paid.json",
+    "PaidCheckoutReplay",
+    (value) => value.response.order,
+  ],
 ])
   test(`checker rejects an unclamped active ${label} license expiry`, () => {
     expectRejected(
@@ -159,7 +169,7 @@ for (const [label, file, exampleName, mutateCustomer] of [
           mutateCustomer(fixture).license.expiresAt = "2026-12-23T20:00:00Z";
         });
         mutateOpenApiExample(directory, "customer.openapi.yaml", exampleName, (value) => {
-          const order = exampleName === "OrdersPage" ? value.items[0] : value.order ?? value;
+          const order = exampleName === "OrdersPage" ? value.items[0] : (value.order ?? value);
           order.license.expiresAt = "2026-12-23T20:00:00Z";
         });
       },
@@ -326,9 +336,14 @@ test("checker rejects a paid replay that differs from first-create intent", () =
       mutateJson(directory, "example-checkout-created-shared.json", (fixture) => {
         fixture.response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
       });
-      mutateOpenApiExample(directory, "customer.openapi.yaml", "CreatedSharedCheckout", (response) => {
-        response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
-      });
+      mutateOpenApiExample(
+        directory,
+        "customer.openapi.yaml",
+        "CreatedSharedCheckout",
+        (response) => {
+          response.order.orderId = "8f0e0d0c-0b0a-4999-8877-665544332211";
+        },
+      );
     },
     "same-intent replay order binding",
     /shared replay order binding/u,

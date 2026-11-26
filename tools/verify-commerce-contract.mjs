@@ -300,7 +300,8 @@ assert.equal(
 );
 for (const operationId of ["listCommerceOrders", "createCommerceOrder", "getCommerceOrder"])
   assert.equal(
-    operationsOf(customer).find(({ operation }) => operation.operationId === operationId)?.operation.responses?.["404"]?.$ref,
+    operationsOf(customer).find(({ operation }) => operation.operationId === operationId)?.operation
+      .responses?.["404"]?.$ref,
     "#/components/responses/NotFound",
     `${operationId} declares the scoped 404 on a missing reread`,
   );
@@ -629,7 +630,11 @@ assert.deepEqual(
   "file-backed fixture mappings are unique",
 );
 for (const [file, fixture] of fixtureFiles.map((file) => [file, readJson(file)])) {
-  if (["customerOrder", "orderPage", "checkoutCreated", "adminOrder", "adminOrderPage"].includes(fixture.kind))
+  if (
+    ["customerOrder", "orderPage", "checkoutCreated", "adminOrder", "adminOrderPage"].includes(
+      fixture.kind,
+    )
+  )
     assert.ok(fixtureExample.has(file), `${file} has an explicit OpenAPI example mapping`);
 }
 const requiredFixtures = [
@@ -1087,11 +1092,18 @@ for (const customerSnapshot of customerSnapshots) {
       order.status === "active" &&
       order.fulfillment.status === "ready",
   );
-  assert.ok(adminCandidates.length > 0, `${customerSnapshot.label} requires same-snapshot Admin active grant`);
+  assert.ok(
+    adminCandidates.length > 0,
+    `${customerSnapshot.label} requires same-snapshot Admin active grant`,
+  );
   const canonicalEvidence = adminCandidates[0].order;
   for (const { order, label } of adminCandidates.slice(1))
     for (const field of ["payment", "approval", "fulfillment"])
-      assert.deepEqual(order[field], canonicalEvidence[field], `${label} same-snapshot ${field} agreement`);
+      assert.deepEqual(
+        order[field],
+        canonicalEvidence[field],
+        `${label} same-snapshot ${field} agreement`,
+      );
   const adminSnapshot = adminCandidates[0];
   const order = adminSnapshot.order;
   const customerOrder = customerSnapshot.order;
