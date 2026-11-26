@@ -57,6 +57,20 @@
         "vite": "8.3.8",
       },
     },
+    "src/apps/dedicated-postgresql": {
+      "name": "@teck/dedicated-postgresql",
+      "version": "0.0.0",
+      "dependencies": {
+        "react": "18.3.1",
+        "react-dom": "18.3.1",
+      },
+      "devDependencies": {
+        "@types/react": "18.2.43",
+        "@types/react-dom": "18.3.7",
+        "@vitejs/plugin-react": "6.3.0",
+        "vite": "8.3.8",
+      },
+    },
     "src/packages/design-tokens": {
       "name": "@teck/design-tokens",
       "version": "0.0.0",
