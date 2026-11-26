@@ -72,17 +72,21 @@ caller's own tenant and subject. An order outside that scope returns the same
 
 For an active Orders snapshot the customer gateway obtains the license for that
 exact desired generation. If the grant is absent, revoked or mismatched
-(including Licensing `NOT_FOUND`), it rereads that order once using the original
-authenticated tenant and subject. If gone or now outside scope, fail the whole
-request with the existing scoped `404 not_found`; if still in scope but now
-nonactive, return its latest projection with `license:null`; if still active,
-confirm once against the reread generation. If confirmation
-still fails, the active generation is absent/zero, or Orders/Licensing is
-transport/store unavailable, the entire detail, list or checkout response is
-`503 dependency_unavailable`: no partial page, cached license, invented status
-or second reread. Nonactive snapshots never call Licensing. Checkout replay
-first finds the receipt scoped to tenant, subject and idempotency key, then
-compares the original basket revision before current basket validation; it
+(including Licensing `NOT_FOUND`), only the initial license lookup
+(`phase: initial`) permits exactly one `GetCustomerOrder` reread of that order
+using the original authenticated tenant and subject; Licensing `NOT_FOUND` is
+never emitted as an HTTP 404 by itself. If that reread finds the order gone or
+now outside scope, fail the whole request with the existing scoped `404
+not_found`; if it is still in scope but now nonactive, return its latest
+projection with `license:null`; if still active, confirm that reread generation
+once with a confirmation lookup. A confirmation-phase Licensing `NOT_FOUND`
+(`otherwise: fail-closed`), a still-unconfirmed active generation, an
+absent/zero active generation, or Orders or Licensing being transport/store
+unavailable makes the entire detail, list or checkout response `503
+dependency_unavailable`: no further reread or retry, no partial page, cached
+license or invented status. Nonactive snapshots never call Licensing. Checkout
+replay first finds the receipt scoped to tenant, subject and idempotency key,
+then compares the original basket revision before current basket validation; it
 preserves the bound order and uses `checkoutUrl:null` when non-payable.
 
 Customer page membership is fixed by the original scoped Orders page. That page
@@ -306,12 +310,20 @@ error trailer is also malformed. Malformed, unknown, missing and mismatched
 responses fail closed as `503 dependency_unavailable`, never as a guessed 4xx.
 
 Licensing `NOT_FOUND` on `GetCurrentLicense` is the one deliberate exception. It
-is not emitted as an HTTP error by itself; it triggers the single Orders reread
-of the same order within the original tenant and subject scope described above.
-The reread outcome decides between the scoped `404 not_found`, the latest
-nonactive projection, another active confirmation, or the whole-request 503.
-Retryable dependency failures never advance state. `503` may carry an integer
-`Retry-After`.
+is resolved by call phase rather than by the ordinary code table and is never
+emitted as an HTTP error by itself; the extension records `phase: initial` with
+`action: reread-order-once` and `otherwise: fail-closed`. Only a valid
+`GetCurrentLicense` `NOT_FOUND` in the `initial` phase gets the reread action:
+exactly one Orders `GetCustomerOrder` reread of the same order within the
+original authenticated tenant and subject scope described above. Only that
+reread outcome decides between the scoped `404 not_found`, the latest nonactive
+projection, and the confirmation lookup. A `confirmation` phase miss (the order
+was still active but the reread generation is still unconfirmed), any other
+phase, and a missing phase all resolve as `otherwise: fail-closed` to the
+whole-response `503 dependency_unavailable`, with no further reread or retry and
+no partial result; they never fall through to the ordinary scoped `404
+not_found`. Retryable dependency failures never advance state. `503` may carry
+an integer `Retry-After`.
 
 ## Compatibility and versioning
 
@@ -342,9 +354,10 @@ dotnet build docs/contracts/commerce/v1/Commerce.Contract.Protos.csproj -p:Resto
 `bun run test:tooling` also runs `tools/commerce-wire.test.mjs`, which reads the
 `x-commerce-error-wire` and `x-commerce-paging-example` extensions from
 `customer.openapi.yaml`, compares the error map with this README's table,
-executes the fail-closed resolver for every error class including the pairs that
-share an HTTP status, and replays the paging example to prove fixed membership,
-the B-then-A reorder and the unchanged original cursor.
+executes the phase-aware fail-closed resolver for every error class, including
+the pairs that share an HTTP status and the `initial`-versus-`confirmation`
+Licensing `NOT_FOUND` split, and replays the paging example to prove fixed
+membership, the B-then-A reorder and the unchanged original cursor.
 
 `Commerce.Contract.Protos.csproj` references the central `Grpc.Tools` and
 `Google.Protobuf` versions, compiles `orders.proto` and `licensing.proto` with
