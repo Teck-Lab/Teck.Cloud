@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Teck.Cloud.Commerce.Licensing.Application</AssemblyName>
+    <RootNamespace>Teck.Cloud.Commerce.Licensing.Application</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Ardalis.Specification" />
+    <PackageReference Include="ErrorOr" />
+    <PackageReference Include="WolverineFx" />
+    <ProjectReference Include="../../../../shared/Commerce.Contracts/Commerce.Contracts.csproj" />
+    <ProjectReference Include="../../../../shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+    <ProjectReference Include="../Licensing.Domain/Licensing.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Teck.Cloud.Commerce.Licensing.Domain</AssemblyName>
+    <RootNamespace>Teck.Cloud.Commerce.Licensing.Domain</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ErrorOr" />
+    <ProjectReference Include="../../../../shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+  </ItemGroup>
+</Project>

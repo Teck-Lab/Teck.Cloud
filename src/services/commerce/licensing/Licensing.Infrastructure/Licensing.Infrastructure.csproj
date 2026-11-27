@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Teck.Cloud.Commerce.Licensing.Infrastructure</AssemblyName>
+    <RootNamespace>Teck.Cloud.Commerce.Licensing.Infrastructure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Standard.Licensing" />
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <ProjectReference Include="../../../../shared/Commerce.Contracts/Commerce.Contracts.csproj" />
+    <ProjectReference Include="../../../../shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
+    <ProjectReference Include="../Licensing.Application/Licensing.Application.csproj" />
+    <ProjectReference Include="../Licensing.Domain/Licensing.Domain.csproj" />
+  </ItemGroup>
+</Project>
