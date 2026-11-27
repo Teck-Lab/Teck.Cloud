@@ -1,8 +1,14 @@
 using System.Net;
+#if !COMMERCE_WOLVERINE_CODEGEN
+using System.Reflection;
+#endif
+using JasperFx;
+using JasperFx.CodeGeneration;
 using Keycloak.AuthServices.Sdk.Kiota;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using SharedKernel.Core.MultiTenancy;
 using SharedKernel.Infrastructure.Auth;
 using SharedKernel.Infrastructure.Hosting;
 using SharedKernel.Infrastructure.Messaging;
@@ -20,12 +26,19 @@ using Teck.Cloud.Commerce.Orders.Infrastructure.Clients.Stripe;
 using Teck.Cloud.Commerce.Orders.Infrastructure.Database;
 using Wolverine;
 using Wolverine.RabbitMQ;
+#if !COMMERCE_WOLVERINE_CODEGEN
+using Wolverine.Runtime.Handlers;
+#endif
 
 namespace Teck.Cloud.Commerce.Orders.Host;
 
 /// <summary>Host composition for the Orders service.</summary>
 public static class OrdersHost
 {
+#if !COMMERCE_WOLVERINE_CODEGEN
+    private const string GeneratedRegistryDiagnosticPrefix = "Commerce static Wolverine registry invalid:";
+#endif
+
     /// <summary>Builds the service host without starting it.</summary>
     /// <param name="args">Process arguments.</param>
     /// <returns>The composed application.</returns>
@@ -151,6 +164,9 @@ public static class OrdersHost
 
     private static void AddMessaging(WebApplicationBuilder builder, IConfiguration configuration, IConfigurationSection section)
     {
+#if !COMMERCE_WOLVERINE_CODEGEN
+        RequireGeneratedHandlerRegistry();
+#endif
         var writeConnection = configuration.GetConnectionString("orders")
             ?? throw new InvalidOperationException("ConnectionStrings:orders is required.");
         var rabbit = configuration.GetConnectionString("rabbitmq")
@@ -158,14 +174,101 @@ public static class OrdersHost
         var messagingSchema = section["MessagingSchema"] ?? "orders_messaging";
         _ = builder.Host.UseWolverine(options =>
         {
+            options.ApplicationAssembly = typeof(OrdersHost).Assembly;
             options.UseFoundationMessaging<OrdersWriteDbContext>(writeConnection, messagingSchema);
+            _ = options.CodeGeneration.AlwaysUseServiceLocationFor<ITenantDirectory>();
             options.UseRequiredRabbitMq(new Uri(rabbit, UriKind.Absolute));
             options.RouteIntegrationEvent<LicenseDesiredEvent>(CommerceMessaging.LicenseDesired);
             _ = options.ListenToRabbitQueue(CommerceMessaging.LicenseState);
             _ = options.Discovery.IncludeAssembly(typeof(Teck.Cloud.Commerce.Orders.Application.Orders.EventHandlers.IntegrationEvents.LicenseStateHandler).Assembly);
             _ = options.Discovery.IncludeAssembly(typeof(LicenseDesiredEvent).Assembly);
+            ConfigureCodeGeneration(options.CodeGeneration);
+            _ = options.Services.Configure<JasperFxOptions>(jasperFx =>
+            {
+                ConfigureCodeGenerationProfile(jasperFx.Development);
+                ConfigureCodeGenerationProfile(jasperFx.Production);
+            });
         });
     }
+
+    private static void ConfigureCodeGeneration(GenerationRules rules)
+    {
+#if COMMERCE_WOLVERINE_CODEGEN
+        rules.TypeLoadMode = TypeLoadMode.Dynamic;
+        rules.SourceCodeWritingEnabled = true;
+        rules.GeneratedCodeOutputPath = "Internal/Generated";
+#else
+        rules.TypeLoadMode = TypeLoadMode.Static;
+        rules.SourceCodeWritingEnabled = false;
+#endif
+    }
+
+    private static void ConfigureCodeGenerationProfile(Profile profile)
+    {
+#if COMMERCE_WOLVERINE_CODEGEN
+        profile.GeneratedCodeMode = TypeLoadMode.Dynamic;
+        profile.GeneratedCodeOutputPath = "Internal/Generated";
+        profile.AssertAllPreGeneratedTypesExist = false;
+#else
+        profile.GeneratedCodeMode = TypeLoadMode.Static;
+        profile.AssertAllPreGeneratedTypesExist = true;
+#endif
+    }
+
+#if !COMMERCE_WOLVERINE_CODEGEN
+    /// <summary>Fails a normal build before Wolverine unless the committed generated registry is loadable.</summary>
+    /// <exception cref="InvalidOperationException">The generated registry is missing, ambiguous or malformed.</exception>
+    private static void RequireGeneratedHandlerRegistry()
+    {
+        var assembly = typeof(OrdersHost).Assembly;
+        var assemblyName = assembly.GetName().Name ?? nameof(OrdersHost);
+        string? problem;
+        try
+        {
+            problem = FindGeneratedRegistryProblem(assembly);
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException(GeneratedRegistryDiagnosticPrefix + " " + assemblyName, exception);
+        }
+
+        if (problem is not null)
+        {
+            throw new InvalidOperationException(GeneratedRegistryDiagnosticPrefix + " " + assemblyName + ": " + problem);
+        }
+    }
+
+    private static string? FindGeneratedRegistryProblem(Assembly assembly)
+    {
+        var candidates = assembly.ExportedTypes
+            .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(HandlerRegistry).IsAssignableFrom(type))
+            .ToArray();
+        if (candidates.Length == 0)
+        {
+            return "no generated HandlerRegistry type is exported";
+        }
+
+        if (candidates.Length > 1)
+        {
+            return "more than one generated HandlerRegistry type is exported";
+        }
+
+        var registryType = candidates[0];
+        if (!string.Equals(registryType.Name, HandlerRegistry.GeneratedTypeName, StringComparison.Ordinal))
+        {
+            return "the exported HandlerRegistry type is not named " + HandlerRegistry.GeneratedTypeName;
+        }
+
+        var constructor = registryType.GetConstructor(Type.EmptyTypes);
+        return constructor?.Invoke(parameters: null) switch
+        {
+            null => "the generated HandlerRegistry type has no public parameterless constructor",
+            HandlerRegistry registry when registry.HandlerTypes() is not { Length: > 0 } => "the generated HandlerRegistry declares no handler types",
+            HandlerRegistry registry when registry.MessageTypes() is null => "the generated HandlerRegistry returns null message types",
+            _ => null,
+        };
+    }
+#endif
 
     private static void ConfigurePipeline(WebApplication app)
     {

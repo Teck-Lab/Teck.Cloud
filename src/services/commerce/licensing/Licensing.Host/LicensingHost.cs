@@ -1,4 +1,5 @@
 using JasperFx;
+using JasperFx.CodeGeneration;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Core.MultiTenancy;
@@ -129,12 +130,15 @@ public static class LicensingHost
         LicensingConnections connections,
         LicensingRuntimeOptions runtime)
     {
+        RequireGeneratedHandlerRegistry();
         _ = builder.UseWolverine(options =>
         {
-            options.ApplicationAssembly = typeof(GetCurrentLicenseQuery).Assembly;
+            options.ApplicationAssembly = typeof(LicensingHost).Assembly;
             _ = options.Discovery.IncludeAssembly(typeof(GetCurrentLicenseQuery).Assembly);
             _ = options.Discovery.IncludeAssembly(typeof(LicensingHost).Assembly);
             options.UseFoundationMessaging<LicensingWriteDbContext>(connections.Write, MessagingSchema);
+            _ = options.CodeGeneration.AlwaysUseServiceLocationFor<ITenantDirectory>();
+            _ = options.CodeGeneration.AlwaysUseServiceLocationFor<OrdersV1.Orders.OrdersClient>();
             options.UseRequiredRabbitMq(new Uri(connections.Broker));
             options.RouteIntegrationEvent<LicenseStateEvent>(CommerceMessaging.LicenseState);
             _ = options.ListenToRabbitQueue(CommerceMessaging.LicenseDesired);
@@ -144,12 +148,76 @@ public static class LicensingHost
                 .RetryWithCooldown(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1));
             _ = options.OnException<DbUpdateException>()
                 .RetryWithCooldown(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1));
-            if (runtime.AutoCreateMessaging)
+#if COMMERCE_WOLVERINE_CODEGEN
+            options.CodeGeneration.TypeLoadMode = TypeLoadMode.Dynamic;
+            options.CodeGeneration.SourceCodeWritingEnabled = true;
+            options.CodeGeneration.GeneratedCodeOutputPath = "Internal/Generated";
+#else
+            options.CodeGeneration.TypeLoadMode = TypeLoadMode.Static;
+            options.CodeGeneration.SourceCodeWritingEnabled = false;
+#endif
+            _ = options.Services.Configure<JasperFxOptions>(configuration =>
             {
-                _ = options.Services.Configure<JasperFxOptions>(configuration => configuration.Production.ResourceAutoCreate = AutoCreate.All);
-            }
+#if COMMERCE_WOLVERINE_CODEGEN
+                configuration.Development.GeneratedCodeMode = TypeLoadMode.Dynamic;
+                configuration.Development.SourceCodeWritingEnabled = true;
+                configuration.Development.AssertAllPreGeneratedTypesExist = false;
+                configuration.Production.GeneratedCodeMode = TypeLoadMode.Dynamic;
+                configuration.Production.SourceCodeWritingEnabled = true;
+                configuration.Production.AssertAllPreGeneratedTypesExist = false;
+#else
+                configuration.Development.GeneratedCodeMode = TypeLoadMode.Static;
+                configuration.Development.AssertAllPreGeneratedTypesExist = true;
+                configuration.Production.GeneratedCodeMode = TypeLoadMode.Static;
+                configuration.Production.AssertAllPreGeneratedTypesExist = true;
+#endif
+                if (runtime.AutoCreateMessaging)
+                {
+                    configuration.Production.ResourceAutoCreate = AutoCreate.All;
+                }
+            });
         });
     }
+
+    private static void RequireGeneratedHandlerRegistry()
+    {
+#if !COMMERCE_WOLVERINE_CODEGEN
+        var assembly = typeof(LicensingHost).Assembly;
+        bool valid;
+        try
+        {
+            valid = HasValidGeneratedHandlerRegistry(assembly);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            throw new InvalidOperationException(InvalidRegistryDiagnostic(assembly), exception);
+        }
+
+        if (!valid)
+        {
+            throw new InvalidOperationException(InvalidRegistryDiagnostic(assembly));
+        }
+#endif
+    }
+
+#if !COMMERCE_WOLVERINE_CODEGEN
+    private static bool HasValidGeneratedHandlerRegistry(System.Reflection.Assembly assembly)
+    {
+        var registries = assembly.ExportedTypes
+            .Where(type => type is { IsClass: true, IsAbstract: false }
+                && typeof(Wolverine.Runtime.Handlers.HandlerRegistry).IsAssignableFrom(type))
+            .ToArray();
+        return registries.Length == 1
+            && string.Equals(registries[0].Name, Wolverine.Runtime.Handlers.HandlerRegistry.GeneratedTypeName, StringComparison.Ordinal)
+            && registries[0].GetConstructor(Type.EmptyTypes) is { } constructor
+            && constructor.Invoke(parameters: null) is Wolverine.Runtime.Handlers.HandlerRegistry registry
+            && registry.HandlerTypes() is { Length: > 0 }
+            && registry.MessageTypes() is not null;
+    }
+
+    private static string InvalidRegistryDiagnostic(System.Reflection.Assembly assembly) =>
+        $"Commerce static Wolverine registry invalid: {assembly.GetName().Name ?? "Teck.Cloud.Commerce.Licensing.Host"}";
+#endif
 
     private static void ConfigurePipeline(WebApplication app)
     {

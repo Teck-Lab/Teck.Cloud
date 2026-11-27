@@ -3,6 +3,12 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <RootNamespace>Teck.Cloud.Commerce.Orders.Host</RootNamespace>
+    <!-- The alternate lockfile is a restore input only; never an SDK default item. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);packages.codegen.lock.json</DefaultItemExcludes>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(CommerceWolverineCodegen)' == 'true'">
+    <DefineConstants>$(DefineConstants);COMMERCE_WOLVERINE_CODEGEN</DefineConstants>
+    <NuGetLockFilePath>packages.codegen.lock.json</NuGetLockFilePath>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ErrorOr" />
@@ -18,4 +24,13 @@
     <ProjectReference Include="../../../../shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
     <ProjectReference Include="../../../../shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(CommerceWolverineCodegen)' == 'true'">
+    <PackageReference Include="WolverineFx.RuntimeCompilation" PrivateAssets="all" />
+    <Compile Remove="Internal/Generated/**/*.cs" />
+  </ItemGroup>
+  <Target Name="RejectCommerceCodegenPublish"
+          BeforeTargets="PrepareForPublish"
+          Condition="'$(CommerceWolverineCodegen)' == 'true'">
+    <Error Code="TECKCOMMERCE001" Text="Commerce handler generation build cannot be published." />
+  </Target>
 </Project>

@@ -4,6 +4,12 @@
     <RootNamespace>Teck.Cloud.Commerce.Licensing.Host</RootNamespace>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);packages.codegen.lock.json</DefaultItemExcludes>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(CommerceWolverineCodegen)' == 'true'">
+    <DefineConstants>$(DefineConstants);COMMERCE_WOLVERINE_CODEGEN</DefineConstants>
+    <NuGetLockFilePath>packages.codegen.lock.json</NuGetLockFilePath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Internal/Generated/**/*.cs</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
@@ -20,4 +26,10 @@
     <ProjectReference Include="../Licensing.Application/Licensing.Application.csproj" />
     <ProjectReference Include="../Licensing.Infrastructure/Licensing.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(CommerceWolverineCodegen)' == 'true'">
+    <PackageReference Include="WolverineFx.RuntimeCompilation" PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="RejectCommerceCodegenPublish" BeforeTargets="PrepareForPublish" Condition="'$(CommerceWolverineCodegen)' == 'true'">
+    <Error Code="TECKCOMMERCE001" Text="Commerce handler generation build cannot be published." />
+  </Target>
 </Project>
