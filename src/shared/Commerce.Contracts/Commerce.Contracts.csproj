@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Teck.Cloud.Commerce.Contracts</AssemblyName>
+    <RootNamespace>Teck.Cloud.Commerce.Contracts</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+    <Protobuf Include="../../../docs/contracts/commerce/v1/orders.proto" Link="Protos/orders.proto" GrpcServices="Both" />
+    <Protobuf Include="../../../docs/contracts/commerce/v1/licensing.proto" Link="Protos/licensing.proto" GrpcServices="Both" />
+    <ProjectReference Include="../SharedKernel.Core/SharedKernel.Core.csproj" />
+    <ProjectReference Include="../SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
