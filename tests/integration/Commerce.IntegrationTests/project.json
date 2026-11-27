@@ -1,0 +1,15 @@
+{
+  "name": "commerce-backend-integration",
+  "targets": {
+    "test:integration": {
+      "dependsOn": [
+        "build",
+        {
+          "target": "container:build",
+          "projects": ["keycloak-theme"]
+        }
+      ]
+    }
+  },
+  "implicitDependencies": ["keycloak-theme"]
+}
