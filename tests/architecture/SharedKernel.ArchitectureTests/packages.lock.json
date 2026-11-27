@@ -1571,8 +1571,7 @@
       "invalid.application.rules": {
         "type": "Project",
         "dependencies": {
-          "SharedKernel.Core": "[1.0.0, )",
-          "Valid.Domain.Rules": "[1.0.0, )"
+          "SharedKernel.Core": "[1.0.0, )"
         }
       },
       "invalid.domain.rules": {

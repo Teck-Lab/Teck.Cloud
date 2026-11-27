@@ -34,8 +34,8 @@ public static class AggregateRootRules
             .And()
             .ImplementInterface(typeof(IAggregateRoot))
             .Should()
-            .BeAssignableTo(typeof(BaseEntity))
-            .Because("all aggregate roots must inherit from BaseEntity");
+            .BeAssignableTo(typeof(BaseEntity<>))
+            .Because("service aggregate roots must inherit from a shared BaseEntity<TId> type");
 
         rule.Check(architecture);
     }

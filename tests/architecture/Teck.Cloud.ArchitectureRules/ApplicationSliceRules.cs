@@ -64,7 +64,15 @@ public static class ApplicationSliceRules
     private static IEnumerable<Type> GetAuthoredTopLevelTypes(Assembly assembly) => assembly.GetTypes()
         .Where(type => !type.IsNested
             && !string.Equals(type.Name, "<Module>", StringComparison.Ordinal)
-            && !type.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false));
+            && !type.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false)
+            && !IsJasperFxEventManifest(type));
+
+    /// <summary>Recognizes the internal static manifest emitted without CompilerGeneratedAttribute.</summary>
+    /// <param name="type">The candidate generated type.</param>
+    /// <returns>Whether the type matches the JasperFx event manifest.</returns>
+    private static bool IsJasperFxEventManifest(Type type) =>
+        type is { IsNotPublic: true, IsAbstract: true, IsSealed: true }
+        && string.Equals(type.FullName, "JasperFx.Generated.DiscoveredEventModels", StringComparison.Ordinal);
 
     private static IEnumerable<Type> GetValidatedTypes(Type validator) => validator.GetInterfaces()
         .Where(contract => contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IValidator<>))
