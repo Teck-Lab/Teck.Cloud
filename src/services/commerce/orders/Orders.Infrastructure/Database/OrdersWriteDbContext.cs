@@ -55,6 +55,16 @@ public sealed class OrdersWriteDbContext(
         _ = modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(OrdersWriteDbContext).Assembly,
             ModelConfigurationFilters.WriteConfigurationsFilter);
+
+        // EF does not discover the getter-only creation timestamp by convention.
+        _ = modelBuilder.Entity<Basket>().Property(entity => entity.CreatedAt);
+        _ = modelBuilder.Entity<Order>().Property(entity => entity.CreatedAt);
+        _ = modelBuilder.Entity<OrderAuditEntry>().Property(entity => entity.CreatedAt);
+        _ = modelBuilder.Entity<IdempotencyReceipt>().Property(entity => entity.CreatedAt);
+        _ = modelBuilder.Entity<PlacementProbeWork>().Property(entity => entity.CreatedAt);
+        _ = modelBuilder.Entity<ProviderEventReceipt>().Property(entity => entity.CreatedAt);
+        _ = modelBuilder.Entity<ReconciliationJob>().Property(entity => entity.CreatedAt);
+
         base.OnModelCreating(modelBuilder);
     }
 }
