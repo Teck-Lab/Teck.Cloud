@@ -2,7 +2,9 @@
 using JasperFx;
 using JasperFx.CodeGeneration.Model;
 using JasperFx.CodeGeneration.Services;
+using SharedKernel.Core.Database;
 using SharedKernel.Core.MultiTenancy;
+using Teck.Cloud.Commerce.Licensing.Infrastructure.Database;
 using Wolverine;
 using OrdersV1 = Teck.Cloud.Commerce.Orders.V1;
 #endif
@@ -18,6 +20,9 @@ public static class Program
         typeof(OperationContext),
         typeof(ITenantDirectory),
         typeof(OrdersV1.Orders.OrdersClient),
+        typeof(LicensingReadDbContext),
+        typeof(LicensingWriteDbContext),
+        typeof(IUnitOfWork),
     ];
 
     private static string HostAssemblyName =>

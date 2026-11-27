@@ -1,4 +1,7 @@
+using SharedKernel.Core.Database;
 using SharedKernel.Core.MultiTenancy;
+using Teck.Cloud.Commerce.Licensing.Infrastructure.Database;
+using Teck.Cloud.Commerce.Orders.Infrastructure.Database;
 using LicensingHostApi = Teck.Cloud.Commerce.Licensing.Host.LicensingHost;
 using OrdersHostApi = Teck.Cloud.Commerce.Orders.Host.OrdersHost;
 using OrdersV1 = Teck.Cloud.Commerce.Orders.V1;
@@ -28,14 +31,27 @@ internal static class CommerceStaticCase
         "src/services/commerce/orders/Orders.Host/Internal/Generated",
         "CheckCurrentEntitlementHandler",
         typeof(OrdersHostApi),
-        [typeof(OperationContext), typeof(ITenantDirectory)]);
+        [
+            typeof(OperationContext),
+            typeof(ITenantDirectory),
+            typeof(OrdersReadDbContext),
+            typeof(OrdersWriteDbContext),
+            typeof(IUnitOfWork),
+        ]);
 
     internal static readonly CommerceStaticHost Licensing = new(
         "Licensing",
         "src/services/commerce/licensing/Licensing.Host/Internal/Generated",
         "GetCurrentLicenseHandler",
         typeof(LicensingHostApi),
-        [typeof(OperationContext), typeof(ITenantDirectory), typeof(OrdersV1.Orders.OrdersClient)]);
+        [
+            typeof(OperationContext),
+            typeof(ITenantDirectory),
+            typeof(OrdersV1.Orders.OrdersClient),
+            typeof(LicensingReadDbContext),
+            typeof(LicensingWriteDbContext),
+            typeof(IUnitOfWork),
+        ]);
 
     /// <summary>Reads the explicitly requested hosting profile; unset means the framework default.</summary>
     /// <returns>The hosting environment every real commerce host must report.</returns>

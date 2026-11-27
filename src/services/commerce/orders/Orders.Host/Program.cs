@@ -2,7 +2,9 @@
 using JasperFx;
 using JasperFx.CodeGeneration.Model;
 using JasperFx.CodeGeneration.Services;
+using SharedKernel.Core.Database;
 using SharedKernel.Core.MultiTenancy;
+using Teck.Cloud.Commerce.Orders.Infrastructure.Database;
 using Wolverine;
 #endif
 
@@ -16,7 +18,14 @@ public static class Program
 
     private const string ServiceLocationVerifiedPrefix = "Commerce codegen service-location verified:";
 
-    private static readonly Type[] ServiceLocationAllowlist = [typeof(ITenantDirectory), typeof(OperationContext)];
+    private static readonly Type[] ServiceLocationAllowlist =
+    [
+        typeof(OperationContext),
+        typeof(ITenantDirectory),
+        typeof(OrdersReadDbContext),
+        typeof(OrdersWriteDbContext),
+        typeof(IUnitOfWork),
+    ];
 
     private static string HostAssemblyName => typeof(OrdersHost).Assembly.GetName().Name ?? nameof(OrdersHost);
 

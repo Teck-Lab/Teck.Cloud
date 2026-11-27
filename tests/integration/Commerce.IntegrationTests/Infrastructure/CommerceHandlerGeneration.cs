@@ -3,7 +3,10 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using SharedKernel.Core.Database;
 using SharedKernel.Core.MultiTenancy;
+using Teck.Cloud.Commerce.Licensing.Infrastructure.Database;
+using Teck.Cloud.Commerce.Orders.Infrastructure.Database;
 using Wolverine.Runtime.Handlers;
 
 namespace Commerce.IntegrationTests.Infrastructure;
@@ -670,7 +673,13 @@ internal sealed class CommerceHandlerGeneration
                 "Orders",
                 Path.Combine(_root, OrdersHostProject),
                 ordersAssembly,
-                [typeof(OperationContext).FullName!, typeof(ITenantDirectory).FullName!],
+                [
+                    typeof(OperationContext).FullName!,
+                    typeof(ITenantDirectory).FullName!,
+                    typeof(OrdersReadDbContext).FullName!,
+                    typeof(OrdersWriteDbContext).FullName!,
+                    typeof(IUnitOfWork).FullName!,
+                ],
                 "CheckCurrentEntitlementHandler",
                 static stack => CommerceTestConfiguration.Orders(
                     stack.Keycloak,
@@ -687,6 +696,9 @@ internal sealed class CommerceHandlerGeneration
                     typeof(OperationContext).FullName!,
                     typeof(ITenantDirectory).FullName!,
                     typeof(Teck.Cloud.Commerce.Orders.V1.Orders.OrdersClient).FullName!,
+                    typeof(LicensingReadDbContext).FullName!,
+                    typeof(LicensingWriteDbContext).FullName!,
+                    typeof(IUnitOfWork).FullName!,
                 ],
                 "GetCurrentLicenseHandler",
                 static stack => CommerceTestConfiguration.Licensing(
