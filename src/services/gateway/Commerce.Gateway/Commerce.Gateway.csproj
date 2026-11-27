@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Teck.Cloud.Commerce.Gateway</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Keycloak.AuthServices.Authorization" />
+    <PackageReference Include="Keycloak.AuthServices.Sdk.Kiota" />
+    <ProjectReference Include="../../../shared/Commerce.Contracts/Commerce.Contracts.csproj" />
+    <ProjectReference Include="../../../shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
