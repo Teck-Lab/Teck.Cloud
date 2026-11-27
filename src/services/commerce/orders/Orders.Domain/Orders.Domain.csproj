@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Teck.Cloud.Commerce.Orders.Domain</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ErrorOr" />
+    <ProjectReference Include="../../../../shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+  </ItemGroup>
+</Project>
