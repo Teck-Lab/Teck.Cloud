@@ -45,6 +45,11 @@
     <PackageVersion Include="Duende.AccessTokenManagement" Version="4.3.0" />
     <PackageVersion Include="Duende.AccessTokenManagement.OpenIdConnect" Version="4.3.0" />
   </ItemGroup>
+  <ItemGroup Label="Commerce providers">
+    <!-- Orders owns the only Stripe adapter; Licensing the only signed-document producer. -->
+    <PackageVersion Include="Stripe.net" Version="50.0.0" />
+    <PackageVersion Include="Standard.Licensing" Version="1.3.1" />
+  </ItemGroup>
   <ItemGroup Label="Shared foundation and tests">
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="11.0.0" />
     <PackageVersion Include="NewId" Version="4.0.1" />

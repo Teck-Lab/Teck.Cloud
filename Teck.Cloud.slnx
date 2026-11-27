@@ -3,13 +3,40 @@
   <Folder Name="/src/aspire/">
     <Project Path="src/aspire/Teck.Cloud.AppHost/Teck.Cloud.AppHost.csproj" />
   </Folder>
+  <Folder Name="/src/services/" />
+  <Folder Name="/src/services/commerce/" />
+  <Folder Name="/src/services/commerce/orders/">
+    <Project Path="src/services/commerce/orders/Orders.Domain/Orders.Domain.csproj" />
+    <Project Path="src/services/commerce/orders/Orders.Application/Orders.Application.csproj" />
+    <Project Path="src/services/commerce/orders/Orders.Infrastructure/Orders.Infrastructure.csproj" />
+    <Project Path="src/services/commerce/orders/Orders.Host/Orders.Host.csproj" />
+  </Folder>
+  <Folder Name="/src/services/commerce/licensing/">
+    <Project Path="src/services/commerce/licensing/Licensing.Domain/Licensing.Domain.csproj" />
+    <Project Path="src/services/commerce/licensing/Licensing.Application/Licensing.Application.csproj" />
+    <Project Path="src/services/commerce/licensing/Licensing.Infrastructure/Licensing.Infrastructure.csproj" />
+    <Project Path="src/services/commerce/licensing/Licensing.Host/Licensing.Host.csproj" />
+  </Folder>
+  <Folder Name="/src/services/gateway/">
+    <Project Path="src/services/gateway/Commerce.Gateway/Commerce.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/services/gateway/customer-gateway/">
+    <Project Path="src/services/gateway/customer-gateway/CustomerGateway.Host/CustomerGateway.Host.csproj" />
+  </Folder>
+  <Folder Name="/src/services/gateway/admin-gateway/">
+    <Project Path="src/services/gateway/admin-gateway/AdminGateway.Host/AdminGateway.Host.csproj" />
+  </Folder>
   <Folder Name="/src/shared/">
+    <Project Path="src/shared/Commerce.Contracts/Commerce.Contracts.csproj" />
     <Project Path="src/shared/SharedKernel.Core/SharedKernel.Core.csproj" />
     <Project Path="src/shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
     <Project Path="src/shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/architecture/">
+    <Project Path="tests/architecture/Commerce.ArchitectureTests/Commerce.ArchitectureTests.csproj" />
+    <Project Path="tests/architecture/Licensing.Architecture.UnitTests/Licensing.Architecture.UnitTests.csproj" />
+    <Project Path="tests/architecture/Orders.Architecture.UnitTests/Orders.Architecture.UnitTests.csproj" />
     <Project Path="tests/architecture/SharedKernel.ArchitectureTests/SharedKernel.ArchitectureTests.csproj" />
     <Project Path="tests/architecture/Teck.Cloud.ArchitectureRules/Teck.Cloud.ArchitectureRules.csproj" />
     <Project Path="tests/architecture/ServiceLayerRuleFixtures/Valid.Domain/Valid.Domain.Rules.csproj" />
@@ -34,6 +61,7 @@
     <Project Path="tests/fixtures/SharedKernel.Api.TestHost/SharedKernel.Api.TestHost.csproj" />
   </Folder>
   <Folder Name="/tests/integration/">
+    <Project Path="tests/integration/Commerce.IntegrationTests/Commerce.IntegrationTests.csproj" />
     <Project Path="tests/integration/SharedKernel.Infrastructure.IntegrationTests/SharedKernel.Infrastructure.IntegrationTests.csproj" />
     <Project Path="tests/integration/SharedKernel.Persistence.IntegrationTests/SharedKernel.Persistence.IntegrationTests.csproj" />
   </Folder>
