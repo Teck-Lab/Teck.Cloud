@@ -2,7 +2,7 @@ namespace Commerce.IntegrationTests.Infrastructure;
 
 /// <summary>Provider state for one committed checkout binding.</summary>
 /// <param name="OrderId">The order identifier.</param>
-/// <param name="PriceId">The recurring price.</param>
+/// <param name="PriceId">The first requested recurring price.</param>
 /// <param name="AmountMinor">The recurring amount in minor units.</param>
 /// <param name="CustomerId">The provider customer.</param>
 /// <param name="SessionId">The checkout session.</param>
@@ -25,9 +25,14 @@ public sealed record ProviderState(
     bool Refunded,
     int CreateCount)
 {
+    /// <summary>Gets the ordered requested recurring price identifiers, one per line item.</summary>
+    public IReadOnlyList<string> PriceIds { get; init; } = [];
+
     /// <summary>Gets the bound tenant.</summary>
     public Guid TenantId { get; init; }
 
     /// <summary>Gets a value indicating whether the current charge is disputed.</summary>
     public bool Disputed { get; init; }
+
+    internal Guid CommerceSubscriptionId { get; init; }
 }

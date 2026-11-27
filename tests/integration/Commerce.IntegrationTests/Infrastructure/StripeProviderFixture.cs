@@ -177,6 +177,7 @@ public sealed class StripeProviderFixture : IAsyncLifetime
             ["livemode"] = false,
             ["type"] = type,
             ["account"] = AccountId,
+            ["request"] = null,
             ["data"] = new JsonObject
             {
                 ["object"] = JsonNode.Parse(data ?? throw new InvalidOperationException("The provider object is missing.")),
@@ -214,20 +215,41 @@ public sealed class StripeProviderFixture : IAsyncLifetime
         }),
     };
 
-    private static JsonObject InvoiceLinesNode(ProviderState state, long start, long end) => new()
+    private static JsonObject InvoiceLinesNode(ProviderState state, long start, long end)
     {
-        ["object"] = "list",
-        ["has_more"] = false,
-        ["data"] = new JsonArray(new JsonObject
+        var data = new JsonArray();
+        for (var index = 0; index < state.PriceIds.Count; index++)
         {
-            ["id"] = "il_" + state.OrderId.ToString("N"),
-            ["object"] = "line_item",
-            ["amount"] = state.AmountMinor,
-            ["currency"] = "usd",
-            ["period"] = new JsonObject { ["start"] = start, ["end"] = end },
-            ["price"] = state.PriceId,
-        }),
-    };
+            var priceId = state.PriceIds[index];
+            var amount = Amount(priceId);
+            data.Add(new JsonObject
+            {
+                ["id"] = "il_" + state.OrderId.ToString("N") + "_" + index.ToString(CultureInfo.InvariantCulture),
+                ["object"] = "line_item",
+                ["amount"] = amount,
+                ["currency"] = "usd",
+                ["period"] = new JsonObject { ["start"] = start, ["end"] = end },
+                ["quantity"] = 1,
+                ["pricing"] = new JsonObject
+                {
+                    ["type"] = "price_details",
+                    ["price_details"] = new JsonObject
+                    {
+                        ["price"] = priceId,
+                        ["product"] = "prod_commerce_fixture",
+                    },
+                    ["unit_amount_decimal"] = amount.ToString(CultureInfo.InvariantCulture),
+                },
+            });
+        }
+
+        return new JsonObject
+        {
+            ["object"] = "list",
+            ["has_more"] = false,
+            ["data"] = data,
+        };
+    }
 
     private static JsonObject PriceNode(string id) => new()
     {
@@ -242,6 +264,25 @@ public sealed class StripeProviderFixture : IAsyncLifetime
         ["product"] = "prod_commerce_fixture",
     };
 
+    private static JsonArray SubscriptionItemsNode(ProviderState state, long start, long end)
+    {
+        var data = new JsonArray();
+        for (var index = 0; index < state.PriceIds.Count; index++)
+        {
+            data.Add(new JsonObject
+            {
+                ["id"] = "si_" + state.OrderId.ToString("N") + "_" + index.ToString(CultureInfo.InvariantCulture),
+                ["object"] = "subscription_item",
+                ["quantity"] = 1,
+                ["price"] = PriceNode(state.PriceIds[index]),
+                ["current_period_start"] = start,
+                ["current_period_end"] = end,
+            });
+        }
+
+        return data;
+    }
+
     private static long Amount(string priceId) => priceId switch
     {
         SharedPriceId => 1000,
@@ -249,6 +290,32 @@ public sealed class StripeProviderFixture : IAsyncLifetime
         ReplicaPriceId => 500,
         _ => 0,
     };
+
+    private static List<string> ReadLinePrices(IFormCollection form)
+    {
+        var lineFields = form.Keys.Count(key => key.StartsWith("line_items[", StringComparison.Ordinal));
+        if (lineFields % 2 != 0)
+        {
+            return [];
+        }
+
+        var prices = new List<string>(lineFields / 2);
+        for (var index = 0; index < lineFields / 2; index++)
+        {
+            var field = "line_items[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+            var price = form[field + "[price]"];
+            var quantity = form[field + "[quantity]"];
+            if (price.Count != 1 || quantity.Count != 1 || !string.Equals(quantity[0], "1", StringComparison.Ordinal)
+                || price[0] is not { } priceId || Amount(priceId) == 0)
+            {
+                return [];
+            }
+
+            prices.Add(priceId);
+        }
+
+        return prices;
+    }
 
     private static string CustomerJson(string id) => new JsonObject
     {
@@ -282,16 +349,29 @@ public sealed class StripeProviderFixture : IAsyncLifetime
             return StripeError("parameter_missing", "client_reference_id");
         }
 
-        var priceId = form["line_items[0][price]"].ToString();
-        _ = Guid.TryParse(form["metadata[tenantId]"].ToString(), out var tenantId);
-        var amount = Amount(priceId);
-        _ = request.Headers.TryGetValue("Idempotency-Key", out var idempotencyKey);
+        var priceIds = ReadLinePrices(form);
+        return priceIds.Count == 0
+            ? StripeError("parameter_invalid", "line_items")
+            : CreateSessionFromForm(request, form, orderId, priceIds);
+    }
+
+    private IResult CreateSessionFromForm(HttpRequest request, IFormCollection form, Guid orderId, List<string> priceIds)
+    {
+        return Guid.TryParse(form["metadata[tenantId]"].ToString(), out var tenantId)
+            && Guid.TryParse(form["metadata[subscriptionId]"].ToString(), out var commerceSubscriptionId)
+            ? CreateSession(orderId, tenantId, commerceSubscriptionId, priceIds, request.Headers["Idempotency-Key"].ToString())
+            : StripeError("parameter_invalid", "metadata");
+    }
+
+    private IResult CreateSession(Guid orderId, Guid tenantId, Guid commerceSubscriptionId, List<string> priceIds, string idempotencyKey)
+    {
+        var amount = priceIds.Sum(Amount);
         lock (_sync)
         {
             if (_byOrder.TryGetValue(orderId.ToString("D"), out var existing))
             {
                 return !string.IsNullOrEmpty(idempotencyKey)
-                    && _idempotentSessions.TryGetValue(idempotencyKey.ToString(), out var mapped)
+                    && _idempotentSessions.TryGetValue(idempotencyKey, out var mapped)
                     && !string.Equals(mapped, existing.SessionId, StringComparison.Ordinal)
                     ? StripeError("idempotency_error")
                     : Results.Content(SessionJson(existing), "application/json");
@@ -300,7 +380,7 @@ public sealed class StripeProviderFixture : IAsyncLifetime
             var id = "cs_test_" + orderId.ToString("N");
             var state = new ProviderState(
                 orderId,
-                priceId,
+                priceIds[0],
                 amount,
                 "cus_test_" + orderId.ToString("N"),
                 id,
@@ -311,7 +391,9 @@ public sealed class StripeProviderFixture : IAsyncLifetime
                 Refunded: false,
                 CreateCount: 1)
             {
+                PriceIds = priceIds,
                 TenantId = tenantId,
+                CommerceSubscriptionId = commerceSubscriptionId,
                 Disputed = false,
             };
             _byOrder[orderId.ToString("D")] = state;
@@ -320,7 +402,7 @@ public sealed class StripeProviderFixture : IAsyncLifetime
             _byInvoice[state.InvoiceId] = state;
             if (!string.IsNullOrEmpty(idempotencyKey))
             {
-                _idempotentSessions[idempotencyKey.ToString()] = id;
+                _idempotentSessions[idempotencyKey] = id;
             }
 
             return Results.Content(SessionJson(state), "application/json");
@@ -356,7 +438,7 @@ public sealed class StripeProviderFixture : IAsyncLifetime
         {
             ["orderId"] = state.OrderId.ToString("D"),
             ["tenantId"] = state.TenantId.ToString("D"),
-            ["subscriptionId"] = state.SubscriptionId,
+            ["subscriptionId"] = state.CommerceSubscriptionId.ToString("D"),
         },
     }.ToJsonString(_json);
 
@@ -386,21 +468,13 @@ public sealed class StripeProviderFixture : IAsyncLifetime
                 {
                     ["orderId"] = state.OrderId.ToString("D"),
                     ["tenantId"] = state.TenantId.ToString("D"),
-                    ["subscriptionId"] = state.SubscriptionId,
+                    ["subscriptionId"] = state.CommerceSubscriptionId.ToString("D"),
                 },
                 ["items"] = new JsonObject
                 {
                     ["object"] = "list",
                     ["has_more"] = false,
-                    ["data"] = new JsonArray(new JsonObject
-                    {
-                        ["id"] = "si_" + state.OrderId.ToString("N"),
-                        ["object"] = "subscription_item",
-                        ["quantity"] = 1,
-                        ["price"] = state.PriceId,
-                        ["current_period_start"] = start,
-                        ["current_period_end"] = end,
-                    }),
+                    ["data"] = SubscriptionItemsNode(state, start, end),
                 },
             }.ToJsonString(_json);
         }
@@ -443,7 +517,7 @@ public sealed class StripeProviderFixture : IAsyncLifetime
                         {
                             ["orderId"] = state.OrderId.ToString("D"),
                             ["tenantId"] = state.TenantId.ToString("D"),
-                            ["subscriptionId"] = state.SubscriptionId,
+                            ["subscriptionId"] = state.CommerceSubscriptionId.ToString("D"),
                         },
                     },
                 },

@@ -702,7 +702,10 @@ public sealed class Order : BaseEntity<Guid>, IAggregateRoot, ITenantScoped
     /// <param name="now">The current UTC instant.</param>
     /// <returns>Whether a payable bound URL can be returned.</returns>
     public bool HasUsableCheckoutUrlAt(DateTimeOffset now) =>
-        CanCheckoutAt(now) && CheckoutProviderSessionId is not null && !string.IsNullOrWhiteSpace(CheckoutUrl);
+        !IsPaidAt(now)
+        && ApprovalStatus != ApprovalStatus.Rejected
+        && CheckoutProviderSessionId is not null
+        && !string.IsNullOrWhiteSpace(CheckoutUrl);
 
     /// <summary>Gets the desired generation only when the order is active.</summary>
     /// <param name="now">The current UTC instant.</param>

@@ -1,4 +1,5 @@
 using Npgsql;
+using NpgsqlTypes;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
 
 namespace Teck.Cloud.Commerce.Orders.Infrastructure.Work;
@@ -83,12 +84,12 @@ public sealed class OrderWorkStore(NpgsqlDataSource dataSource)
         await using var connectionLifetime = connection.ConfigureAwait(false);
         var command = new NpgsqlCommand(ProviderSql, connection);
         await using var commandLifetime = command.ConfigureAwait(false);
-        _ = command.Parameters.AddWithValue("order", (object?)notice.OrderId ?? DBNull.Value);
-        _ = command.Parameters.AddWithValue("session", (object?)notice.CheckoutSessionId ?? DBNull.Value);
-        _ = command.Parameters.AddWithValue("subscription", (object?)notice.ProviderSubscriptionId ?? DBNull.Value);
-        _ = command.Parameters.AddWithValue("invoice", (object?)notice.InvoiceId ?? DBNull.Value);
-        _ = command.Parameters.AddWithValue("charge", (object?)notice.ChargeId ?? DBNull.Value);
-        _ = command.Parameters.AddWithValue("intent", (object?)notice.PaymentIntentId ?? DBNull.Value);
+        _ = command.Parameters.AddWithValue("order", NpgsqlDbType.Uuid, (object?)notice.OrderId ?? DBNull.Value);
+        _ = command.Parameters.AddWithValue("session", NpgsqlDbType.Text, (object?)notice.CheckoutSessionId ?? DBNull.Value);
+        _ = command.Parameters.AddWithValue("subscription", NpgsqlDbType.Text, (object?)notice.ProviderSubscriptionId ?? DBNull.Value);
+        _ = command.Parameters.AddWithValue("invoice", NpgsqlDbType.Text, (object?)notice.InvoiceId ?? DBNull.Value);
+        _ = command.Parameters.AddWithValue("charge", NpgsqlDbType.Text, (object?)notice.ChargeId ?? DBNull.Value);
+        _ = command.Parameters.AddWithValue("intent", NpgsqlDbType.Text, (object?)notice.PaymentIntentId ?? DBNull.Value);
         var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         await using var readerLifetime = reader.ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
