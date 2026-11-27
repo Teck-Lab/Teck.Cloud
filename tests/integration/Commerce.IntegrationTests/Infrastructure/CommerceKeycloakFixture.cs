@@ -270,6 +270,15 @@ public sealed class CommerceKeycloakFixture : IAsyncLifetime
         await AddAudienceMapperAsync(adminGatewayId, "licensing-audience", "commerce-licensing", cancellationToken).ConfigureAwait(false);
         var licensingId = await ClientIdAsync("commerce-licensing", cancellationToken).ConfigureAwait(false);
         await AddAudienceMapperAsync(licensingId, "orders-audience", "commerce-orders", cancellationToken).ConfigureAwait(false);
+
+        // The imported gateways have full scope disabled; expose only their intended realm roles.
+        await AddRealmRoleScopeAsync(customerGatewayId, CommerceAuth.CustomerPermission, cancellationToken).ConfigureAwait(false);
+        await AddRealmRoleScopeAsync(customerGatewayId, CommerceAuth.LicenseReadPermission, cancellationToken).ConfigureAwait(false);
+        foreach (var role in CommerceRoles)
+        {
+            await AddRealmRoleScopeAsync(adminGatewayId, role, cancellationToken).ConfigureAwait(false);
+        }
+
         await EnableServiceAccountAsync(customerGatewayId, cancellationToken).ConfigureAwait(false);
         await AssignServiceAccountRealmRoleAsync(customerGatewayId, CommerceAuth.LicenseReadPermission, cancellationToken).ConfigureAwait(false);
         await AssignServiceAccountRealmRoleAsync(licensingId, CommerceAuth.EntitlementCheckPermission, cancellationToken).ConfigureAwait(false);
@@ -426,6 +435,16 @@ public sealed class CommerceKeycloakFixture : IAsyncLifetime
         };
         using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
         _ = response.EnsureSuccessStatusCode();
+    }
+
+    private async Task AddRealmRoleScopeAsync(string clientId, string role, CancellationToken cancellationToken)
+    {
+        using var definition = await GetAsync("roles/" + Uri.EscapeDataString(role), cancellationToken).ConfigureAwait(false);
+        using var mapping = await PostAsync(
+            "clients/" + clientId + "/scope-mappings/realm",
+            new JsonArray(JsonNode.Parse(definition.RootElement.GetRawText())),
+            cancellationToken).ConfigureAwait(false);
+        _ = mapping;
     }
 
     private async Task AddAudienceMapperAsync(string clientId, string name, string audience, CancellationToken cancellationToken) =>

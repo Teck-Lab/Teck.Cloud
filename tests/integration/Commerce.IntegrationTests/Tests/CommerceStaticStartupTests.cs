@@ -140,9 +140,8 @@ public sealed class CommerceStaticStartupTests(CommerceKeycloakFixture keycloak)
             var failure = await Should.ThrowAsync<MissingPreBuiltTypesException>(() => StartHostAsync(stack, host, cancellationToken)).ConfigureAwait(true);
             failure.Message.Contains(host.OwningAssemblyName, StringComparison.Ordinal).ShouldBeTrue(
                 host.Name + " missing pre-built types must name the owning assembly for profile " + profile + ": " + failure.Message);
-            (failure.Message.Contains(adapter.Name, StringComparison.Ordinal)
-                || failure.Message.Contains(adapter.FullName, StringComparison.Ordinal)).ShouldBeTrue(
-                host.Name + " missing pre-built types must name the missing chain for profile " + profile + ": " + failure.Message);
+            failure.Message.Contains(" handled by " + host.HandlerTypeName + ".", StringComparison.Ordinal).ShouldBeTrue(
+                host.Name + " missing pre-built types must name the chain for removed adapter " + adapter.FullName + " in profile " + profile + ": " + failure.Message);
         }
 
         await AssertNotListeningAsync(stack, host, cancellationToken).ConfigureAwait(true);
