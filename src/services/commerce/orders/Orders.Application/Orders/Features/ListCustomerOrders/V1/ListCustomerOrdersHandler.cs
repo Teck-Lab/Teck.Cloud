@@ -3,10 +3,12 @@ using SharedKernel.Core.Database;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Cursor;
 using Teck.Cloud.Commerce.Orders.Application.Orders.ReadModels;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
+using Wolverine.Attributes;
 
 namespace Teck.Cloud.Commerce.Orders.Application.Orders.Features.ListCustomerOrders.V1;
 
 /// <summary>Customer order list handler.</summary>
+[NonTransactional]
 public static class ListCustomerOrdersHandler
 {
     /// <summary>Reads one fixed page.</summary>

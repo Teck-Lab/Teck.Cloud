@@ -7,10 +7,12 @@ using Teck.Cloud.Commerce.Licensing.Application.Entitlements.Ports;
 using Teck.Cloud.Commerce.Licensing.Application.Entitlements.ReadModels;
 using Teck.Cloud.Commerce.Licensing.Domain.Aggregates.LicenseGenerations;
 using Teck.Cloud.Commerce.Licensing.Domain.Aggregates.LicenseGrants;
+using Wolverine.Attributes;
 
 namespace Teck.Cloud.Commerce.Licensing.Application.Entitlements.Features.GetCurrentLicense.V1;
 
 /// <summary>Resolves the exact current active grant only after re-checking Orders' durable facts.</summary>
+[NonTransactional]
 public static class GetCurrentLicenseHandler
 {
     /// <summary>Handles the internal licensing envelope query.</summary>

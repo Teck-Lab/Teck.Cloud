@@ -3,10 +3,12 @@ using SharedKernel.Core.Database;
 using Teck.Cloud.Commerce.Orders.Application.Orders.ReadModels;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
 using Teck.Cloud.Commerce.Orders.Domain.Common;
+using Wolverine.Attributes;
 
 namespace Teck.Cloud.Commerce.Orders.Application.Orders.Features.CheckCurrentEntitlement.V1;
 
 /// <summary>Entitlement check handler.</summary>
+[NonTransactional]
 public static class CheckCurrentEntitlementHandler
 {
     /// <summary>Checks binding, generation and every gate at the current UTC instant.</summary>

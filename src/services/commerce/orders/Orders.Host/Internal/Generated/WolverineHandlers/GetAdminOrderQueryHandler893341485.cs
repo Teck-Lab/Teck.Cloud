@@ -2,7 +2,6 @@
 #pragma warning disable
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 
 namespace Internal.Generated.WolverineHandlers
 {
@@ -11,13 +10,11 @@ namespace Internal.Generated.WolverineHandlers
     public sealed class GetAdminOrderQueryHandler893341485 : Wolverine.Runtime.Handlers.MessageHandler
     {
         private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
-        private readonly System.Collections.Generic.IEnumerable<Wolverine.EntityFrameworkCore.IDomainEventScraper> _domainEventScraperIEnumerable;
         private readonly System.TimeProvider _timeProvider;
 
-        public GetAdminOrderQueryHandler893341485(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, System.Collections.Generic.IEnumerable<Wolverine.EntityFrameworkCore.IDomainEventScraper> domainEventScraperIEnumerable, System.TimeProvider timeProvider)
+        public GetAdminOrderQueryHandler893341485(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, System.TimeProvider timeProvider)
         {
             _serviceScopeFactory = serviceScopeFactory;
-            _domainEventScraperIEnumerable = domainEventScraperIEnumerable;
             _timeProvider = timeProvider;
         }
 
@@ -36,43 +33,16 @@ namespace Internal.Generated.WolverineHandlers
             // The actual message body
             var getAdminOrderQuery = (Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetAdminOrder.V1.GetAdminOrderQuery)context.Envelope.Message;
 
+            await SharedKernel.Infrastructure.Messaging.TenantMessageMiddleware.BeforeAsync(context.Envelope, operationContext, tenantDirectory, context, cancellation).ConfigureAwait(false);
+            Wolverine.Runtime.WolverineTracing.MessageActivity(context.Envelope)?.SetTag("message.handler", "Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetAdminOrder.V1.GetAdminOrderHandler");
+            Wolverine.Runtime.WolverineTracing.MessageActivity(context.Envelope)?.SetTag("handler.type", "Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetAdminOrder.V1.GetAdminOrderHandler");
             
-            // Enroll the DbContext & IMessagingContext in the outgoing Wolverine outbox transaction
-            var efCoreEnvelopeTransaction = new Wolverine.EntityFrameworkCore.Internals.EfCoreEnvelopeTransaction(ordersReadDbContext, context, _domainEventScraperIEnumerable);
-            await context.EnlistInOutboxAsync(efCoreEnvelopeTransaction).ConfigureAwait(false);
-            // Start the actual database transaction if one does not already exist
-            if (ordersReadDbContext.Database.CurrentTransaction == null)
-            {
-                await ordersReadDbContext.Database.BeginTransactionAsync(cancellation).ConfigureAwait(false);
-            }
+            // The actual message execution
+            var outgoing1 = await Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetAdminOrder.V1.GetAdminOrderHandler.HandleAsync(getAdminOrderQuery, genericReadRepositoryOfOrderReadModelAndGuidAndOrdersReadDbContext, genericReadRepositoryOfOrderAuditReadModelAndGuidAndOrdersReadDbContext, _timeProvider, cancellation).ConfigureAwait(false);
 
-            try
-            {
-                await SharedKernel.Infrastructure.Messaging.TenantMessageMiddleware.BeforeAsync(context.Envelope, operationContext, tenantDirectory, context, cancellation).ConfigureAwait(false);
-                Wolverine.Runtime.WolverineTracing.MessageActivity(context.Envelope)?.SetTag("message.handler", "Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetAdminOrder.V1.GetAdminOrderHandler");
-                Wolverine.Runtime.WolverineTracing.MessageActivity(context.Envelope)?.SetTag("handler.type", "Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetAdminOrder.V1.GetAdminOrderHandler");
-                
-                // The actual message execution
-                var outgoing1 = await Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetAdminOrder.V1.GetAdminOrderHandler.HandleAsync(getAdminOrderQuery, genericReadRepositoryOfOrderReadModelAndGuidAndOrdersReadDbContext, genericReadRepositoryOfOrderAuditReadModelAndGuidAndOrdersReadDbContext, _timeProvider, cancellation).ConfigureAwait(false);
-
-                
-                // Outgoing, cascaded message
-                await context.EnqueueCascadingAsync(outgoing1).ConfigureAwait(false);
-
-                
-                // Added by EF Core Transaction Middleware
-                var result_of_SaveChangesAsync = await ordersReadDbContext.SaveChangesAsync(cancellation).ConfigureAwait(false);
-
-                // Commit the EF Core transaction before writing the response (GH-2917). The outbox flush follows in its own frame (GH-4742)
-                await efCoreEnvelopeTransaction.CommitAsync(cancellation, flushOutgoingMessages: false).ConfigureAwait(false);
-                // GH-2917/GH-4742: flush the outbox after the commit and before the response is written
-                await Wolverine.EntityFrameworkCore.EfCoreOutboxFlushing.FlushOutgoingMessagesAsync(context).ConfigureAwait(false);
-            }
-            catch (System.Exception)
-            {
-                await efCoreEnvelopeTransaction.RollbackAsync().ConfigureAwait(false);
-                throw;
-            }
+            
+            // Outgoing, cascaded message
+            await context.EnqueueCascadingAsync(outgoing1).ConfigureAwait(false);
         }
     }
 

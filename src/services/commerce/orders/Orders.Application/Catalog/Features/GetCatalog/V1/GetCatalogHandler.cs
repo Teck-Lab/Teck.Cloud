@@ -3,10 +3,12 @@ using SharedKernel.Core.Database;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Catalog;
 using Teck.Cloud.Commerce.Orders.Application.Orders.ReadModels;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
+using Wolverine.Attributes;
 
 namespace Teck.Cloud.Commerce.Orders.Application.Catalog.Features.GetCatalog.V1;
 
 /// <summary>Catalog query handler.</summary>
+[NonTransactional]
 public static class GetCatalogHandler
 {
     /// <summary>Projects the advertised catalog.</summary>

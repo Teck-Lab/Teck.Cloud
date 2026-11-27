@@ -7,10 +7,12 @@ using Teck.Cloud.Commerce.Licensing.Application.Entitlements.Ports;
 using Teck.Cloud.Commerce.Licensing.Application.Entitlements.ReadModels;
 using Teck.Cloud.Commerce.Licensing.Domain.Aggregates.LicenseGenerations;
 using Teck.Cloud.Commerce.Licensing.Domain.Aggregates.LicenseGrants;
+using Wolverine.Attributes;
 
 namespace Teck.Cloud.Commerce.Licensing.Application.Entitlements.Features.VerifyLicense.V1;
 
 /// <summary>Verifies signature, binding, expiry and current durable entitlement for a document.</summary>
+[NonTransactional]
 public static class VerifyLicenseHandler
 {
     private const int MaximumDocumentLength = 65_536;

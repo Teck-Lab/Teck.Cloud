@@ -3,10 +3,12 @@ using SharedKernel.Core.Database;
 using Teck.Cloud.Commerce.Orders.Application.Orders.ReadModels;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
 using Teck.Cloud.Commerce.Orders.Domain.Aggregates.Orders;
+using Wolverine.Attributes;
 
 namespace Teck.Cloud.Commerce.Orders.Application.Orders.Features.GetCustomerOrder.V1;
 
 /// <summary>Customer order detail handler.</summary>
+[NonTransactional]
 public static class GetCustomerOrderHandler
 {
     /// <summary>Reads the scoped order without tracking.</summary>

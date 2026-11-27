@@ -2,10 +2,12 @@ using ErrorOr;
 using SharedKernel.Core.Database;
 using Teck.Cloud.Commerce.Orders.Application.Orders.ReadModels;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
+using Wolverine.Attributes;
 
 namespace Teck.Cloud.Commerce.Orders.Application.Baskets.Features.GetBasket.V1;
 
 /// <summary>Basket query handler.</summary>
+[NonTransactional]
 public static class GetBasketHandler
 {
     /// <summary>Reads the basket without tracking.</summary>
