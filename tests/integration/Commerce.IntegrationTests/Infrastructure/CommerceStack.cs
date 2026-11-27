@@ -172,13 +172,10 @@ internal sealed class CommerceStack : IAsyncDisposable
 
     private static void AttachLogCapture(IServiceCollection services, HostLogCapture capture)
     {
-        _ = services.AddSingleton<ILoggerProvider>(capture);
-        _ = services.Configure<LoggerFilterOptions>(options => options.Rules.Add(
-            new LoggerFilterRule(
-                providerName: typeof(HostLogCapture).FullName,
-                categoryName: null,
-                logLevel: LogLevel.Trace,
-                filter: null)));
+        // Foundation Serilog does not forward events to Microsoft logging providers.
+        _ = services.AddSingleton<ILoggerFactory>(_ => LoggerFactory.Create(logging => logging
+            .SetMinimumLevel(LogLevel.Information)
+            .AddProvider(capture)));
     }
 
     private Task InitializeDependenciesAsync(CancellationToken cancellationToken) =>

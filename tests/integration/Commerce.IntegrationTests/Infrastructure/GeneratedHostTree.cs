@@ -18,7 +18,7 @@ internal sealed class GeneratedHostTree
         Hashes = BuildHashes(bytes);
     }
 
-    /// <summary>Gets the host-relative path of the unique generated handler registry source.</summary>
+    /// <summary>Gets the host-relative path of the unique generated handler registry source, or the expected path when a registry-loss tree is read.</summary>
     internal string RegistryPath { get; }
 
     internal IReadOnlyDictionary<string, string> Hashes { get; }
@@ -29,7 +29,12 @@ internal sealed class GeneratedHostTree
 
     internal string RegistryText => Text(RegistryPath);
 
-    internal static GeneratedHostTree Read(string repositoryRoot, CommerceStaticHost host)
+    /// <summary>Reads one host's generated sources, requiring either the unique registry or, for an explicit registry-loss negative, exactly zero registries.</summary>
+    /// <param name="repositoryRoot">The repository or disposable copy root.</param>
+    /// <param name="host">The host whose generated tree is read.</param>
+    /// <param name="removedRegistryPath">The pristine registry path to expect absent for a registry-loss tree; <see langword="null"/> requires the unique registry.</param>
+    /// <returns>The observed generated tree.</returns>
+    internal static GeneratedHostTree Read(string repositoryRoot, CommerceStaticHost host, string? removedRegistryPath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
         ArgumentNullException.ThrowIfNull(host);
@@ -45,8 +50,15 @@ internal sealed class GeneratedHostTree
         var registries = bytes.Keys
             .Where(key => string.Equals(Path.GetFileName(key), RegistryFileName, StringComparison.Ordinal))
             .ToArray();
-        registries.Length.ShouldBe(1, host.Name + " must contain exactly one " + RegistryFileName);
-        return new GeneratedHostTree(bytes, registries[0]);
+        if (removedRegistryPath is null)
+        {
+            registries.Length.ShouldBe(1, host.Name + " must contain exactly one " + RegistryFileName);
+            return new GeneratedHostTree(bytes, registries[0]);
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(removedRegistryPath);
+        registries.Length.ShouldBe(0, host.Name + " registry-loss negative control must contain exactly zero " + RegistryFileName);
+        return new GeneratedHostTree(bytes, removedRegistryPath);
     }
 
     internal bool Contains(string relativePath) => _bytes.ContainsKey(relativePath);
