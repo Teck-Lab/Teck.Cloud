@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using AdminGatewayHostApi = Teck.Cloud.Commerce.AdminGateway.Host.AdminGatewayHost;
 using CustomerGatewayHostApi = Teck.Cloud.Commerce.CustomerGateway.Host.CustomerGatewayHost;
 using LicensingHostApi = Teck.Cloud.Commerce.Licensing.Host.LicensingHost;
@@ -39,6 +42,10 @@ internal sealed class CommerceStack : IAsyncDisposable
 
     internal CommerceKeyRing KeyRing { get; } = new();
 
+    internal HostLogCapture OrdersLogs { get; } = new();
+
+    internal HostLogCapture LicensingLogs { get; } = new();
+
     internal Uri OrdersAddress { get; }
 
     internal Uri OrdersWebhookAddress { get; }
@@ -48,6 +55,10 @@ internal sealed class CommerceStack : IAsyncDisposable
     internal Uri CustomerGatewayAddress { get; }
 
     internal Uri AdminGatewayAddress { get; }
+
+    internal CommerceHost Orders => _orders ?? throw new InvalidOperationException("Orders is not running.");
+
+    internal CommerceHost Licensing => _licensing ?? throw new InvalidOperationException("Licensing is not running.");
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
@@ -78,6 +89,25 @@ internal sealed class CommerceStack : IAsyncDisposable
         await Postgres.DisposeAsync().ConfigureAwait(false);
     }
 
+    /// <summary>Starts only the disposable dependencies and reserves listener addresses; no host runs.</summary>
+    /// <param name="keycloak">The shared disposable identity provider.</param>
+    /// <param name="cancellationToken">Operation cancellation.</param>
+    /// <returns>The stack whose <see cref="CommerceTestConfiguration"/> arguments address the same dependencies.</returns>
+    internal static async Task<CommerceStack> StartDependenciesAsync(CommerceKeycloakFixture keycloak, CancellationToken cancellationToken)
+    {
+        var stack = new CommerceStack(keycloak);
+        try
+        {
+            await stack.InitializeDependenciesAsync(cancellationToken).ConfigureAwait(false);
+            return stack;
+        }
+        catch
+        {
+            await stack.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
     internal static async Task<CommerceStack> StartAsync(CommerceKeycloakFixture keycloak, CancellationToken cancellationToken)
     {
         var stack = new CommerceStack(keycloak);
@@ -89,6 +119,16 @@ internal sealed class CommerceStack : IAsyncDisposable
         _orders is null
             ? throw new InvalidOperationException("Orders is not running.")
             : _orders.RestartAsync(cancellationToken);
+
+    /// <summary>Stops only the Orders process; dependencies, Licensing and committed grants stay up.</summary>
+    /// <param name="cancellationToken">Operation cancellation.</param>
+    /// <returns>The stop task.</returns>
+    internal Task StopOrdersAsync(CancellationToken cancellationToken) => Orders.StopAsync(cancellationToken);
+
+    /// <summary>Restarts the stopped Orders process against the same stores and listeners.</summary>
+    /// <param name="cancellationToken">Operation cancellation.</param>
+    /// <returns>The start task.</returns>
+    internal Task StartOrdersAsync(CancellationToken cancellationToken) => Orders.StartAsync(cancellationToken);
 
     internal Task RestartLicensingWithKeyRingAsync(
         string activeKeyId,
@@ -104,27 +144,57 @@ internal sealed class CommerceStack : IAsyncDisposable
     internal Task RemoveK1VerificationKeyAsync(CancellationToken cancellationToken) =>
         RestartLicensingWithKeyRingAsync("K2", KeyRing.K2Only(), cancellationToken);
 
+    /// <summary>Starts the real Orders host with the same arguments as the full stack.</summary>
+    /// <param name="cancellationToken">Operation cancellation.</param>
+    /// <returns>The start task.</returns>
+    internal async Task StartOrdersHostAsync(CancellationToken cancellationToken)
+    {
+        _orders = await CommerceHost.StartAsync(
+            BuildOrdersHost,
+            CommerceTestConfiguration.Orders(Keycloak, Postgres, Rabbit, Stripe, OrdersAddress, OrdersWebhookAddress),
+            OrdersWebhookAddress,
+            OrdersAddress,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Starts the real Licensing host with the same arguments as the full stack.</summary>
+    /// <param name="cancellationToken">Operation cancellation.</param>
+    /// <returns>The start task.</returns>
+    internal async Task StartLicensingHostAsync(CancellationToken cancellationToken)
+    {
+        _licensing = await CommerceHost.StartAsync(
+            BuildLicensingHost,
+            LicensingArgs("K1", KeyRing.Initial()),
+            httpAddress: null,
+            grpcAddress: LicensingAddress,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void AttachLogCapture(IServiceCollection services, HostLogCapture capture)
+    {
+        _ = services.AddSingleton<ILoggerProvider>(capture);
+        _ = services.Configure<LoggerFilterOptions>(options => options.Rules.Add(
+            new LoggerFilterRule(
+                providerName: typeof(HostLogCapture).FullName,
+                categoryName: null,
+                logLevel: LogLevel.Trace,
+                filter: null)));
+    }
+
+    private Task InitializeDependenciesAsync(CancellationToken cancellationToken) =>
+        Task.WhenAll(
+            Postgres.InitializeAsync().AsTask(),
+            Rabbit.InitializeAsync().AsTask(),
+            Redis.InitializeAsync().AsTask(),
+            Stripe.InitializeAsync().AsTask()).WaitAsync(cancellationToken);
+
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
         try
         {
-            await Task.WhenAll(
-                Postgres.InitializeAsync().AsTask(),
-                Rabbit.InitializeAsync().AsTask(),
-                Redis.InitializeAsync().AsTask(),
-                Stripe.InitializeAsync().AsTask()).ConfigureAwait(false);
-            _orders = await CommerceHost.StartAsync(
-                OrdersHostApi.Build,
-                CommerceTestConfiguration.Orders(Keycloak, Postgres, Rabbit, Stripe, OrdersAddress, OrdersWebhookAddress),
-                OrdersWebhookAddress,
-                OrdersAddress,
-                cancellationToken).ConfigureAwait(false);
-            _licensing = await CommerceHost.StartAsync(
-                LicensingHostApi.Build,
-                LicensingArgs("K1", KeyRing.Initial()),
-                httpAddress: null,
-                grpcAddress: LicensingAddress,
-                cancellationToken).ConfigureAwait(false);
+            await InitializeDependenciesAsync(cancellationToken).ConfigureAwait(false);
+            await StartOrdersHostAsync(cancellationToken).ConfigureAwait(false);
+            await StartLicensingHostAsync(cancellationToken).ConfigureAwait(false);
             _customerGatewayHost = await CommerceHost.StartAsync(
                 CustomerGatewayHostApi.Build,
                 CommerceTestConfiguration.CustomerGateway(Keycloak, Redis, CustomerGatewayAddress, OrdersAddress, LicensingAddress),
@@ -143,6 +213,18 @@ internal sealed class CommerceStack : IAsyncDisposable
             await DisposeAsync().ConfigureAwait(false);
             throw;
         }
+    }
+
+    private WebApplication BuildOrdersHost(string[] args)
+    {
+        _ = OrdersLogs.BeginStart();
+        return OrdersHostApi.Build(args, services => AttachLogCapture(services, OrdersLogs));
+    }
+
+    private WebApplication BuildLicensingHost(string[] args)
+    {
+        _ = LicensingLogs.BeginStart();
+        return LicensingHostApi.Build(args, services => AttachLogCapture(services, LicensingLogs));
     }
 
     private string[] LicensingArgs(string activeKeyId, IReadOnlyList<(string Key, string Value)> keyRing) =>

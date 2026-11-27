@@ -6,7 +6,12 @@
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     <RootNamespace>Commerce.IntegrationTests</RootNamespace>
+    <GenerateCommerceHandlers Condition="'$(GenerateCommerceHandlers)' == ''">false</GenerateCommerceHandlers>
   </PropertyGroup>
+  <ItemGroup Condition="'$(GenerateCommerceHandlers)' != 'true'">
+    <Compile Remove="Infrastructure/CommerceHandlerGeneration.cs" />
+    <Compile Remove="Tests/CommerceHandlerGenerationTests.cs" />
+  </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

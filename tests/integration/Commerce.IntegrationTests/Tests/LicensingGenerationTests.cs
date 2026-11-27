@@ -1,6 +1,7 @@
 using Commerce.IntegrationTests.Infrastructure;
 using Grpc.Core;
 using Shouldly;
+using Teck.Cloud.Commerce.Contracts;
 using Xunit;
 using LicenseV1 = Teck.Cloud.Commerce.Licensing.V1;
 
@@ -40,6 +41,69 @@ public sealed class LicensingGenerationTests(CommerceKeycloakFixture keycloak)
         await AssertWrongBindingIsScopedMissAsync(stack, checkout, nextGeneration, cancellationToken).ConfigureAwait(true);
     }
 
+    /// <summary>Stopping Orders fails both licensing RPCs closed and the committed grant survives the restart.</summary>
+    /// <returns>The outage assertion task.</returns>
+    [Fact]
+    public async Task OrdersOutageFailsBothLicensingRpcsClosed()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var stack = await keycloak.StackAsync(cancellationToken).ConfigureAwait(true);
+        var customerToken = (await keycloak.CustomerTokenAsync(keycloak.CustomerA, cancellationToken).ConfigureAwait(true)).AccessToken;
+        var staffToken = await keycloak.StaffTokenAsync(keycloak.StaffFull, cancellationToken).ConfigureAwait(true);
+        using var customer = new CommerceHttp(stack.CustomerGatewayAddress);
+        using var admin = new CommerceHttp(stack.AdminGatewayAddress);
+        var checkout = await CommerceFlow.ActivateAsync(
+            stack,
+            customer,
+            admin,
+            keycloak.CustomerA,
+            customerToken,
+            staffToken,
+            "shared",
+            [],
+            cancellationToken).ConfigureAwait(true);
+        var generation = await CommerceFlow.DesiredRevisionAsync(stack, checkout.OrderId, cancellationToken).ConfigureAwait(true);
+        generation.ShouldBeGreaterThan(0u);
+
+        var workloadToken = await CommerceFlow.WorkloadTokenAsync(keycloak, cancellationToken).ConfigureAwait(true);
+        using var channel = CommerceFlow.LicensingChannel(stack);
+        var client = new LicenseV1.Licensing.LicensingClient(channel);
+        var headers = CommerceFlow.LicensingHeaders(workloadToken, keycloak.CustomerA.TenantId);
+        var getRequest = new LicenseV1.GetCurrentLicenseRequest
+        {
+            TenantId = keycloak.CustomerA.TenantId.ToString("D"),
+            OrderId = checkout.OrderId.ToString("D"),
+            SubscriptionId = checkout.SubscriptionId.ToString("D"),
+            DesiredRevision = generation,
+        };
+        var active = await client.GetCurrentLicenseAsync(getRequest, headers, cancellationToken: cancellationToken).ConfigureAwait(true);
+        var document = active.License.Document;
+        document.ShouldNotBeNullOrWhiteSpace();
+        var revision = active.License.Revision;
+        revision.ShouldBeGreaterThan(0u);
+        var verifyRequest = new LicenseV1.VerifyLicenseRequest
+        {
+            Document = document,
+            ExpectedTenantId = keycloak.CustomerA.TenantId.ToString("D"),
+            ExpectedSubscriptionId = checkout.SubscriptionId.ToString("D"),
+        };
+        await AssertActiveGrantAsync(client, getRequest, verifyRequest, headers, document, revision, cancellationToken).ConfigureAwait(true);
+
+        await stack.StopOrdersAsync(cancellationToken).ConfigureAwait(true);
+        try
+        {
+            await AssertOutageAsync(client, getRequest, verifyRequest, headers, cancellationToken).ConfigureAwait(true);
+        }
+        finally
+        {
+            using var cleanup = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+            await stack.StartOrdersAsync(cleanup.Token).ConfigureAwait(true);
+        }
+
+        await WaitOrdersEntitlementReadyAsync(client, getRequest, headers, document, cancellationToken).ConfigureAwait(true);
+        await AssertActiveGrantAsync(client, getRequest, verifyRequest, headers, document, revision, cancellationToken).ConfigureAwait(true);
+    }
+
     private static async Task<string[]> GrantStatesAsync(CommerceStack stack, Guid orderId, CancellationToken cancellationToken)
     {
         var connection = new Npgsql.NpgsqlConnection(stack.Postgres.Licensing.ConnectionString);
@@ -63,6 +127,75 @@ public sealed class LicensingGenerationTests(CommerceKeycloakFixture keycloak)
             }
         }
     }
+
+    private static async Task AssertActiveGrantAsync(
+        LicenseV1.Licensing.LicensingClient client,
+        LicenseV1.GetCurrentLicenseRequest getRequest,
+        LicenseV1.VerifyLicenseRequest verifyRequest,
+        Metadata headers,
+        string document,
+        uint revision,
+        CancellationToken cancellationToken)
+    {
+        var current = await client.GetCurrentLicenseAsync(getRequest, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+        current.License.Document.ShouldBe(document);
+        current.License.Revision.ShouldBe(revision);
+        var verified = await client.VerifyLicenseAsync(verifyRequest, headers, cancellationToken: cancellationToken).ConfigureAwait(false);
+        verified.Valid.ShouldBeTrue();
+        var effective = verified.Claims.ShouldNotBeNull();
+        effective.TenantId.ShouldBe(getRequest.TenantId);
+        effective.OrderId.ShouldBe(getRequest.OrderId);
+        effective.SubscriptionId.ShouldBe(getRequest.SubscriptionId);
+        effective.Revision.ShouldBe(revision);
+        effective.KeyId.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    private static async Task AssertOutageAsync(
+        LicenseV1.Licensing.LicensingClient client,
+        LicenseV1.GetCurrentLicenseRequest getRequest,
+        LicenseV1.VerifyLicenseRequest verifyRequest,
+        Metadata headers,
+        CancellationToken cancellationToken)
+    {
+        var getFailure = await Should.ThrowAsync<RpcException>(
+            async () => await client.GetCurrentLicenseAsync(getRequest, headers, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+        AssertDependencyUnavailable(getFailure);
+        var verifyFailure = await Should.ThrowAsync<RpcException>(
+            async () => await client.VerifyLicenseAsync(verifyRequest, headers, cancellationToken: cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+        AssertDependencyUnavailable(verifyFailure);
+    }
+
+    private static void AssertDependencyUnavailable(RpcException failure)
+    {
+        failure.StatusCode.ShouldBe(StatusCode.Unavailable);
+        var trailers = failure.Trailers.Where(entry => !entry.IsBinary).ToArray();
+        trailers.Length.ShouldBe(1, "the outage response must carry exactly one nonbinary trailer");
+        trailers[0].Key.ShouldBe(CommerceRpc.ErrorTrailer);
+        trailers[0].Value.ShouldBe(CommerceErrorCodes.DependencyUnavailable);
+    }
+
+    private static Task WaitOrdersEntitlementReadyAsync(
+        LicenseV1.Licensing.LicensingClient client,
+        LicenseV1.GetCurrentLicenseRequest getRequest,
+        Metadata headers,
+        string document,
+        CancellationToken cancellationToken) =>
+        BoundedWait.UntilAsync(
+            async token =>
+            {
+                try
+                {
+                    var current = await client.GetCurrentLicenseAsync(getRequest, headers, cancellationToken: token).ConfigureAwait(false);
+                    return string.Equals(current.License.Document, document, StringComparison.Ordinal);
+                }
+                catch (RpcException failure) when (failure.StatusCode == StatusCode.Unavailable)
+                {
+                    return false;
+                }
+            },
+            TimeSpan.FromMinutes(2),
+            "Orders did not resume serving licensing entitlement checks after restart.",
+            cancellationToken);
 
     private async Task<(string Document, uint Revision)> ReadFirstGenerationAsync(
         CommerceStack stack,

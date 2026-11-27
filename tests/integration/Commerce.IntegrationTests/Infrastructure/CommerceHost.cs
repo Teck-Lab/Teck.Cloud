@@ -25,6 +25,8 @@ internal sealed class CommerceHost : IAsyncDisposable
 
     internal Uri? GrpcAddress { get; private set; }
 
+    internal bool IsRunning => _application is not null;
+
     internal WebApplication Application => _application ?? throw new InvalidOperationException("The host is not running.");
 
     /// <inheritdoc/>
