@@ -70,12 +70,6 @@
           "Riok.Mapperly": "[4.3.1, )"
         }
       },
-      "valid.domain.rules": {
-        "type": "Project",
-        "dependencies": {
-          "SharedKernel.Core": "[1.0.0, )"
-        }
-      },
       "Ardalis.Specification": {
         "type": "CentralTransitive",
         "requested": "[9.3.1, )",
