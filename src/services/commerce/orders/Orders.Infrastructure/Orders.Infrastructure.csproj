@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Teck.Cloud.Commerce.Orders.Infrastructure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="ErrorOr" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Stripe.net" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="ZiggyCreatures.FusionCache" />
+    <ProjectReference Include="../Orders.Application/Orders.Application.csproj" />
+    <ProjectReference Include="../Orders.Domain/Orders.Domain.csproj" />
+    <ProjectReference Include="../../../../shared/Commerce.Contracts/Commerce.Contracts.csproj" />
+    <ProjectReference Include="../../../../shared/SharedKernel.Infrastructure/SharedKernel.Infrastructure.csproj" />
+    <ProjectReference Include="../../../../shared/SharedKernel.Persistence/SharedKernel.Persistence.csproj" />
+  </ItemGroup>
+</Project>
