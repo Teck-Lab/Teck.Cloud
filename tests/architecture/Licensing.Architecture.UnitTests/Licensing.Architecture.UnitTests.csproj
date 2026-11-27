@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="coverlet.MTP" PrivateAssets="all" />
+    <PackageReference Include="TngTech.ArchUnitNET" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Teck.Cloud.ArchitectureRules/Teck.Cloud.ArchitectureRules.csproj" />
+    <ProjectReference Include="../../../src/shared/SharedKernel.Core/SharedKernel.Core.csproj" />
+    <ProjectReference Include="../../../src/services/commerce/licensing/Licensing.Domain/Licensing.Domain.csproj" />
+    <ProjectReference Include="../../../src/services/commerce/licensing/Licensing.Application/Licensing.Application.csproj" />
+    <ProjectReference Include="../../../src/services/commerce/licensing/Licensing.Infrastructure/Licensing.Infrastructure.csproj" />
+    <ProjectReference Include="../../../src/services/commerce/licensing/Licensing.Host/Licensing.Host.csproj" />
+  </ItemGroup>
+</Project>
