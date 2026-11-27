@@ -8,6 +8,7 @@ import {
 } from "./problems";
 
 const ORDER_ID = "3a4b5c6d-7e8f-4a2b-9c3d-4e5f60718293";
+const OTHER_ORDER_ID = "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 const SUBSCRIPTION_ID = "5b6c7d8e-9fa0-4b3c-8d4e-5f60718293a4";
 const IDEMPOTENCY_KEY = "11111111-1111-4111-8111-111111111111";
 
@@ -269,6 +270,21 @@ describe("commerce gateway", () => {
     await expect(gateway.getOrder("token-1", ORDER_ID)).rejects.toBeInstanceOf(
       CommerceInvalidResponseError,
     );
+  });
+
+  test("rejects a successful detail body that names another order", async () => {
+    const foreign = { ...order, orderId: OTHER_ORDER_ID };
+    const { fetchImpl, calls } = recordingFetch(() => reply(foreign));
+    const gateway = createCommerceGateway({
+      baseUrl: "https://gateway.example",
+      fetchImpl,
+    });
+
+    await expect(gateway.getOrder("token-1", ORDER_ID)).rejects.toBeInstanceOf(
+      CommerceInvalidResponseError,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe(`https://gateway.example/v1/commerce/orders/${ORDER_ID}`);
   });
 
   test("fails closed when the gateway transport fails", async () => {

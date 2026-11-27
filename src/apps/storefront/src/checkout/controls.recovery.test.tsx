@@ -5,16 +5,21 @@ import { CHECKOUT_RECOVERY_UNCONFIRMED, CHECKOUT_STORAGE_UNAVAILABLE } from "./c
 import {
   CHECKOUT_URL,
   type CheckoutGatewayStub,
+  clearIntentRows,
   createCheckoutGatewayStub,
+  deleteIntentRow,
+  FENCE_B,
   intentRow,
   KEY_B,
   ORDER_O,
+  ORDER_OTHER,
   payableResult,
   problemResult,
   readIntentRow,
   readIntentRows,
   SCOPE_A,
   SCOPE_B,
+  settleUntil,
   writeIntentRows,
 } from "./testing/fixtures";
 import { installMemoryIndexedDb, removeMemoryIndexedDb } from "./testing/memory-indexeddb";
@@ -346,5 +351,105 @@ describe("checkout controls recovery", () => {
     expect(screen.queryByRole("button", { name: "Set aside previous checkout" })).toBeNull();
     expect(screen.getByRole("button", { name: "Retry checkout" })).toBeTruthy();
     expect(await readIntentRow(SCOPE_A, 6)).toBeNull();
+  });
+});
+
+describe("checkout replay-only retry and resume", () => {
+  test("a removed Retry row refreshes without posting or allocating a new intent", async () => {
+    await writeIntentRows([intentRow({ scope: SCOPE_A, basketRevision: 4 })]);
+    const stub = createCheckoutGatewayStub();
+    const navigations: string[] = [];
+    const view = render(basketControls({ revision: 5, populated: false }, stub, navigations));
+    await waitForReady(view.container);
+    const retry = screen.getByRole("button", { name: "Retry checkout" });
+    await clearIntentRows();
+    fireEvent.click(retry);
+    await settleUntil(() => screen.queryByRole("button", { name: "Retry checkout" }) === null);
+    expect(stub.calls).toHaveLength(0);
+    expect(await readIntentRows()).toEqual([]);
+    expect(navigations).toEqual([]);
+  });
+
+  test("a replaced Retry row refreshes without posting and leaves the replacement untouched", async () => {
+    await writeIntentRows([intentRow({ scope: SCOPE_A, basketRevision: 4 })]);
+    const stub = createCheckoutGatewayStub();
+    const navigations: string[] = [];
+    const view = render(basketControls({ revision: 5, populated: false }, stub, navigations));
+    await waitForReady(view.container);
+    const retry = screen.getByRole("button", { name: "Retry checkout" });
+    const replacement = intentRow({
+      scope: SCOPE_A,
+      basketRevision: 4,
+      idempotencyKey: KEY_B,
+      stateFence: FENCE_B,
+      orderId: ORDER_O,
+    });
+    await writeIntentRows([replacement]);
+    fireEvent.click(retry);
+    await settleUntil(() => screen.queryByRole("button", { name: "Retry checkout" }) === null);
+    expect(stub.calls).toHaveLength(0);
+    expect(await readIntentRows()).toEqual([replacement]);
+    expect(navigations).toEqual([]);
+  });
+
+  test("a recovery state committed after display blocks Retry without posting", async () => {
+    await writeIntentRows([intentRow({ scope: SCOPE_A, basketRevision: 4 })]);
+    const stub = createCheckoutGatewayStub();
+    const navigations: string[] = [];
+    const view = render(basketControls({ revision: 5, populated: false }, stub, navigations));
+    await waitForReady(view.container);
+    const retry = screen.getByRole("button", { name: "Retry checkout" });
+    const recovered = intentRow({
+      scope: SCOPE_A,
+      basketRevision: 4,
+      recoveryState: "notFound",
+    });
+    await writeIntentRows([recovered]);
+    fireEvent.click(retry);
+    await settleUntil(() => screen.queryByText(CHECKOUT_RECOVERY_UNCONFIRMED) !== null);
+    expect(stub.calls).toHaveLength(0);
+    expect(await readIntentRows()).toEqual([recovered]);
+    expect(navigations).toEqual([]);
+  });
+
+  test("a removed Resume row refreshes without posting or recreating the intent", async () => {
+    await writeIntentRows([intentRow({ scope: SCOPE_A, basketRevision: 4, orderId: ORDER_O })]);
+    const stub = createCheckoutGatewayStub();
+    const navigations: string[] = [];
+    const view = render(
+      orderControls({ id: ORDER_O, status: "pendingPayment" }, stub, navigations),
+    );
+    await waitForReady(view.container);
+    const resume = screen.getByRole("button", { name: "Resume checkout" });
+    await deleteIntentRow(SCOPE_A, 4);
+    fireEvent.click(resume);
+    await settleUntil(() => screen.queryByRole("button", { name: "Resume checkout" }) === null);
+    expect(stub.calls).toHaveLength(0);
+    expect(await readIntentRows()).toEqual([]);
+    expect(navigations).toEqual([]);
+  });
+
+  test("a replaced Resume row refreshes without posting and leaves the replacement untouched", async () => {
+    await writeIntentRows([intentRow({ scope: SCOPE_A, basketRevision: 4, orderId: ORDER_O })]);
+    const stub = createCheckoutGatewayStub();
+    const navigations: string[] = [];
+    const view = render(
+      orderControls({ id: ORDER_O, status: "pendingPayment" }, stub, navigations),
+    );
+    await waitForReady(view.container);
+    const resume = screen.getByRole("button", { name: "Resume checkout" });
+    const replacement = intentRow({
+      scope: SCOPE_A,
+      basketRevision: 4,
+      idempotencyKey: KEY_B,
+      stateFence: FENCE_B,
+      orderId: ORDER_OTHER,
+    });
+    await writeIntentRows([replacement]);
+    fireEvent.click(resume);
+    await settleUntil(() => screen.queryByRole("button", { name: "Resume checkout" }) === null);
+    expect(stub.calls).toHaveLength(0);
+    expect(await readIntentRows()).toEqual([replacement]);
+    expect(navigations).toEqual([]);
   });
 });

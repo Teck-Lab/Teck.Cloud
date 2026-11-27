@@ -13,6 +13,7 @@ import {
   readIntentRow,
   readIntentRows,
   SCOPE_A,
+  settleUntil,
   writeIntentRows,
 } from "./testing/fixtures";
 import { installMemoryIndexedDb, removeMemoryIndexedDb } from "./testing/memory-indexeddb";
@@ -244,6 +245,113 @@ describe("cross-tab checkout races", () => {
     expect(screen.getByRole("link", { name: "Back to basket" }).getAttribute("href")).toBe(
       "/basket",
     );
+  });
+
+  test("a Resume captured before another tab's 201 refreshes instead of posting again", async () => {
+    await writeIntentRows([intentRow({ scope: SCOPE_A, basketRevision: 4, orderId: ORDER_O })]);
+    const initial = await readIntentRow(SCOPE_A, 4);
+    const stub = createCheckoutGatewayStub();
+    const navigationsA: string[] = [];
+    const navigationsB: string[] = [];
+    const first = render(
+      detailControls({ id: ORDER_O, status: "pendingPayment" }, stub, navigationsA),
+    );
+    await waitForReady(first.container);
+    const second = render(
+      detailControls({ id: ORDER_O, status: "pendingPayment" }, stub, navigationsB),
+    );
+    await waitForReady(second.container);
+    fireEvent.click(within(first.container).getByRole("button", { name: "Resume checkout" }));
+    await waitFor(() => {
+      expect(stub.calls).toHaveLength(1);
+    });
+    await act(async () => {
+      stub.respond(0, payableResult());
+    });
+    await waitFor(() => {
+      expect(navigationsA).toHaveLength(1);
+    });
+    const committed = await readIntentRow(SCOPE_A, 4);
+    expect(committed?.stateFence).not.toBe(initial?.stateFence);
+
+    const secondResume = within(second.container).getByRole("button", { name: "Resume checkout" });
+    fireEvent.click(secondResume);
+    expect((secondResume as HTMLButtonElement).disabled).toBe(true);
+    await settleUntil(
+      () =>
+        !within(second.container).getByRole<HTMLButtonElement>("button", {
+          name: "Resume checkout",
+        }).disabled,
+    );
+    expect(stub.calls).toHaveLength(1);
+    expect(navigationsB).toEqual([]);
+    expect((await readIntentRow(SCOPE_A, 4))?.stateFence).toBe(committed?.stateFence);
+
+    fireEvent.click(within(second.container).getByRole("button", { name: "Resume checkout" }));
+    await waitFor(() => {
+      expect(stub.calls).toHaveLength(2);
+    });
+    expect(stub.calls[1]).toEqual(stub.calls[0]);
+    await act(async () => {
+      stub.respond(1, payableResult());
+    });
+    await waitFor(() => {
+      expect(navigationsB).toHaveLength(1);
+    });
+    first.unmount();
+    second.unmount();
+  });
+
+  test("a Resume captured before another tab's 404 refreshes before replaying", async () => {
+    await writeIntentRows([intentRow({ scope: SCOPE_A, basketRevision: 4, orderId: ORDER_O })]);
+    const initial = await readIntentRow(SCOPE_A, 4);
+    const stub = createCheckoutGatewayStub();
+    const navigationsA: string[] = [];
+    const navigationsB: string[] = [];
+    const first = render(
+      detailControls({ id: ORDER_O, status: "pendingPayment" }, stub, navigationsA),
+    );
+    await waitForReady(first.container);
+    const second = render(
+      detailControls({ id: ORDER_O, status: "pendingPayment" }, stub, navigationsB),
+    );
+    await waitForReady(second.container);
+    fireEvent.click(within(first.container).getByRole("button", { name: "Resume checkout" }));
+    await waitFor(() => {
+      expect(stub.calls).toHaveLength(1);
+    });
+    await act(async () => {
+      stub.respond(0, problemResult(404, "not_found"));
+    });
+    await waitFor(() => {
+      expect(within(first.container).queryByText(CHECKOUT_RECOVERY_UNCONFIRMED)).not.toBeNull();
+    });
+
+    fireEvent.click(within(second.container).getByRole("button", { name: "Resume checkout" }));
+    await settleUntil(
+      () => within(second.container).queryByText(CHECKOUT_RECOVERY_UNCONFIRMED) !== null,
+    );
+    expect(stub.calls).toHaveLength(1);
+    expect(navigationsB).toEqual([]);
+    const recovered = await readIntentRow(SCOPE_A, 4);
+    expect(recovered?.recoveryState).toBe("notFound");
+    expect(recovered?.orderId).toBe(ORDER_O);
+    expect(recovered?.stateFence).toBe(initial?.stateFence);
+
+    fireEvent.click(within(second.container).getByRole("button", { name: "Resume checkout" }));
+    await waitFor(() => {
+      expect(stub.calls).toHaveLength(2);
+    });
+    expect(stub.calls[1]).toEqual(stub.calls[0]);
+    await act(async () => {
+      stub.respond(1, payableResult());
+    });
+    await waitFor(() => {
+      expect(navigationsB).toHaveLength(1);
+    });
+    expect((await readIntentRow(SCOPE_A, 4))?.recoveryState).toBeNull();
+    first.unmount();
+    second.unmount();
   });
 
   test("two concurrent new-revision submissions reuse one committed idempotency key", async () => {

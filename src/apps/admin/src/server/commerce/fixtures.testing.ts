@@ -3,6 +3,7 @@ import type { AdminOrder, AdminOrderPage, CommerceDeps, FetchLike } from "./type
 export const TENANT_ID = "3f0f0f6e-6b1a-4d1e-9f4a-1c2b3d4e5f60";
 export const OTHER_TENANT_ID = "8a7b6c5d-4e3f-4210-9a8b-7c6d5e4f3021";
 export const ORDER_ID = "2b3c4d5e-6f70-4a1b-9c2d-3e4f50617283";
+export const OTHER_ORDER_ID = "6a23f76c-1b07-47bb-9bd2-a23fdf051d20";
 export const REJECTED_ORDER_ID = "7c8d9e0f-a1b2-4c3d-8e4f-506172839405";
 export const SUBSCRIPTION_ID = "4c5d6e7f-8091-4b2c-8d3e-4f5061728394";
 export const ACTOR_ID = "f0e1d2c3-b4a5-4968-8778-99aabbccddee";

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  ACTOR_ID,
   callAt,
   EVIDENCE_REFERENCE,
   jsonResponse,
@@ -13,8 +14,10 @@ import {
   TENANT_ID,
 } from "./fixtures.testing";
 import { createAdminCommerce } from "./orders";
+import type { AdminOrderView } from "./validate";
 
 const headers = new Headers({ cookie: "teck-admin.session=secret" });
+const FOREIGN_ORDER_ID = "9d8c7b6a-5f4e-4d3c-8b2a-190807060504";
 
 describe("admin order reads", () => {
   it("reads fixed-size pages, passes the opaque cursor through encoding, then exhausts", async () => {
@@ -129,6 +132,106 @@ describe("admin order reads", () => {
 
     expect(result.kind).toBe("invalid");
     expect(calls).toHaveLength(0);
+  });
+
+  it("rejects a successful detail body that names a different order", async () => {
+    const foreign = makeAdminOrder({ orderId: FOREIGN_ORDER_ID });
+    const { calls, fetch } = makeGateway([jsonResponse(200, foreign)]);
+    const commerce = createAdminCommerce(makeDeps(fetch));
+
+    const result = await commerce.getOrder(headers, {
+      tenantId: TENANT_ID,
+      orderId: ORDER_ID,
+    });
+
+    expect(result.kind).toBe("error");
+    expect(JSON.stringify(result)).not.toContain(FOREIGN_ORDER_ID);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("projects only known order fields and known nested fields", async () => {
+    const base = makeAdminOrder();
+    const leaky: Record<string, unknown> = {
+      ...base,
+      license: { document: "foreign-license-document", keyId: "K1", revision: 1 },
+      provider: "provider-reference",
+      customerEmail: "customer@example.test",
+      payment: { ...base.payment, cardLast4: "card-last4-secret" },
+      approval: { ...base.approval, staffEmail: "staff@example.test" },
+      fulfillment: { ...base.fulfillment, providerTrace: "trace-reference" },
+      audit: [
+        {
+          orderId: ORDER_ID,
+          actorId: ACTOR_ID,
+          action: "approve",
+          reason: "Verified purchase order.",
+          occurredAt: "2026-11-23T20:05:00Z",
+          privateNote: "private-audit-note",
+        },
+      ],
+    };
+    const { fetch } = makeGateway([
+      jsonResponse(200, leaky),
+      jsonResponse(200, { items: [leaky], nextCursor: null, internalTrace: "page-trace" }),
+    ]);
+    const commerce = createAdminCommerce(makeDeps(fetch));
+
+    const result = await commerce.getOrder(headers, {
+      tenantId: TENANT_ID,
+      orderId: ORDER_ID,
+    });
+
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") throw new Error("expected detail");
+    expect(result.order.orderId).toBe(ORDER_ID);
+    expect(result.order.audit).toHaveLength(1);
+    expect(result.order.audit[0]?.action).toBe("approve");
+
+    const page = await commerce.listOrders(headers, {
+      tenantId: TENANT_ID,
+      cursor: null,
+    });
+    expect(page.kind).toBe("ok");
+
+    const serialized = JSON.stringify([result, page]);
+    for (const secret of [
+      "foreign-license-document",
+      "provider-reference",
+      "customer@example.test",
+      "card-last4-secret",
+      "staff@example.test",
+      "trace-reference",
+      "private-audit-note",
+      "page-trace",
+    ]) {
+      expect(serialized).not.toContain(secret);
+    }
+  });
+
+  it("keeps an unknown additive order status for neutral display", async () => {
+    const additive: AdminOrderView = { ...makeAdminOrder(), status: "pendingReview" };
+    const { fetch } = makeGateway([
+      jsonResponse(200, additive),
+      jsonResponse(200, { items: [additive], nextCursor: null }),
+    ]);
+    const commerce = createAdminCommerce(makeDeps(fetch));
+
+    const detail = await commerce.getOrder(headers, {
+      tenantId: TENANT_ID,
+      orderId: ORDER_ID,
+    });
+    expect(detail.kind).toBe("ok");
+    if (detail.kind !== "ok") throw new Error("expected detail");
+    expect(detail.order.status).toBe("pendingReview");
+
+    const page = await commerce.listOrders(headers, {
+      tenantId: TENANT_ID,
+      cursor: null,
+    });
+    expect(page.kind).toBe("ok");
+    if (page.kind !== "ok") throw new Error("expected page");
+    expect(page.items).toHaveLength(1);
+    expect(JSON.stringify(page)).toContain('"status":"pendingReview"');
   });
 });
 
@@ -291,6 +394,68 @@ describe("admin order mutations", () => {
     expect(expired.kind).toBe("unauthorized");
     expect(missing.kind).toBe("notFound");
     expect(calls.map((call) => call.init.method)).toEqual(["POST", "POST", "POST"]);
+  });
+
+  it("does not accept a mutation response that names a different order", async () => {
+    const foreign = makeAdminOrder({ orderId: FOREIGN_ORDER_ID, revision: 5 });
+    const { calls, fetch } = makeGateway([jsonResponse(200, foreign)]);
+    const commerce = createAdminCommerce(makeDeps(fetch));
+
+    const result = await commerce.decideOrder(headers, {
+      tenantId: TENANT_ID,
+      orderId: ORDER_ID,
+      decision: "approve",
+      reason: "Verified.",
+      expectedRevision: 4,
+    });
+
+    expect(result.kind).toBe("error");
+    expect(JSON.stringify(result)).not.toContain(FOREIGN_ORDER_ID);
+    expect(calls.map((call) => call.init.method)).toEqual(["POST"]);
+  });
+
+  it("never surfaces a foreign current order after a conflict", async () => {
+    const foreign = makeAdminOrder({ orderId: FOREIGN_ORDER_ID, revision: 6 });
+    const { calls, fetch } = makeGateway([
+      jsonResponse(409, { status: 409, code: "stale_revision" }),
+      jsonResponse(200, foreign),
+    ]);
+    const commerce = createAdminCommerce(makeDeps(fetch));
+
+    const result = await commerce.decideOrder(headers, {
+      tenantId: TENANT_ID,
+      orderId: ORDER_ID,
+      decision: "reject",
+      reason: "Purchase order mismatch.",
+      expectedRevision: 4,
+    });
+
+    expect(result.kind).toBe("conflict");
+    if (result.kind !== "conflict") throw new Error("expected conflict");
+    expect(result.order).toBeNull();
+    expect(JSON.stringify(result)).not.toContain(FOREIGN_ORDER_ID);
+    expect(calls.map((call) => call.init.method)).toEqual(["POST", "GET"]);
+  });
+
+  it("keeps an additive status from a mutation response without inventing actions", async () => {
+    const additive: AdminOrderView = {
+      ...makeAdminOrder({ revision: 5 }),
+      status: "pendingReview",
+    };
+    const { fetch } = makeGateway([jsonResponse(200, additive)]);
+    const commerce = createAdminCommerce(makeDeps(fetch));
+
+    const result = await commerce.decideOrder(headers, {
+      tenantId: TENANT_ID,
+      orderId: ORDER_ID,
+      decision: "approve",
+      reason: "Verified.",
+      expectedRevision: 4,
+    });
+
+    expect(result.kind).toBe("updated");
+    if (result.kind !== "updated") throw new Error("expected update");
+    expect(JSON.stringify(result)).toContain('"status":"pendingReview"');
   });
 
   it("records UUID placement evidence without any force-ready flag", async () => {

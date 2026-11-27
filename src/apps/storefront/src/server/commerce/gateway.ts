@@ -225,7 +225,9 @@ export function createCommerceGateway(options: CommerceGatewayOptions): Commerce
         { method: "GET" },
       );
       const order = readCustomerOrder(body);
-      if (order === null) {
+      if (order === null || order.orderId !== orderId) {
+        // The requested order ID is the boundary: a shape-valid body for a
+        // different order must not be projected or turned into a download.
         throw new CommerceInvalidResponseError();
       }
       return order;

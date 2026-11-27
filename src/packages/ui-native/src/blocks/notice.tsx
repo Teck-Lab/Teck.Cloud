@@ -14,7 +14,9 @@ export function Notice({ children, tone = "info", action }: NoticeProps) {
   const isError = tone === "error";
   const backgroundColor = isError ? palette.background : palette.muted;
   const borderColor = isError ? palette.destructive : palette.border;
-  const textColor = isError ? palette.destructive : palette.foreground;
+  // The destructive token is not readable on its tinted/plain surface in both
+  // palettes; the foreground token keeps the message legible (~16:1 / ~21:1).
+  const textColor = palette.foreground;
   return (
     <View
       accessibilityLiveRegion={isError ? "assertive" : "polite"}

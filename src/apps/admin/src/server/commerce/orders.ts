@@ -3,7 +3,6 @@ import {
   ADMIN_ORDER_PATH,
   ADMIN_ORDERS_PATH,
   ADMIN_PLACEMENT_EVIDENCE_PATH,
-  type AdminOrder,
   type CommerceDeps,
   type DecisionInput,
   MAX_EVIDENCE_REFERENCE_LENGTH,
@@ -12,12 +11,18 @@ import {
   MESSAGES,
   type MutationResult,
   ORDERS_PAGE_LIMIT,
-  type OrderLoadResult,
   type OrdersLoadResult,
   type PlacementEvidenceInput,
   UUID_PATTERN,
 } from "./types";
-import { isAdminOrder, isAdminOrderPage, isCursor, isUuid, problemCode } from "./validate";
+import {
+  type AdminOrderView,
+  isCursor,
+  isUuid,
+  problemCode,
+  readAdminOrderPageView,
+  readAdminOrderView,
+} from "./validate";
 
 type Identity =
   | { kind: "ok"; token: string; scope: string }
@@ -33,6 +38,15 @@ type GatewayResponse =
     }
   | { kind: "unavailable" };
 
+export type OrderDetailResult =
+  | { kind: "ok"; tenantId: string; orderId: string; order: AdminOrderView }
+  | { kind: "invalid"; message: string }
+  | { kind: "unauthorized" }
+  | { kind: "forbidden" }
+  | { kind: "notFound" }
+  | { kind: "unavailable" }
+  | { kind: "error"; message: string };
+
 export type AdminCommerce = {
   listOrders(
     headers: Headers,
@@ -41,7 +55,7 @@ export type AdminCommerce = {
   getOrder(
     headers: Headers,
     input: { tenantId: string; orderId: string },
-  ): Promise<OrderLoadResult>;
+  ): Promise<OrderDetailResult>;
   decideOrder(
     headers: Headers,
     input: { tenantId: string; orderId: string } & DecisionInput,
@@ -155,17 +169,24 @@ function mapAuthFailure(identity: Identity): { kind: "unauthorized" } | { kind: 
 }
 
 type OrderResponse =
-  | { kind: "ok"; order: AdminOrder }
+  | { kind: "ok"; order: AdminOrderView }
   | { kind: "notFound" }
   | { kind: "forbidden" }
   | { kind: "unauthorized" }
   | { kind: "unavailable" }
   | { kind: "error" };
 
-function readOrderResponse(response: GatewayResponse): OrderResponse {
+/**
+ * Reads one order only when the response names the exact order that was
+ * requested. A shape-valid body for another order must never reach a detail
+ * view, a mutation result or the current-state reread after a conflict.
+ */
+function readOrderResponse(response: GatewayResponse, expectedOrderId: string): OrderResponse {
   if (response.kind === "unavailable") return { kind: "unavailable" };
   if (response.status === 200) {
-    return isAdminOrder(response.body) ? { kind: "ok", order: response.body } : { kind: "error" };
+    const order = readAdminOrderView(response.body);
+    if (order === null || order.orderId !== expectedOrderId) return { kind: "error" };
+    return { kind: "ok", order };
   }
   if (response.status === 401) return { kind: "unauthorized" };
   if (response.status === 403) return { kind: "forbidden" };
@@ -179,13 +200,13 @@ async function refetchAfterConflict(
   identity: { token: string },
   tenantId: string,
   orderId: string,
-): Promise<AdminOrder | null> {
+): Promise<AdminOrderView | null> {
   const response = await request(deps, {
     bearer: identity.token,
     method: "GET",
     path: orderPath(tenantId, orderId),
   });
-  const result = readOrderResponse(response);
+  const result = readOrderResponse(response, orderId);
   return result.kind === "ok" ? result.order : null;
 }
 
@@ -256,9 +277,11 @@ async function mutate(
   });
   if (response.kind === "unavailable") return { kind: "unavailable" };
   if (response.status === 200) {
-    return isAdminOrder(response.body)
-      ? { kind: "updated", order: response.body }
-      : { kind: "error", message: MESSAGES.genericError };
+    const order = readAdminOrderView(response.body);
+    if (order === null || order.orderId !== input.orderId) {
+      return { kind: "error", message: MESSAGES.genericError };
+    }
+    return { kind: "updated", order };
   }
   if (response.status === 401) return { kind: "unauthorized" };
   if (response.status === 403) return { kind: "forbidden" };
@@ -271,7 +294,11 @@ async function mutate(
     // A conflict is resolved by reading the authoritative current order once.
     // The mutation is never replayed and no state is forced client-side.
     const current = await refetchAfterConflict(deps, identity, input.tenantId, input.orderId);
-    return { kind: "conflict", code, order: current };
+    return {
+      kind: "conflict",
+      code,
+      order: current,
+    };
   }
   if (response.status === 503) return { kind: "unavailable" };
   return { kind: "error", message: MESSAGES.genericError };
@@ -301,15 +328,16 @@ export function createAdminCommerce(deps: CommerceDeps): AdminCommerce {
       });
       if (response.kind === "unavailable") return { kind: "unavailable" };
       if (response.status === 200) {
-        if (!isAdminOrderPage(response.body)) {
+        const page = readAdminOrderPageView(response.body);
+        if (page === null) {
           return { kind: "error", message: MESSAGES.genericError };
         }
         return {
           kind: "ok",
           tenantId: input.tenantId,
           cursor: input.cursor,
-          items: response.body.items,
-          nextCursor: response.body.nextCursor,
+          items: page.items,
+          nextCursor: page.nextCursor,
           scope: identity.scope,
           baseHref: `/orders?tenantId=${encodeURIComponent(input.tenantId)}`,
         };
@@ -345,7 +373,7 @@ export function createAdminCommerce(deps: CommerceDeps): AdminCommerce {
         method: "GET",
         path: orderPath(input.tenantId, input.orderId),
       });
-      const result = readOrderResponse(response);
+      const result = readOrderResponse(response, input.orderId);
       if (result.kind === "ok") {
         return {
           kind: "ok",

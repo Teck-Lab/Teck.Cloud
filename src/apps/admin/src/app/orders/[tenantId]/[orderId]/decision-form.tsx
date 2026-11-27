@@ -2,7 +2,7 @@
 
 import { Button } from "@teck/ui/components/button";
 import { Field } from "@teck/ui/components/field";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { idleMutationState, type MutationAction } from "./action-state";
 import { MutationNotice } from "./mutation-notice";
 
@@ -16,8 +16,20 @@ type DecisionFormProps = {
 const reasonClass =
   "min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-export function DecisionForm({ tenantId, orderId, revision, action }: DecisionFormProps) {
+export function DecisionForm(props: DecisionFormProps) {
+  // A new order must not inherit a recovered draft or result from the previous one.
+  return <DecisionFormFields key={`${props.tenantId}/${props.orderId}`} {...props} />;
+}
+
+function DecisionFormFields({ tenantId, orderId, revision, action }: DecisionFormProps) {
   const [state, formAction, pending] = useActionState(action, idleMutationState);
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (state.status === "success") {
+      setReason("");
+    }
+  }, [state]);
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -34,6 +46,8 @@ export function DecisionForm({ tenantId, orderId, revision, action }: DecisionFo
           rows={3}
           aria-describedby="decision-reason-help"
           className={reasonClass}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
         />
       </Field>
       <p id="decision-reason-help" className="text-xs text-muted-foreground">

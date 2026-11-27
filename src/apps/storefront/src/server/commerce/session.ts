@@ -15,6 +15,9 @@ export type StorefrontCommerceSession = {
  * Resolves the current Better Auth session into the opaque commerce identity.
  * Missing or ambiguous sessions redirect to the same-app sign-in; auth-store
  * failures fail closed before any gateway request.
+ *
+ * Pagination history is keyed by the authenticated login scope only, so it
+ * resets when the session changes and never reuses a checkout grant scope.
  */
 export async function requireCommerceSession(
   returnTo = "/catalog",
@@ -32,12 +35,15 @@ export async function requireCommerceSession(
     redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  let paginationScope = identity.scope;
+  let loginScope: string | null = null;
   try {
-    paginationScope = (await appSessionScope(requestHeaders)) ?? identity.scope;
+    loginScope = await appSessionScope(requestHeaders);
   } catch {
-    // The checkout scope is still session-derived; pagination history can use it.
+    throw new CommerceUnavailableError();
+  }
+  if (loginScope === null) {
+    redirect(`/sign-in?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  return { requestHeaders, identity, paginationScope };
+  return { requestHeaders, identity, paginationScope: loginScope };
 }

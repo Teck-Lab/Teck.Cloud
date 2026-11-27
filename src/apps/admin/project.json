@@ -44,7 +44,13 @@
       "executor": "nx:run-commands",
       "dependsOn": [],
       "cache": true,
-      "inputs": ["default", "^default", "commerceContract", "workspaceDependencies"],
+      "inputs": [
+        "default",
+        "^default",
+        "commerceContract",
+        "workspaceDependencies",
+        "{workspaceRoot}/tools/generate-commerce-api.mjs"
+      ],
       "options": {
         "command": "bun run test",
         "cwd": "src/apps/admin"

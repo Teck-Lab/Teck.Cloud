@@ -9,10 +9,16 @@ import {
   PLACEMENT_ID,
   TENANT_ID,
 } from "@/server/commerce/fixtures.testing";
+import type { OrderDetailResult } from "@/server/commerce/orders";
 import type { OrderLoadResult } from "@/server/commerce/types";
+import type { AdminOrderView } from "@/server/commerce/validate";
 import type { MutationAction, MutationState } from "./action-state";
 import { MutationNotice } from "./mutation-notice";
-import { type DetailActions, OrderDetailView } from "./order-detail-view";
+import {
+  type DetailActions,
+  OrderDetailView,
+  orderMutationAvailability,
+} from "./order-detail-view";
 
 afterEach(cleanup);
 
@@ -20,6 +26,10 @@ const idle: MutationAction = async () => ({ status: "idle" });
 const actions: DetailActions = { decide: idle, recordEvidence: idle };
 
 function okResult(order = makeAdminOrder()): OrderLoadResult {
+  return { kind: "ok", tenantId: TENANT_ID, orderId: ORDER_ID, order };
+}
+
+function viewResult(order: AdminOrderView): OrderDetailResult {
   return { kind: "ok", tenantId: TENANT_ID, orderId: ORDER_ID, order };
 }
 
@@ -100,6 +110,41 @@ describe("OrderDetailView", () => {
     expect(screen.queryByLabelText("Decision reason")).toBeNull();
     expect(screen.queryByLabelText("Placement UUID")).not.toBeNull();
     expect(screen.getByText(/A final staff decision is recorded/)).toBeDefined();
+  });
+
+  it("renders an unknown additive order status neutrally without mutation controls", () => {
+    const order: AdminOrderView = { ...makeAdminOrder(), status: "pendingReview" };
+    render(<OrderDetailView result={viewResult(order)} actions={actions} />);
+
+    expect(screen.getByText("Unknown")).toBeDefined();
+    expect(screen.getByText(/does not recognise/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reject" })).toBeNull();
+    expect(screen.queryByLabelText("Placement UUID")).toBeNull();
+    expect(screen.queryByText(/A final staff decision is recorded/)).toBeNull();
+    expect(screen.queryByText(/becomes available after payment/)).toBeNull();
+  });
+
+  it("fails closed when a nested status is additive", () => {
+    const base = makeAdminOrder({ status: "pendingApproval" });
+    const order: AdminOrderView = {
+      ...base,
+      approval: { ...base.approval, status: "escalated" },
+    };
+
+    expect(orderMutationAvailability(order)).toEqual({
+      knownOrderStatus: true,
+      knownApprovalStatus: false,
+      canDecide: false,
+      canRecordEvidence: false,
+    });
+
+    render(<OrderDetailView result={viewResult(order)} actions={actions} />);
+
+    expect(screen.getByText(/does not recognise/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(screen.queryByLabelText("Placement UUID")).toBeNull();
+    expect(screen.queryByText(/A final staff decision is recorded/)).toBeNull();
   });
 
   it("renders expired, denied, missing and unavailable states without staff secrets", () => {

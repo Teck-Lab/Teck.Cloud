@@ -64,6 +64,7 @@ const browserGlobals = [
   "XMLSerializer",
   "DOMRect",
   "DOMRectReadOnly",
+  "FormData",
   "Event",
   "CustomEvent",
   "MouseEvent",

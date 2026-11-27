@@ -1,4 +1,5 @@
 import type { components, paths } from "./api.generated";
+import type { AdminOrderView } from "./validate";
 
 /**
  * Server-only commerce types for the Admin console.
@@ -54,7 +55,7 @@ export type OrdersLoadResult =
       kind: "ok";
       tenantId: string;
       cursor: string | null;
-      items: AdminOrder[];
+      items: AdminOrderView[];
       nextCursor: string | null;
       scope: string;
       baseHref: string;
@@ -80,8 +81,8 @@ export type OrderLoadResult =
 export type MutationConflictCode = "stale_revision" | "invalid_transition";
 
 export type MutationResult =
-  | { kind: "updated"; order: AdminOrder }
-  | { kind: "conflict"; code: MutationConflictCode; order: AdminOrder | null }
+  | { kind: "updated"; order: AdminOrderView }
+  | { kind: "conflict"; code: MutationConflictCode; order: AdminOrderView | null }
   | { kind: "invalid"; message: string }
   | { kind: "unauthorized" }
   | { kind: "forbidden" }
@@ -114,12 +115,36 @@ export const MESSAGES = {
   invalidOrder: "This order link is not valid.",
 } as const;
 
+/**
+ * ISO 4217 minor units do not always use hundredths: JPY has no fraction and
+ * KWD has three decimals. Resolve the exponent through Intl, then split the
+ * amount with BigInt so the minor-to-major ratio stays exact up to the
+ * contract's safe-integer bound instead of accumulating binary float error.
+ */
+function formatMinorUnits(amountMinor: number, currency: string): string {
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  });
+  const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+  const scale = 10n ** BigInt(fractionDigits);
+  const minor = BigInt(amountMinor);
+  const fraction = (minor < 0n ? -minor : minor) % scale;
+
+  return formatter
+    .formatToParts(Number(minor / scale))
+    .map((part) =>
+      part.type === "fraction"
+        ? { ...part, value: fraction.toString().padStart(fractionDigits, "0") }
+        : part,
+    )
+    .map((part) => part.value)
+    .join("");
+}
+
 export function formatMoney(total: AdminOrder["total"]): string {
   try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: total.currency,
-    }).format(total.amountMinor / 100);
+    return formatMinorUnits(total.amountMinor, total.currency);
   } catch {
     return `${(total.amountMinor / 100).toFixed(2)} ${total.currency}`;
   }
@@ -136,7 +161,7 @@ export function formatTimestamp(value: string | null): string {
   }).format(date);
 }
 
-export function toOrderRows(items: AdminOrder[], tenantId: string): OrderRow[] {
+export function toOrderRows(items: AdminOrderView[], tenantId: string): OrderRow[] {
   return items.map((order) => ({
     id: order.orderId,
     href: `/orders/${tenantId}/${order.orderId}`,

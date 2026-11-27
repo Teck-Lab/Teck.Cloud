@@ -29,16 +29,37 @@ export function parseOrganizationAlias(value: unknown): string | null {
   return ALIAS.test(alias) ? alias : null;
 }
 
-/** Only a relative path inside this app may receive the browser after sign-in. */
+/** A reference that starts a single path segment on this app's origin. */
+function isSameAppReference(reference: string): boolean {
+  if (!reference.startsWith("/") || reference.startsWith("//")) return false;
+  if (reference.includes("\\")) return false;
+  return !Array.from(reference).some((char) => {
+    const code = char.charCodeAt(0);
+    return code < 32 || code === 127;
+  });
+}
+
+/**
+ * Only a relative path inside this app may receive the browser after sign-in.
+ *
+ * The serialized reference is re-resolved exactly as the browser consumes it.
+ * URL path normalization can turn a same-origin parse such as `/.//host` into
+ * the protocol-relative `//host`, so the final destination, not only the
+ * parsed input, must remain on the configured app origin.
+ */
 export function safeReturnTo(value: unknown, baseURL: string): string {
   if (typeof value !== "string" || value.length === 0 || value.length > 512) return "/";
-  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
-  if (Array.from(value).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127))
-    return "/";
+  if (!isSameAppReference(value)) return "/";
   try {
-    const resolved = new URL(value, baseURL);
-    if (resolved.origin !== new URL(baseURL).origin) return "/";
-    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    const base = new URL(baseURL);
+    const resolved = new URL(value, base);
+    if (resolved.origin !== base.origin) return "/";
+    const target = `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    if (!isSameAppReference(target)) return "/";
+    const final = new URL(target, base);
+    if (final.origin !== base.origin) return "/";
+    const reference = `${final.pathname}${final.search}${final.hash}`;
+    return isSameAppReference(reference) ? reference : "/";
   } catch {
     return "/";
   }

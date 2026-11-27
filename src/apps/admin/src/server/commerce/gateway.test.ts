@@ -6,6 +6,7 @@ import {
   makeGateway,
   makeOrderPage,
   ORDER_ID,
+  OTHER_ORDER_ID,
   requestHeader,
   TENANT_ID,
 } from "./fixtures.testing";
@@ -149,6 +150,21 @@ describe("admin commerce gateway boundary", () => {
     });
 
     expect(result.kind).toBe("error");
+  });
+
+  it("rejects a detail body for another order without retrying or exposing it", async () => {
+    const foreign = makeAdminOrder({ orderId: OTHER_ORDER_ID });
+    const { calls, fetch } = makeGateway([jsonResponse(200, foreign)]);
+    const commerce = createAdminCommerce(makeDeps(fetch));
+
+    const result = await commerce.getOrder(sessionHeaders, {
+      tenantId: TENANT_ID,
+      orderId: ORDER_ID,
+    });
+
+    expect(result.kind).toBe("error");
+    expect(calls).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toContain(OTHER_ORDER_ID);
   });
 
   it("never exposes a staff license or provider field in an admin detail projection", async () => {

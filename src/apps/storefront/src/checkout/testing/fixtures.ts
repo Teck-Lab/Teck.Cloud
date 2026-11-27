@@ -193,6 +193,20 @@ export async function readIntentRow(
   return rows.find((row) => row.scope === scope && row.basketRevision === basketRevision) ?? null;
 }
 
+export async function deleteIntentRow(scope: string, basketRevision: number): Promise<void> {
+  await withStore("readwrite", async (store) => {
+    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    const request = store.delete([scope, basketRevision]);
+    request.onsuccess = () => {
+      resolve();
+    };
+    request.onerror = () => {
+      reject(request.error ?? new Error("Unable to delete the checkout journal row."));
+    };
+    await promise;
+  });
+}
+
 export async function clearIntentRows(): Promise<void> {
   await withStore("readwrite", (store) => {
     const { promise, resolve, reject } = Promise.withResolvers<void>();
@@ -205,4 +219,30 @@ export async function clearIntentRows(): Promise<void> {
     };
     return promise;
   });
+}
+
+const SETTLE_ATTEMPTS = 200;
+
+/**
+ * Flushes checkout control updates until the fixture observes the expected state.
+ * A control action continues through IndexedDB after the click handler returns, so
+ * each attempt yields the event loop and lets React apply queued state. A static
+ * Testing Library import would evaluate react-dom before the jsdom globals that
+ * journal-only suites never install, so the DOM helper loads lazily here.
+ */
+export async function settleUntil(predicate: () => boolean): Promise<void> {
+  const { act } = await import("@testing-library/react");
+  for (let attempt = 0; attempt < SETTLE_ATTEMPTS; attempt += 1) {
+    if (predicate()) {
+      return;
+    }
+    const tick = Promise.withResolvers<void>();
+    setTimeout(tick.resolve, 0);
+    await act(async () => {
+      await tick.promise;
+    });
+  }
+  if (!predicate()) {
+    throw new Error("The checkout controls did not settle for this fixture.");
+  }
 }

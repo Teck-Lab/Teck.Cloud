@@ -3,7 +3,7 @@
 import { Notice } from "@teck/ui/blocks/notice";
 import { Badge } from "@teck/ui/components/badge";
 import { Button } from "@teck/ui/components/button";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import type {
   BasketActionResult,
   BasketSaveInput,
@@ -13,33 +13,212 @@ import type {
 import { formatMoney, tierLabel } from "@/commerce/contracts";
 import { TextLink } from "@/components/text-link";
 
-type Feedback = {
+export type BasketSave = (input: BasketSaveInput) => Promise<BasketActionResult>;
+
+export type BasketFeedback = {
   tone: "info" | "error";
   message: string;
   href?: string;
   linkLabel?: string;
 };
 
-export function BasketEditor({
-  catalog,
-  basket,
+export interface BasketAuthority {
+  basket: BasketView;
+  pending: boolean;
+  readOnly: boolean;
+  feedback: BasketFeedback | null;
+  saveSelection: (input: BasketSaveInput) => Promise<BasketActionResult | null>;
+  clearFeedback: () => void;
+}
+
+/**
+ * Single client owner of the gateway-authoritative basket. The editor,
+ * checkout eligibility and set-aside all read this view. Only a successful
+ * save replaces it, and a same-page server snapshot is adopted only when it is
+ * newer than what this client already observed, so late renders can never
+ * overwrite a confirmed revision with stale optimistic data.
+ */
+export function useBasketAuthority({
+  basket: snapshot,
   save,
   refreshHref,
 }: {
-  catalog: OfferView[];
   basket: BasketView;
-  save: (input: BasketSaveInput) => Promise<BasketActionResult>;
+  save: BasketSave;
   refreshHref: string;
-}) {
-  const initialOfferId = basket.selection?.offerId ?? catalog[0]?.offerId ?? null;
-  const [offerId, setOfferId] = useState<string | null>(initialOfferId);
-  const [addOnCodes, setAddOnCodes] = useState<string[]>(basket.selection?.addOnCodes ?? []);
-  const [revision, setRevision] = useState(basket.revision);
-  const [total, setTotal] = useState(basket.total);
-  const [hasSelection, setHasSelection] = useState(basket.selection !== null);
+}): BasketAuthority {
+  const [basket, setBasket] = useState<BasketView>(snapshot);
   const [pending, setPending] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useState<BasketFeedback | null>(null);
+  const basketRef = useRef<BasketView>(snapshot);
+  const pendingRef = useRef(false);
+  const deferredSnapshot = useRef<BasketView | null>(null);
+
+  const adoptSnapshot = useCallback((next: BasketView) => {
+    if (next.revision <= basketRef.current.revision) {
+      return;
+    }
+    basketRef.current = next;
+    setBasket(next);
+    setReadOnly(false);
+    setFeedback(null);
+  }, []);
+
+  useEffect(() => {
+    if (pendingRef.current) {
+      deferredSnapshot.current = snapshot;
+      return;
+    }
+    adoptSnapshot(snapshot);
+  }, [snapshot, adoptSnapshot]);
+
+  const showFailure = useCallback(
+    (status: number, code?: string) => {
+      if (status === 401) {
+        setReadOnly(true);
+        setFeedback({
+          tone: "error",
+          message: "Your session expired. Sign in again to change the basket.",
+          href: "/sign-in",
+          linkLabel: "Sign in",
+        });
+        return;
+      }
+      if (status === 403) {
+        setReadOnly(true);
+        setFeedback({
+          tone: "error",
+          message: "You do not have access to change this basket.",
+        });
+        return;
+      }
+      if (status === 409) {
+        setReadOnly(true);
+        setFeedback({
+          tone: "error",
+          message:
+            code === "idempotency_conflict"
+              ? "This basket request conflicts with another checkout. Refresh before changing the basket."
+              : "This basket changed in another tab. Refresh to see the current selection before changing it.",
+          href: refreshHref,
+          linkLabel: "Refresh",
+        });
+        return;
+      }
+      if (status === 422) {
+        setReadOnly(true);
+        setFeedback({
+          tone: "error",
+          message: "One of these options is no longer offered. Refresh to see the current catalog.",
+          href: refreshHref,
+          linkLabel: "Refresh",
+        });
+        return;
+      }
+      if (status === 400) {
+        setFeedback({
+          tone: "error",
+          message: "That selection was not valid. Review the plan and try again.",
+        });
+        return;
+      }
+      if (status === 503) {
+        setFeedback({
+          tone: "error",
+          message: "The commerce service is temporarily unavailable. Try again shortly.",
+        });
+        return;
+      }
+      setFeedback({
+        tone: "error",
+        message: "The basket could not be saved. Refresh and try again.",
+        href: refreshHref,
+        linkLabel: "Refresh",
+      });
+    },
+    [refreshHref],
+  );
+
+  const clearFeedback = useCallback(() => {
+    setFeedback(null);
+  }, []);
+
+  const saveSelection = useCallback(
+    async (input: BasketSaveInput): Promise<BasketActionResult | null> => {
+      if (pendingRef.current) {
+        return null;
+      }
+      pendingRef.current = true;
+      setPending(true);
+      setFeedback(null);
+      try {
+        const result = await save(input);
+        if ("basket" in result) {
+          const saved = result.basket;
+          basketRef.current = saved;
+          setBasket(saved);
+          setFeedback({
+            tone: "info",
+            message: `Basket saved. Current total ${formatMoney(saved.total)}.`,
+          });
+          return result;
+        }
+        showFailure(result.status, result.code);
+        return result;
+      } catch {
+        setFeedback({
+          tone: "error",
+          message: "The basket could not be saved. Try again.",
+        });
+        return null;
+      } finally {
+        pendingRef.current = false;
+        setPending(false);
+        const deferred = deferredSnapshot.current;
+        deferredSnapshot.current = null;
+        if (deferred !== null) {
+          adoptSnapshot(deferred);
+        }
+      }
+    },
+    [adoptSnapshot, save, showFailure],
+  );
+
+  return { basket, pending, readOnly, feedback, saveSelection, clearFeedback };
+}
+
+export function BasketEditorView({
+  catalog,
+  authority,
+}: {
+  catalog: OfferView[];
+  authority: BasketAuthority;
+}) {
+  const { basket, pending, readOnly, feedback } = authority;
+  const [offerId, setOfferId] = useState<string | null>(
+    basket.selection?.offerId ?? catalog[0]?.offerId ?? null,
+  );
+  const [addOnCodes, setAddOnCodes] = useState<string[]>(basket.selection?.addOnCodes ?? []);
+  const appliedRevision = useRef(basket.revision);
+
+  useEffect(() => {
+    if (appliedRevision.current === basket.revision) {
+      return;
+    }
+    appliedRevision.current = basket.revision;
+    if (basket.selection !== null) {
+      setOfferId(basket.selection.offerId);
+      setAddOnCodes([...basket.selection.addOnCodes]);
+      return;
+    }
+    setAddOnCodes([]);
+    setOfferId((current) =>
+      current !== null && catalog.some((offer) => offer.offerId === current)
+        ? current
+        : (catalog[0]?.offerId ?? null),
+    );
+  }, [basket, catalog]);
 
   const selectedOffer = catalog.find((offer) => offer.offerId === offerId) ?? null;
   const eligibleAddOns = selectedOffer?.addOns ?? [];
@@ -53,7 +232,7 @@ export function BasketEditor({
     const allowed = new Set(offer?.addOns.map((addOn) => addOn.code) ?? []);
     setOfferId(nextOfferId);
     setAddOnCodes((current) => current.filter((code) => allowed.has(code)));
-    setFeedback(null);
+    authority.clearFeedback();
   }
 
   function toggleAddOn(code: string, checked: boolean) {
@@ -63,100 +242,7 @@ export function BasketEditor({
       }
       return current.filter((candidate) => candidate !== code);
     });
-    setFeedback(null);
-  }
-
-  function showFailure(status: number, code?: string) {
-    if (status === 401) {
-      setReadOnly(true);
-      setFeedback({
-        tone: "error",
-        message: "Your session expired. Sign in again to change the basket.",
-        href: "/sign-in",
-        linkLabel: "Sign in",
-      });
-      return;
-    }
-    if (status === 403) {
-      setReadOnly(true);
-      setFeedback({
-        tone: "error",
-        message: "You do not have access to change this basket.",
-      });
-      return;
-    }
-    if (status === 409) {
-      setReadOnly(true);
-      setFeedback({
-        tone: "error",
-        message:
-          code === "idempotency_conflict"
-            ? "This basket request conflicts with another checkout. Refresh before changing the basket."
-            : "This basket changed in another tab. Refresh to see the current selection before changing it.",
-        href: refreshHref,
-        linkLabel: "Refresh",
-      });
-      return;
-    }
-    if (status === 422) {
-      setReadOnly(true);
-      setFeedback({
-        tone: "error",
-        message: "One of these options is no longer offered. Refresh to see the current catalog.",
-        href: refreshHref,
-        linkLabel: "Refresh",
-      });
-      return;
-    }
-    if (status === 400) {
-      setFeedback({
-        tone: "error",
-        message: "That selection was not valid. Review the plan and try again.",
-      });
-      return;
-    }
-    if (status === 503) {
-      setFeedback({
-        tone: "error",
-        message: "The commerce service is temporarily unavailable. Try again shortly.",
-      });
-      return;
-    }
-    setFeedback({
-      tone: "error",
-      message: "The basket could not be saved. Refresh and try again.",
-      href: refreshHref,
-      linkLabel: "Refresh",
-    });
-  }
-
-  async function applySave(input: BasketSaveInput) {
-    setPending(true);
-    setFeedback(null);
-    try {
-      const result = await save(input);
-      if ("basket" in result) {
-        const saved = result.basket;
-        setRevision(saved.revision);
-        setTotal(saved.total);
-        setHasSelection(saved.selection !== null);
-        setOfferId(saved.selection?.offerId ?? offerId);
-        setAddOnCodes(saved.selection?.addOnCodes ?? []);
-        setFeedback({
-          tone: "info",
-          message: `Basket saved. Current total ${formatMoney(saved.total)}.`,
-        });
-        return;
-      }
-      showFailure(result.status, result.code);
-    } catch {
-      setFeedback({
-        tone: "error",
-        message: "The basket could not be saved. Try again.",
-      });
-    } finally {
-      setPending(false);
-    }
+    authority.clearFeedback();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -164,17 +250,17 @@ export function BasketEditor({
     if (disabled || offerId === null) {
       return;
     }
-    void applySave({
+    void authority.saveSelection({
       selection: { offerId, addOnCodes: visibleAddOnCodes },
-      expectedRevision: revision,
+      expectedRevision: basket.revision,
     });
   }
 
   function handleClear() {
-    if (disabled || !hasSelection) {
+    if (disabled || basket.selection === null) {
       return;
     }
-    void applySave({ selection: null, expectedRevision: revision });
+    void authority.saveSelection({ selection: null, expectedRevision: basket.revision });
   }
 
   return (
@@ -185,8 +271,9 @@ export function BasketEditor({
             Plan selection
           </h2>
           <p className="text-sm text-muted-foreground">
-            Saved total <span className="font-medium text-foreground">{formatMoney(total)}</span> ·
-            revision {revision}
+            Saved total{" "}
+            <span className="font-medium text-foreground">{formatMoney(basket.total)}</span> ·
+            revision {basket.revision}
           </p>
         </div>
 
@@ -276,7 +363,11 @@ export function BasketEditor({
             <Button type="submit" disabled={disabled || offerId === null}>
               Save selection
             </Button>
-            <Button type="button" onClick={handleClear} disabled={disabled || !hasSelection}>
+            <Button
+              type="button"
+              onClick={handleClear}
+              disabled={disabled || basket.selection === null}
+            >
               Clear basket
             </Button>
           </div>
@@ -298,4 +389,19 @@ export function BasketEditor({
       </div>
     </section>
   );
+}
+
+export function BasketEditor({
+  catalog,
+  basket,
+  save,
+  refreshHref,
+}: {
+  catalog: OfferView[];
+  basket: BasketView;
+  save: BasketSave;
+  refreshHref: string;
+}) {
+  const authority = useBasketAuthority({ basket, save, refreshHref });
+  return <BasketEditorView catalog={catalog} authority={authority} />;
 }

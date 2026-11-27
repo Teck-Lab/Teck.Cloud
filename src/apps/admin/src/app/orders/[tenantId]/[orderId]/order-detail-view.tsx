@@ -2,12 +2,9 @@ import { Notice } from "@teck/ui/blocks/notice";
 import { StatusBadge } from "@teck/ui/blocks/status-badge";
 import { Badge } from "@teck/ui/components/badge";
 import type { ReactNode } from "react";
-import {
-  formatMoney,
-  formatTimestamp,
-  MESSAGES,
-  type OrderLoadResult,
-} from "@/server/commerce/types";
+import type { OrderDetailResult } from "@/server/commerce/orders";
+import { formatMoney, formatTimestamp, MESSAGES } from "@/server/commerce/types";
+import type { AdminOrderView } from "@/server/commerce/validate";
 import type { MutationAction } from "./action-state";
 import { DecisionForm } from "./decision-form";
 import { EvidenceForm } from "./evidence-form";
@@ -18,7 +15,7 @@ export type DetailActions = {
 };
 
 type OrderDetailViewProps = {
-  result: OrderLoadResult;
+  result: OrderDetailResult;
   actions: DetailActions;
 };
 
@@ -52,8 +49,61 @@ const AUDIT_LABELS: Record<string, string> = {
   recordPlacementEvidence: "Placement evidence recorded",
 };
 
+const KNOWN_ORDER_STATUSES: Readonly<Record<string, true>> = {
+  pendingPayment: true,
+  pendingApproval: true,
+  pendingReadiness: true,
+  active: true,
+  rejected: true,
+  failed: true,
+};
+
+const KNOWN_APPROVAL_STATUSES: Readonly<Record<string, true>> = {
+  pending: true,
+  approved: true,
+  rejected: true,
+};
+
+const FINAL_APPROVAL_STATUSES: Readonly<Record<string, true>> = {
+  approved: true,
+  rejected: true,
+};
+
+export type OrderMutationAvailability = {
+  knownOrderStatus: boolean;
+  knownApprovalStatus: boolean;
+  canDecide: boolean;
+  canRecordEvidence: boolean;
+};
+
+/**
+ * Commerce v1 is additive, so an unknown status renders neutrally and never
+ * unlocks a mutation. Controls opt in only for states this console knows.
+ */
+export function orderMutationAvailability(
+  order: Pick<AdminOrderView, "status" | "payment" | "approval">,
+): OrderMutationAvailability {
+  const knownOrderStatus = KNOWN_ORDER_STATUSES[order.status] === true;
+  const knownApprovalStatus = KNOWN_APPROVAL_STATUSES[order.approval.status] === true;
+  const canDecide =
+    knownOrderStatus && order.status === "pendingApproval" && order.approval.status === "pending";
+  const canRecordEvidence =
+    knownOrderStatus &&
+    knownApprovalStatus &&
+    order.approval.status === "approved" &&
+    order.payment.status === "paid" &&
+    order.status !== "rejected" &&
+    order.status !== "failed";
+  return { knownOrderStatus, knownApprovalStatus, canDecide, canRecordEvidence };
+}
+
 function StateNotice({ children }: { children: ReactNode }) {
   return <Notice tone="error">{children}</Notice>;
+}
+
+/** Own-property lookup so an additive status can never resolve a prototype key. */
+function labelFor(labels: Readonly<Record<string, string>>, key: string): string | undefined {
+  return Object.hasOwn(labels, key) ? labels[key] : undefined;
 }
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -96,8 +146,16 @@ export function OrderDetailView({ result, actions }: OrderDetailViewProps) {
   }
 
   const { order, tenantId, orderId } = result;
-  const canDecide = order.status === "pendingApproval" && order.approval.status === "pending";
-  const canRecordEvidence = order.approval.status === "approved" && order.payment.status === "paid";
+  const { knownOrderStatus, knownApprovalStatus, canDecide, canRecordEvidence } =
+    orderMutationAvailability(order);
+  const paymentStatusLabel = labelFor(PAYMENT_LABELS, order.payment.status) ?? "Unknown";
+  const approvalStatusLabel = labelFor(APPROVAL_LABELS, order.approval.status) ?? "Unknown";
+  const fulfillmentStatusLabel =
+    labelFor(FULFILLMENT_LABELS, order.fulfillment.status) ?? "Unknown";
+  const failureLabel =
+    order.fulfillment.failureCode === null
+      ? "None recorded"
+      : (labelFor(FAILURE_LABELS, order.fulfillment.failureCode) ?? order.fulfillment.failureCode);
   const tenantHref = `/orders?tenantId=${encodeURIComponent(tenantId)}`;
 
   return (
@@ -133,7 +191,7 @@ export function OrderDetailView({ result, actions }: OrderDetailViewProps) {
         <article className="rounded-lg border border-border bg-card p-4">
           <h2 className="text-sm font-medium text-foreground">Payment</h2>
           <dl className="mt-3 flex flex-col gap-3">
-            <Fact label="Status">{PAYMENT_LABELS[order.payment.status] ?? "Unknown"}</Fact>
+            <Fact label="Status">{paymentStatusLabel}</Fact>
             <Fact label="Paid through">{formatTimestamp(order.payment.paidThrough)}</Fact>
           </dl>
         </article>
@@ -141,7 +199,7 @@ export function OrderDetailView({ result, actions }: OrderDetailViewProps) {
         <article className="rounded-lg border border-border bg-card p-4">
           <h2 className="text-sm font-medium text-foreground">Decision</h2>
           <dl className="mt-3 flex flex-col gap-3">
-            <Fact label="Status">{APPROVAL_LABELS[order.approval.status] ?? "Unknown"}</Fact>
+            <Fact label="Status">{approvalStatusLabel}</Fact>
             <Fact label="Staff actor">{order.approval.actorId ?? "Not recorded"}</Fact>
             <Fact label="Reason">{order.approval.reason ?? "Not recorded"}</Fact>
             <Fact label="Recorded">{formatTimestamp(order.approval.occurredAt)}</Fact>
@@ -151,12 +209,8 @@ export function OrderDetailView({ result, actions }: OrderDetailViewProps) {
         <article className="rounded-lg border border-border bg-card p-4">
           <h2 className="text-sm font-medium text-foreground">Readiness</h2>
           <dl className="mt-3 flex flex-col gap-3">
-            <Fact label="Status">{FULFILLMENT_LABELS[order.fulfillment.status] ?? "Unknown"}</Fact>
-            <Fact label="Failure">
-              {order.fulfillment.failureCode === null
-                ? "None recorded"
-                : (FAILURE_LABELS[order.fulfillment.failureCode] ?? order.fulfillment.failureCode)}
-            </Fact>
+            <Fact label="Status">{fulfillmentStatusLabel}</Fact>
+            <Fact label="Failure">{failureLabel}</Fact>
             <Fact label="Placement">
               <span className="font-mono text-xs">
                 {order.fulfillment.placementId ?? "Not recorded"}
@@ -172,7 +226,12 @@ export function OrderDetailView({ result, actions }: OrderDetailViewProps) {
         </article>
       </div>
 
-      {canDecide ? (
+      {!knownOrderStatus || !knownApprovalStatus ? (
+        <Notice tone="info">
+          This order uses a state this console version does not recognise. It is shown read-only;
+          reconcile it through the commerce gateway before acting.
+        </Notice>
+      ) : canDecide ? (
         <article className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
           <h2 className="text-sm font-medium text-foreground">Record decision</h2>
           <p className="text-xs text-muted-foreground">
@@ -185,7 +244,7 @@ export function OrderDetailView({ result, actions }: OrderDetailViewProps) {
             action={actions.decide}
           />
         </article>
-      ) : order.approval.status !== "pending" ? (
+      ) : FINAL_APPROVAL_STATUSES[order.approval.status] === true ? (
         <Notice tone="info">A final staff decision is recorded. This page cannot change it.</Notice>
       ) : order.status === "pendingPayment" ? (
         <Notice tone="info">A staff decision becomes available after payment is confirmed.</Notice>
@@ -220,7 +279,7 @@ export function OrderDetailView({ result, actions }: OrderDetailViewProps) {
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm font-medium text-foreground">
-                    {AUDIT_LABELS[entry.action] ?? entry.action}
+                    {labelFor(AUDIT_LABELS, entry.action) ?? entry.action}
                   </span>
                   <time className="text-xs text-muted-foreground" dateTime={entry.occurredAt}>
                     {formatTimestamp(entry.occurredAt)}

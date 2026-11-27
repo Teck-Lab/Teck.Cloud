@@ -3,7 +3,7 @@
 import { Button } from "@teck/ui/components/button";
 import { Field } from "@teck/ui/components/field";
 import { Input } from "@teck/ui/components/input";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { idleMutationState, type MutationAction } from "./action-state";
 import { MutationNotice } from "./mutation-notice";
 
@@ -14,8 +14,22 @@ type EvidenceFormProps = {
   action: MutationAction;
 };
 
-export function EvidenceForm({ tenantId, orderId, revision, action }: EvidenceFormProps) {
+export function EvidenceForm(props: EvidenceFormProps) {
+  // A new order must not inherit a recovered draft or result from the previous one.
+  return <EvidenceFormFields key={`${props.tenantId}/${props.orderId}`} {...props} />;
+}
+
+function EvidenceFormFields({ tenantId, orderId, revision, action }: EvidenceFormProps) {
   const [state, formAction, pending] = useActionState(action, idleMutationState);
+  const [placementId, setPlacementId] = useState("");
+  const [evidenceReference, setEvidenceReference] = useState("");
+
+  useEffect(() => {
+    if (state.status === "success") {
+      setPlacementId("");
+      setEvidenceReference("");
+    }
+  }, [state]);
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -33,6 +47,8 @@ export function EvidenceForm({ tenantId, orderId, revision, action }: EvidenceFo
             spellCheck={false}
             pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
             placeholder="00000000-0000-0000-0000-000000000000"
+            value={placementId}
+            onChange={(event) => setPlacementId(event.target.value)}
           />
         </Field>
         <Field label="Manual evidence reference" htmlFor="evidence-reference">
@@ -44,6 +60,8 @@ export function EvidenceForm({ tenantId, orderId, revision, action }: EvidenceFo
             autoComplete="off"
             spellCheck={false}
             placeholder="evidence://ops/ticket-1234"
+            value={evidenceReference}
+            onChange={(event) => setEvidenceReference(event.target.value)}
           />
         </Field>
       </div>

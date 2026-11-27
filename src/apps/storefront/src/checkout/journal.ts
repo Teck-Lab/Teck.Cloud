@@ -54,6 +54,11 @@ export type BeginCheckoutOutcome =
   | { status: "blocked"; blockedBy: CheckoutIntentRow }
   | { status: "unavailable" };
 
+export type CheckoutReplayOutcome =
+  | { status: "ready"; intent: CapturedCheckoutIntent }
+  | { status: "stale" }
+  | { status: "unavailable" };
+
 export type CheckoutRetainedReason =
   | "denied"
   | "unauthorized"
@@ -336,6 +341,47 @@ export async function beginCheckoutIntent(
       intent: captureCheckoutIntent(created, "initial"),
     };
   });
+}
+
+function matchesDisplayed(live: CheckoutIntentRow, displayed: CheckoutIntentRow): boolean {
+  return (
+    live.scope === displayed.scope &&
+    live.basketRevision === displayed.basketRevision &&
+    live.idempotencyKey === displayed.idempotencyKey &&
+    live.orderId === displayed.orderId &&
+    live.recoveryState === displayed.recoveryState &&
+    live.stateFence === displayed.stateFence
+  );
+}
+
+export async function replayCheckoutIntent(
+  displayed: CheckoutIntentRow,
+): Promise<CheckoutReplayOutcome> {
+  let expected: CheckoutIntentRow | null;
+  try {
+    expected = parseRow(displayed);
+  } catch {
+    return { status: "unavailable" };
+  }
+  if (!expected) {
+    return { status: "unavailable" };
+  }
+  try {
+    return await withTransaction<CheckoutReplayOutcome>("readwrite", async (store) => {
+      let live: CheckoutIntentRow | null;
+      try {
+        live = parseRow(await requestResult(store.get([expected.scope, expected.basketRevision])));
+      } catch {
+        return { status: "unavailable" };
+      }
+      if (!live || !matchesDisplayed(live, expected)) {
+        return { status: "stale" };
+      }
+      return { status: "ready", intent: captureCheckoutIntent(live, "replay") };
+    });
+  } catch {
+    return { status: "unavailable" };
+  }
 }
 
 const LOOPBACK_HOSTS: readonly string[] = ["localhost", "127.0.0.1", "[::1]", "::1"];

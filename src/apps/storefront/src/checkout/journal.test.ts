@@ -7,10 +7,12 @@ import {
   forgetCheckoutIntentsForOrder,
   listCheckoutIntents,
   parkCheckoutIntent,
+  replayCheckoutIntent,
 } from "./journal";
 import {
   CHECKOUT_URL,
   clearIntentRows,
+  deleteIntentRow,
   FENCE_B,
   intentRow,
   KEY_B,
@@ -24,7 +26,7 @@ import {
   SCOPE_B,
   writeIntentRows,
 } from "./testing/fixtures";
-import { installMemoryIndexedDb } from "./testing/memory-indexeddb";
+import { installMemoryIndexedDb, removeMemoryIndexedDb } from "./testing/memory-indexeddb";
 
 beforeEach(() => {
   installMemoryIndexedDb();
@@ -454,6 +456,99 @@ describe("checkout journal", () => {
     expect(await readIntentRow(SCOPE_A, 5)).not.toBeNull();
     expect(await readIntentRow(SCOPE_A, 6)).not.toBeNull();
     expect(await readIntentRow(SCOPE_B, 4)).not.toBeNull();
+  });
+
+  test("a replay reuses the displayed tuple only while the live row matches it", async () => {
+    const displayed = intentRow({ scope: SCOPE_A, basketRevision: 4 });
+    await writeIntentRows([displayed]);
+    expect(await replayCheckoutIntent(displayed)).toEqual({
+      status: "ready",
+      intent: captureCheckoutIntent(displayed, "replay"),
+    });
+    expect(await readIntentRows()).toEqual([displayed]);
+  });
+
+  test("a removed displayed row refuses replay without allocating a key", async () => {
+    const displayed = intentRow({ scope: SCOPE_A, basketRevision: 4 });
+    await writeIntentRows([displayed]);
+    await deleteIntentRow(SCOPE_A, 4);
+    expect(await replayCheckoutIntent(displayed)).toEqual({ status: "stale" });
+    expect(await readIntentRows()).toEqual([]);
+  });
+
+  test("a replaced displayed row refuses replay and leaves the replacement untouched", async () => {
+    const displayed = intentRow({ scope: SCOPE_A, basketRevision: 4 });
+    const replacement = intentRow({
+      scope: SCOPE_A,
+      basketRevision: 4,
+      idempotencyKey: KEY_B,
+      stateFence: FENCE_B,
+    });
+    await writeIntentRows([replacement]);
+    expect(await replayCheckoutIntent(displayed)).toEqual({ status: "stale" });
+    expect(await readIntentRows()).toEqual([replacement]);
+  });
+
+  test("a changed order binding or recovery state refuses replay", async () => {
+    const unbound = intentRow({ scope: SCOPE_A, basketRevision: 4 });
+    await writeIntentRows([
+      intentRow({ scope: SCOPE_A, basketRevision: 4, recoveryState: "notFound" }),
+    ]);
+    expect(await replayCheckoutIntent(unbound)).toEqual({ status: "stale" });
+
+    const bound = intentRow({ scope: SCOPE_A, basketRevision: 4, orderId: ORDER_O });
+    await writeIntentRows([bound]);
+    expect(
+      await replayCheckoutIntent(
+        intentRow({ scope: SCOPE_A, basketRevision: 4, orderId: ORDER_OTHER }),
+      ),
+    ).toEqual({ status: "stale" });
+    expect(await readIntentRows()).toEqual([bound]);
+  });
+
+  test("notFound and parked rows remain explicitly replayable without journal changes", async () => {
+    const notFound = intentRow({ scope: SCOPE_A, basketRevision: 4, recoveryState: "notFound" });
+    await writeIntentRows([notFound]);
+    expect(await replayCheckoutIntent(notFound)).toEqual({
+      status: "ready",
+      intent: captureCheckoutIntent(notFound, "replay"),
+    });
+    const parked = intentRow({
+      scope: SCOPE_A,
+      basketRevision: 4,
+      recoveryState: "parkedAfterNotFound",
+    });
+    await writeIntentRows([parked]);
+    expect(await replayCheckoutIntent(parked)).toEqual({
+      status: "ready",
+      intent: captureCheckoutIntent(parked, "replay"),
+    });
+    expect(await readIntentRows()).toEqual([parked]);
+  });
+
+  test("a replay after a matching 201 rotates the fence and refuses the displayed row", async () => {
+    const displayed = intentRow({ scope: SCOPE_A, basketRevision: 4 });
+    await writeIntentRows([displayed]);
+    const replay = await replayCheckoutIntent(displayed);
+    if (replay.status !== "ready") {
+      throw new Error("Expected a replayable checkout intent.");
+    }
+    expect(await applyCheckoutResult(replay.intent, payableResult())).toMatchObject({
+      kind: "bound",
+      orderId: ORDER_O,
+    });
+    expect(await replayCheckoutIntent(displayed)).toEqual({ status: "stale" });
+    expect((await readIntentRow(SCOPE_A, 4))?.orderId).toBe(ORDER_O);
+  });
+
+  test("unavailable storage or an invalid displayed row refuses replay", async () => {
+    const displayed = intentRow({ scope: SCOPE_A, basketRevision: 4 });
+    await writeIntentRows([displayed]);
+    expect(await replayCheckoutIntent({ ...displayed, idempotencyKey: "not-a-uuid" })).toEqual({
+      status: "unavailable",
+    });
+    removeMemoryIndexedDb();
+    expect(await replayCheckoutIntent(displayed)).toEqual({ status: "unavailable" });
   });
 
   test("clearIntentRows resets seeded fixture data", async () => {

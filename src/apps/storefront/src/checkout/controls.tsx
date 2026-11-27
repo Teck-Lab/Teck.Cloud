@@ -18,6 +18,7 @@ import {
   forgetCheckoutIntentsForOrder,
   listCheckoutIntents,
   parkCheckoutIntent,
+  replayCheckoutIntent,
 } from "./journal";
 import type { CheckoutResult } from "./types";
 
@@ -239,7 +240,27 @@ export function CheckoutControls({
     [redirect, refresh],
   );
 
-  const startCheckout = useCallback(
+  const sendIntent = useCallback(
+    async (captured: CapturedCheckoutIntent) => {
+      const result = await submit({
+        scope: captured.scope,
+        basketRevision: captured.basketRevision,
+        idempotencyKey: captured.idempotencyKey,
+      }).catch(() => null);
+      if (!mounted.current || scopeRef.current !== captured.scope) {
+        return;
+      }
+      if (!result) {
+        setMessage(TEMPORARY_UNAVAILABLE);
+        await refresh();
+        return;
+      }
+      await handleResult(captured, result);
+    },
+    [handleResult, refresh, submit],
+  );
+
+  const proceedCheckout = useCallback(
     async (basketRevision: number) => {
       if (!mounted.current) {
         return;
@@ -265,29 +286,45 @@ export function CheckoutControls({
           setStorageErrorScope(scope);
           return;
         }
-        const result = await submit({
-          scope,
-          basketRevision: begin.intent.basketRevision,
-          idempotencyKey: begin.intent.idempotencyKey,
-        }).catch(() => null);
-        if (!result) {
-          if (mounted.current && scopeRef.current === scope) {
-            setMessage(TEMPORARY_UNAVAILABLE);
-            await refresh();
-          }
-          return;
-        }
-        if (!mounted.current || scopeRef.current !== scope) {
-          return;
-        }
-        await handleResult(begin.intent, result);
+        await sendIntent(begin.intent);
       } finally {
         if (mounted.current) {
           setBusy(false);
         }
       }
     },
-    [handleResult, refresh, scope, submit],
+    [refresh, scope, sendIntent],
+  );
+
+  const replayCheckout = useCallback(
+    async (displayed: CheckoutIntentRow) => {
+      if (!mounted.current || displayed.scope !== scope) {
+        return;
+      }
+      setBusy(true);
+      try {
+        const outcome = await replayCheckoutIntent(displayed);
+        if (!mounted.current || scopeRef.current !== scope) {
+          return;
+        }
+        if (outcome.status === "unavailable") {
+          setMessage(null);
+          setStorageErrorScope(scope);
+          return;
+        }
+        if (outcome.status === "stale") {
+          await refresh();
+          return;
+        }
+        setMessage(null);
+        await sendIntent(outcome.intent);
+      } finally {
+        if (mounted.current) {
+          setBusy(false);
+        }
+      }
+    },
+    [refresh, scope, sendIntent],
   );
 
   const confirmSetAside = useCallback(
@@ -348,7 +385,7 @@ export function CheckoutControls({
           <Button
             disabled={busy}
             onClick={() => {
-              void startCheckout(resumeRow.basketRevision);
+              void replayCheckout(resumeRow);
             }}
             type="button"
           >
@@ -403,7 +440,7 @@ export function CheckoutControls({
           <Button
             disabled={busy || !ready || blockingRow !== null}
             onClick={() => {
-              void startCheckout(basketRevision);
+              void proceedCheckout(basketRevision);
             }}
             type="button"
           >
@@ -429,7 +466,7 @@ export function CheckoutControls({
                   <Button
                     disabled={busy || storageUnavailable}
                     onClick={() => {
-                      void startCheckout(row.basketRevision);
+                      void replayCheckout(row);
                     }}
                     type="button"
                   >

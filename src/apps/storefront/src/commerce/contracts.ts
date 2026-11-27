@@ -73,16 +73,40 @@ export type OrderTableRow = {
   total: string;
 };
 
+/**
+ * ISO 4217 minor units do not always use hundredths: JPY has no fraction and
+ * KWD has three decimals. Resolve the exponent through Intl, then split the
+ * amount with BigInt so the minor-to-major ratio stays exact up to the
+ * contract's safe-integer bound instead of accumulating binary float error.
+ */
+function formatMinorUnits(amountMinor: number, currency: string): string {
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  });
+  const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+  const scale = 10n ** BigInt(fractionDigits);
+  const minor = BigInt(amountMinor);
+  const fraction = (minor < 0n ? -minor : minor) % scale;
+
+  return formatter
+    .formatToParts(Number(minor / scale))
+    .map((part) =>
+      part.type === "fraction"
+        ? { ...part, value: fraction.toString().padStart(fractionDigits, "0") }
+        : part,
+    )
+    .map((part) => part.value)
+    .join("");
+}
+
 export function formatMoney(money: MoneyView | null): string {
   if (money === null) {
     return "Not set";
   }
 
   try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: money.currency,
-    }).format(money.amountMinor / 100);
+    return formatMinorUnits(money.amountMinor, money.currency);
   } catch {
     return `${money.amountMinor} ${money.currency}`;
   }
