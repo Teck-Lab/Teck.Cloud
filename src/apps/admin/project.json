@@ -1,0 +1,82 @@
+{
+  "name": "admin",
+  "sourceRoot": "src/apps/admin/src",
+  "projectType": "application",
+  "tags": ["scope:commerce", "type:app", "platform:web"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "commerceContract",
+        "designTokensSource",
+        "workspaceDependencies",
+        {
+          "externalDependencies": ["next"]
+        }
+      ],
+      "outputs": ["{projectRoot}/.next/!(cache)/**/*", "{projectRoot}/.next/!(cache)"],
+      "options": {
+        "command": "bun run build",
+        "cwd": "src/apps/admin"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^typecheck"],
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "commerceContract",
+        "designTokensSource",
+        "workspaceDependencies"
+      ],
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "src/apps/admin"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": [],
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "commerceContract",
+        "workspaceDependencies",
+        "{workspaceRoot}/tools/generate-commerce-api.mjs"
+      ],
+      "options": {
+        "command": "bun run test",
+        "cwd": "src/apps/admin"
+      }
+    },
+    "generate:api": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "bun run generate:api",
+        "cwd": "src/apps/admin"
+      }
+    },
+    "db:migrate:auth": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "bun run db:migrate:auth",
+        "cwd": "src/apps/admin"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install biome check src/apps/admin"
+      }
+    }
+  }
+}

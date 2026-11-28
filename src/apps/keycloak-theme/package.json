@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "1.2.4",
     "@radix-ui/react-tooltip": "1.2.8",
     "@teck/design-tokens": "workspace:*",
+    "@teck/tailwind-config": "workspace:*",
     "keycloakify": "11.16.4",
     "keycloak-js": "26.2.4",
     "lucide-react": "1.22.0",

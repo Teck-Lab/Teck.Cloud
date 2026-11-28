@@ -11,6 +11,7 @@ COPY package.json bun.lock ./
 COPY tsconfig.base.json ./
 COPY src/apps/keycloak-theme ./src/apps/keycloak-theme
 COPY src/packages/design-tokens ./src/packages/design-tokens
+COPY src/packages/tailwind-config ./src/packages/tailwind-config
 RUN bun install --frozen-lockfile --ignore-scripts
 WORKDIR /source/src/apps/keycloak-theme
 # Keycloakify invokes Maven; retry one transient Central fetch and force a

@@ -6,7 +6,9 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/vendor/keycloak-theme/*"],
-      "config": ["./src/theme-config.ts"]
+      "config": ["./src/theme-config.ts"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
     },
     "types": ["vite/client"]
   },

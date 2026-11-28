@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
-import { fingerprintTree, imageBuildCommand } from "./image/build.mjs";
+import { fingerprintTree, imageBuildCommand, imageSourceFingerprint } from "./image/build.mjs";
 import {
   accountControlLabels,
   accountLanguageLinks,
@@ -59,6 +59,33 @@ test("image cache fingerprint changes with source but ignores generated outputs"
       "--label",
       `org.teck.cloud.source-sha256=${initial}`,
     ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Keycloak image fingerprint changes for a preset-only edit", () => {
+  const root = mkdtempSync(join(tmpdir(), "teck-theme-preset-fingerprint-"));
+  try {
+    for (const path of [
+      ".dockerignore",
+      "bun.lock",
+      "package.json",
+      "tsconfig.base.json",
+      "src/apps/keycloak-theme/theme.css",
+      "src/aspire/Teck.Cloud.AppHost/Identity/runtime.json",
+      "src/packages/design-tokens/tokens.json",
+      "src/packages/tailwind-config/keycloak.mjs",
+    ]) {
+      const file = join(root, path);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, "placeholder");
+    }
+    const preset = join(root, "src/packages/tailwind-config/keycloak.mjs");
+    writeFileSync(preset, 'export default { darkMode: "class" };\n');
+    const initial = imageSourceFingerprint(root);
+    writeFileSync(preset, 'export default { darkMode: "media" };\n');
+    assert.notEqual(imageSourceFingerprint(root), initial);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

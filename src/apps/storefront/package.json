@@ -1,0 +1,51 @@
+{
+  "name": "@teck/storefront",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node ../../../tools/generate-commerce-api.mjs --app storefront --check && bun test --preload ./src/testing/dom.ts",
+    "generate:api": "node ../../../tools/generate-commerce-api.mjs --app storefront",
+    "db:migrate:auth": "node ../../../tools/run-auth-migration.mjs --app storefront"
+  },
+  "dependencies": {
+    "@teck/design-tokens": "workspace:*",
+    "@teck/ui": "workspace:*",
+    "better-auth": "1.7.28",
+    "next": "16.4.6",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@ai-sdk/react": "4.0.188",
+    "@shadcn/helpers": "0.3.0",
+    "@tailwindcss/postcss": "4.3.5",
+    "@teck/tailwind-config": "workspace:*",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.13",
+    "@types/bun": "1.4.1",
+    "@types/jsdom": "30.0.0",
+    "@types/node": "26.0.1",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.3",
+    "@types/react-dom": "19.3.0",
+    "ai": "7.0.183",
+    "auth": "1.7.28",
+    "fake-indexeddb": "6.2.8",
+    "jsdom": "31.0.1",
+    "openapi-typescript": "7.13.0",
+    "postcss": "8.5.33",
+    "tailwindcss": "4.3.5",
+    "zod": "4.6.7"
+  },
+  "nx": {
+    "includedScripts": []
+  }
+}

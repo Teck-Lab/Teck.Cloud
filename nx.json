@@ -73,10 +73,26 @@
         "buildTargetName": "build",
         "typecheckTargetName": false
       }
+    },
+    {
+      "plugin": "@nx/next/plugin",
+      "include": ["src/apps/storefront/next.config.*", "src/apps/admin/next.config.*"]
     }
   ],
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "commerceContract": [
+      "{workspaceRoot}/docs/contracts/commerce/v1/customer.openapi.yaml",
+      "{workspaceRoot}/docs/contracts/commerce/v1/admin.openapi.yaml"
+    ],
+    "designTokensSource": [
+      "{workspaceRoot}/src/packages/design-tokens/tokens.json",
+      "{workspaceRoot}/src/packages/design-tokens/tokens.css",
+      "{workspaceRoot}/src/packages/design-tokens/tokens.css.d.ts",
+      "{workspaceRoot}/src/packages/design-tokens/index.js",
+      "{workspaceRoot}/src/packages/design-tokens/index.d.ts"
+    ],
+    "workspaceDependencies": ["{workspaceRoot}/package.json", "{workspaceRoot}/bun.lock"],
     "sharedGlobals": [
       "{workspaceRoot}/.editorconfig",
       "{workspaceRoot}/nx.json",

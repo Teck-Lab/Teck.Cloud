@@ -52,6 +52,7 @@ export function imageSourceFingerprint(root = repositoryRoot) {
     "src/apps/keycloak-theme",
     "src/aspire/Teck.Cloud.AppHost/Identity/runtime.json",
     "src/packages/design-tokens",
+    "src/packages/tailwind-config",
     "tsconfig.base.json",
   ]);
 }

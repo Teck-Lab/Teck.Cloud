@@ -35,6 +35,14 @@
   },
   "overrides": [
     {
+      "includes": [
+        "src/apps/admin/src/app/globals.css",
+        "src/apps/storefront/src/app/globals.css",
+        "src/packages/tailwind-config/web.css"
+      ],
+      "css": { "parser": { "tailwindDirectives": true } }
+    },
+    {
       "includes": ["**/packages.lock.json", "**/packages.static.lock.json"],
       "formatter": {
         "enabled": false

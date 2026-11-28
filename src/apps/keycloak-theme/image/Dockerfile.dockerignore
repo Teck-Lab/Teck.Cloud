@@ -4,6 +4,7 @@
 !tsconfig.base.json
 !src/apps/keycloak-theme/**
 !src/packages/design-tokens/**
+!src/packages/tailwind-config/**
 **/node_modules
 **/dist
 **/dist_keycloak

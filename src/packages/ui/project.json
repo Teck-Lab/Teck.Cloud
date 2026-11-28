@@ -1,0 +1,19 @@
+{
+  "name": "ui",
+  "sourceRoot": "src/packages/ui/src",
+  "tags": ["scope:shared", "type:lib", "platform:web"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install tsc --noEmit -p src/packages/ui/tsconfig.json"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bunx --no-install biome check src/packages/ui"
+      }
+    }
+  }
+}

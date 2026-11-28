@@ -1,4 +1,4 @@
-﻿# Exact historical false positives from Keycloak Storybook fixtures and the KETE test fixture.
+# Exact historical false positives from Keycloak Storybook fixtures and the KETE test fixture.
 # Keep Git history scanning enabled; new values and locations remain detectable.
 03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/account/pages/Totp.stories.tsx:generic-api-key:107
 03a5de79e6723c19a3a6224d37794ea337c04886:src/apps/keycloak-theme/src/vendor/keycloak-theme/account/pages/Totp.stories.tsx:generic-api-key:144
@@ -21,3 +21,6 @@ de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/customer.ope
 de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/example-order-dedicated-active.json:jwt:14
 de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/example-order-shared-active.json:jwt:14
 de69c1245a5de2e0058cc4611e36104ab20f6336:docs/contracts/commerce/v1/example-orders-page.json:jwt:16
+
+# The checkout unit test sent this synthetic UUID to an injected gateway; it was never a credential.
+3b311333e5164dc86dfeab4a80fc289e8e65f7cd:src/apps/storefront/src/server/commerce/checkout-core.test.ts:generic-api-key:19
