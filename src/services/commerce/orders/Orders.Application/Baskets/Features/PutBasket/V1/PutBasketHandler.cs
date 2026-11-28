@@ -1,5 +1,6 @@
 using ErrorOr;
 using SharedKernel.Core.Database;
+using Teck.Cloud.Commerce.Orders.Application.Baskets.Specifications;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Catalog;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
 using Teck.Cloud.Commerce.Orders.Domain.Aggregates.Baskets;
@@ -38,8 +39,8 @@ public static class PutBasketHandler
         CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow();
-        var basket = await baskets.FindOneAsync(
-            candidate => candidate.SubjectId == command.SubjectId,
+        var basket = await baskets.LoadForUpdateAsync(
+            new BasketBySubjectSpecification(command.TenantId, command.SubjectId),
             cancellationToken).ConfigureAwait(false);
         if (command.OfferId is null)
         {

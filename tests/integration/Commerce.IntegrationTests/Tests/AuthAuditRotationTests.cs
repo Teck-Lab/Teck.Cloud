@@ -275,7 +275,7 @@ public sealed class AuthAuditRotationTests(CommerceKeycloakFixture keycloak)
         rejected["license"].ShouldBeNull();
 
         var rejectAudit = await AuditAsync(stack, orderB.OrderId, cancellationToken).ConfigureAwait(true);
-        rejectAudit.ActorId.ShouldBe(keycloak.StaffFull.Username);
+        rejectAudit.ActorId.ShouldBe(keycloak.StaffFull.SubjectId);
         rejectAudit.Reason.ShouldBe("fixture-audited-reject");
         rejectAudit.Action.ShouldBe("Reject");
         rejectAudit.OccurredAt.ShouldBeLessThanOrEqualTo(DateTimeOffset.UtcNow.AddSeconds(5));
@@ -305,7 +305,7 @@ public sealed class AuthAuditRotationTests(CommerceKeycloakFixture keycloak)
             "fixture-audited-approve",
             cancellationToken).ConfigureAwait(true);
         var approveAudit = await AuditAsync(stack, orderA.OrderId, cancellationToken).ConfigureAwait(true);
-        approveAudit.ActorId.ShouldBe(keycloak.StaffFull.Username);
+        approveAudit.ActorId.ShouldBe(keycloak.StaffFull.SubjectId);
         approveAudit.Reason.ShouldBe("fixture-audited-approve");
         approveAudit.Action.ShouldBe("Approve");
     }

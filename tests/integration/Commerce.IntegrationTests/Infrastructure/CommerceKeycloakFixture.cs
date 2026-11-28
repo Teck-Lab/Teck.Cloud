@@ -127,10 +127,10 @@ public sealed class CommerceKeycloakFixture : IAsyncLifetime
     public CustomerAccount CustomerWithoutCommercePermission { get; private set; } = new(Guid.Empty, string.Empty);
 
     /// <summary>Gets the full staff principal allowed to read, decide and record evidence.</summary>
-    public StaffAccount StaffFull { get; private set; } = new(string.Empty);
+    public StaffAccount StaffFull { get; private set; } = new(string.Empty, string.Empty);
 
     /// <summary>Gets the read-only staff principal.</summary>
-    public StaffAccount StaffReadOnly { get; private set; } = new(string.Empty);
+    public StaffAccount StaffReadOnly { get; private set; } = new(string.Empty, string.Empty);
 
     /// <summary>Gets tenant one's immutable organization identifier.</summary>
     public Guid TenantOneId { get; private set; }
@@ -327,10 +327,8 @@ public sealed class CommerceKeycloakFixture : IAsyncLifetime
         CustomerB = new CustomerAccount(TenantOneId, customerB);
         CustomerC = new CustomerAccount(TenantTwoId, customerC);
         CustomerWithoutCommercePermission = new CustomerAccount(TenantOneId, customerD);
-        StaffFull = new StaffAccount(_usernames[staffFull]);
-        StaffReadOnly = new StaffAccount(_usernames[staffReadOnly]);
-        _ = staffFull;
-        _ = staffReadOnly;
+        StaffFull = new StaffAccount(_usernames[staffFull], staffFull);
+        StaffReadOnly = new StaffAccount(_usernames[staffReadOnly], staffReadOnly);
     }
 
     private async Task<string> LoginAsync(string clientId, string username, string? scope, CancellationToken cancellationToken)

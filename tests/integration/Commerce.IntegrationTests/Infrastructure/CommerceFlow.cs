@@ -209,7 +209,7 @@ internal static class CommerceFlow
         var revision = order["revision"]!.GetValue<uint>();
         var decision = await AdminDecisionAsync(admin, staffToken, tenantId, orderId, "approve", reason, revision, cancellationToken).ConfigureAwait(false);
         decision.Status.ShouldBe(HttpStatusCode.OK, decision.Body);
-        var approved = decision.Json()["order"]!.AsObject();
+        var approved = decision.Json().AsObject();
         approved["approval"]!["status"]!.GetValue<string>().ShouldBe("approved");
         approved["approval"]!["actorId"]!.GetValue<string>().ShouldNotBeNullOrWhiteSpace();
         approved["approval"]!["reason"]!.GetValue<string>().ShouldBe(reason);
