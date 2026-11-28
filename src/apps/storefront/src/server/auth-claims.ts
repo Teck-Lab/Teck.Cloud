@@ -5,11 +5,6 @@ import type { AppKind } from "./auth-env";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ALIAS = /^[A-Za-z0-9._-]{1,128}$/;
 
-export interface OrganizationAccount {
-  readonly providerId: string;
-  readonly accessToken?: string | null;
-}
-
 /**
  * Decodes a compact JWT payload for narrowing only. Better Auth already
  * obtained the token through the verified callback; the gateway remains the
@@ -150,29 +145,4 @@ export function paginationSessionScope(
     sessionId,
     organizationId ?? "",
   ]);
-}
-
-/**
- * Derives the session-bound organization from the account written by the
- * verified callback. Better Auth writes or updates that account before it calls
- * createSession (linked account first), so no later completion handler is needed.
- */
-export async function deriveSessionOrganization(
-  accounts: readonly OrganizationAccount[],
-  decrypt: (token: string) => Promise<string>,
-  issuer: string,
-): Promise<string | null> {
-  const keycloakAccounts = accounts.filter((account) => account.providerId === "keycloak");
-  if (keycloakAccounts.length !== 1) return null;
-  const token = keycloakAccounts[0]?.accessToken;
-  if (!token) return null;
-  let plain: string;
-  try {
-    plain = await decrypt(token);
-  } catch {
-    return null;
-  }
-  const claims = readJwtClaims(plain);
-  if (!claims || claims.iss !== issuer) return null;
-  return singleOrganizationId(claims);
 }

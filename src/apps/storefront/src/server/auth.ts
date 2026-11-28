@@ -2,16 +2,29 @@ import "server-only";
 
 import { type Auth, type BetterAuthOptions, betterAuth } from "better-auth";
 import { isAPIError } from "better-auth/api";
+import { decryptOAuthToken, setTokenUtil } from "better-auth/oauth2";
 
 import {
   canonicalOrganizationId,
   checkoutScope,
   paginationSessionScope,
   readJwtClaims,
-  singleOrganizationId,
 } from "./auth-claims";
 import { buildAuthOptions } from "./auth-config";
 import { type AppKind, type AuthEnv, readAuthEnv } from "./auth-env";
+import {
+  buildRefreshedGrant,
+  createSessionGrantStore,
+  type GrantAdapter,
+  grantAccessTokenIsFresh,
+  grantAccessTokenMatches,
+  grantMatchesSession,
+  type RefreshedTokens,
+  type SessionGrant,
+  type SessionGrantStore,
+  type StoredGrant,
+  serializeSessionGrant,
+} from "./auth-grant";
 
 const APP: AppKind = "storefront";
 
@@ -21,31 +34,15 @@ export interface AuthSessionResult {
   readonly session: {
     readonly id: string;
     readonly userId: string;
+    readonly expiresAt?: unknown;
     readonly commerceOrganizationId?: unknown;
     readonly [key: string]: unknown;
   };
   readonly user: { readonly id: string };
 }
 
-export interface LinkedAccount {
-  readonly id: string;
-  readonly providerId: string;
-  readonly accountId: string;
-  readonly userId: string;
-  readonly accessToken?: string | null;
-}
-
-export interface AccessTokenResult {
-  readonly accessToken?: string | null;
-}
-
 export interface AuthApi {
   getSession(input: { headers: Headers }): Promise<AuthSessionResult | null>;
-  listUserAccounts(input: { headers: Headers }): Promise<LinkedAccount[]>;
-  getAccessToken(input: {
-    headers: Headers;
-    body: { accountId: string };
-  }): Promise<AccessTokenResult>;
 }
 
 export class AuthUnavailableError extends Error {
@@ -59,6 +56,13 @@ export interface AuthSessionSummary {
   readonly sessionId: string;
   readonly userId: string;
   readonly organizationId: string | null;
+}
+
+/** Encryption and refresh of this app's own session grant. */
+export interface GrantTokenService {
+  encrypt(token: string): Promise<string>;
+  decrypt(token: string): Promise<string>;
+  refresh(refreshToken: string): Promise<RefreshedTokens | null>;
 }
 
 let authInstance: AuthInstance | null = null;
@@ -78,28 +82,42 @@ interface AccessDeps {
   readonly api: AuthApi;
   readonly env: AuthEnv;
   readonly app: AppKind;
+  readonly tokens: GrantTokenService;
+  readonly grants: SessionGrantStore;
+  readonly now?: () => number;
+}
+
+interface BoundSession {
+  readonly sessionId: string;
+  readonly userId: string;
+  readonly organizationId: string | null;
+  readonly grant: SessionGrant;
+  readonly expiresAt: unknown;
 }
 
 interface ResolvedAccess {
-  readonly sessionId: string;
-  readonly userId: string;
-  readonly subject: string;
-  readonly organizationId: string | null;
+  readonly grant: SessionGrant;
   readonly accessToken: string;
 }
 
-async function resolveAccess(deps: AccessDeps, headers: Headers): Promise<ResolvedAccess | null> {
-  let sessionResult: AuthSessionResult | null;
+async function readSession(deps: AccessDeps, headers: Headers): Promise<AuthSessionResult | null> {
   try {
-    sessionResult = await deps.api.getSession({ headers });
+    return await deps.api.getSession({ headers });
   } catch {
     throw new AuthUnavailableError();
   }
-  if (!sessionResult) return null;
+}
 
-  const session = sessionResult.session as typeof sessionResult.session & {
-    commerceOrganizationId?: unknown;
-  };
+/**
+ * A session is authenticated only when its own `verification` row still binds
+ * that exact session, user, issuer and organization.
+ */
+async function boundSession(
+  deps: AccessDeps,
+  sessionResult: AuthSessionResult | null,
+): Promise<BoundSession | null> {
+  if (!sessionResult) return null;
+  const session = sessionResult.session;
   const userId = sessionResult.user?.id;
   if (typeof userId !== "string" || session.userId !== userId || typeof session.id !== "string") {
     return null;
@@ -108,50 +126,150 @@ async function resolveAccess(deps: AccessDeps, headers: Headers): Promise<Resolv
     deps.app === "storefront" ? canonicalOrganizationId(session.commerceOrganizationId) : null;
   if (deps.app === "storefront" && !organizationId) return null;
 
-  let accounts: LinkedAccount[];
+  let stored: StoredGrant | null;
   try {
-    accounts = await deps.api.listUserAccounts({ headers });
-  } catch (error) {
-    if (isAPIError(error)) return null;
+    stored = await deps.grants.read({ sessionId: session.id, userId });
+  } catch {
     throw new AuthUnavailableError();
   }
-  const linked = accounts.filter((account) => account.providerId === "keycloak");
-  const account = linked.length === 1 ? linked[0] : undefined;
-  if (!account || account.userId !== userId || typeof account.accountId !== "string") {
+  if (!stored) return null;
+  const grant = stored.grant;
+  if (
+    !grantMatchesSession({
+      grant,
+      session: {
+        sessionId: session.id,
+        userId,
+        commerceOrganizationId: session.commerceOrganizationId,
+      },
+      env: deps.env,
+      app: deps.app,
+    })
+  ) {
     return null;
   }
-  if (account.accountId.length === 0) return null;
-
-  let tokenResult: AccessTokenResult;
-  try {
-    // Only the server-side Better Auth row id selects the account; the fixed
-    // shape is the whole selector schema in the pinned release.
-    tokenResult = await deps.api.getAccessToken({
-      headers,
-      body: { accountId: account.id },
-    });
-  } catch (error) {
-    if (isAPIError(error)) return null;
-    throw new AuthUnavailableError();
-  }
-  const accessToken = tokenResult?.accessToken;
-  if (!accessToken) return null;
-
-  const claims = readJwtClaims(accessToken);
-  if (!claims || claims.iss !== deps.env.issuer) return null;
-  if (claims.sub !== account.accountId) return null;
-  if (deps.app === "storefront") {
-    const tokenOrganizationId = singleOrganizationId(claims);
-    if (!tokenOrganizationId || tokenOrganizationId !== organizationId) return null;
-  }
-
   return {
     sessionId: session.id,
     userId,
-    subject: account.accountId,
     organizationId,
-    accessToken,
+    grant,
+    expiresAt: session.expiresAt,
   };
+}
+
+async function decryptAccessToken(
+  deps: AccessDeps,
+  grant: SessionGrant,
+): Promise<{ accessToken: string; claims: Record<string, unknown> } | null> {
+  let accessToken: string;
+  try {
+    accessToken = await deps.tokens.decrypt(grant.accessToken);
+  } catch {
+    return null;
+  }
+  const claims = readJwtClaims(accessToken);
+  if (!claims || !grantAccessTokenMatches({ grant, env: deps.env, app: deps.app, claims }))
+    return null;
+  return { accessToken, claims };
+}
+
+/**
+ * Refreshes only this session's own grant. The compare-and-swap requires the
+ * exact row id and the exact previously verified serialized value, so
+ * concurrent refreshes cannot overwrite each other; a loser re-reads the
+ * winner's committed row.
+ */
+async function refreshGrant(
+  deps: AccessDeps,
+  session: BoundSession,
+  current: SessionGrant,
+): Promise<SessionGrant | null> {
+  const encryptedRefreshToken = current.refreshToken;
+  if (!encryptedRefreshToken) return null;
+
+  let refreshToken: string;
+  try {
+    refreshToken = await deps.tokens.decrypt(encryptedRefreshToken);
+  } catch {
+    return null;
+  }
+
+  let tokens: RefreshedTokens | null;
+  try {
+    tokens = await deps.tokens.refresh(refreshToken);
+  } catch (error) {
+    if (isAPIError(error)) return null;
+    throw new AuthUnavailableError();
+  }
+  if (!tokens) return null;
+
+  const next = await buildRefreshedGrant({
+    previous: current,
+    tokens,
+    env: deps.env,
+    app: deps.app,
+    encrypt: (token) => deps.tokens.encrypt(token),
+  });
+  if (!next) return null;
+
+  let rotated: boolean;
+  try {
+    rotated = await deps.grants.rotate({
+      previous: current,
+      next,
+      sessionExpiresAt: session.expiresAt,
+    });
+  } catch {
+    throw new AuthUnavailableError();
+  }
+  if (rotated) return next;
+
+  let reread: StoredGrant | null;
+  try {
+    reread = await deps.grants.read({ sessionId: session.sessionId, userId: session.userId });
+  } catch {
+    throw new AuthUnavailableError();
+  }
+  if (!reread || serializeSessionGrant(reread.grant) === serializeSessionGrant(current)) {
+    return null;
+  }
+  const changed = reread.grant;
+  if (
+    !grantMatchesSession({
+      grant: changed,
+      session: {
+        sessionId: session.sessionId,
+        userId: session.userId,
+        commerceOrganizationId: session.organizationId,
+      },
+      env: deps.env,
+      app: deps.app,
+    })
+  ) {
+    return null;
+  }
+  return changed;
+}
+
+async function resolveAccess(deps: AccessDeps, headers: Headers): Promise<ResolvedAccess | null> {
+  const bound = await boundSession(deps, await readSession(deps, headers));
+  if (!bound) return null;
+
+  const now = (deps.now ?? Date.now)();
+  let current = bound.grant;
+  let access = await decryptAccessToken(deps, current);
+  if (!access) return null;
+
+  if (!grantAccessTokenIsFresh({ grant: current, claims: access.claims, now })) {
+    const refreshed = await refreshGrant(deps, bound, current);
+    if (!refreshed) return null;
+    current = refreshed;
+    access = await decryptAccessToken(deps, current);
+    if (!access) return null;
+    if (!grantAccessTokenIsFresh({ grant: current, claims: access.claims, now })) return null;
+  }
+
+  return { grant: current, accessToken: access.accessToken };
 }
 
 export interface AuthAccess {
@@ -168,28 +286,13 @@ export function createAuthAccess(deps: AccessDeps): AuthAccess {
     },
 
     async getAuthSession(headers) {
-      let result: AuthSessionResult | null;
-      try {
-        result = await deps.api.getSession({ headers });
-      } catch {
-        throw new AuthUnavailableError();
-      }
-      if (!result) return null;
-      const session = result.session as typeof result.session & {
-        commerceOrganizationId?: unknown;
+      const bound = await boundSession(deps, await readSession(deps, headers));
+      if (!bound) return null;
+      return {
+        sessionId: bound.sessionId,
+        userId: bound.userId,
+        organizationId: bound.organizationId,
       };
-      const userId = result.user?.id;
-      if (
-        typeof userId !== "string" ||
-        session.userId !== userId ||
-        typeof session.id !== "string"
-      ) {
-        return null;
-      }
-      const organizationId =
-        deps.app === "storefront" ? canonicalOrganizationId(session.commerceOrganizationId) : null;
-      if (deps.app === "storefront" && !organizationId) return null;
-      return { sessionId: session.id, userId, organizationId };
     },
 
     async appSessionScope(headers) {
@@ -207,29 +310,68 @@ export function createAuthAccess(deps: AccessDeps): AuthAccess {
 
     async getCommerceIdentity(headers) {
       const access = await resolveAccess(deps, headers);
-      if (!access?.organizationId) return null;
+      if (!access?.grant.organizationId) return null;
       return {
         accessToken: access.accessToken,
         scope: checkoutScope(
           deps.env.secret,
           deps.env.issuer,
-          access.subject,
-          access.organizationId,
+          access.grant.subject,
+          access.grant.organizationId,
         ),
       };
     },
   };
 }
 
+function createTokenService(auth: AuthInstance): GrantTokenService {
+  return {
+    async encrypt(token) {
+      const encrypted = await setTokenUtil(token, await auth.$context);
+      if (typeof encrypted !== "string") throw new Error("Token encryption is unavailable.");
+      return encrypted;
+    },
+    async decrypt(token) {
+      return await decryptOAuthToken(token, await auth.$context);
+    },
+    async refresh(refreshToken) {
+      const context = await auth.$context;
+      const provider = context.socialProviders.find((candidate) => candidate.id === "keycloak");
+      if (!provider?.refreshAccessToken) return null;
+      return await provider.refreshAccessToken(refreshToken);
+    },
+  };
+}
+
+function createGrantStore(auth: AuthInstance, env: AuthEnv, app: AppKind): SessionGrantStore {
+  const store = async (): Promise<SessionGrantStore> =>
+    createSessionGrantStore((await auth.$context).adapter as unknown as GrantAdapter, env, app);
+  return {
+    async create(input) {
+      return await (await store()).create(input);
+    },
+    async read(input) {
+      return await (await store()).read(input);
+    },
+    async rotate(input) {
+      return await (await store()).rotate(input);
+    },
+  };
+}
+
 function defaultAccess(): AuthAccess {
+  const auth = getAuth();
+  const env = readAuthEnv(process.env, APP);
   return createAuthAccess({
-    api: getAuth().api,
-    env: readAuthEnv(process.env, APP),
+    api: auth.api as unknown as AuthApi,
+    env,
     app: APP,
+    tokens: createTokenService(auth),
+    grants: createGrantStore(auth, env, APP),
   });
 }
 
-/** Null means no eligible session or linked account; throws mean unavailable. */
+/** Null means no verified session grant; throws mean unavailable. */
 export function getGatewayAccessToken(headers: Headers): Promise<string | null> {
   return defaultAccess().getGatewayAccessToken(headers);
 }

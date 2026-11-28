@@ -37,9 +37,10 @@ host and no external traffic is admitted.
 ## Keycloak OIDC flow
 
 - `genericOAuth` with the `keycloak` helper performs realm issuer discovery.
-  `requireIdTokenVerification: true` means the provider registers only when
-  discovery supplies an issuer and JWKS, so provider identity is the verified
-  ID-token subject rather than an unverified profile field.
+  Before dispatching the callback, each app requires the configured issuer,
+  discovery JWKS, the configured client audience and nonce verification.
+  Better Auth verifies the ID-token signature, issuer, audience and nonce before
+  writing the account; an unverified profile field cannot identify the grant.
 - The authorization-code flow always uses PKCE. The redirect URI is exactly
   `${BETTER_AUTH_URL}/api/auth/callback/keycloak`; the client registrations are
   separate and confidential.
@@ -69,11 +70,9 @@ and returns 503 without details if runtime configuration is unavailable.
 
 ## Sessions, cookies and disabled features
 
-The instance disables password authentication, email-based/implicit account
-linking, account-cookie transport and session cookie caching. OAuth tokens are
-encrypted at rest with `account.encryptOAuthTokens: true`. Keycloak `(issuer, sub)`
-is the provider identity; it is not interchangeable with a local account or
-another provider.
+The instance disables password authentication, implicit account linking,
+account-cookie transport and session cookie caching. Better Auth encrypts access
+and refresh tokens. The callback strips the ID token before account persistence.
 
 | Boundary      | Storefront               | Admin         |
 | ------------- | ------------------------ | ------------- |
@@ -88,54 +87,38 @@ configured app origin. The two apps use distinct secrets, cookie prefixes and
 auth databases, so starting one app with the sibling's session cookie establishes
 no session.
 
-## Storefront organization binding
+## Callback grant and organization binding
 
-`commerceOrganizationId` is a server-only session field with `input: false`; a
-browser cannot supply it. It is populated in the Storefront session-create hook
-from the linked Keycloak account written by the verified callback. The claim shape
-is the gateway's rich single-organization representation:
+Both apps capture the tokens of the verified callback in request-local state. The
+session-create hooks bind that grant to the new session and user, and Storefront
+sets its server-only `commerceOrganizationId` from the access token's single
+organization claim:
 
 ```json
 { "organization": { "<alias>": { "id": "<organization-uuid>" } } }
 ```
-
-The hook requires exactly one linked Keycloak account and exactly one organization
-entry with a UUID id, and refuses session creation if the account is missing,
-ambiguous, undecryptable, the issuer is not the configured issuer, or the
-organization is absent/malformed/not a UUID. Better Auth 1.7.28 creates or updates
-the linked account before calling `createSession` for both new and returning
-users, so no separate callback completion handler is needed and no existing
-session is finalized during a protected request.
-
-If the same linked account later switches organization and overwrites its
-provider token, the older session still carries the previous organization UUID.
-Every protected Storefront request compares the session UUID to the candidate
-access token's single organization UUID; a mismatch fails closed and requires a
-fresh sign-in.
 
 ## Gateway bearer retrieval
 
 `getGatewayAccessToken(headers)` in each app:
 
 1. Resolves the session with `auth.api.getSession({ headers })`.
-2. Requires a Storefront session with a valid organization UUID.
-3. Calls `auth.api.listUserAccounts({ headers })` and requires exactly one
-   `providerId: "keycloak"` account owned by that session.
-4. Calls `auth.api.getAccessToken` with the body `{ accountId }`, where
-   `accountId` is the Better Auth account row id. The 1.7.28 selector schema
-   requires no `providerId`; a browser-supplied account selector is impossible.
-5. Narrows the returned token: configured issuer, subject equal to the linked
-   account subject, and (Storefront) organization equal to the session field.
+2. Reads its own expiring grant from the existing app-owned `verification` table.
+   An app-specific HMAC keys the row to the session and user. A repeat sign-in
+   can replace the shared account's tokens but cannot replace another grant.
+3. Checks issuer, subject and, for Storefront, the session's canonical organization
+   UUID. An expired access token can only be renewed with that session's refresh
+   token. Compare-and-swap rotation prevents a stale refresh overwriting a newer one.
 
 The returned token is sent only as `Authorization: Bearer ...` from Next to the
 matching configured gateway with `cache: "no-store"`. It is never returned to the
 browser, logged, serialized in React props or written to browser storage. No
 session cookie is forwarded and Next does not mint local identity tokens.
 
-No session or no unique linked account means no gateway request. An invalid or
-unrefreshable token (`APIError`) requires sign-in. A session/auth-store transport
-failure raises `AuthUnavailableError`, which the UI shows as temporary
-unavailability without a gateway call. Gateway 401 requires sign-in; 403 shows
+No session or no valid session grant means no gateway request; sign in again for
+legacy sessions or invalid grants. An auth-store transport failure raises
+`AuthUnavailableError`, which the UI shows as temporary unavailability without
+a gateway call. Gateway 401 requires sign-in; 403 shows
 denied; mutations are not retried on either. The gateway alone validates
 signature, audience, organization and staff permissions and alone exchanges into
 internal service audiences.
@@ -146,8 +129,8 @@ Only opaque HMAC values reach browser storage.
 
 - Checkout intents, Storefront only:
   `base64url(HMAC-SHA-256(BETTER_AUTH_SECRET, JSON.stringify(["checkout-intents:v1", issuer, subject, organizationId])))`.
-  The issuer/subject come from the authenticated linked account; the organization
-  is the session-bound UUID. This is an independent scope from pagination.
+  The issuer and subject come from the callback grant; the organization is the
+  session-bound UUID. This scope is independent of pagination.
 - Pagination cursor history, both apps:
   `base64url(HMAC-SHA-256(BETTER_AUTH_SECRET, JSON.stringify(["pagination-session-scope:v1", app, issuer, userId, sessionId, organizationId ?? ""])))`.
   Cursor history is keyed by this opaque value plus the current `baseHref`.
@@ -165,8 +148,8 @@ Each app has a checked-in initial schema generated by the pinned better-auth
 
 They contain only `user`, `session`, `account` and `verification` plus their
 indexes. Storefront's `session` additionally has the nullable
-`commerceOrganizationId` column. The tables are auth-only; no business table is
-created.
+`commerceOrganizationId` column. This repair uses the existing schema; it adds no
+column, table or migration.
 
 `src/server/auth-cli.ts` exports an eager Better Auth instance solely for the CLI
 (`tools/run-auth-migration.mjs` -> `auth migrate --config ./src/server/auth-cli.ts
