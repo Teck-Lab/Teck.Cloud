@@ -121,6 +121,32 @@ public sealed partial class ProviderReconciliationWorker(
 
     private static string Mode(BillingProviderMode mode) => mode == BillingProviderMode.Live ? "live" : "test";
 
+    private static bool IsApplicableSnapshot(BillingReconciliation snapshot) =>
+        snapshot.Status is BillingEvidenceStatus.Paid
+            or BillingEvidenceStatus.Refunded
+            or BillingEvidenceStatus.Disputed
+            or BillingEvidenceStatus.Canceled
+        || (snapshot.Status == BillingEvidenceStatus.Pending && string.IsNullOrEmpty(snapshot.FailureCode));
+
+    private static string FailureCategory(BillingReconciliation snapshot)
+    {
+        if (snapshot.Status == BillingEvidenceStatus.Mismatch)
+        {
+            return "binding_mismatch";
+        }
+
+        var failureCode = snapshot.Status == BillingEvidenceStatus.Unavailable ? null : snapshot.FailureCode;
+        return failureCode ?? "provider_unavailable";
+    }
+
+    private static string RejectionCategory(BillingReconciliation snapshot) =>
+        snapshot.Status == BillingEvidenceStatus.Pending && string.IsNullOrEmpty(snapshot.ProviderSessionId)
+            ? "provider_unavailable"
+            : "binding_mismatch";
+
+    private static IReadOnlyList<Guid> ObservedReceipts(JobClaim claim, IReadOnlyList<Guid>? receiptIds) =>
+        receiptIds ?? (claim.ProviderEventReceiptId is { } receiptId ? [receiptId] : []);
+
     [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "The provider reconciliation scan failed; the next tick retries.")]
     private static partial void LogScanFailed(ILogger logger, Exception exception);
 
@@ -343,6 +369,12 @@ public sealed partial class ProviderReconciliationWorker(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        // Snapshot the bounded outstanding receipts for this explicit tenant and
+        // order before any provider I/O; the handler completes exactly these ids in
+        // the same transaction as the payment and outbox, never after it.
+        var receiptIds = claim.Kind == ReconciliationKind.PaymentVerification
+            ? await receipts.ListOutstandingAsync(claim.TenantId, claim.OrderId, cancellationToken).ConfigureAwait(false)
+            : [];
         var order = BuildOrder(facts, PriceSnapshot.Decode(facts.VerifiedPriceSnapshot));
         BillingReconciliation snapshot;
         try
@@ -352,42 +384,31 @@ public sealed partial class ProviderReconciliationWorker(
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             _ = exception;
-            await FailAsync(bus, claim, "provider_unavailable", now.AddSeconds(RetrySeconds), abandon: false, receipts, cancellationToken).ConfigureAwait(false);
+            await FailAsync(bus, claim, "provider_unavailable", now.AddSeconds(RetrySeconds), abandon: false, receipts, cancellationToken, receiptIds).ConfigureAwait(false);
             return;
         }
 
-        if (snapshot.Status is not (BillingEvidenceStatus.Paid
-            or BillingEvidenceStatus.Refunded
-            or BillingEvidenceStatus.Disputed
-            or BillingEvidenceStatus.Canceled))
+        if (!IsApplicableSnapshot(snapshot))
         {
-            var category = snapshot.Status switch
-            {
-                BillingEvidenceStatus.None => snapshot.FailureCode ?? "provider_unavailable",
-                BillingEvidenceStatus.Pending => snapshot.FailureCode ?? "provider_unavailable",
-                BillingEvidenceStatus.Paid => snapshot.FailureCode ?? "provider_unavailable",
-                BillingEvidenceStatus.Refunded => snapshot.FailureCode ?? "provider_unavailable",
-                BillingEvidenceStatus.Disputed => snapshot.FailureCode ?? "provider_unavailable",
-                BillingEvidenceStatus.Canceled => snapshot.FailureCode ?? "provider_unavailable",
-                BillingEvidenceStatus.Mismatch => "binding_mismatch",
-                BillingEvidenceStatus.Unavailable => "provider_unavailable",
-                _ => snapshot.FailureCode ?? "provider_unavailable",
-            };
-            await FailAsync(bus, claim, category, now.AddSeconds(RetrySeconds), abandon: false, receipts, cancellationToken).ConfigureAwait(false);
+            await FailAsync(bus, claim, FailureCategory(snapshot), now.AddSeconds(RetrySeconds), abandon: false, receipts, cancellationToken, receiptIds).ConfigureAwait(false);
             return;
         }
 
         var applied = await bus.InvokeForTenantAsync<ErrorOr<bool>>(
             claim.TenantId,
-            new ApplyPaymentSnapshotCommand(claim.TenantId, claim.OrderId, claim.JobId, claim.LeaseToken, snapshot),
+            new ApplyPaymentSnapshotCommand(claim.TenantId, claim.OrderId, claim.JobId, claim.LeaseToken, snapshot)
+            {
+                ReceiptIds = receiptIds,
+                RetrySeconds = RetrySeconds,
+            },
             cancellationToken).ConfigureAwait(false);
         if (applied.IsError || !applied.Value)
         {
-            await FailAsync(bus, claim, "binding_mismatch", now.AddSeconds(RetrySeconds), abandon: false, receipts, cancellationToken).ConfigureAwait(false);
-            return;
+            // The handler rejected on a lost lease or a binding mismatch and made no
+            // receipt or payment mutation. Recording the failure is itself lease
+            // fenced, so an expired owner leaves the work to its next claim.
+            await FailAsync(bus, claim, RejectionCategory(snapshot), now.AddSeconds(RetrySeconds), abandon: false, receipts, cancellationToken, receiptIds).ConfigureAwait(false);
         }
-
-        await CompleteReceiptAsync(claim, receipts, now, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task FailAsync(
@@ -397,9 +418,10 @@ public sealed partial class ProviderReconciliationWorker(
         DateTimeOffset nextDue,
         bool abandon,
         ProviderReceiptStore receipts,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyList<Guid>? receiptIds = null)
     {
-        _ = await bus.InvokeForTenantAsync<ErrorOr<bool>>(
+        var recorded = await bus.InvokeForTenantAsync<ErrorOr<bool>>(
             claim.TenantId,
             new RecordReconciliationFailureCommand(
                 claim.TenantId,
@@ -410,7 +432,14 @@ public sealed partial class ProviderReconciliationWorker(
                 nextDue,
                 abandon),
             cancellationToken).ConfigureAwait(false);
-        if (claim.ProviderEventReceiptId is { } receiptId)
+        if (recorded.IsError || !recorded.Value)
+        {
+            return;
+        }
+
+        // Only the receipts observed for this attempt are marked; completed receipts
+        // are never downgraded and unseen ids are never touched.
+        foreach (var receiptId in ObservedReceipts(claim, receiptIds))
         {
             await receipts.MarkFailedAsync(receiptId, category, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         }

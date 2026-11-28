@@ -1,6 +1,9 @@
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
 using Teck.Cloud.Commerce.Orders.Application.Orders.Responses;
 using Teck.Cloud.Commerce.Orders.Domain.Aggregates.ProviderEvent;
 using Teck.Cloud.Commerce.Orders.Domain.Aggregates.Reconciliation;
@@ -20,6 +23,21 @@ public sealed class StripeWebhookIntake(
     OrderWorkStore orders,
     TimeProvider clock)
 {
+    private const string LockPendingPaymentJobSql =
+        "SELECT j.\"Id\"\n" +
+        "FROM orders.\"ReconciliationJobs\" AS j\n" +
+        "WHERE j.\"TenantId\" = @tenant\n" +
+        "  AND j.\"OrderId\" = @order\n" +
+        "  AND j.\"Kind\" = @kind\n" +
+        "  AND j.\"Status\" = @status\n" +
+        "  AND j.\"IsDeleted\" = FALSE\n" +
+        "FOR UPDATE;";
+
+    private const string RescheduleLockedJobSql =
+        "UPDATE orders.\"ReconciliationJobs\"\n" +
+        "SET \"DueAt\" = @now, \"UpdatedOn\" = @now\n" +
+        "WHERE \"Id\" = @id AND \"Status\" = @status;";
+
     /// <summary>Verifies and persists one provider event.</summary>
     /// <param name="rawBody">The exact raw request body.</param>
     /// <param name="signatureHeader">The timestamped signature header.</param>
@@ -63,44 +81,58 @@ public sealed class StripeWebhookIntake(
         {
             receipt.MarkUnmatched(now);
             _ = context.ProviderEventReceipts.Add(receipt);
-            _ = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            _ = await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return WebhookIntakeOutcome.Accepted;
         }
 
         receipt.Bind(order.OrderId, order.TenantId);
-        var job = await context.ReconciliationJobs.AsNoTracking()
-            .FirstOrDefaultAsync(
-                candidate => candidate.TenantId == order.TenantId
-                    && candidate.OrderId == order.OrderId
-                    && candidate.Kind == ReconciliationKind.PaymentVerification
-                    && candidate.Status == ReconciliationStatus.Pending,
-                cancellationToken)
+        var transaction = await context.Database
+            .BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken)
             .ConfigureAwait(false);
-        if (job is null)
+        await using var transactionLifetime = transaction.ConfigureAwait(false);
+        var lockedJobId = await LockPendingPaymentJobAsync(order.TenantId, order.OrderId, cancellationToken).ConfigureAwait(false);
+        if (lockedJobId is null)
         {
             _ = context.ReconciliationJobs.Add(
                 ReconciliationJob.Create(order.TenantId, order.OrderId, ReconciliationKind.PaymentVerification, now, now, receipt.Id));
         }
         else
         {
-            _ = job.Reschedule(now, now);
-            _ = context.ReconciliationJobs.Update(job);
+            await RescheduleLockedJobAsync(lockedJobId.Value, now, cancellationToken).ConfigureAwait(false);
         }
 
         _ = context.ProviderEventReceipts.Add(receipt);
-        _ = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        _ = await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return WebhookIntakeOutcome.Accepted;
     }
 
-    private async Task<int> SaveAsync(CancellationToken cancellationToken)
+    private async Task<Guid?> LockPendingPaymentJobAsync(string tenantId, Guid orderId, CancellationToken cancellationToken)
     {
-        try
-        {
-            return await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (DbUpdateException)
-        {
-            return 0;
-        }
+        var current = context.Database.CurrentTransaction
+            ?? throw new InvalidOperationException("Receipt intake requires an explicit transaction.");
+        var connection = (NpgsqlConnection)context.Database.GetDbConnection();
+        var command = new NpgsqlCommand(LockPendingPaymentJobSql, connection, (NpgsqlTransaction)current.GetDbTransaction());
+        await using var commandLifetime = command.ConfigureAwait(false);
+        _ = command.Parameters.AddWithValue("tenant", tenantId);
+        _ = command.Parameters.AddWithValue("order", orderId);
+        _ = command.Parameters.AddWithValue("kind", (int)ReconciliationKind.PaymentVerification);
+        _ = command.Parameters.AddWithValue("status", (int)ReconciliationStatus.Pending);
+        var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        await using var readerLifetime = reader.ConfigureAwait(false);
+        return await reader.ReadAsync(cancellationToken).ConfigureAwait(false) ? reader.GetGuid(0) : null;
+    }
+
+    private async Task RescheduleLockedJobAsync(Guid jobId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var current = context.Database.CurrentTransaction
+            ?? throw new InvalidOperationException("Receipt intake requires an explicit transaction.");
+        var connection = (NpgsqlConnection)context.Database.GetDbConnection();
+        var command = new NpgsqlCommand(RescheduleLockedJobSql, connection, (NpgsqlTransaction)current.GetDbTransaction());
+        await using var commandLifetime = command.ConfigureAwait(false);
+        _ = command.Parameters.AddWithValue("id", jobId);
+        _ = command.Parameters.AddWithValue(nameof(now), now);
+        _ = command.Parameters.AddWithValue("status", (int)ReconciliationStatus.Pending);
+        _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 }

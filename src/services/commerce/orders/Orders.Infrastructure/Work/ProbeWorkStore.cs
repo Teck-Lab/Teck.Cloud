@@ -33,7 +33,7 @@ public sealed class ProbeWorkStore(NpgsqlDataSource dataSource)
         "RETURNING w.\"Id\", w.\"TenantId\", w.\"OrderId\", w.\"EvidenceRevision\", w.\"PlacementId\";";
 
     private const string OrderFactsSql =
-        "SELECT \"OrderId\", \"SubscriptionId\", \"Tier\", \"AddOnCodesCsv\"\n" +
+        "SELECT \"Id\", \"SubscriptionId\", \"Tier\", \"AddOnCodesCsv\"\n" +
         "FROM orders.\"Orders\"\n" +
         "WHERE \"Id\" = ANY(@ids) AND \"IsDeleted\" = FALSE;";
 

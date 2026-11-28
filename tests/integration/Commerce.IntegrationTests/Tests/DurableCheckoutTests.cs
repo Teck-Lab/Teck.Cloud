@@ -31,7 +31,7 @@ public sealed class DurableCheckoutTests(CommerceKeycloakFixture keycloak)
 
         var orderId = await CreateConcurrentIntentAsync(customer, token, body, headers, cancellationToken).ConfigureAwait(true);
         await BoundedWait.UntilAsync(
-            _ => Task.FromResult(stack.Stripe.State(orderId).CreateCount == 1),
+            _ => Task.FromResult(stack.Stripe.CreateCount(orderId) == 1),
             TimeSpan.FromSeconds(20),
             "Concurrent identical intents created more than one provider session.",
             cancellationToken).ConfigureAwait(true);

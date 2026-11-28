@@ -259,7 +259,7 @@ internal static class CommerceFlow
             revision,
             cancellationToken).ConfigureAwait(false);
         evidence.Status.ShouldBe(HttpStatusCode.OK, evidence.Body);
-        return evidence.Json()["order"]!.AsObject();
+        return evidence.Json().AsObject();
     }
 
     internal static async Task<JsonObject> WaitActiveAsync(

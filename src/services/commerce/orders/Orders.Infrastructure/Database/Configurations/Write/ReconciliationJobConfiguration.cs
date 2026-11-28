@@ -16,6 +16,10 @@ public sealed class ReconciliationJobConfiguration : IWriteModelConfiguration<Re
         _ = builder.HasKey(job => job.Id);
         _ = builder.Property(job => job.TenantId).HasMaxLength(64).IsRequired();
         _ = builder.Property(job => job.LastErrorCategory).HasMaxLength(64);
+
+        // The claimed lease token fences every tracked job mutation against a
+        // concurrent reclaim, including the row-locking verification settle.
+        _ = builder.Property(job => job.LeaseToken).IsConcurrencyToken();
         _ = builder.HasIndex(job => job.ProviderEventReceiptId);
         _ = builder.HasIndex(job => new { job.TenantId, job.OrderId, job.Kind }).IsUnique().HasFilter("\"Status\" = 1");
         _ = builder.HasIndex(job => new { job.Status, job.DueAt });

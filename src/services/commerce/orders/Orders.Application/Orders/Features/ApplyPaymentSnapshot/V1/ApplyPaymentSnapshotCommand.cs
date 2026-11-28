@@ -16,4 +16,11 @@ public sealed record ApplyPaymentSnapshotCommand(
     Guid OrderId,
     Guid JobId,
     Guid LeaseToken,
-    BillingReconciliation Snapshot) : ICommand<ErrorOr<bool>>, ITenantMessage;
+    BillingReconciliation Snapshot) : ICommand<ErrorOr<bool>>, ITenantMessage
+{
+    /// <summary>Gets the bounded outstanding receipt ids snapshotted before the provider call.</summary>
+    public IReadOnlyList<Guid> ReceiptIds { get; init; } = [];
+
+    /// <summary>Gets the durable polling interval applied to a verified unpaid re-fetch, in seconds.</summary>
+    public int RetrySeconds { get; init; }
+}
